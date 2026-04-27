@@ -1,10 +1,15 @@
 #include "Enemy.h"
 #include "Dxlib.h"
+#include "TransformComponent.h"
 #include "ResourceManager.h"
-#include "SpriteComponent.h" // 追加
+#include "SpriteComponent.h" 
 
-Enemy::Enemy(float x, float y) : GameObject(x, y) // 親のコンストラクタを呼ぶ
+Enemy::Enemy(float x, float y) : GameObject() // 親のコンストラクタを呼ぶ
 {
+    auto transform = std::make_unique<TransformComponent>();
+    m_transform = transform.get();
+    m_transform->SetPos(x, y);
+    AddComponent(std::move(transform));
     // 1. リソースマネージャーから画像ハンドルを取得
     int handle = ResourceManager::GetInstance().LoadResourceGraph("BaseFile/texture_Checker_64px.png");
 
@@ -17,20 +22,14 @@ Enemy::~Enemy()
 {
 }
 
-bool Enemy::Update()
+void Enemy::OnUpdate()
 {
-    // 親クラスの Update を呼ぶことでコンポーネントの Update が実行される
-    GameObject::Update();
-    SetPos(2,255);
-    // Enemy 固有の移動ロジック（例：左に動く）
-    // SetPos(GetX() - 1.0f, GetY()); 
-
-    return true;
+    if (m_transform) {
+        float x =m_transform->GetX();
+        m_transform->SetPos(x+2, 255);
+    }
 }
 
-bool Enemy::Draw()
+void Enemy::OnDraw()
 {
-    // 親クラスの Draw を呼ぶことで SpriteComponent の Draw が実行される
-    GameObject::Draw();
-    return true;
 }

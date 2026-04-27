@@ -6,7 +6,7 @@
 
 class GameObject {
 public:
-    GameObject(float x, float y) : m_x(x), m_y(y) {}
+    GameObject() {}
     virtual ~GameObject() = default;
     // コンポーネントの追加
     void AddComponent(std::unique_ptr<Component> comp) {
@@ -14,13 +14,15 @@ public:
         m_components.push_back(std::move(comp));
     }
 
-    virtual bool Update() {
+    virtual bool Update() final {
         for (auto& comp : m_components) comp->Update();
+        this -> OnUpdate();
         return true;
     }
 
-    virtual bool Draw() {
+    virtual bool Draw() final {
         for (auto& comp : m_components) comp->Draw();
+        this -> OnDraw();
         return true;
     }
 
@@ -29,12 +31,21 @@ public:
         for (auto& comp : m_components) comp->OnMessage(message);
     }
 
-    // アクセサ
-    float GetX() const { return m_x; }
-    float GetY() const { return m_y; }
-    void SetPos(float x, float y) { m_x = x; m_y = y; }
+    template <class T>
+    T* GetComponent() const {
+        for (const auto& comp : m_components) {
+            if (auto casted = dynamic_cast<T*>(comp.get())) {
+                return casted;
+            }
+        }
+        return nullptr;
+    }
+
+
 
 private:
-    float m_x, m_y;
     std::vector<std::unique_ptr<Component>> m_components;
+protected:
+    virtual void OnUpdate(){}
+    virtual void OnDraw(){}
 };
