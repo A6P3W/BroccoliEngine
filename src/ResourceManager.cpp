@@ -2,6 +2,12 @@
 #include <DxLib.h>
 #include <string>
 
+ResourceManager& ResourceManager::GetInstance()
+{
+    static ResourceManager instance;
+    return instance;
+}
+
 
 int ResourceManager::LoadResourceGraph(const std::string& path)
 {

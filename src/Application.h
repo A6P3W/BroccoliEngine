@@ -1,8 +1,6 @@
 #pragma once
 #include <memory>
-#include "Enemy.h"
-#include "Player.h"
-#include"GameObject.h"
+#include "OGameObject.h"
 #include <vector>
 class Application
 {
@@ -12,6 +10,6 @@ public:
 private:
 	bool Update();
 	bool Draw();
-	std::vector< std::unique_ptr<GameObject>> m_GameObjects;
+	std::vector< std::unique_ptr<OGameObject>> m_GameObjects;
 };
 

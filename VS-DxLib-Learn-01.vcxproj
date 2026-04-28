@@ -141,25 +141,30 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\OGameObject.cpp" />
+    <ClCompile Include="src\OUpdateableObject.cpp" />
+    <ClCompile Include="src\OBaseObject.cpp" />
     <ClCompile Include="src\SpriteComponent.cpp" />
     <ClCompile Include="src\Component.cpp" />
     <ClCompile Include="src\Player.cpp" />
-    <ClCompile Include="src\GameObject.cpp" />
     <ClCompile Include="src\ResourceManager.cpp" />
-    <ClCompile Include="src\Enemy.cpp" />
+    <ClCompile Include="src\SampleA.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\TransformComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\OGameObject.h" />
+    <ClInclude Include="src\OUpdateableObject.h" />
+    <ClInclude Include="src\OBaseObject.h" />
     <ClInclude Include="src\SpriteComponent.h" />
     <ClInclude Include="src\Component.h" />
     <ClInclude Include="src\Player.h" />
-    <ClInclude Include="src\GameObject.h" />
     <ClInclude Include="src\ResourceManager.h" />
-    <ClInclude Include="src\Enemy.h" />
+    <ClInclude Include="src\SampleA.h" />
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\TransformComponent.h" />
+    <ClInclude Include="src\UMath.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

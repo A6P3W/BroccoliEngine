@@ -4,10 +4,7 @@
 class ResourceManager
 {
 public:
-	static ResourceManager& GetInstance() {
-		static ResourceManager instance;
-		return instance;
-	}
+ static ResourceManager& GetInstance();
 	int LoadResourceGraph(const std::string& path);
 
 private:
