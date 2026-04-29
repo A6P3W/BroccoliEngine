@@ -12,7 +12,7 @@ Player::Player(float x, float y)
 	auto sprite = std::make_unique<SpriteComponent>(handle, 0);
 	AddComponent(std::move(sprite));
 }
-void Player::OnUpdate()
+void Player::OnUpdate(float DeltaTime)
 {
 	if (InputMapper::GetInstance().GetKeyPressing(E_INPUT_ACTION::UP)) {
 		m_transform->AddLocalPos(0.0f, -5.0f); 

@@ -27,24 +27,43 @@ Application::Application()
 }
 bool Application::Run()
 {
-	SetWaitVSyncFlag(FALSE);
-	const LONGLONG TargetFrameTime = 1000000 / 60;
-	LONGLONG NextFrameTime = GetNowHiPerformanceCount();
-	while (ProcessMessage() == 0&& !InputMapper::GetInstance().GetKeyPressStart(E_INPUT_ACTION::CANCEL)) {
-		Update();
-		Draw();
-		while (GetNowHiPerformanceCount() < NextFrameTime) {
-			Sleep(0);
-		}
-		NextFrameTime += TargetFrameTime;
-	}
-	return true;
+    SetWaitVSyncFlag(FALSE);
+
+    const LONGLONG TargetFrameTime = 1000000 / 60;
+    LONGLONG LastTime = GetNowHiPerformanceCount();
+
+    while (ProcessMessage() == 0 && !InputMapper::GetInstance().GetKeyPressStart(E_INPUT_ACTION::CANCEL)) {
+
+        LONGLONG CurrentTime = GetNowHiPerformanceCount();
+        LONGLONG ElapsedTime = CurrentTime - LastTime;
+
+
+        if (ElapsedTime < TargetFrameTime) {
+
+            LONGLONG SleepTime = (TargetFrameTime - ElapsedTime) / 1000; 
+            if (SleepTime > 0) {
+                Sleep((DWORD)SleepTime);
+            }
+            CurrentTime = GetNowHiPerformanceCount();
+            ElapsedTime = CurrentTime - LastTime;
+        }
+
+        m_DeltaTime = static_cast<float>(ElapsedTime) / 1000000.0f;
+        LastTime = CurrentTime;
+
+        if (m_DeltaTime > 0.1f) m_DeltaTime = 0.1f;
+
+
+        Update(m_DeltaTime);
+        Draw();
+    }
+    return true;
 }
-bool Application::Update()
+bool Application::Update(float DeltaTime)
 {
 	InputManager::GetInstance().Update();
 	for (auto& object : m_GameObjects) {
-		object->Update();
+		object->Update(DeltaTime);
 	}
 	return true;
 }

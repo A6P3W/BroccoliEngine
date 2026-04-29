@@ -8,7 +8,7 @@ class OGameObject :
 {
 public:
     OGameObject();
-    virtual void OnUpdate() override;
+    virtual void OnUpdate(float DeltaTime) override;
     virtual void Draw()final;
     TransformComponent* GetTransform() const;
 protected:

@@ -6,10 +6,10 @@ void OUpdateableObject::AddComponent(std::unique_ptr<Component> comp)
     m_components.push_back(std::move(comp));
 }
 
-bool OUpdateableObject::Update()
+bool OUpdateableObject::Update(float DeltaTime)
 {
-    for (auto& comp : m_components) comp->Update();
-    this->OnUpdate();
+    for (auto& comp : m_components) comp->Update(DeltaTime);
+    this->OnUpdate(DeltaTime);
     return true;
 }
 

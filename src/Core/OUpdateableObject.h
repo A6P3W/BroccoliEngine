@@ -9,7 +9,7 @@ class OUpdateableObject :
 {
 public:
     void AddComponent(std::unique_ptr<Component> comp);
-    virtual bool Update() final;
+    virtual bool Update(float DeltaTime) final;
     const std::vector<std::unique_ptr<Component>>& GetComponents() const;
 
     // GetComponent テンプレートもここに置いておくと便利
@@ -23,6 +23,6 @@ public:
 private:
 	std::vector<std::unique_ptr<Component>> m_components;
 protected:
-    virtual void OnUpdate() {}
+    virtual void OnUpdate(float DeltaTime) {}
 };
  

@@ -8,7 +8,7 @@ void OCameraObject::SetTarget(OGameObject* target)
 	m_target = target;
 }
 
-void OCameraObject::OnUpdate()
+void OCameraObject::OnUpdate(float DeltaTime)
 {
 	if (m_target) {
 		auto target_transform_component = m_target->GetTransform();

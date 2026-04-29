@@ -8,6 +8,7 @@
 OGridLine::OGridLine(int LineWidth)
 {
 	m_LineWidth = LineWidth;
+	m_LineColor = GetColor(255, 255, 255);
 }
 
 void OGridLine::OnDraw()
@@ -31,7 +32,7 @@ void OGridLine::OnDraw()
             (int)(CamPos.y - WindowHeight / 2),
             (int)x,
             (int)(CamPos.y + WindowHeight / 2),
-            GetColor(255, 255, 255),
+            m_LineColor,
             RenderSpace::World,
             -100,
             50
@@ -40,7 +41,7 @@ void OGridLine::OnDraw()
             std::format("{:.1f}",x*0.01),
             (int)x+2,
             (int)(CamPos.y + WindowHeight / 2-10),
-            GetColor(255, 255, 255),
+            m_LineColor,
             ResourceManager::GetInstance().GetFont(12,5),
             RenderSpace::World,
             -100,
@@ -56,7 +57,7 @@ void OGridLine::OnDraw()
             (int)y,
             (int)(CamPos.x + WindowWidth / 2),
             (int)y,
-            GetColor(255, 255, 255),
+            m_LineColor,
             RenderSpace::World,
             -100,
             50
@@ -65,7 +66,7 @@ void OGridLine::OnDraw()
             std::format("{:.1f}", y*0.01),
             (int)(CamPos.x - WindowWidth / 2+2),
             (int)y,
-            GetColor(255, 255, 255),
+            m_LineColor,
             ResourceManager::GetInstance().GetFont(12, 5),
             RenderSpace::World,
             -100,

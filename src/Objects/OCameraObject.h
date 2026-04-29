@@ -4,7 +4,7 @@ class OCameraObject : public OGameObject
 {
 public:
 	void SetTarget(OGameObject* target);
-	void OnUpdate() override;
+	void OnUpdate(float DeltaTime) override;
 	void SetCameraView();
 	void TraceRotation();
 private:

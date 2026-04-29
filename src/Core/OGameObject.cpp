@@ -7,7 +7,7 @@ OGameObject::OGameObject()
     AddComponent(std::move(transform));
 }
 
-void OGameObject::OnUpdate()
+void OGameObject::OnUpdate(float DeltaTime)
 {
 }
 

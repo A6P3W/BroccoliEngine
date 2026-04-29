@@ -18,7 +18,7 @@ SampleA::~SampleA()
 {
 }
 
-void SampleA::OnUpdate()
+void SampleA::OnUpdate(float DeltaTime)
 {
 	m_transform->AddAngle(0.05f); // 毎フレーム回転させる
 	m_transform->AddLocalPos(2.0f, 0.0f); // 毎フレーム右に移動させる

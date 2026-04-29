@@ -9,7 +9,7 @@ public:
     SampleA(float x, float y);
     ~SampleA() override;
 
-    void OnUpdate() override;
+    void OnUpdate(float DeltaTime) override;
     void OnDraw() override;
 
 private:

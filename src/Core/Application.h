@@ -8,8 +8,9 @@ public:
 	Application();
 	bool Run();
 private:
-	bool Update();
+	bool Update(float DeltaTime);
 	bool Draw();
 	std::vector< std::unique_ptr<OGameObject>> m_GameObjects;
+	float m_DeltaTime = 0.0f;
 };
 

@@ -8,5 +8,6 @@ public:
 	void OnDraw() override;
 private:
 	int m_LineWidth;
+	int m_LineColor ;
 };
 
