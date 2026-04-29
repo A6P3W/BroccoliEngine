@@ -1,9 +1,9 @@
 #pragma once
-#include "Component.h"
+#include "Components/Component.h"
 
 class SpriteComponent : public Component {
 public:
-    SpriteComponent(int handle);
+    SpriteComponent(int handle, int priority = 0);
 
     void Draw() override;
 
@@ -11,4 +11,5 @@ public:
 
 private:
     int m_handle;
+    int m_priority = 0;
 };

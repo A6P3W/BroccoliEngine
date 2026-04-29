@@ -113,7 +113,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)\src\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -131,7 +131,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)\src\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -141,30 +141,36 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\OGameObject.cpp" />
-    <ClCompile Include="src\OUpdateableObject.cpp" />
-    <ClCompile Include="src\OBaseObject.cpp" />
-    <ClCompile Include="src\SpriteComponent.cpp" />
-    <ClCompile Include="src\Component.cpp" />
-    <ClCompile Include="src\Player.cpp" />
-    <ClCompile Include="src\ResourceManager.cpp" />
-    <ClCompile Include="src\SampleA.cpp" />
-    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\Objects\OGridLine.cpp" />
+    <ClCompile Include="src\Objects\OCameraObject.cpp" />
+    <ClCompile Include="src\Core\OGameObject.cpp" />
+    <ClCompile Include="src\Core\OUpdateableObject.cpp" />
+    <ClCompile Include="src\Core\OBaseObject.cpp" />
+    <ClCompile Include="src\Systems\RenderSystem.cpp" />
+    <ClCompile Include="src\Components\SpriteComponent.cpp" />
+    <ClCompile Include="src\Components\Component.cpp" />
+    <ClCompile Include="src\Objects\Player.cpp" />
+    <ClCompile Include="src\Systems\ResourceManager.cpp" />
+    <ClCompile Include="src\Objects\SampleA.cpp" />
+    <ClCompile Include="src\Core\Application.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\TransformComponent.cpp" />
+    <ClCompile Include="src\Components\TransformComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\OGameObject.h" />
-    <ClInclude Include="src\OUpdateableObject.h" />
-    <ClInclude Include="src\OBaseObject.h" />
-    <ClInclude Include="src\SpriteComponent.h" />
-    <ClInclude Include="src\Component.h" />
-    <ClInclude Include="src\Player.h" />
-    <ClInclude Include="src\ResourceManager.h" />
-    <ClInclude Include="src\SampleA.h" />
-    <ClInclude Include="src\Application.h" />
-    <ClInclude Include="src\TransformComponent.h" />
-    <ClInclude Include="src\UMath.h" />
+    <ClInclude Include="src\Objects\OGridLine.h" />
+    <ClInclude Include="src\Objects\OCameraObject.h" />
+    <ClInclude Include="src\Core\OGameObject.h" />
+    <ClInclude Include="src\Core\OUpdateableObject.h" />
+    <ClInclude Include="src\Core\OBaseObject.h" />
+    <ClInclude Include="src\Systems\RenderSystem.h" />
+    <ClInclude Include="src\Components\SpriteComponent.h" />
+    <ClInclude Include="src\Components\Component.h" />
+    <ClInclude Include="src\Objects\Player.h" />
+    <ClInclude Include="src\Systems\ResourceManager.h" />
+    <ClInclude Include="src\Objects\SampleA.h" />
+    <ClInclude Include="src\Core\Application.h" />
+    <ClInclude Include="src\Components\TransformComponent.h" />
+    <ClInclude Include="src\Utils\UMath.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

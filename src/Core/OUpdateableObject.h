@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "Component.h"
+#include "Components/Component.h"
 class OUpdateableObject :
     public OBaseObject
 {

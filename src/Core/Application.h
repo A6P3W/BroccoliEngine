@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "OGameObject.h"
+#include "Core/OGameObject.h"
 #include <vector>
 class Application
 {

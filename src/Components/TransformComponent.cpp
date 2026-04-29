@@ -1,6 +1,6 @@
-#include "TransformComponent.h"
+#include "Components/TransformComponent.h"
 #include <cmath>
-#include "UMath.h"
+#include "Utils/UMath.h"
 void TransformComponent::SetPos(float nx, float ny)
 {
  pos.x = nx;

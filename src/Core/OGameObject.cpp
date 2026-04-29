@@ -1,4 +1,4 @@
-#include "OGameObject.h"
+#include "Core/OGameObject.h"
 
 OGameObject::OGameObject()
 {
@@ -15,4 +15,10 @@ void OGameObject::Draw()
 {
     for (auto& comp : GetComponents()) comp->Draw();
     this->OnDraw();
+}
+
+TransformComponent* OGameObject::GetTransform() const
+{
+
+    return m_transform;
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "OGameObject.h"
+#include "Core/OGameObject.h"
 
 class TransformComponent;
 
