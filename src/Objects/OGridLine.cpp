@@ -38,8 +38,8 @@ void OGridLine::OnDraw()
         );
         RenderSystem::GetInstance().SubmitText(
             std::format("{:.1f}",x*0.01),
-            (int)x+5,
-            (int)(CamPos.y + WindowHeight / 2-15),
+            (int)x+2,
+            (int)(CamPos.y + WindowHeight / 2-10),
             GetColor(255, 255, 255),
             ResourceManager::GetInstance().GetFont(12,5),
             RenderSpace::World,
@@ -63,7 +63,7 @@ void OGridLine::OnDraw()
         );
         RenderSystem::GetInstance().SubmitText(
             std::format("{:.1f}", y*0.01),
-            (int)(CamPos.x - WindowWidth / 2+10),
+            (int)(CamPos.x - WindowWidth / 2+2),
             (int)y,
             GetColor(255, 255, 255),
             ResourceManager::GetInstance().GetFont(12, 5),

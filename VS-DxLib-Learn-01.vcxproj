@@ -146,6 +146,8 @@
     <ClCompile Include="src\Core\OGameObject.cpp" />
     <ClCompile Include="src\Core\OUpdateableObject.cpp" />
     <ClCompile Include="src\Core\OBaseObject.cpp" />
+    <ClCompile Include="src\Systems\InputManager.cpp" />
+    <ClCompile Include="src\Systems\InputMapper.cpp" />
     <ClCompile Include="src\Systems\RenderSystem.cpp" />
     <ClCompile Include="src\Components\SpriteComponent.cpp" />
     <ClCompile Include="src\Components\Component.cpp" />
@@ -162,6 +164,8 @@
     <ClInclude Include="src\Core\OGameObject.h" />
     <ClInclude Include="src\Core\OUpdateableObject.h" />
     <ClInclude Include="src\Core\OBaseObject.h" />
+    <ClInclude Include="src\Systems\InputManager.h" />
+    <ClInclude Include="src\Systems\InputMapper.h" />
     <ClInclude Include="src\Systems\RenderSystem.h" />
     <ClInclude Include="src\Components\SpriteComponent.h" />
     <ClInclude Include="src\Components\Component.h" />

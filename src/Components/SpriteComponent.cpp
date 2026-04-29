@@ -1,6 +1,7 @@
 #include "SpriteComponent.h"
 #include "Core/OGameObject.h"
 #include "Components/TransformComponent.h"
+#include "Utils/UMath.h"
 #include "Systems/RenderSystem.h"
 
 SpriteComponent::SpriteComponent(int handle, int priority) : m_handle(handle), m_priority(priority)
@@ -20,7 +21,7 @@ void SpriteComponent::Draw()
 		(int)pos.x,
 		(int)pos.y,
 		(double)transform->GetScale(),
-		(double)transform->GetAngle(),
+      (double)UMath::DegToRad(transform->GetAngle()),
 		m_handle,
 		RenderSpace::World,
 		m_priority);
