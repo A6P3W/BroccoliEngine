@@ -14,13 +14,13 @@ void MSpriteComponent::Draw()
 		return;
 	}
 
-	const auto& pos = transform->GetPos();
+	const auto& Location = transform->GetLocation();
 
 	RenderSystem::GetInstance().SubmitSprite(
-		float(pos.x),
-		float(pos.y),
+		float(Location.X),
+		float(Location.Y),
 		(double)transform->GetScale(),
-		(double)UMath::DegToRad(transform->GetAngle()),
+		(double)UMath::DegToRad(transform->GetRotation()),
 		m_handle,
 		RenderSpace::World,
 		m_priority);

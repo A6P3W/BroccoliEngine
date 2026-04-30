@@ -12,13 +12,15 @@ void ACameraObject::OnUpdate(float DeltaTime)
 {
 	if (m_target) {
 		auto target_transform_component = m_target->GetTransform();
-		Vector2 target_pos = target_transform_component->GetPos();
-		m_transform->SetPos(target_pos);
+		FVector2D target_pos = target_transform_component->GetLocation();
+		m_transform->SetLocation(target_pos);
+		m_transform->SetRotation(target_transform_component->GetRotation());
 	}
 	else {
-		m_transform->SetPos(0, 0);
+		m_transform->SetLocation({0,0});
+		m_transform->SetRotation(0.0f);
 	}
-	
+
 }
 
 void ACameraObject::SetCameraView()

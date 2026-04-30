@@ -25,8 +25,8 @@ struct RenderCommand {
     int color = 0;
     int fill = 1;
     int alpha = 255;
-    double scale = 1.0;
-    double angle = 0.0;
+    double Scale = 1.0;
+    double AngleDeg = 0.0;
     std::string text;
     RenderSpace space = RenderSpace::World;
 };
@@ -39,7 +39,7 @@ public:
     RenderSystem();
     static RenderSystem& GetInstance();
 
-    void SubmitSprite(float x, float y, double scale, double angle, int handle, RenderSpace space , int priority, int alpha = 255);
+    void SubmitSprite(float x, float y, double Scale, double AngleDeg, int handle, RenderSpace space , int priority, int alpha = 255);
     void SubmitBox(float x1, float y1, float x2, float y2, int color, int fill, RenderSpace space , int priority, int alpha = 255);
     void SubmitText(const std::string& text, float x, float y, int color, int handle, RenderSpace space ,int priority, int alpha = 255);
     void SubmitLine(float x1, float y1, float x2, float y2, int color, RenderSpace space, int priority, int alpha = 255);

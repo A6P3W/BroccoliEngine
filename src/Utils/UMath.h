@@ -1,6 +1,22 @@
 ﻿#pragma once
 #include <cmath>
 #include <numbers>
+struct FVector2D
+{
+    float X = 0.0f;
+    float Y = 0.0f;
+
+    static const FVector2D ZeroVector;
+};
+
+struct FRotator
+{
+    //Degrees
+    float Rotation = 0.0f;
+
+    FRotator() = default;
+    FRotator(float InRotation) : Rotation(InRotation) {}
+};
 class UMath
 {
 public:

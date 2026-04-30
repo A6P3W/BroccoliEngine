@@ -19,65 +19,59 @@ void MSceneComponent::OnMessage(const std::string& message)
 
 void MSceneComponent::SetOwner(MUpdateableObject* owner)
 {
-    m_owner = owner;
+	m_owner = owner;
 }
 
-void MSceneComponent::SetPos(float nx, float ny)
+void MSceneComponent::SetLocation(const FVector2D& nPos)
 {
-    pos.x = nx;
-    pos.y = ny;
+	Location = nPos;
 }
 
-void MSceneComponent::SetPos(const Vector2& nPos)
+void MSceneComponent::AddLocalLocation(float nx, float ny)
 {
-    pos = nPos;
+	float rad = UMath::DegToRad(Rotation.Rotation);
+
+	float s = std::sin(rad);
+	float c = std::cos(rad);
+
+	float worldNX = nx * c - ny * s;
+	float worldNY = nx * s + ny * c;
+
+	Location.X += worldNX;
+	Location.Y += worldNY;
 }
 
-void MSceneComponent::AddLocalPos(float nx, float ny)
+void MSceneComponent::AddWorldLocation(float nx, float ny)
 {
-    float rad = UMath::DegToRad(angle);
-
-    float s = std::sin(rad);
-    float c = std::cos(rad);
-
-    float worldNX = nx * c - ny * s;
-    float worldNY = nx * s + ny * c;
-
-    pos.x += worldNX;
-    pos.y += worldNY;
+	SetLocation({Location.X + nx, Location.Y + ny});
 }
 
-void MSceneComponent::AddWorldPos(float nx, float ny)
+const FVector2D& MSceneComponent::GetLocation() const
 {
-    SetPos(pos.x + nx, pos.y + ny);
+	return Location;
 }
 
-const Vector2& MSceneComponent::GetPos() const
+void MSceneComponent::SetRotation(float nAngle)
 {
-    return pos;
+	Rotation = nAngle;
 }
 
-void MSceneComponent::SetAngle(float nAngle)
+void MSceneComponent::AddRotation(float nAngleDeg)
 {
-    angle = nAngle;
+	Rotation.Rotation += nAngleDeg;
 }
 
-void MSceneComponent::AddAngle(float nAngleDeg)
+float MSceneComponent::GetRotation() const
 {
-    angle += nAngleDeg;
-}
-
-float MSceneComponent::GetAngle() const
-{
-    return angle;
+	return Rotation.Rotation;
 }
 
 void MSceneComponent::SetScale(float nScale)
 {
-    scale = nScale;
+	Scale = nScale;
 }
 
 float MSceneComponent::GetScale() const
 {
-    return scale;
+	return Scale;
 }

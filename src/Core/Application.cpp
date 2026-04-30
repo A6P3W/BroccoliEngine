@@ -12,18 +12,15 @@ Application::Application()
 	m_GameObjects.push_back(std::make_unique<AGridLine>(50));
 
 
-	auto sample_a = std::make_unique<ASampleA>(50.0f, 2.0f);
-	auto DefaultCamera = std::make_unique<ACameraObject>();
-	DefaultCamera->SetTarget(sample_a.get());
-	DefaultCamera->SetCameraView();
+    auto sample_a = std::make_unique<ASampleA>(50.0f, 2.0f);
 	m_GameObjects.push_back(std::move(sample_a));
-	
-	auto camera2 = std::make_unique<ACameraObject>();
+
 	auto player = std::make_unique<APlayer>(-50.0f, -50.0f);
-	camera2->SetTarget(player.get());
-	camera2->SetCameraView();
+	auto camera = std::make_unique<ACameraObject>();
+	camera->SetTarget(player.get());
+	camera->SetCameraView();
 	m_GameObjects.push_back(std::move(player));
-	m_GameObjects.push_back(std::move(camera2));
+	m_GameObjects.push_back(std::move(camera));
 }
 bool Application::Run()
 {
