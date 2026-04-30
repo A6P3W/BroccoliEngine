@@ -141,40 +141,44 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Objects\OGridLine.cpp" />
-    <ClCompile Include="src\Objects\OCameraObject.cpp" />
-    <ClCompile Include="src\Core\OGameObject.cpp" />
-    <ClCompile Include="src\Core\OUpdateableObject.cpp" />
-    <ClCompile Include="src\Core\OBaseObject.cpp" />
+    <ClCompile Include="src\Components\BaseComponent.cpp" />
+    <ClCompile Include="src\Objects\GridLine.cpp" />
+    <ClCompile Include="src\Objects\CameraObject.cpp" />
+    <ClCompile Include="src\Core\GameObject.cpp" />
+    <ClCompile Include="src\Core\UpdateableObject.cpp" />
+    <ClCompile Include="src\Core\BaseObject.cpp" />
     <ClCompile Include="src\Systems\InputManager.cpp" />
     <ClCompile Include="src\Systems\InputMapper.cpp" />
     <ClCompile Include="src\Systems\RenderSystem.cpp" />
     <ClCompile Include="src\Components\SpriteComponent.cpp" />
-    <ClCompile Include="src\Components\Component.cpp" />
+    <ClCompile Include="src\Components\SceneComponent.cpp" />
     <ClCompile Include="src\Objects\Player.cpp" />
     <ClCompile Include="src\Systems\ResourceManager.cpp" />
     <ClCompile Include="src\Objects\SampleA.cpp" />
     <ClCompile Include="src\Core\Application.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Components\TransformComponent.cpp" />
+    <ClCompile Include="src\Components\UpdateableComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Objects\OGridLine.h" />
-    <ClInclude Include="src\Objects\OCameraObject.h" />
-    <ClInclude Include="src\Core\OGameObject.h" />
-    <ClInclude Include="src\Core\OUpdateableObject.h" />
-    <ClInclude Include="src\Core\OBaseObject.h" />
+    <ClInclude Include="src\Components\BaseComponent.h" />
+    <ClInclude Include="src\Objects\GridLine.h" />
+    <ClInclude Include="src\Objects\CameraObject.h" />
+    <ClInclude Include="src\Core\GameObject.h" />
+    <ClInclude Include="src\Core\UpdateableObject.h" />
+    <ClInclude Include="src\Core\BaseObject.h" />
     <ClInclude Include="src\Systems\InputManager.h" />
     <ClInclude Include="src\Systems\InputMapper.h" />
     <ClInclude Include="src\Systems\RenderSystem.h" />
     <ClInclude Include="src\Components\SpriteComponent.h" />
-    <ClInclude Include="src\Components\Component.h" />
+    <ClInclude Include="src\Components\SceneComponent.h" />
     <ClInclude Include="src\Objects\Player.h" />
     <ClInclude Include="src\Systems\ResourceManager.h" />
     <ClInclude Include="src\Objects\SampleA.h" />
     <ClInclude Include="src\Core\Application.h" />
     <ClInclude Include="src\Components\TransformComponent.h" />
     <ClInclude Include="src\Utils\UMath.h" />
+    <ClInclude Include="src\Components\UpdateableComponent.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

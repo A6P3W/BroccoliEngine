@@ -1,25 +1,25 @@
-#include "Core/Application.h"
+﻿#include "Core/Application.h"
 #include "DxLib.h"
 #include "Objects/SampleA.h"
-#include "Objects/OCameraObject.h"
+#include "Objects/CameraObject.h"
 #include "Systems/RenderSystem.h"
-#include "Objects/OGridLine.h"
+#include "Objects/GridLine.h"
 #include "Systems/InputManager.h"
 #include "Systems/InputMapper.h"
 #include "Objects/Player.h"
 Application::Application()
 {
-	m_GameObjects.push_back(std::make_unique<OGridLine>(50));
+	m_GameObjects.push_back(std::make_unique<AGridLine>(50));
 
 
-	auto sample_a = std::make_unique<SampleA>(50.0f, 2.0f);
-	auto camera = std::make_unique<OCameraObject>();
-	camera->SetTarget(sample_a.get());
-	camera->SetCameraView();
+	auto sample_a = std::make_unique<ASampleA>(50.0f, 2.0f);
+	auto DefaultCamera = std::make_unique<ACameraObject>();
+	DefaultCamera->SetTarget(sample_a.get());
+	DefaultCamera->SetCameraView();
 	m_GameObjects.push_back(std::move(sample_a));
 	
-	auto camera2 = std::make_unique<OCameraObject>();
-	auto player = std::make_unique<Player>(-50.0f, -50.0f);
+	auto camera2 = std::make_unique<ACameraObject>();
+	auto player = std::make_unique<APlayer>(-50.0f, -50.0f);
 	camera2->SetTarget(player.get());
 	camera2->SetCameraView();
 	m_GameObjects.push_back(std::move(player));

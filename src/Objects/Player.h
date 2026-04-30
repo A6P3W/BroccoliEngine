@@ -1,10 +1,10 @@
-#pragma once
-#include "Core/OGameObject.h"
+﻿#pragma once
+#include "Core/GameObject.h"
 
-class Player : public OGameObject
+class APlayer : public AGameObject
 {
 public:
-	Player(float x,float y);
+	APlayer(float x,float y);
 	void OnUpdate(float DeltaTime) override;
 	void OnDraw() override;
 private:

@@ -1,16 +1,16 @@
-#include "SpriteComponent.h"
-#include "Core/OGameObject.h"
+﻿#include "SpriteComponent.h"
+#include "Core/GameObject.h"
 #include "Components/TransformComponent.h"
 #include "Utils/UMath.h"
 #include "Systems/RenderSystem.h"
 
-SpriteComponent::SpriteComponent(int handle, int priority) : m_handle(handle), m_priority(priority)
+MSpriteComponent::MSpriteComponent(int handle, int priority) : m_handle(handle), m_priority(priority)
 {
 }
 
-void SpriteComponent::Draw()
+void MSpriteComponent::Draw()
 {
-	auto transform = m_owner ? m_owner->GetComponent<TransformComponent>() : nullptr;
+	auto transform = m_owner ? m_owner->GetComponent<MTransformComponent>() : nullptr;
 	if (!transform) {
 		return;
 	}
@@ -18,8 +18,8 @@ void SpriteComponent::Draw()
 	const auto& pos = transform->GetPos();
 
 	RenderSystem::GetInstance().SubmitSprite(
-		(int)pos.x,
-		(int)pos.y,
+		float(pos.x),
+		float(pos.y),
 		(double)transform->GetScale(),
       (double)UMath::DegToRad(transform->GetAngle()),
 		m_handle,
@@ -28,7 +28,7 @@ void SpriteComponent::Draw()
 }
 
 
-void SpriteComponent::OnMessage(const std::string& message)
+void MSpriteComponent::OnMessage(const std::string& message)
 {
 	if (message == "HIT") {
 		// 当たった時に何か演出をするなどの処理

@@ -30,19 +30,19 @@
     <ClCompile Include="src\Components\SpriteComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Components\Component.cpp">
+    <ClCompile Include="src\Components\SceneComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="src\Components\TransformComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\OGameObject.cpp">
+    <ClCompile Include="src\Core\GameObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\OUpdateableObject.cpp">
+    <ClCompile Include="src\Core\UpdateableObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\OBaseObject.cpp">
+    <ClCompile Include="src\Core\BaseObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="src\Objects\SampleA.cpp">
@@ -51,16 +51,22 @@
     <ClCompile Include="src\Systems\RenderSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Objects\OCameraObject.cpp">
+    <ClCompile Include="src\Objects\CameraObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Objects\OGridLine.cpp">
+    <ClCompile Include="src\Objects\GridLine.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="src\Systems\InputManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="src\Systems\InputMapper.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Components\BaseComponent.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Components\UpdateableComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -77,19 +83,19 @@
     <ClInclude Include="src\Components\SpriteComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Components\Component.h">
+    <ClInclude Include="src\Components\SceneComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="src\Components\TransformComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Core\OGameObject.h">
+    <ClInclude Include="src\Core\GameObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Core\OUpdateableObject.h">
+    <ClInclude Include="src\Core\UpdateableObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Core\OBaseObject.h">
+    <ClInclude Include="src\Core\BaseObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="src\Objects\SampleA.h">
@@ -101,16 +107,22 @@
     <ClInclude Include="src\Systems\RenderSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Objects\OCameraObject.h">
+    <ClInclude Include="src\Objects\CameraObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Objects\OGridLine.h">
+    <ClInclude Include="src\Objects\GridLine.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="src\Systems\InputManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="src\Systems\InputMapper.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Components\BaseComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Components\UpdateableComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

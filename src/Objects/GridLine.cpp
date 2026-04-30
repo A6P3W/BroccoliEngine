@@ -1,17 +1,17 @@
-#include "Objects/OGridLine.h"
+﻿#include "Objects/GridLine.h"
 #include "Systems/RenderSystem.h"
-#include "Objects/OCameraObject.h"
+#include "Objects/CameraObject.h"
 #include <DxLib.h>
 #include<string>
 #include <format>
 #include "Systems/ResourceManager.h"
-OGridLine::OGridLine(int LineWidth)
+AGridLine::AGridLine(int LineWidth)
 {
 	m_LineWidth = LineWidth;
 	m_LineColor = GetColor(255, 255, 255);
 }
 
-void OGridLine::OnDraw()
+void AGridLine::OnDraw()
 {
     Vector2 CamPos = RenderSystem::GetInstance().GetCamera()->GetTransform()->GetPos();
 
@@ -28,10 +28,10 @@ void OGridLine::OnDraw()
     for (int i = 0; i < LineCountX; i++) {
         float x = startX + i * m_LineWidth;
         RenderSystem::GetInstance().SubmitLine(
-            (int)x,
-            (int)(CamPos.y - WindowHeight / 2),
-            (int)x,
-            (int)(CamPos.y + WindowHeight / 2),
+            x,
+            CamPos.y - WindowHeight / 2,
+            x,
+            CamPos.y + WindowHeight / 2,
             m_LineColor,
             RenderSpace::World,
             -100,
@@ -39,8 +39,8 @@ void OGridLine::OnDraw()
         );
         RenderSystem::GetInstance().SubmitText(
             std::format("{:.1f}",x*0.01),
-            (int)x+2,
-            (int)(CamPos.y + WindowHeight / 2-10),
+            x+2,
+            CamPos.y + WindowHeight / 2-10,
             m_LineColor,
             ResourceManager::GetInstance().GetFont(12,5),
             RenderSpace::World,
@@ -53,10 +53,10 @@ void OGridLine::OnDraw()
     for (int i = 0; i < LineCountY; i++) {
         float y = startY + i * m_LineWidth;
         RenderSystem::GetInstance().SubmitLine(
-            (int)(CamPos.x - WindowWidth / 2),
-            (int)y,
-            (int)(CamPos.x + WindowWidth / 2),
-            (int)y,
+            CamPos.x - WindowWidth / 2,
+            y,
+            CamPos.x + WindowWidth / 2,
+            y,
             m_LineColor,
             RenderSpace::World,
             -100,
@@ -64,8 +64,8 @@ void OGridLine::OnDraw()
         );
         RenderSystem::GetInstance().SubmitText(
             std::format("{:.1f}", y*0.01),
-            (int)(CamPos.x - WindowWidth / 2+2),
-            (int)y,
+            CamPos.x - WindowWidth / 2+2,
+            y,
             m_LineColor,
             ResourceManager::GetInstance().GetFont(12, 5),
             RenderSpace::World,

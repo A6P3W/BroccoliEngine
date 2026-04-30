@@ -1,9 +1,9 @@
-#pragma once
-#include "Components/Component.h"
+﻿#pragma once
+#include "Components/SceneComponent.h"
 
-class SpriteComponent : public Component {
+class MSpriteComponent : public MSceneComponent {
 public:
-    SpriteComponent(int handle, int priority = 0);
+    MSpriteComponent(int handle, int priority = 0);
 
     void Draw() override;
 

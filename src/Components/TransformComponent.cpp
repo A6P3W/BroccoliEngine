@@ -1,18 +1,18 @@
-#include "Components/TransformComponent.h"
+﻿#include "Components/TransformComponent.h"
 #include <cmath>
 #include "Utils/UMath.h"
-void TransformComponent::SetPos(float nx, float ny)
+void MTransformComponent::SetPos(float nx, float ny)
 {
  pos.x = nx;
     pos.y = ny;
 }
 
-void TransformComponent::SetPos(const Vector2& nPos)
+void MTransformComponent::SetPos(const Vector2& nPos)
 {
    pos = nPos;
 }
 
-void TransformComponent::AddLocalPos(float nx, float ny)
+void MTransformComponent::AddLocalPos(float nx, float ny)
 {
     float rad = UMath::DegToRad(angle); 
 
@@ -26,36 +26,36 @@ void TransformComponent::AddLocalPos(float nx, float ny)
     pos.y += worldNY;
 }
 
-void TransformComponent::AddWorldPos(float nx, float ny)
+void MTransformComponent::AddWorldPos(float nx, float ny)
 {
 	SetPos(pos.x + nx, pos.y + ny);
 }
 
-const Vector2& TransformComponent::GetPos() const
+const Vector2& MTransformComponent::GetPos() const
 {
    return pos;
 }
 
-void TransformComponent::SetAngle(float nAngle)
+void MTransformComponent::SetAngle(float nAngle)
 {
     angle = nAngle;
 }
-void TransformComponent::AddAngle(float nAngleDeg)
+void MTransformComponent::AddAngle(float nAngleDeg)
 {
     angle += nAngleDeg;
 }
 
-float TransformComponent::GetAngle() const
+float MTransformComponent::GetAngle() const
 {
     return angle;
 }
 
-void TransformComponent::SetScale(float nScale)
+void MTransformComponent::SetScale(float nScale)
 {
     scale = nScale;
 }
 
-float TransformComponent::GetScale() const
+float MTransformComponent::GetScale() const
 {
     return scale;
 }

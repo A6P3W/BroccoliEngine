@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <vector>
 #include <string>
 
@@ -31,7 +31,7 @@ struct RenderCommand {
     RenderSpace space = RenderSpace::World;
 };
 
-class OCameraObject;
+class ACameraObject;
 
 class RenderSystem
 {
@@ -46,10 +46,10 @@ public:
 
     void Draw();
 
-    void SetCameraView(OCameraObject*m);
-    OCameraObject* GetCamera();
+    void SetCameraView(ACameraObject*m);
+    ACameraObject* GetCamera();
 
 private:
     std::vector<RenderCommand> m_commands;
-    OCameraObject* m_MainCamera = nullptr;
+    ACameraObject* m_MainCamera = nullptr;
 };

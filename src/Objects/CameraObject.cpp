@@ -1,14 +1,14 @@
-#include "Objects/OCameraObject.h"
+﻿#include "Objects/CameraObject.h"
 #include "Systems/RenderSystem.h"
 #include <vector>
 #include <DxLib.h>
 
-void OCameraObject::SetTarget(OGameObject* target)
+void ACameraObject::SetTarget(AGameObject* target)
 {
 	m_target = target;
 }
 
-void OCameraObject::OnUpdate(float DeltaTime)
+void ACameraObject::OnUpdate(float DeltaTime)
 {
 	if (m_target) {
 		auto target_transform_component = m_target->GetTransform();
@@ -21,12 +21,12 @@ void OCameraObject::OnUpdate(float DeltaTime)
 	
 }
 
-void OCameraObject::SetCameraView()
+void ACameraObject::SetCameraView()
 {
 	RenderSystem::GetInstance().SetCameraView(this);
 }
 
-void OCameraObject::TraceRotation()
+void ACameraObject::TraceRotation()
 {
 }
 

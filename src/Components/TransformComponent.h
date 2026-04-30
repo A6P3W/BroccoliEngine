@@ -1,5 +1,5 @@
-#pragma once
-#include "Components/Component.h"
+﻿#pragma once
+#include "Components/SceneComponent.h"
 
 struct Vector2
 {
@@ -7,7 +7,7 @@ struct Vector2
 	float y = 0.0f;
 };
 
-class TransformComponent : public Component
+class MTransformComponent : public MSceneComponent
 {
 public:
 	void SetPos(float nx, float ny);

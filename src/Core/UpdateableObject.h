@@ -1,18 +1,17 @@
-#pragma once
-#include "OBaseObject.h"
+﻿#pragma once
+#include "BaseObject.h"
 #include <string>
 #include <vector>
 #include <memory>
-#include "Components/Component.h"
-class OUpdateableObject :
-    public OBaseObject
+#include "Components/SceneComponent.h"
+class MUpdateableObject :
+    public MBaseObject
 {
 public:
-    void AddComponent(std::unique_ptr<Component> comp);
+    void AddComponent(std::unique_ptr<MSceneComponent> comp);
     virtual bool Update(float DeltaTime) final;
-    const std::vector<std::unique_ptr<Component>>& GetComponents() const;
+    const std::vector<std::unique_ptr<MSceneComponent>>& GetComponents() const;
 
-    // GetComponent テンプレートもここに置いておくと便利
     template <class T>
     T* GetComponent() const {
         for (const auto& comp : m_components) {
@@ -21,7 +20,7 @@ public:
         return nullptr;
     }
 private:
-	std::vector<std::unique_ptr<Component>> m_components;
+	std::vector<std::unique_ptr<MSceneComponent>> m_components;
 protected:
     virtual void OnUpdate(float DeltaTime) {}
 };

@@ -1,13 +1,13 @@
-#pragma once
-#include "Core/OGameObject.h"
+﻿#pragma once
+#include "Core/GameObject.h"
 
-class TransformComponent;
+class MTransformComponent;
 
-class SampleA : public OGameObject
+class ASampleA : public AGameObject
 {
 public:
-    SampleA(float x, float y);
-    ~SampleA() override;
+    ASampleA(float x, float y);
+    ~ASampleA() override;
 
     void OnUpdate(float DeltaTime) override;
     void OnDraw() override;

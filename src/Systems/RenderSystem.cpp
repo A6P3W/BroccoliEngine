@@ -1,7 +1,7 @@
-#include "Systems/RenderSystem.h"
+﻿#include "Systems/RenderSystem.h"
 #include "DxLib.h"
 #include <algorithm>
-#include "Objects/OCameraObject.h"
+#include "Objects/CameraObject.h"
 RenderSystem::RenderSystem()
 {
 }
@@ -117,12 +117,12 @@ void RenderSystem::Draw()
     m_commands.clear();
 }
 
-void RenderSystem::SetCameraView(OCameraObject* m)
+void RenderSystem::SetCameraView(ACameraObject* m)
 {
     m_MainCamera = m;
 }
 
-OCameraObject* RenderSystem::GetCamera()
+ACameraObject* RenderSystem::GetCamera()
 {
 	return m_MainCamera;
 }
