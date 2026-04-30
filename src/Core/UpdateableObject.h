@@ -3,14 +3,14 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "Components/SceneComponent.h"
+#include "Components/UpdateableComponent.h"
 class MUpdateableObject :
     public MBaseObject
 {
 public:
-    void AddComponent(std::unique_ptr<MSceneComponent> comp);
+    void AddComponent(std::unique_ptr<UpdateableComponent> comp);
     virtual bool Update(float DeltaTime) final;
-    const std::vector<std::unique_ptr<MSceneComponent>>& GetComponents() const;
+    const std::vector<std::unique_ptr<UpdateableComponent>>& GetComponents() const;
 
     template <class T>
     T* GetComponent() const {
@@ -20,7 +20,7 @@ public:
         return nullptr;
     }
 private:
-	std::vector<std::unique_ptr<MSceneComponent>> m_components;
+ std::vector<std::unique_ptr<UpdateableComponent>> m_components;
 protected:
     virtual void OnUpdate(float DeltaTime) {}
 };

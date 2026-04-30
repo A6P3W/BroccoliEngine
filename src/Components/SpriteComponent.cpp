@@ -1,6 +1,5 @@
 ﻿#include "SpriteComponent.h"
 #include "Core/GameObject.h"
-#include "Components/TransformComponent.h"
 #include "Utils/UMath.h"
 #include "Systems/RenderSystem.h"
 
@@ -10,7 +9,7 @@ MSpriteComponent::MSpriteComponent(int handle, int priority) : m_handle(handle),
 
 void MSpriteComponent::Draw()
 {
-	auto transform = m_owner ? m_owner->GetComponent<MTransformComponent>() : nullptr;
+	auto transform = m_owner ? m_owner->GetComponent<MSceneComponent>() : nullptr;
 	if (!transform) {
 		return;
 	}
@@ -21,7 +20,7 @@ void MSpriteComponent::Draw()
 		float(pos.x),
 		float(pos.y),
 		(double)transform->GetScale(),
-      (double)UMath::DegToRad(transform->GetAngle()),
+		(double)UMath::DegToRad(transform->GetAngle()),
 		m_handle,
 		RenderSpace::World,
 		m_priority);

@@ -2,7 +2,7 @@
 
 AGameObject::AGameObject()
 {
-    auto transform = std::make_unique<MTransformComponent>();
+    auto transform = std::make_unique<MSceneComponent>();
     m_transform = transform.get();
     AddComponent(std::move(transform));
 }
@@ -17,7 +17,7 @@ void AGameObject::Draw()
     this->OnDraw();
 }
 
-MTransformComponent* AGameObject::GetTransform() const
+MSceneComponent* AGameObject::GetTransform() const
 {
 
     return m_transform;

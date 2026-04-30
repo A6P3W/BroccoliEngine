@@ -5,6 +5,7 @@ class UpdateableComponent :
 {
 public:
     virtual bool Update(float DeltaTime) final;
+    virtual void Draw() {}
 
 private:
 
