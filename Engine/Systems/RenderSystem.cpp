@@ -1,8 +1,8 @@
-﻿#include "Systems/RenderSystem.h"
+﻿#include <Systems/RenderSystem.h>
 #include "DxLib.h"
 #include <algorithm>
 #include <cmath>
-#include "Objects/CameraObject.h"
+#include "Objects/Camera.h"
 #include "Utils/UMath.h"
 RenderSystem::RenderSystem()
 {
@@ -78,7 +78,7 @@ void RenderSystem::Draw()
 		return a.priority < b.priority;
 		});
 	FVector2D CamPos = m_MainCamera->GetTransform()->GetLocation();
-	float camAngle = m_MainCamera->GetTransform()->GetRotation();
+	float camAngle = m_MainCamera->GetTransform()->GetWorldRotation();
 	int WindowWidth, WindowHeight;
 	GetDrawScreenSize(&WindowWidth, &WindowHeight);
 	const float centerX = WindowWidth * 0.5f;

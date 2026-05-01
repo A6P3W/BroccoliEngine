@@ -51,7 +51,7 @@ const FVector2D& MSceneComponent::GetLocation() const
 	return Location;
 }
 
-void MSceneComponent::SetRotation(float nAngle)
+void MSceneComponent::SetWorldRotation(float nAngle)
 {
 	Rotation = nAngle;
 }
@@ -61,7 +61,7 @@ void MSceneComponent::AddRotation(float nAngleDeg)
 	Rotation.Rotation += nAngleDeg;
 }
 
-float MSceneComponent::GetRotation() const
+float MSceneComponent::GetWorldRotation() const
 {
 	return Rotation.Rotation;
 }

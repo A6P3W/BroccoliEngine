@@ -1,26 +1,17 @@
 ﻿#include "Core/Application.h"
 #include "DxLib.h"
 #include "Objects/SampleA.h"
-#include "Objects/CameraObject.h"
-#include "Systems/RenderSystem.h"
+#include "Objects/Camera.h"
+#include <Systems/RenderSystem.h>
 #include "Objects/GridLine.h"
-#include "Systems/InputManager.h"
-#include "Systems/InputMapper.h"
-#include "Objects/Player.h"
+#include <Systems/InputManager.h>
+#include <Systems/InputMapper.h>
+#include <Systems/ObjectManager.h>
 Application::Application()
 {
-	m_GameObjects.push_back(std::make_unique<AGridLine>(50));
-
-
-    auto sample_a = std::make_unique<ASampleA>(50.0f, 2.0f);
-	m_GameObjects.push_back(std::move(sample_a));
-
-	auto player = std::make_unique<APlayer>(-50.0f, -50.0f);
-	auto camera = std::make_unique<ACameraObject>();
-	camera->SetTarget(player.get());
-	camera->SetCameraView();
-	m_GameObjects.push_back(std::move(player));
-	m_GameObjects.push_back(std::move(camera));
+    ObjectManager::GetInstance().SpawnObject<AGridLine>(50);
+    auto DefaultCamera = ObjectManager::GetInstance().SpawnObject<ACameraObject>();
+    DefaultCamera->SetCameraView();
 }
 bool Application::Run()
 {
@@ -29,7 +20,9 @@ bool Application::Run()
     const LONGLONG TargetFrameTime = 1000000 / 60;
     LONGLONG LastTime = GetNowHiPerformanceCount();
 
-    while (ProcessMessage() == 0 && !InputMapper::GetInstance().GetKeyPressStart(E_INPUT_ACTION::CANCEL)) {
+	GameMainInstance->BeginPlay();
+    auto& IMI = InputManager::GetInstance();
+    while (ProcessMessage() == 0 && !IMI.GetKeyPressing(KEY_INPUT_ESCAPE)|| IMI.GetKeyPressing(KEY_INPUT_LSHIFT)) {
 
         LONGLONG CurrentTime = GetNowHiPerformanceCount();
         LONGLONG ElapsedTime = CurrentTime - LastTime;
@@ -59,9 +52,9 @@ bool Application::Run()
 bool Application::Update(float DeltaTime)
 {
 	InputManager::GetInstance().Update();
-	for (auto& object : m_GameObjects) {
-		object->Update(DeltaTime);
-	}
+    ObjectManager::GetInstance().Update(DeltaTime);
+	GameMainInstance->Update(DeltaTime);
+
 	return true;
 }
 
@@ -69,9 +62,8 @@ bool Application::Draw()
 {
 	SetDrawScreen(DX_SCREEN_BACK);
 	ClearDrawScreen();
-	for (auto& object : m_GameObjects) {
-		object->Draw();
-	}
+	GameMainInstance->Draw();
+    ObjectManager::GetInstance().Draw();
 	RenderSystem::GetInstance().Draw();
 	ScreenFlip();
 	return true;

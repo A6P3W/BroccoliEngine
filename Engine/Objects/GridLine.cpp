@@ -1,6 +1,6 @@
 ﻿#include "Objects/GridLine.h"
-#include "Systems/RenderSystem.h"
-#include "Objects/CameraObject.h"
+#include <Systems/RenderSystem.h>
+#include "Objects/Camera.h"
 #include <DxLib.h>
 #include <string>
 #include <format>
@@ -17,7 +17,7 @@ void AGridLine::OnDraw()
 {
     auto Cam = RenderSystem::GetInstance().GetCamera()->GetTransform();
     FVector2D CamPos = Cam->GetLocation();
-    float CamRotation = Cam->GetRotation();
+    float CamRotation = Cam->GetWorldRotation();
 
     int WindowWidth, WindowHeight;
     GetDrawScreenSize(&WindowWidth, &WindowHeight);

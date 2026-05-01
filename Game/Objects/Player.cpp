@@ -1,5 +1,5 @@
 ﻿#include "Player.h"
-#include "Systems/InputMapper.h"
+#include <Systems/InputMapper.h>
 #include "Systems/ResourceManager.h"
 #include "Components/SpriteComponent.h"
 APlayer::APlayer(float x, float y)

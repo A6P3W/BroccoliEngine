@@ -15,108 +15,126 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp">
+    <ClCompile Include="Game\Objects\Player.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\Application.cpp">
+    <ClCompile Include="Game\Objects\SampleA.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Systems\ResourceManager.cpp">
+    <ClCompile Include="Game\GameMain.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Objects\Player.cpp">
+    <ClCompile Include="Game\Objects\Map.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Components\SpriteComponent.cpp">
+    <ClCompile Include="Engine\Components\BaseComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Components\SceneComponent.cpp">
+    <ClCompile Include="Engine\Components\SceneComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\GameObject.cpp">
+    <ClCompile Include="Engine\Components\SpriteComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\UpdateableObject.cpp">
+    <ClCompile Include="Engine\Components\UpdateableComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\BaseObject.cpp">
+    <ClCompile Include="Engine\Core\Application.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Objects\SampleA.cpp">
+    <ClCompile Include="Engine\Core\BaseObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Systems\RenderSystem.cpp">
+    <ClCompile Include="Engine\Core\GameObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Objects\CameraObject.cpp">
+    <ClCompile Include="Engine\Core\UpdateableObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Objects\GridLine.cpp">
+    <ClCompile Include="Engine\Objects\Camera.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Systems\InputManager.cpp">
+    <ClCompile Include="Engine\Objects\GridLine.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Systems\InputMapper.cpp">
+    <ClCompile Include="Engine\Systems\InputManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Components\BaseComponent.cpp">
+    <ClCompile Include="Engine\Systems\InputMapper.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="src\Components\UpdateableComponent.cpp">
+    <ClCompile Include="Engine\Systems\ObjectManager.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Systems\RenderSystem.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Systems\ResourceManager.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\main.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Core\Application.h">
+    <ClInclude Include="Game\Objects\Player.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Systems\ResourceManager.h">
+    <ClInclude Include="Game\Objects\SampleA.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Objects\Player.h">
+    <ClInclude Include="Game\GameMain.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Components\SpriteComponent.h">
+    <ClInclude Include="Game\Objects\Map.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Components\SceneComponent.h">
+    <ClInclude Include="Engine\Components\BaseComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Core\GameObject.h">
+    <ClInclude Include="Engine\Components\SceneComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Core\UpdateableObject.h">
+    <ClInclude Include="Engine\Components\SpriteComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Core\BaseObject.h">
+    <ClInclude Include="Engine\Components\UpdateableComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Objects\SampleA.h">
+    <ClInclude Include="Engine\Core\Application.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Utils\UMath.h">
+    <ClInclude Include="Engine\Core\BaseObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Systems\RenderSystem.h">
+    <ClInclude Include="Engine\Core\GameObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Objects\CameraObject.h">
+    <ClInclude Include="Engine\Core\UpdateableObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Objects\GridLine.h">
+    <ClInclude Include="Engine\Objects\Camera.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Systems\InputManager.h">
+    <ClInclude Include="Engine\Objects\GridLine.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Systems\InputMapper.h">
+    <ClInclude Include="Engine\Systems\InputManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Components\BaseComponent.h">
+    <ClInclude Include="Engine\Systems\InputMapper.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="src\Components\UpdateableComponent.h">
+    <ClInclude Include="Engine\Systems\ObjectManager.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Systems\RenderSystem.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Systems\ResourceManager.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Utils\UMath.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

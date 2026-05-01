@@ -1,5 +1,5 @@
-﻿#include "Objects/CameraObject.h"
-#include "Systems/RenderSystem.h"
+﻿#include "Objects/Camera.h"
+#include <Systems/RenderSystem.h>
 #include <vector>
 #include <DxLib.h>
 
@@ -14,11 +14,11 @@ void ACameraObject::OnUpdate(float DeltaTime)
 		auto target_transform_component = m_target->GetTransform();
 		FVector2D target_pos = target_transform_component->GetLocation();
 		m_transform->SetLocation(target_pos);
-		m_transform->SetRotation(target_transform_component->GetRotation());
+		m_transform->SetWorldRotation(target_transform_component->GetWorldRotation());
 	}
 	else {
 		m_transform->SetLocation({0,0});
-		m_transform->SetRotation(0.0f);
+		m_transform->SetWorldRotation(0.0f);
 	}
 
 }

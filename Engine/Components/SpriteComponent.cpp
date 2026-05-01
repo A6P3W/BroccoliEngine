@@ -1,7 +1,7 @@
 ﻿#include "SpriteComponent.h"
 #include "Core/GameObject.h"
 #include "Utils/UMath.h"
-#include "Systems/RenderSystem.h"
+#include <Systems/RenderSystem.h>
 
 MSpriteComponent::MSpriteComponent(int handle, int priority) : m_handle(handle), m_priority(priority)
 {
@@ -20,7 +20,7 @@ void MSpriteComponent::Draw()
 		float(Location.X),
 		float(Location.Y),
 		(double)transform->GetScale(),
-		(double)UMath::DegToRad(transform->GetRotation()),
+		(double)UMath::DegToRad(transform->GetWorldRotation()),
 		m_handle,
 		RenderSpace::World,
 		m_priority);

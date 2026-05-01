@@ -21,9 +21,9 @@ public:
 	void AddWorldLocation(float nx, float ny);
 	const FVector2D& GetLocation() const;
 
-	void SetRotation(float nAngle);
+	void SetWorldRotation(float nAngle);
 	void AddRotation(float nAngleDeg);
-	float GetRotation() const;
+	float GetWorldRotation() const;
 
 	void SetScale(float nScale);
 	float GetScale() const;
