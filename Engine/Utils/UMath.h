@@ -9,6 +9,8 @@ struct FVector2D
     static const FVector2D ZeroVector;
 };
 
+inline const FVector2D FVector2D::ZeroVector{ 0.0f, 0.0f };
+
 struct FRotator
 {
     //Degrees

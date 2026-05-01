@@ -1,8 +1,5 @@
 ﻿#include "Objects/Camera.h"
 #include <Systems/RenderSystem.h>
-#include <vector>
-#include <DxLib.h>
-
 void ACameraObject::SetTarget(AGameObject* target)
 {
 	m_target = target;

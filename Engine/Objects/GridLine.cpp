@@ -7,9 +7,9 @@
 #include <cmath>
 #include "Systems/ResourceManager.h"
 #include "Utils/UMath.h"
-AGridLine::AGridLine(int LineWidth)
+AGridLine::AGridLine()
 {
-	m_LineWidth = LineWidth;
+	
 	m_LineColor = GetColor(255, 255, 255);
 }
 
@@ -62,7 +62,7 @@ void AGridLine::OnDraw()
             font,
             RenderSpace::Screen,
             -100,
-            100
+            180
         );
     };
 
@@ -179,4 +179,9 @@ void AGridLine::OnDraw()
             }
         }
     }
+}
+
+void AGridLine::SetLineWidth(float LineWidth)
+{
+    m_LineWidth = LineWidth;
 }

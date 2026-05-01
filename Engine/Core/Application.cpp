@@ -9,7 +9,8 @@
 #include <Systems/ObjectManager.h>
 Application::Application()
 {
-    ObjectManager::GetInstance().SpawnObject<AGridLine>(50);
+    auto Grid = ObjectManager::GetInstance().SpawnObject<AGridLine>();
+    Grid->SetLineWidth(100);
     auto DefaultCamera = ObjectManager::GetInstance().SpawnObject<ACameraObject>();
     DefaultCamera->SetCameraView();
 }

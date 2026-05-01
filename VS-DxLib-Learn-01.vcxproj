@@ -161,6 +161,7 @@
     <ClCompile Include="Game\Objects\SampleA.cpp" />
     <ClCompile Include="Game\GameMain.cpp" />
     <ClCompile Include="Game\Objects\Map.cpp" />
+    <ClCompile Include="Game\Objects\test\map.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Components\BaseComponent.h" />
@@ -183,6 +184,7 @@
     <ClInclude Include="Game\Objects\SampleA.h" />
     <ClInclude Include="Game\GameMain.h" />
     <ClInclude Include="Game\Objects\Map.h" />
+    <ClInclude Include="Game\Objects\test\map.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

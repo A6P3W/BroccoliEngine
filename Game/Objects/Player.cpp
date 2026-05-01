@@ -2,9 +2,9 @@
 #include <Systems/InputMapper.h>
 #include "Systems/ResourceManager.h"
 #include "Components/SpriteComponent.h"
-APlayer::APlayer(float x, float y)
+APlayer::APlayer(FVector2D location, FRotator rotation)
 {
-	m_transform->SetLocation({x,y});
+	m_transform->SetLocation(location);
 	int handle = ResourceManager::GetInstance().LoadResourceGraph("BaseFile/texture_Checker_64px.png");
 	auto sprite = std::make_unique<MSpriteComponent>(handle, 0);
 	AddComponent(std::move(sprite));

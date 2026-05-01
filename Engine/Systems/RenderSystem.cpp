@@ -4,8 +4,10 @@
 #include <cmath>
 #include "Objects/Camera.h"
 #include "Utils/UMath.h"
+
 RenderSystem::RenderSystem()
 {
+
 }
 RenderSystem& RenderSystem::GetInstance()
 {
@@ -72,6 +74,23 @@ void RenderSystem::SubmitLine(float x1, float y1, float x2, float y2, int color,
 	m_commands.push_back(std::move(command));
 }
 
+void RenderSystem::SubmitRectGraph(float destX, float destY, float srcX, float srcY, float srcW, float srcH, int handle, RenderSpace space, int priority, int alpha)
+{
+	RenderCommand command;
+	command.type = RenderType::RectGraph;
+	command.x1 = destX; // 描画先のX座標
+	command.y1 = destY; // 描画先のY座標
+	command.srcX = srcX; // 元画像の切り出し開始X座標
+	command.srcY = srcY; // 元画像の切り出し開始Y座標
+	command.srcWidth = srcW; // 元画像の切り出し幅
+	command.srcHeight = srcH; // 元画像の切り出し高さ
+	command.handle = handle;
+	command.space = space;
+	command.priority = priority;
+	command.alpha = alpha;
+	m_commands.push_back(std::move(command));
+}
+
 void RenderSystem::Draw()
 {
 	std::stable_sort(m_commands.begin(), m_commands.end(), [](const RenderCommand& a, const RenderCommand& b) {
@@ -130,6 +149,12 @@ void RenderSystem::Draw()
 			break;
 		case RenderType::Line:
             DrawLine(static_cast<int>(x1), static_cast<int>(y1), static_cast<int>(x2), static_cast<int>(y2), command.color);
+			break;
+		case RenderType::RectGraph: 
+			DrawRectGraph(static_cast<int>(x1), static_cast<int>(y1),           // 描画先のX, Y (変換済み)
+				static_cast<int>(command.srcX), static_cast<int>(command.srcY), // 元画像の切り出し開始X, Y
+				static_cast<int>(command.srcWidth), static_cast<int>(command.srcHeight), // 元画像の切り出し幅, 高さ
+				command.handle, TRUE); // グラフィックハンドル, TRUEで透過描画
 			break;
 		}
 		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);

@@ -1,12 +1,13 @@
 ﻿#pragma once
 #include "Core/GameObject.h"
+#include <Utils/Umath.h>
 
 class MTransformComponent;
 
 class ASampleA : public AGameObject
 {
 public:
-    ASampleA(float x, float y);
+    ASampleA(FVector2D location, FRotator rotation);
     ~ASampleA() override;
 
     void OnUpdate(float DeltaTime) override;
