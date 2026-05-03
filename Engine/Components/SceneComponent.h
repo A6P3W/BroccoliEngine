@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <string>
+#include<vector>
 #include "UpdateableComponent.h"
 #include "Utils/UMath.h"
 class MUpdateableObject; // 前方宣言
@@ -16,21 +17,29 @@ public:
 
 	void SetOwner(MUpdateableObject* owner);
 
-	void SetLocation(const FVector2D& nPos);
-	void AddLocalLocation(float nx, float ny);
-	void AddWorldLocation(float nx, float ny);
-	const FVector2D& GetLocation() const;
+	void SetParentComponent(MSceneComponent* parent);
 
-	void SetWorldRotation(float nAngle);
-	void AddRotation(float nAngleDeg);
-	float GetWorldRotation() const;
+	bool SetWorldLocation(const FVector2D& NewWorldLocation);
+	bool SetRelativeLocation(const FVector2D& NewRelativeLocation);
+	bool AddWorldOffset(const FVector2D& Offset);
+	bool AddLocalOffset(const FVector2D& Offset);
+	FVector2D GetWorldLocation() const;
+	FVector2D GetRelativeLocation() const;
 
-	void SetScale(float nScale);
+	bool SetWorldRotation(float nAngle);
+	bool AddWorldRotation(float nAngleDeg);
+	FRotator GetWorldRotation() const;
+	FRotator GetRelativeRotation() const;
+
+	bool SetScale(float nScale);
 	float GetScale() const;
 
+	FVector2D RelativeLocation;
+	FRotator RelativeRotation;
+	FScale Scale;
 protected:
 	MUpdateableObject* m_owner = nullptr;
-	FVector2D Location;
-	FRotator Rotation;
-	float Scale = 1.0f;
+	MSceneComponent* m_parentComponent = nullptr;
+	std::vector<MSceneComponent*> m_childComponents;
+	
 };

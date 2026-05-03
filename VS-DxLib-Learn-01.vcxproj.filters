@@ -51,9 +51,6 @@
     <ClCompile Include="Engine\Core\UpdateableObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Objects\Camera.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Objects\GridLine.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -75,7 +72,7 @@
     <ClCompile Include="Engine\main.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Game\Objects\test\map.cpp">
+    <ClCompile Include="Engine\Components\CameraComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -116,9 +113,6 @@
     <ClInclude Include="Engine\Core\UpdateableObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Objects\Camera.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Objects\GridLine.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -140,7 +134,7 @@
     <ClInclude Include="Engine\Utils\UMath.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Game\Objects\test\map.h">
+    <ClInclude Include="Engine\Components\CameraComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

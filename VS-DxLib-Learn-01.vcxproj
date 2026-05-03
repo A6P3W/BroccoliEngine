@@ -141,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\Components\CameraComponent.cpp" />
     <ClCompile Include="Engine\Components\BaseComponent.cpp" />
     <ClCompile Include="Engine\Components\SceneComponent.cpp" />
     <ClCompile Include="Engine\Components\SpriteComponent.cpp" />
@@ -150,7 +151,6 @@
     <ClCompile Include="Engine\Core\GameObject.cpp" />
     <ClCompile Include="Engine\Core\UpdateableObject.cpp" />
     <ClCompile Include="Engine\main.cpp" />
-    <ClCompile Include="Engine\Objects\Camera.cpp" />
     <ClCompile Include="Engine\Objects\GridLine.cpp" />
     <ClCompile Include="Engine\Systems\InputManager.cpp" />
     <ClCompile Include="Engine\Systems\InputMapper.cpp" />
@@ -161,9 +161,9 @@
     <ClCompile Include="Game\Objects\SampleA.cpp" />
     <ClCompile Include="Game\GameMain.cpp" />
     <ClCompile Include="Game\Objects\Map.cpp" />
-    <ClCompile Include="Game\Objects\test\map.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Components\CameraComponent.h" />
     <ClInclude Include="Engine\Components\BaseComponent.h" />
     <ClInclude Include="Engine\Components\SceneComponent.h" />
     <ClInclude Include="Engine\Components\SpriteComponent.h" />
@@ -172,7 +172,6 @@
     <ClInclude Include="Engine\Core\BaseObject.h" />
     <ClInclude Include="Engine\Core\GameObject.h" />
     <ClInclude Include="Engine\Core\UpdateableObject.h" />
-    <ClInclude Include="Engine\Objects\Camera.h" />
     <ClInclude Include="Engine\Objects\GridLine.h" />
     <ClInclude Include="Engine\Systems\InputManager.h" />
     <ClInclude Include="Engine\Systems\InputMapper.h" />
@@ -184,7 +183,6 @@
     <ClInclude Include="Game\Objects\SampleA.h" />
     <ClInclude Include="Game\GameMain.h" />
     <ClInclude Include="Game\Objects\Map.h" />
-    <ClInclude Include="Game\Objects\test\map.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

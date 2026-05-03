@@ -22,56 +22,136 @@ void MSceneComponent::SetOwner(MUpdateableObject* owner)
 	m_owner = owner;
 }
 
-void MSceneComponent::SetLocation(const FVector2D& nPos)
+void MSceneComponent::SetParentComponent(MSceneComponent* parent)
 {
-	Location = nPos;
+	if (!parent) { return; }
+	m_parentComponent = parent;
+	parent->m_childComponents.push_back(this);
 }
 
-void MSceneComponent::AddLocalLocation(float nx, float ny)
+bool MSceneComponent::SetWorldLocation(const FVector2D& NewWorldLocation)
 {
-	float rad = UMath::DegToRad(Rotation.Rotation);
+	if (!m_parentComponent) {
+		// 親がいない（RootComponentである）場合、
+		// ワールド座標はそのまま相対座標（RelativeLocation）になる
+		RelativeLocation = NewWorldLocation;
+	}
+	else {
+		// 親がいる場合、ワールド座標を親のローカル座標系に変換する必要がある
+		FVector2D ParentWorldLoc = m_parentComponent->GetWorldLocation();
+		float ParentWorldRotRad = UMath::DegToRad(m_parentComponent->GetWorldRotation().Rotation);
 
-	float s = std::sin(rad);
-	float c = std::cos(rad);
+		// 1. 親との差分を取る
+		float diffX = NewWorldLocation.X - ParentWorldLoc.X;
+		float diffY = NewWorldLocation.Y - ParentWorldLoc.Y;
 
-	float worldNX = nx * c - ny * s;
-	float worldNY = nx * s + ny * c;
+		// 2. 親の回転の「逆」をかけて、親から見た相対位置を出す
+		// 逆回転行列: [ cos(-θ) -sin(-θ) ] = [  cosθ  sinθ ]
+		//              [ sin(-θ)  cos(-θ) ]   [ -sinθ  cosθ ]
+		float s = std::sin(ParentWorldRotRad);
+		float c = std::cos(ParentWorldRotRad);
 
-	Location.X += worldNX;
-	Location.Y += worldNY;
+		RelativeLocation.X = diffX * c + diffY * s;
+		RelativeLocation.Y = -diffX * s + diffY * c;
+	}
+	return true;
 }
 
-void MSceneComponent::AddWorldLocation(float nx, float ny)
+bool MSceneComponent::SetRelativeLocation(const FVector2D& NewRelativeLocation)
 {
-	SetLocation({Location.X + nx, Location.Y + ny});
+	RelativeLocation = NewRelativeLocation;
+	return true;
 }
 
-const FVector2D& MSceneComponent::GetLocation() const
+bool MSceneComponent::AddWorldOffset(const FVector2D& Offset)
 {
-	return Location;
+   FVector2D newWorldLocation = GetWorldLocation() + Offset;
+	return SetWorldLocation(newWorldLocation);
 }
 
-void MSceneComponent::SetWorldRotation(float nAngle)
+bool MSceneComponent::AddLocalOffset(const FVector2D& Offset)
 {
-	Rotation = nAngle;
+	float worldRotRad = UMath::DegToRad(GetWorldRotation().Rotation);
+	float s = std::sin(worldRotRad);
+	float c = std::cos(worldRotRad);
+
+	FVector2D worldOffset;
+	worldOffset.X = Offset.X * c - Offset.Y * s;
+	worldOffset.Y = Offset.X * s + Offset.Y * c;
+
+	FVector2D newWorldLocation = GetWorldLocation() + worldOffset;
+	return SetWorldLocation(newWorldLocation);
 }
 
-void MSceneComponent::AddRotation(float nAngleDeg)
+
+
+bool MSceneComponent::SetWorldRotation(float nAngle)
 {
-	Rotation.Rotation += nAngleDeg;
+	if (!m_parentComponent) {
+		RelativeRotation.Rotation = nAngle;
+
+	}
+	else {
+		float parentWorldRot = m_parentComponent->GetWorldRotation().Rotation;
+		RelativeRotation.Rotation = nAngle - parentWorldRot;
+	}
+	return true;
 }
 
-float MSceneComponent::GetWorldRotation() const
+bool MSceneComponent::AddWorldRotation(float nAngleDeg)
 {
-	return Rotation.Rotation;
+	RelativeRotation.Rotation += nAngleDeg;
+	return true;
 }
 
-void MSceneComponent::SetScale(float nScale)
+
+FVector2D MSceneComponent::GetWorldLocation() const
+{
+	if (!m_parentComponent) {
+		return RelativeLocation;
+	}
+
+	// 親のワールド回転角を取得
+	float parentRad = UMath::DegToRad(m_parentComponent->GetWorldRotation().Rotation);
+	float s = std::sin(parentRad);
+	float c = std::cos(parentRad);
+
+	// 親の向きに合わせて、自分の相対座標を回転させてオフセットを計算
+	float rotatedX = RelativeLocation.X * c - RelativeLocation.Y * s;
+	float rotatedY = RelativeLocation.X * s + RelativeLocation.Y * c;
+
+	FVector2D ParentWorldLoc = m_parentComponent->GetWorldLocation();
+	return { ParentWorldLoc.X + rotatedX, ParentWorldLoc.Y + rotatedY };
+}
+
+FVector2D MSceneComponent::GetRelativeLocation() const
+{
+	return RelativeLocation;
+}
+
+FRotator MSceneComponent::GetWorldRotation() const
+{
+	if (!m_parentComponent) {
+		return RelativeRotation;
+	}
+	return FRotator(m_parentComponent->GetWorldRotation().Rotation + RelativeRotation.Rotation);
+}
+
+FRotator MSceneComponent::GetRelativeRotation() const
+{
+	return RelativeRotation;
+}
+
+bool MSceneComponent::SetScale(float nScale)
 {
 	Scale = nScale;
+	return true;
 }
 
 float MSceneComponent::GetScale() const
 {
-	return Scale;
+ if (!m_parentComponent) {
+		return Scale.Scale;
+	}
+	return Scale.Scale * m_parentComponent->GetScale();
 }

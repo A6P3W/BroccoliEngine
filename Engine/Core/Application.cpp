@@ -1,7 +1,6 @@
 ﻿#include "Core/Application.h"
 #include "DxLib.h"
 #include "Objects/SampleA.h"
-#include "Objects/Camera.h"
 #include <Systems/RenderSystem.h>
 #include "Objects/GridLine.h"
 #include <Systems/InputManager.h>
@@ -11,8 +10,6 @@ Application::Application()
 {
     auto Grid = ObjectManager::GetInstance().SpawnObject<AGridLine>();
     Grid->SetLineWidth(100);
-    auto DefaultCamera = ObjectManager::GetInstance().SpawnObject<ACameraObject>();
-    DefaultCamera->SetCameraView();
 }
 bool Application::Run()
 {

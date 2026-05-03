@@ -36,7 +36,7 @@ struct RenderCommand {
     RenderSpace space = RenderSpace::World;
 };
 
-class ACameraObject;
+class MCameraComponent;
 
 class RenderSystem
 {
@@ -52,10 +52,10 @@ public:
 
     void Draw();
 
-    void SetCameraView(ACameraObject*m);
-    ACameraObject* GetCamera();
+    void SetCameraView(MCameraComponent* m);
+    MCameraComponent* GetCamera();
 
 private:
     std::vector<RenderCommand> m_commands;
-    ACameraObject* m_MainCamera = nullptr;
+    MCameraComponent* m_MainCamera = nullptr;
 };

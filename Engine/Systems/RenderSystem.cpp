@@ -2,7 +2,7 @@
 #include "DxLib.h"
 #include <algorithm>
 #include <cmath>
-#include "Objects/Camera.h"
+#include "components/CameraComponent.h"
 #include "Utils/UMath.h"
 
 RenderSystem::RenderSystem()
@@ -96,8 +96,8 @@ void RenderSystem::Draw()
 	std::stable_sort(m_commands.begin(), m_commands.end(), [](const RenderCommand& a, const RenderCommand& b) {
 		return a.priority < b.priority;
 		});
-	FVector2D CamPos = m_MainCamera->GetTransform()->GetLocation();
-	float camAngle = m_MainCamera->GetTransform()->GetWorldRotation();
+	FVector2D CamPos = m_MainCamera->GetWorldLocation();
+	float camAngle = m_MainCamera->GetWorldRotation().Rotation;
 	int WindowWidth, WindowHeight;
 	GetDrawScreenSize(&WindowWidth, &WindowHeight);
 	const float centerX = WindowWidth * 0.5f;
@@ -163,12 +163,12 @@ void RenderSystem::Draw()
 	m_commands.clear();
 }
 
-void RenderSystem::SetCameraView(ACameraObject* m)
+void RenderSystem::SetCameraView(MCameraComponent* m)
 {
 	m_MainCamera = m;
 }
 
-ACameraObject* RenderSystem::GetCamera()
+MCameraComponent* RenderSystem::GetCamera()
 {
 	return m_MainCamera;
 }

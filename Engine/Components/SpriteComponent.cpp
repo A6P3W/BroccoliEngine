@@ -9,18 +9,14 @@ MSpriteComponent::MSpriteComponent(int handle, int priority) : m_handle(handle),
 
 void MSpriteComponent::Draw()
 {
-	auto transform = m_owner ? m_owner->GetComponent<MSceneComponent>() : nullptr;
-	if (!transform) {
-		return;
-	}
 
-	const auto& Location = transform->GetLocation();
-
+	const FVector2D& WorldLocation = GetWorldLocation();
+	const FRotator& WorldRotation = GetWorldRotation();
 	RenderSystem::GetInstance().SubmitSprite(
-		float(Location.X),
-		float(Location.Y),
-		(double)transform->GetScale(),
-		(double)UMath::DegToRad(transform->GetWorldRotation()),
+		float(WorldLocation.X),
+		float(WorldLocation.Y),
+		(double)GetScale(),
+		(double)UMath::DegToRad(WorldRotation.Rotation),
 		m_handle,
 		RenderSpace::World,
 		m_priority);
