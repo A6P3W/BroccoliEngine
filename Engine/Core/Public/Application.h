@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <memory>
-#include "Core/GameObject.h"
+#include "Core/Public/GameObject.h"
 #include <vector>
 #include "GameMain.h"
 class Application

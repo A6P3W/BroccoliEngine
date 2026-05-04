@@ -18,6 +18,7 @@ public:
 	void SetOwner(MUpdateableObject* owner);
 
 	void SetParentComponent(MSceneComponent* parent);
+	auto GetParentComponent() const { return m_parentComponent; }
 
 	bool SetWorldLocation(const FVector2D& NewWorldLocation);
 	bool SetRelativeLocation(const FVector2D& NewRelativeLocation);

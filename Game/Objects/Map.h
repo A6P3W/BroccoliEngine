@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include <Core/GameObject.h>
+#include "GameObject.h"
 #include <Utils/Umath.h>
 class AMap : public AGameObject
 {

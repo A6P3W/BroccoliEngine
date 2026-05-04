@@ -1,7 +1,7 @@
 ﻿#include "Objects/SampleA.h"
 #include "Dxlib.h"
-#include "Systems/ResourceManager.h"
-#include "Components/SpriteComponent.h" 
+#include "ResourceManager.h"
+#include "SpriteComponent.h" 
 #include <Utils/Umath.h>
 
 ASampleA::ASampleA(FVector2D location, FRotator rotation) : AGameObject()

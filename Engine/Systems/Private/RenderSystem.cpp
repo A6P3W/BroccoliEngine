@@ -1,8 +1,8 @@
-﻿#include <Systems/RenderSystem.h>
+﻿#include "RenderSystem.h"
 #include "DxLib.h"
 #include <algorithm>
 #include <cmath>
-#include "components/CameraComponent.h"
+#include "CameraComponent.h"
 #include "Utils/UMath.h"
 
 RenderSystem::RenderSystem()

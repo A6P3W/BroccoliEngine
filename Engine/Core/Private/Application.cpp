@@ -1,11 +1,11 @@
-﻿#include "Core/Application.h"
+﻿#include "Application.h"
 #include "DxLib.h"
 #include "Objects/SampleA.h"
-#include <Systems/RenderSystem.h>
+#include "RenderSystem.h"
 #include "Objects/GridLine.h"
-#include <Systems/InputManager.h>
-#include <Systems/InputMapper.h>
-#include <Systems/ObjectManager.h>
+#include "InputManager.h"
+#include "InputMapper.h"
+#include "ObjectManager.h"
 Application::Application()
 {
     auto Grid = ObjectManager::GetInstance().SpawnObject<AGridLine>();

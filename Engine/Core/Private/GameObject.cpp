@@ -1,10 +1,10 @@
-﻿#include "Core/GameObject.h"
+﻿#include "Core/Public/GameObject.h"
 
 AGameObject::AGameObject()
 {
 	auto root = std::make_unique<MSceneComponent>();
 	m_rootComponent = root.get();
-    AddComponent(std::move(root));
+	AddComponent(std::move(root));
 }
 
 void AGameObject::OnUpdate(float DeltaTime)
@@ -13,54 +13,77 @@ void AGameObject::OnUpdate(float DeltaTime)
 
 void AGameObject::Draw()
 {
-    for (auto& comp : GetComponents()) comp->Draw();
-    this->OnDraw();
+	for (auto& comp : GetComponents()) comp->Draw();
+	this->OnDraw();
 }
 
 FVector2D AGameObject::GetActorLocation() const
 {
-    return m_rootComponent->GetWorldLocation();
+	return m_rootComponent->GetWorldLocation();
 }
 
 bool AGameObject::SetActorLocation(const FVector2D& NewLocation)
 {
 	m_rootComponent->SetWorldLocation(NewLocation);
-    return true;
+	return true;
 }
 
 void AGameObject::AddActorWorldOffset(const FVector2D& Offset)
 {
-    m_rootComponent->AddWorldOffset(Offset);
+	m_rootComponent->AddWorldOffset(Offset);
 }
 
 void AGameObject::AddActorLocalOffset(const FVector2D& Offset)
 {
-    m_rootComponent->AddLocalOffset(Offset);
+	m_rootComponent->AddLocalOffset(Offset);
 }
 
 FRotator AGameObject::GetActorRotation() const
 {
-    return FRotator(m_rootComponent->GetWorldRotation());
+	return FRotator(m_rootComponent->GetWorldRotation());
 }
 
 bool AGameObject::SetActorRotation(const FRotator& NewRotation)
 {
 	m_rootComponent->SetWorldRotation(NewRotation.Rotation);
-    return true;
+	return true;
 }
 
 void AGameObject::AddActorRotation(const FRotator& DeltaRotation)
 {
-    m_rootComponent->AddWorldRotation(DeltaRotation.Rotation);
+	m_rootComponent->AddWorldRotation(DeltaRotation.Rotation);
+}
+
+void AGameObject::Destroy()
+{
+	m_PendingDestroy = true;
+}
+
+bool AGameObject::IsPendingDestroy() const
+{
+	return m_PendingDestroy; 
 }
 
 FScale AGameObject::GetActorScale() const
 {
-    return m_rootComponent->GetScale();
+	return m_rootComponent->GetScale();
 }
 
 bool AGameObject::SetActorScale(float NewScale)
 {
 	m_rootComponent->SetScale(NewScale);
    return true;
+}
+
+void AGameObject::SetRootComponent(MSceneComponent* Component)
+{
+	if (!Component) return;
+
+	Component->SetOwner(this);
+
+	if (m_rootComponent && m_rootComponent != Component) {
+		m_rootComponent->SetParentComponent(Component);
+	}
+
+	m_rootComponent = Component;
 }

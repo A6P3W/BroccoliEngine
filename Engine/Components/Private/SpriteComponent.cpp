@@ -1,7 +1,7 @@
 ﻿#include "SpriteComponent.h"
-#include "Core/GameObject.h"
+#include "Core/Public/GameObject.h"
 #include "Utils/UMath.h"
-#include <Systems/RenderSystem.h>
+#include "RenderSystem.h"
 
 MSpriteComponent::MSpriteComponent(int handle, int priority) : m_handle(handle), m_priority(priority)
 {

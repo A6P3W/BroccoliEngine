@@ -1,4 +1,4 @@
-﻿#include "Components/SceneComponent.h"
+﻿#include "Components/Public/SceneComponent.h"
 #include <cmath>
 #include "Utils/UMath.h"
 

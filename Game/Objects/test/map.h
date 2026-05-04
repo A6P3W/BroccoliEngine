@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <vector>
 #include <string>
-#include <Core/GameObject.h>
+#include "GameObject.h"
 
 class Map :public AGameObject {
 public:

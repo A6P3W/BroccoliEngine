@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Components/SceneComponent.h"
+#include "Components/Public/SceneComponent.h"
 
 class MSpriteComponent : public MSceneComponent {
 public:

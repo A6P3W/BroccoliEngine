@@ -1,5 +1,5 @@
 ﻿#include "CameraComponent.h"
-#include <Systems/RenderSystem.h>
+#include "RenderSystem.h"
 void MCameraComponent::SetActiveCamera()
 {
 	RenderSystem::GetInstance().SetCameraView(this);

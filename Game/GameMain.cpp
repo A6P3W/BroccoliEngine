@@ -1,6 +1,6 @@
 ﻿#include "Gamemain.h"
 #include <string>
-#include <Systems/ObjectManager.h>
+#include "ObjectManager.h"
 #include "Objects/Player.h"
 #include "Objects/SampleA.h"
 #include "Objects/Map.h"
@@ -21,4 +21,3 @@ void GameMain::Update(float DeltaTime)
 void GameMain::Draw()
 {
 }
-	

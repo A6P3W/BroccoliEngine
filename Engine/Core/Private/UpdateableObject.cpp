@@ -1,5 +1,5 @@
 ﻿#include "UpdateableObject.h"
-#include "Components/SceneComponent.h"
+#include "Components/Public/SceneComponent.h"
 #include "GameObject.h"
 void MUpdateableObject::AddComponent(std::unique_ptr<UpdateableComponent> comp)
 {
@@ -7,7 +7,7 @@ void MUpdateableObject::AddComponent(std::unique_ptr<UpdateableComponent> comp)
         sceneComp->SetOwner(this);
 
         if (auto gameObject = dynamic_cast<AGameObject*>(this)) {
-            if (gameObject->GetRootComponent() && gameObject->GetRootComponent() != sceneComp) {
+            if (gameObject->GetRootComponent() && gameObject->GetRootComponent() != sceneComp && sceneComp->GetParentComponent() == nullptr) {
                 sceneComp->SetParentComponent(gameObject->GetRootComponent());
             }
         }

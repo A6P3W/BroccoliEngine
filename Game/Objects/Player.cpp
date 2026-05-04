@@ -1,9 +1,9 @@
 ﻿#include "Player.h"
-#include <Systems/InputMapper.h>
-#include <Systems/InputManager.h>
-#include "Systems/ResourceManager.h"
-#include "Components/SpriteComponent.h"
-#include "Components/CameraComponent.h"
+#include "InputMapper.h"
+#include "InputManager.h"
+#include "ResourceManager.h"
+#include "SpriteComponent.h"
+#include "CameraComponent.h"
 #include <DxLib.h>
 APlayer::APlayer(FVector2D location, FRotator rotation)
 {

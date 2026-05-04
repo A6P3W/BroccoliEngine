@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Core/GameObject.h"
+#include "Core/Public/GameObject.h"
 class AGridLine :
     public AGameObject
 {

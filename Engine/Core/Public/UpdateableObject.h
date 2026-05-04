@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include "Components/UpdateableComponent.h"
+#include "UpdateableComponent.h"
 class MUpdateableObject :
     public MBaseObject
 {

@@ -113,7 +113,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)\Engine\;$(ProjectDir)\Game\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/;$(ProjectDir)\Game;$(ProjectDir)Engine/Core/Public;$(ProjectDir)Engine/Systems/Public;$(ProjectDir)Engine/Components/Public</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -131,7 +131,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)\Engine\;$(ProjectDir)\Game\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/;$(ProjectDir)\Game;$(ProjectDir)Engine/Core/Public;$(ProjectDir)Engine/Systems/Public;$(ProjectDir)Engine/Components/Public</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -141,48 +141,50 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\Components\CameraComponent.cpp" />
-    <ClCompile Include="Engine\Components\BaseComponent.cpp" />
-    <ClCompile Include="Engine\Components\SceneComponent.cpp" />
-    <ClCompile Include="Engine\Components\SpriteComponent.cpp" />
-    <ClCompile Include="Engine\Components\UpdateableComponent.cpp" />
-    <ClCompile Include="Engine\Core\Application.cpp" />
-    <ClCompile Include="Engine\Core\BaseObject.cpp" />
-    <ClCompile Include="Engine\Core\GameObject.cpp" />
-    <ClCompile Include="Engine\Core\UpdateableObject.cpp" />
+    <ClCompile Include="Engine\Components\Private\CameraComponent.cpp" />
+    <ClCompile Include="Engine\Components\Private\BaseComponent.cpp" />
+    <ClCompile Include="Engine\Components\Private\SceneComponent.cpp" />
+    <ClCompile Include="Engine\Components\Private\SpriteComponent.cpp" />
+    <ClCompile Include="Engine\Components\Private\UpdateableComponent.cpp" />
+    <ClCompile Include="Engine\Core\Private\Application.cpp" />
+    <ClCompile Include="Engine\Core\Private\BaseObject.cpp" />
+    <ClCompile Include="Engine\Core\Private\GameObject.cpp" />
+    <ClCompile Include="Engine\Core\Private\UpdateableObject.cpp" />
     <ClCompile Include="Engine\main.cpp" />
     <ClCompile Include="Engine\Objects\GridLine.cpp" />
-    <ClCompile Include="Engine\Systems\InputManager.cpp" />
-    <ClCompile Include="Engine\Systems\InputMapper.cpp" />
-    <ClCompile Include="Engine\Systems\ObjectManager.cpp" />
-    <ClCompile Include="Engine\Systems\RenderSystem.cpp" />
-    <ClCompile Include="Engine\Systems\ResourceManager.cpp" />
+    <ClCompile Include="Engine\Systems\Private\InputManager.cpp" />
+    <ClCompile Include="Engine\Systems\Private\InputMapper.cpp" />
+    <ClCompile Include="Engine\Systems\Private\ObjectManager.cpp" />
+    <ClCompile Include="Engine\Systems\Private\RenderSystem.cpp" />
+    <ClCompile Include="Engine\Systems\Private\ResourceManager.cpp" />
     <ClCompile Include="Game\Objects\Player.cpp" />
     <ClCompile Include="Game\Objects\SampleA.cpp" />
     <ClCompile Include="Game\GameMain.cpp" />
     <ClCompile Include="Game\Objects\Map.cpp" />
+    <ClCompile Include="Engine\Objects\PlayerController.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\Components\CameraComponent.h" />
-    <ClInclude Include="Engine\Components\BaseComponent.h" />
-    <ClInclude Include="Engine\Components\SceneComponent.h" />
-    <ClInclude Include="Engine\Components\SpriteComponent.h" />
-    <ClInclude Include="Engine\Components\UpdateableComponent.h" />
-    <ClInclude Include="Engine\Core\Application.h" />
-    <ClInclude Include="Engine\Core\BaseObject.h" />
-    <ClInclude Include="Engine\Core\GameObject.h" />
-    <ClInclude Include="Engine\Core\UpdateableObject.h" />
+    <ClInclude Include="Engine\Components\Public\CameraComponent.h" />
+    <ClInclude Include="Engine\Components\Public\BaseComponent.h" />
+    <ClInclude Include="Engine\Components\Public\SceneComponent.h" />
+    <ClInclude Include="Engine\Components\Public\SpriteComponent.h" />
+    <ClInclude Include="Engine\Components\Public\UpdateableComponent.h" />
+    <ClInclude Include="Engine\Core\Public\Application.h" />
+    <ClInclude Include="Engine\Core\Public\BaseObject.h" />
+    <ClInclude Include="Engine\Core\Public\GameObject.h" />
+    <ClInclude Include="Engine\Core\Public\UpdateableObject.h" />
     <ClInclude Include="Engine\Objects\GridLine.h" />
-    <ClInclude Include="Engine\Systems\InputManager.h" />
-    <ClInclude Include="Engine\Systems\InputMapper.h" />
-    <ClInclude Include="Engine\Systems\ObjectManager.h" />
-    <ClInclude Include="Engine\Systems\RenderSystem.h" />
-    <ClInclude Include="Engine\Systems\ResourceManager.h" />
+    <ClInclude Include="Engine\Systems\Public\InputManager.h" />
+    <ClInclude Include="Engine\Systems\Public\InputMapper.h" />
+    <ClInclude Include="Engine\Systems\Public\ObjectManager.h" />
+    <ClInclude Include="Engine\Systems\Public\RenderSystem.h" />
+    <ClInclude Include="Engine\Systems\Public\ResourceManager.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />
     <ClInclude Include="Game\Objects\Player.h" />
     <ClInclude Include="Game\Objects\SampleA.h" />
     <ClInclude Include="Game\GameMain.h" />
     <ClInclude Include="Game\Objects\Map.h" />
+    <ClInclude Include="Engine\Objects\PlayerController.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

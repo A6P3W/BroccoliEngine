@@ -27,52 +27,55 @@
     <ClCompile Include="Game\Objects\Map.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Components\BaseComponent.cpp">
+    <ClCompile Include="Engine\Components\Private\BaseComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Components\SceneComponent.cpp">
+    <ClCompile Include="Engine\Components\Private\SceneComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Components\SpriteComponent.cpp">
+    <ClCompile Include="Engine\Components\Private\SpriteComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Components\UpdateableComponent.cpp">
+    <ClCompile Include="Engine\Components\Private\UpdateableComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Core\Application.cpp">
+    <ClCompile Include="Engine\Core\Private\Application.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Core\BaseObject.cpp">
+    <ClCompile Include="Engine\Core\Private\BaseObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Core\GameObject.cpp">
+    <ClCompile Include="Engine\Core\Private\GameObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Core\UpdateableObject.cpp">
+    <ClCompile Include="Engine\Core\Private\UpdateableObject.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Objects\GridLine.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Systems\InputManager.cpp">
+    <ClCompile Include="Engine\Systems\Private\InputManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Systems\InputMapper.cpp">
+    <ClCompile Include="Engine\Systems\Private\InputMapper.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Systems\ObjectManager.cpp">
+    <ClCompile Include="Engine\Systems\Private\ObjectManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Systems\RenderSystem.cpp">
+    <ClCompile Include="Engine\Systems\Private\RenderSystem.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Systems\ResourceManager.cpp">
+    <ClCompile Include="Engine\Systems\Private\ResourceManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Engine\main.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Components\CameraComponent.cpp">
+    <ClCompile Include="Engine\Components\Private\CameraComponent.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Objects\PlayerController.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -89,52 +92,55 @@
     <ClInclude Include="Game\Objects\Map.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Components\BaseComponent.h">
+    <ClInclude Include="Engine\Components\Public\BaseComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Components\SceneComponent.h">
+    <ClInclude Include="Engine\Components\Public\SceneComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Components\SpriteComponent.h">
+    <ClInclude Include="Engine\Components\Public\SpriteComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Components\UpdateableComponent.h">
+    <ClInclude Include="Engine\Components\Public\UpdateableComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Core\Application.h">
+    <ClInclude Include="Engine\Core\Public\Application.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Core\BaseObject.h">
+    <ClInclude Include="Engine\Core\Public\BaseObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Core\GameObject.h">
+    <ClInclude Include="Engine\Core\Public\GameObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Core\UpdateableObject.h">
+    <ClInclude Include="Engine\Core\Public\UpdateableObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Objects\GridLine.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Systems\InputManager.h">
+    <ClInclude Include="Engine\Systems\Public\InputManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Systems\InputMapper.h">
+    <ClInclude Include="Engine\Systems\Public\InputMapper.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Systems\ObjectManager.h">
+    <ClInclude Include="Engine\Systems\Public\ObjectManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Systems\RenderSystem.h">
+    <ClInclude Include="Engine\Systems\Public\RenderSystem.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Systems\ResourceManager.h">
+    <ClInclude Include="Engine\Systems\Public\ResourceManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Utils\UMath.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Components\CameraComponent.h">
+    <ClInclude Include="Engine\Components\Public\CameraComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Objects\PlayerController.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

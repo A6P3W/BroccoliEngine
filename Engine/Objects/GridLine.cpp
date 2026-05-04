@@ -1,11 +1,11 @@
 ﻿#include "Objects/GridLine.h"
-#include <Systems/RenderSystem.h>
-#include "Components/CameraComponent.h"
+#include "RenderSystem.h"
+#include "CameraComponent.h"
 #include <DxLib.h>
 #include <string>
 #include <format>
 #include <cmath>
-#include "Systems/ResourceManager.h"
+#include "ResourceManager.h"
 #include "Utils/UMath.h"
 AGridLine::AGridLine()
 {

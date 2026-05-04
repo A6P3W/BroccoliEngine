@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <map>
 #include <vector>
 enum E_INPUT_ACTION
@@ -8,6 +8,8 @@ enum E_INPUT_ACTION
 	DOWN,
 	LEFT,
 	RIGHT,
+	INTERACT,
+
 };
 class InputMapper {
 public:

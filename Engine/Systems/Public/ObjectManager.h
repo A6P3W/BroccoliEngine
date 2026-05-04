@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <string>
-#include "Core/GameObject.h"
+#include "Core/Public/GameObject.h"
 #include <vector>
 #include <memory>
 #include <type_traits>
@@ -22,10 +22,12 @@ public:
 			obj = std::make_unique<T>();
 		}
 		T* ptr = obj.get();
-		m_GameObjects.push_back(std::move(obj));
+		m_UpdateAbleObject.push_back(std::move(obj));
+     m_RenderAbleObject.push_back(ptr);
 		return ptr;
 	}
 private:
-	std::vector< std::unique_ptr<AGameObject>> m_GameObjects;
+	std::vector< std::unique_ptr<MUpdateableObject>> m_UpdateAbleObject;
+	std::vector<AGameObject*> m_RenderAbleObject;
 };
 
