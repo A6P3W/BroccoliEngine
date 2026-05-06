@@ -3,13 +3,13 @@
 #include "ResourceManager.h"
 #include "SpriteComponent.h" 
 #include <Utils/Umath.h>
-
 ASampleA::ASampleA(FVector2D location, FRotator rotation) : AGameObject()
 {
 	SetActorLocation(location);
 	int handle = ResourceManager::GetInstance().LoadResourceGraph("BaseFile/texture_Checker_64px.png");
     auto sprite = std::make_unique<MSpriteComponent>(handle, 0);
 	AddComponent(std::move(sprite));
+
 }
 
 ASampleA::~ASampleA()

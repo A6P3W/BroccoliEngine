@@ -15,15 +15,30 @@ RenderSystem& RenderSystem::GetInstance()
 	return instance;
 }
 
-void RenderSystem::SubmitSprite(float x, float y, double Scale, double AngleDeg, int handle, RenderSpace space, int priority, int alpha)
+void RenderSystem::SubmitGraph(float x, float y, double Scale, double AngleDeg, int handle, RenderSpace space, int priority, int alpha)
 {
 	RenderCommand command;
-	command.type = RenderType::Sprite;
+	command.type = RenderType::Graph;
 	command.x1 = x;
 	command.y1 = y;
 	command.Scale = Scale;
 	command.AngleDeg = AngleDeg;
 	command.handle = handle;
+	command.space = space;
+	command.priority = priority;
+	command.alpha = alpha;
+	m_commands.push_back(std::move(command));
+}
+
+void RenderSystem::SubmitCircle(float x, float y, float radius, int color, int fill, RenderSpace space, int priority, int alpha)
+{
+	RenderCommand command;
+	command.type = RenderType::Circle;
+	command.x1 = x;
+	command.y1 = y;
+	command.x2 = radius;
+	command.color = color;
+	command.fill = fill;
 	command.space = space;
 	command.priority = priority;
 	command.alpha = alpha;
@@ -96,7 +111,7 @@ void RenderSystem::Draw()
 	std::stable_sort(m_commands.begin(), m_commands.end(), [](const RenderCommand& a, const RenderCommand& b) {
 		return a.priority < b.priority;
 		});
-    FVector2D CamPos = FVector2D::ZeroVector;
+	FVector2D CamPos = FVector2D::ZeroVector;
 	float camAngle = 0.0f;
 	if (m_MainCamera) {
 		CamPos = m_MainCamera->GetWorldLocation();
@@ -122,17 +137,21 @@ void RenderSystem::Draw()
 		case RenderSpace::World:
 			x1 -= CamPos.X;
 			y1 -= CamPos.Y;
-			x2 -= CamPos.X;
-			y2 -= CamPos.Y;
+			if (command.type != RenderType::Circle) {
+				x2 -= CamPos.X;
+				y2 -= CamPos.Y;
+			}
 			{
 				float rx1 = x1 * c - y1 * s;
 				float ry1 = x1 * s + y1 * c;
-				float rx2 = x2 * c - y2 * s;
-				float ry2 = x2 * s + y2 * c;
 				x1 = rx1 + centerX;
 				y1 = ry1 + centerY;
-				x2 = rx2 + centerX;
-				y2 = ry2 + centerY;
+				if (command.type != RenderType::Circle) {
+					float rx2 = x2 * c - y2 * s;
+					float ry2 = x2 * s + y2 * c;
+					x2 = rx2 + centerX;
+					y2 = ry2 + centerY;
+				}
 			}
 			drawAngle -= camAngleRad;
 			break;
@@ -142,19 +161,22 @@ void RenderSystem::Draw()
 
 		SetDrawBlendMode(DX_BLENDMODE_ALPHA, normalizedAlpha);
 		switch (command.type) {
-		case RenderType::Sprite:
-         DrawRotaGraphF(static_cast<int>(x1), static_cast<int>(y1), command.Scale, drawAngle, command.handle, TRUE);
+		case RenderType::Graph:
+			DrawRotaGraphF(static_cast<int>(x1), static_cast<int>(y1), command.Scale, drawAngle, command.handle, TRUE);
 			break;
 		case RenderType::Box:
-           DrawBox(static_cast<int>(x1), static_cast<int>(y1), static_cast<int>(x2), static_cast<int>(y2), command.color, command.fill);
+			DrawBox(static_cast<int>(x1), static_cast<int>(y1), static_cast<int>(x2), static_cast<int>(y2), command.color, command.fill);
 			break;
 		case RenderType::Text:
-            DrawStringToHandle(static_cast<int>(x1), static_cast<int>(y1), command.text.c_str(), command.color, command.handle);
+			DrawStringToHandle(static_cast<int>(x1), static_cast<int>(y1), command.text.c_str(), command.color, command.handle);
 			break;
 		case RenderType::Line:
-            DrawLine(static_cast<int>(x1), static_cast<int>(y1), static_cast<int>(x2), static_cast<int>(y2), command.color);
+			DrawLine(static_cast<int>(x1), static_cast<int>(y1), static_cast<int>(x2), static_cast<int>(y2), command.color);
 			break;
-		case RenderType::RectGraph: 
+		case RenderType::Circle:
+			DrawCircle(static_cast<int>(x1), static_cast<int>(y1), static_cast<int>(x2), command.color, command.fill);
+			break;
+		case RenderType::RectGraph:
 			DrawRectGraph(static_cast<int>(x1), static_cast<int>(y1),           // 描画先のX, Y (変換済み)
 				static_cast<int>(command.srcX), static_cast<int>(command.srcY), // 元画像の切り出し開始X, Y
 				static_cast<int>(command.srcWidth), static_cast<int>(command.srcHeight), // 元画像の切り出し幅, 高さ

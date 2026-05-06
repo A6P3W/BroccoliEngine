@@ -12,7 +12,7 @@ void MSpriteComponent::Draw()
 
 	const FVector2D& WorldLocation = GetWorldLocation();
 	const FRotator& WorldRotation = GetWorldRotation();
-	RenderSystem::GetInstance().SubmitSprite(
+	RenderSystem::GetInstance().SubmitGraph(
 		float(WorldLocation.X),
 		float(WorldLocation.Y),
 		(double)GetScale(),
@@ -20,6 +20,14 @@ void MSpriteComponent::Draw()
 		m_handle,
 		RenderSpace::World,
 		m_priority);
+	RenderSystem::GetInstance().SubmitCircle(
+		float(WorldLocation.X),
+		float(WorldLocation.Y),
+		200.0f,
+		(255, 255, 255),
+		0,
+		RenderSpace::World,
+		m_priority + 1);
 }
 
 

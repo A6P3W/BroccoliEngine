@@ -3,11 +3,12 @@
 #include <string>
 
 enum class RenderType {
-    Sprite,
+    Graph,
     Box,
     Text,
 	Line,
-    RectGraph
+    RectGraph,
+    Circle
 };
 enum class RenderSpace {
     World, 
@@ -16,7 +17,7 @@ enum class RenderSpace {
 
 struct RenderCommand {
     int priority = 0;
-    RenderType type = RenderType::Sprite;
+    RenderType type = RenderType::Graph;
 
     float x1 = 0.0f;
     float y1 = 0.0f;
@@ -44,11 +45,12 @@ public:
     RenderSystem();
     static RenderSystem& GetInstance();
 
-    void SubmitSprite(float x, float y, double Scale, double AngleDeg, int handle, RenderSpace space , int priority, int alpha = 255);
+    void SubmitGraph(float x, float y, double Scale, double AngleDeg, int handle, RenderSpace space , int priority, int alpha = 255);
     void SubmitBox(float x1, float y1, float x2, float y2, int color, int fill, RenderSpace space , int priority, int alpha = 255);
     void SubmitText(const std::string& text, float x, float y, int color, int handle, RenderSpace space ,int priority, int alpha = 255);
     void SubmitLine(float x1, float y1, float x2, float y2, int color, RenderSpace space, int priority, int alpha = 255);
     void SubmitRectGraph(float destX, float destY, float srcX, float srcY, float srcW, float srcH,int handle, RenderSpace space, int priority, int alpha = 255);
+    void SubmitCircle(float x, float y, float radius, int color, int fill, RenderSpace space, int priority, int alpha = 255);
 
     void Draw();
 

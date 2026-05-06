@@ -185,6 +185,7 @@
     <ClInclude Include="Engine\Systems\Public\ObjectManager.h" />
     <ClInclude Include="Engine\Systems\Public\RenderSystem.h" />
     <ClInclude Include="Engine\Systems\Public\ResourceManager.h" />
+    <ClInclude Include="Engine\Utils\Log.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />
     <ClInclude Include="Engine\GameFramework\Public\GameModeBase.h" />
     <ClInclude Include="Game\Objects\DefaultScene2.h" />

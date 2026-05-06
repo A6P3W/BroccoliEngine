@@ -55,6 +55,7 @@ bool Application::Update(float DeltaTime)
     ObjectManager::GetInstance().Update(DeltaTime);
     if (AGameModeBase* m_CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
 		m_CurrentScene->OnUpdate(DeltaTime);
+
     }
 
 	return true;
