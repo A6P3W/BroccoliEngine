@@ -1,13 +1,11 @@
-﻿#include "Player.h"
+﻿#include "DefaultPawn.h"
 #include "InputMapper.h"
 #include "InputManager.h"
 #include "ResourceManager.h"
 #include "SpriteComponent.h"
 #include "CameraComponent.h"
-#include "SceneManager.h"
-#include "Objects/DefaultScene2.h"
 #include <DxLib.h>
-APlayer::APlayer(FVector2D location, FRotator rotation)
+ADefaultPawn::ADefaultPawn(FVector2D location, FRotator rotation)
 {
 	SetActorLocation(location);
 	SetActorRotation(rotation);
@@ -17,7 +15,7 @@ APlayer::APlayer(FVector2D location, FRotator rotation)
 	auto sprite = std::make_unique<MSpriteComponent>(handle, 0);
 	sprite->SetParentComponent(this->GetRootComponent());
 	AddComponent(std::move(sprite));
-	
+
 
 
 	auto camera = std::make_unique<MCameraComponent>();
@@ -25,9 +23,9 @@ APlayer::APlayer(FVector2D location, FRotator rotation)
 	AddComponent(std::move(camera));
 	m_camera->SetActiveCamera();
 }
-void APlayer::OnUpdate(float DeltaTime)
+void ADefaultPawn::OnUpdate(float DeltaTime)
 {
-	float moveSpeed = 1000.0f; 
+	float moveSpeed = 1000.0f;
 	float rotationSpeed = 180.0f;
 	if (InputMapper::GetInstance().GetKeyPressing(E_INPUT_ACTION::UP)) {
 		AddActorLocalOffset({ 0.0f, -moveSpeed * DeltaTime });
@@ -36,7 +34,7 @@ void APlayer::OnUpdate(float DeltaTime)
 		AddActorLocalOffset({ 0.0f, moveSpeed * DeltaTime });
 	}
 	if (InputMapper::GetInstance().GetKeyPressing(E_INPUT_ACTION::LEFT)) {
-		AddActorRotation(-rotationSpeed * DeltaTime); 
+		AddActorRotation(-rotationSpeed * DeltaTime);
 	}
 	if (InputMapper::GetInstance().GetKeyPressing(E_INPUT_ACTION::RIGHT)) {
 		AddActorRotation(rotationSpeed * DeltaTime);
@@ -49,7 +47,5 @@ void APlayer::OnUpdate(float DeltaTime)
 		sprite->SetScale(0.5f);
 		AddComponent(std::move(sprite));
 	}
-	if (InputManager::GetInstance().GetKeyPressStart(KEY_INPUT_Z)) {
-		SceneManager::GetInstance().OpenScene<ADefaultScene2>();
-	}
+
 }

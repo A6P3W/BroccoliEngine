@@ -12,8 +12,3 @@ AMap::AMap(FVector2D location, FRotator rotation)
 	AddComponent(std::move(sprite));
 
 }
-
-void AMap::OnDraw()
-{
-}
-

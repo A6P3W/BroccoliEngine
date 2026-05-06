@@ -23,7 +23,3 @@ void ASampleA::OnUpdate(float DeltaTime)
 	AddActorRotation(RotationSpeed * DeltaTime); // 毎フレーム回転させる
 	AddActorLocalOffset({ MoveSpeed * DeltaTime, 0.0f }); // 毎フレーム右に移動させる
 }
-
-void ASampleA::OnDraw()
-{
-}

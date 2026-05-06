@@ -5,10 +5,10 @@ class AGridLine :
 {
 public:
 	AGridLine();
-	void OnDraw() override;
+	void OnUpdate(float DeltaTime) override;
 	void SetLineWidth(float LineWidth);
 private:
-	int m_LineWidth;
+	float m_LineWidth;
 	int m_LineColor ;
 };
 

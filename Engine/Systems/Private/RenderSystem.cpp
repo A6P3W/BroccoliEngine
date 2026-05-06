@@ -96,8 +96,12 @@ void RenderSystem::Draw()
 	std::stable_sort(m_commands.begin(), m_commands.end(), [](const RenderCommand& a, const RenderCommand& b) {
 		return a.priority < b.priority;
 		});
-	FVector2D CamPos = m_MainCamera->GetWorldLocation();
-	float camAngle = m_MainCamera->GetWorldRotation().Rotation;
+    FVector2D CamPos = FVector2D::ZeroVector;
+	float camAngle = 0.0f;
+	if (m_MainCamera) {
+		CamPos = m_MainCamera->GetWorldLocation();
+		camAngle = m_MainCamera->GetWorldRotation().Rotation;
+	}
 	int WindowWidth, WindowHeight;
 	GetDrawScreenSize(&WindowWidth, &WindowHeight);
 	const float centerX = WindowWidth * 0.5f;

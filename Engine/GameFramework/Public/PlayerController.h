@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "UpdateableObject.h"
 #include "GameObject.h"
-class APlayerController:public MUpdateableObject
+#include "GameObject.h"
+class APlayerController:public AGameObject
 {
 public :
 	void Possess(AGameObject* NewPawn);

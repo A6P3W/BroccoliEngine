@@ -113,7 +113,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/;$(ProjectDir)\Game;$(ProjectDir)Engine/Core/Public;$(ProjectDir)Engine/Systems/Public;$(ProjectDir)Engine/Components/Public</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/;$(ProjectDir)\Game;$(ProjectDir)Engine/Core/Public;$(ProjectDir)Engine/Systems/Public;$(ProjectDir)Engine/Components/Public;$(ProjectDir)EngineSide/;$(ProjectDir)Engine/GameFramework/Public</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -131,7 +131,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/;$(ProjectDir)\Game;$(ProjectDir)Engine/Core/Public;$(ProjectDir)Engine/Systems/Public;$(ProjectDir)Engine/Components/Public</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/;$(ProjectDir)\Game;$(ProjectDir)Engine/Core/Public;$(ProjectDir)Engine/Systems/Public;$(ProjectDir)Engine/Components/Public;$(ProjectDir)EngineSide/;$(ProjectDir)Engine/GameFramework/Public</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -141,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\GameFramework\Private\DefaultPawn.cpp" />
     <ClCompile Include="Engine\Components\Private\CameraComponent.cpp" />
     <ClCompile Include="Engine\Components\Private\BaseComponent.cpp" />
     <ClCompile Include="Engine\Components\Private\SceneComponent.cpp" />
@@ -150,20 +151,25 @@
     <ClCompile Include="Engine\Core\Private\BaseObject.cpp" />
     <ClCompile Include="Engine\Core\Private\GameObject.cpp" />
     <ClCompile Include="Engine\Core\Private\UpdateableObject.cpp" />
-    <ClCompile Include="Engine\main.cpp" />
-    <ClCompile Include="Engine\Objects\GridLine.cpp" />
+    <ClCompile Include="Engine\Core\Private\EngineEntry.cpp" />
+    <ClCompile Include="EngineSide\GridLine.cpp" />
     <ClCompile Include="Engine\Systems\Private\InputManager.cpp" />
     <ClCompile Include="Engine\Systems\Private\InputMapper.cpp" />
     <ClCompile Include="Engine\Systems\Private\ObjectManager.cpp" />
     <ClCompile Include="Engine\Systems\Private\RenderSystem.cpp" />
     <ClCompile Include="Engine\Systems\Private\ResourceManager.cpp" />
+    <ClCompile Include="Engine\GameFramework\Private\GameModeBase.cpp" />
+    <ClCompile Include="Game\Objects\DefaultScene2.cpp" />
+    <ClCompile Include="Game\GameMain.cpp" />
     <ClCompile Include="Game\Objects\Player.cpp" />
     <ClCompile Include="Game\Objects\SampleA.cpp" />
-    <ClCompile Include="Game\GameMain.cpp" />
     <ClCompile Include="Game\Objects\Map.cpp" />
-    <ClCompile Include="Engine\Objects\PlayerController.cpp" />
+    <ClCompile Include="Engine\GameFramework\Private\PlayerController.cpp" />
+    <ClCompile Include="Engine\Systems\Private\SceneManager.cpp" />
+    <ClCompile Include="Game\Objects\DefaultScene.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\GameFramework\Public\DefaultPawn.h" />
     <ClInclude Include="Engine\Components\Public\CameraComponent.h" />
     <ClInclude Include="Engine\Components\Public\BaseComponent.h" />
     <ClInclude Include="Engine\Components\Public\SceneComponent.h" />
@@ -173,18 +179,27 @@
     <ClInclude Include="Engine\Core\Public\BaseObject.h" />
     <ClInclude Include="Engine\Core\Public\GameObject.h" />
     <ClInclude Include="Engine\Core\Public\UpdateableObject.h" />
-    <ClInclude Include="Engine\Objects\GridLine.h" />
+    <ClInclude Include="EngineSide\GridLine.h" />
     <ClInclude Include="Engine\Systems\Public\InputManager.h" />
     <ClInclude Include="Engine\Systems\Public\InputMapper.h" />
     <ClInclude Include="Engine\Systems\Public\ObjectManager.h" />
     <ClInclude Include="Engine\Systems\Public\RenderSystem.h" />
     <ClInclude Include="Engine\Systems\Public\ResourceManager.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />
+    <ClInclude Include="Engine\GameFramework\Public\GameModeBase.h" />
+    <ClInclude Include="Game\Objects\DefaultScene2.h" />
     <ClInclude Include="Game\Objects\Player.h" />
     <ClInclude Include="Game\Objects\SampleA.h" />
-    <ClInclude Include="Game\GameMain.h" />
     <ClInclude Include="Game\Objects\Map.h" />
-    <ClInclude Include="Engine\Objects\PlayerController.h" />
+    <ClInclude Include="Engine\GameFramework\Public\PlayerController.h" />
+    <ClInclude Include="Engine\Systems\Public\SceneManager.h" />
+    <ClInclude Include="Game\Objects\DefaultScene.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Engine\file.md">
+      <SubType>
+      </SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

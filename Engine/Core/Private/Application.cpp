@@ -2,14 +2,15 @@
 #include "DxLib.h"
 #include "Objects/SampleA.h"
 #include "RenderSystem.h"
-#include "Objects/GridLine.h"
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "ObjectManager.h"
+#include "SceneManager.h"
+#include "GameModeBase.h"
+#include "Objects/DefaultScene.h"
+extern void SetupGame();
 Application::Application()
 {
-    auto Grid = ObjectManager::GetInstance().SpawnObject<AGridLine>();
-    Grid->SetLineWidth(100);
 }
 bool Application::Run()
 {
@@ -18,7 +19,7 @@ bool Application::Run()
     const LONGLONG TargetFrameTime = 1000000 / 60;
     LONGLONG LastTime = GetNowHiPerformanceCount();
 
-	GameMainInstance->BeginPlay();
+    SetupGame();
     auto& IMI = InputManager::GetInstance();
     while (ProcessMessage() == 0 && !IMI.GetKeyPressing(KEY_INPUT_ESCAPE)|| IMI.GetKeyPressing(KEY_INPUT_LSHIFT)) {
 
@@ -50,8 +51,11 @@ bool Application::Run()
 bool Application::Update(float DeltaTime)
 {
 	InputManager::GetInstance().Update();
+	SceneManager::GetInstance().ProcessSceneChanges();
     ObjectManager::GetInstance().Update(DeltaTime);
-	GameMainInstance->Update(DeltaTime);
+    if (AGameModeBase* m_CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
+		m_CurrentScene->OnUpdate(DeltaTime);
+    }
 
 	return true;
 }
@@ -60,7 +64,7 @@ bool Application::Draw()
 {
 	SetDrawScreen(DX_SCREEN_BACK);
 	ClearDrawScreen();
-	GameMainInstance->Draw();
+
     ObjectManager::GetInstance().Draw();
 	RenderSystem::GetInstance().Draw();
 	ScreenFlip();

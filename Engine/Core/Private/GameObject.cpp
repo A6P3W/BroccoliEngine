@@ -14,7 +14,6 @@ void AGameObject::OnUpdate(float DeltaTime)
 void AGameObject::Draw()
 {
 	for (auto& comp : GetComponents()) comp->Draw();
-	this->OnDraw();
 }
 
 FVector2D AGameObject::GetActorLocation() const

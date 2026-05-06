@@ -1,4 +1,4 @@
-﻿#include "Objects/GridLine.h"
+﻿#include "GridLine.h"
 #include "RenderSystem.h"
 #include "CameraComponent.h"
 #include <DxLib.h>
@@ -13,7 +13,7 @@ AGridLine::AGridLine()
 	m_LineColor = GetColor(255, 255, 255);
 }
 
-void AGridLine::OnDraw()
+void AGridLine::OnUpdate(float DeltaTime)
 {
     auto Cam = RenderSystem::GetInstance().GetCamera();
     FVector2D CamPos = Cam->GetWorldLocation();

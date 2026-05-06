@@ -11,7 +11,6 @@ public:
     ~ASampleA() override;
 
     void OnUpdate(float DeltaTime) override;
-    void OnDraw() override;
 
 private:
 };

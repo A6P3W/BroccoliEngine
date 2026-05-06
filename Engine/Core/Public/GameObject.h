@@ -37,7 +37,6 @@ public:
 
 	}
 protected:
-	virtual void OnDraw() {}
 
 	MSceneComponent* m_rootComponent = nullptr;
 	void SetRootComponent(MSceneComponent* Component);
