@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "Core/Public/GameObject.h"
+#include "Actor.h"
 #include <Utils/Umath.h>
-class APlayer : public AGameObject
+class APlayer : public AActor
 {
 public:
 	APlayer(FVector2D location ,FRotator rotation);

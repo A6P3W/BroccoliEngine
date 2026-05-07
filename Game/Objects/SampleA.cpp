@@ -3,7 +3,7 @@
 #include "ResourceManager.h"
 #include "SpriteComponent.h" 
 #include <Utils/Umath.h>
-ASampleA::ASampleA(FVector2D location, FRotator rotation) : AGameObject()
+ASampleA::ASampleA(FVector2D location, FRotator rotation) : AActor()
 {
 	SetActorLocation(location);
 	int handle = ResourceManager::GetInstance().LoadResourceGraph("BaseFile/texture_Checker_64px.png");

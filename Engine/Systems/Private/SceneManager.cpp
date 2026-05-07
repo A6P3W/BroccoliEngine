@@ -3,7 +3,7 @@
 #include "GridLine.h"
 #include "RenderSystem.h"
 #include "CameraComponent.h"
-#include "GameObject.h"
+#include "Actor.h"
 void SceneManager::ProcessSceneChanges()
 {
 	if (m_PendingSceneFactory) {

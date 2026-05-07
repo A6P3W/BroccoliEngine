@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include "Core/Public/GameObject.h"
+#include "Actor.h"
 #include <Utils/Umath.h>
 
 class MTransformComponent;
 
-class ASampleA : public AGameObject
+class ASampleA : public AActor
 {
 public:
     ASampleA(FVector2D location, FRotator rotation);

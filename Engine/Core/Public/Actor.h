@@ -1,19 +1,23 @@
 ﻿#pragma once
-#include "UpdateableObject.h"
+#include "BaseObject.h"
 #include <string>
 #include <vector>
 #include "Components/Public/SceneComponent.h"
 #include "Utils/Umath.h"
+#include "ActorComponent.h"
 class MSceneComponent;
-class AGameObject :
-	public MUpdateableObject
+class AActor :
+	public MBaseObject
 {
 public:
-	AGameObject();
-	virtual void OnUpdate(float DeltaTime) override;
+	AActor();
+	virtual void Update(float DeltaTime) final;
 	virtual void Draw()final;
 	MSceneComponent* GetRootComponent() const { return m_rootComponent; };
 
+	const std::vector<std::unique_ptr<MActorComponent>>& GetComponents() const;
+
+	void AddComponent(std::unique_ptr<MActorComponent> comp);
 
 	FVector2D GetActorLocation() const;
 	bool SetActorLocation(const FVector2D& NewLocation);
@@ -32,17 +36,18 @@ public:
 	void Destroy();
 	bool IsPendingDestroy() const;
 
-	virtual void BeginOverlap(AGameObject* OtherActor) {}
+	virtual void BeginOverlap(AActor* OtherActor) {}
 	template<class T>
 	T* GetAllGameObjectsOfClass() const {
 
 	}
 protected:
-
+	virtual void OnUpdate(float DeltaTime);
 	MSceneComponent* m_rootComponent = nullptr;
 	void SetRootComponent(MSceneComponent* Component);
 private:
-	std::vector<AGameObject*> m_childObjects;
+	std::vector<AActor*> m_childObjects;
 	bool m_PendingDestroy = false;
+	std::vector<std::unique_ptr<MActorComponent>> m_components;
 };
 

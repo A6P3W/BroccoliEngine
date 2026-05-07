@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "Core/Public/GameObject.h"
+#include "Actor.h"
 class AGridLine :
-    public AGameObject
+    public AActor
 {
 public:
 	AGridLine();

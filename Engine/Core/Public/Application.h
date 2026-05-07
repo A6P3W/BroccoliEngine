@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include <memory>
-#include "Core/Public/GameObject.h"
 #include <vector>
 class AGameModeBase;
 class Application

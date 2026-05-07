@@ -1,5 +1,6 @@
 ﻿#pragma once
-class MCollisionComponent
+#include "SceneComponent.h"
+class MCollisionComponent : public MSceneComponent
 {
 };
 

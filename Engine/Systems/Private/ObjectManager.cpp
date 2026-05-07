@@ -13,15 +13,15 @@ ObjectManager::ObjectManager()
 
 void ObjectManager::Update(float DeltaTime)
 {
-	for (auto& object : m_UpdateAbleObject) {
+	for (auto& object : m_Actors) {
 		object->Update(DeltaTime);
 	}
-	std::erase_if(m_UpdateAbleObject, [this](const std::unique_ptr<MUpdateableObject>& obj) {
-		auto* gameObject = dynamic_cast<AGameObject*>(obj.get());
+	std::erase_if(m_Actors, [this](const std::unique_ptr<AActor>& obj) {
+		auto* gameObject = obj.get();
 		if (gameObject && gameObject->IsPendingDestroy()) {
-			m_RenderAbleObject.erase(
-				std::remove(m_RenderAbleObject.begin(), m_RenderAbleObject.end(), gameObject),
-				m_RenderAbleObject.end());
+			m_Actors.erase(
+				std::remove(m_Actors.begin(), m_Actors.end(), obj),
+				m_Actors.end());
 			return true;
 		}
 		return false;
@@ -30,13 +30,13 @@ void ObjectManager::Update(float DeltaTime)
 
 void ObjectManager::Draw()
 {
-	for (auto* object : m_RenderAbleObject) {
+	for (auto& object : m_Actors) {
 		object->Draw();
 	}
 }
 
 void ObjectManager::ClearAllObjects()
 {
-	m_UpdateAbleObject.clear();
-	m_RenderAbleObject.clear();
+	m_Actors.clear();
+
 }

@@ -1,5 +1,5 @@
 ﻿#include "CollisionSystem.h"
-
+#include "Actor.h"
 void CollisionSystem::RegisterCollision(MCollisionComponent* component)
 {
 	m_CollisionComponents.push_back(component);
@@ -17,6 +17,10 @@ void CollisionSystem::CheckCollisions()
 		for (int j = i + 1; j < size; j++) {
 			auto* a = m_CollisionComponents[i];
 			auto* b = m_CollisionComponents[j];
-			if (a->owner() == b->owner()) { continue; }
+			auto* ownerA = a->GetOwner();
+			auto* ownerB = b->GetOwner();
+			if (ownerA == ownerB) { continue; }
+			ownerA->BeginOverlap(ownerB);
 		}
+	}
 }

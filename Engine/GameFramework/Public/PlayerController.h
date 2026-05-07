@@ -1,13 +1,13 @@
 ﻿#pragma once
-#include "GameObject.h"
-#include "GameObject.h"
-class APlayerController:public AGameObject
+#include "Actor.h"
+#include "Actor.h"
+class APlayerController:public AActor
 {
 public :
-	void Possess(AGameObject* NewPawn);
+	void Possess(AActor* NewPawn);
 
 	void OnUpdate(float DeltaTime) override;
 private:
-	AGameObject* m_TargetPawn = nullptr;
+	AActor* m_TargetPawn = nullptr;
 };
 

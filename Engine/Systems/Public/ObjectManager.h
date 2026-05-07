@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <string>
-#include "GameObject.h"
+#include "Actor.h"
 #include <vector>
 #include <memory>
 #include <type_traits>
@@ -13,7 +13,7 @@ public:
 	void Draw();
 
 
-	template<class T, std::enable_if_t<std::is_base_of_v<AGameObject, T>, int> = 0>
+	template<class T, std::enable_if_t<std::is_base_of_v<AActor, T>, int> = 0>
 	T* SpawnObject(const FVector2D& location = FVector2D::ZeroVector, FRotator rotation = 0.0f) {
 		std::unique_ptr<T> obj;
 		if constexpr (std::is_constructible_v<T, const FVector2D&, FRotator>) {
@@ -23,13 +23,11 @@ public:
 			obj = std::make_unique<T>();
 		}
 		T* ptr = obj.get();
-		m_UpdateAbleObject.push_back(std::move(obj));
-		m_RenderAbleObject.push_back(ptr);
+		m_Actors.push_back(std::move(obj));
 		return ptr;
 	}
 	void ClearAllObjects();
 private:
-	std::vector< std::unique_ptr<MUpdateableObject>> m_UpdateAbleObject;
-	std::vector<AGameObject*> m_RenderAbleObject;
+	std::vector<std::unique_ptr<AActor>> m_Actors;
 };
 

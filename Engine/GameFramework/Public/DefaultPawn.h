@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "GameObject.h"
-class ADefaultPawn : public AGameObject
+#include "Actor.h"
+class ADefaultPawn : public AActor
 {
 public:
 	ADefaultPawn(FVector2D location, FRotator rotation);

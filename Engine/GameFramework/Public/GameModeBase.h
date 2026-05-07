@@ -1,14 +1,14 @@
 ﻿#pragma once
-#include "GameObject.h"
+#include "Actor.h"
 
-class AGameModeBase : public AGameObject
+class AGameModeBase : public AActor
 {
 public:
 	AGameModeBase();
 	void OnUpdate(float DeltaTime) override;
 protected:
-	AGameObject* m_PlayerPawn;
-	AGameObject* m_PlayerController;
+	AActor* m_PlayerPawn;
+	AActor* m_PlayerController;
 private:
 
 };

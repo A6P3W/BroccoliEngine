@@ -1,21 +1,23 @@
 ﻿#pragma once
 #include <string>
 #include<vector>
-#include "UpdateableComponent.h"
+#include "ActorComponent.h"
 #include "Utils/UMath.h"
-class MUpdateableObject; // 前方宣言
+class MActorComponent; 
+class AActor;
 
-class MSceneComponent : public UpdateableComponent {
+class MSceneComponent : public MActorComponent {
 public:
 	MSceneComponent();
 	virtual ~MSceneComponent();
 	virtual void OnUpdate(float DeltaTime);
-	void Draw() override;
+    virtual void Draw();
 
 	// メッセージ受信用の仮想関数
 	virtual void OnMessage(const std::string& message);
 
-	void SetOwner(MUpdateableObject* owner);
+	void SetOwner(AActor* owner);
+	auto GetOwner() const { return m_owner; }
 
 	void SetParentComponent(MSceneComponent* parent);
 	auto GetParentComponent() const { return m_parentComponent; }
@@ -39,7 +41,7 @@ public:
 	FRotator RelativeRotation;
 	FScale Scale;
 protected:
-	MUpdateableObject* m_owner = nullptr;
+	AActor* m_owner = nullptr;
 	MSceneComponent* m_parentComponent = nullptr;
 	std::vector<MSceneComponent*> m_childComponents;
 	

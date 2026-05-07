@@ -143,16 +143,15 @@
   <ItemGroup>
     <ClCompile Include="Engine\GameFramework\Private\DefaultPawn.cpp" />
     <ClCompile Include="Engine\Components\Private\CameraComponent.cpp" />
-    <ClCompile Include="Engine\Components\Private\BaseComponent.cpp" />
     <ClCompile Include="Engine\Components\Private\SceneComponent.cpp" />
     <ClCompile Include="Engine\Components\Private\SpriteComponent.cpp" />
-    <ClCompile Include="Engine\Components\Private\UpdateableComponent.cpp" />
     <ClCompile Include="Engine\Core\Private\Application.cpp" />
     <ClCompile Include="Engine\Core\Private\BaseObject.cpp" />
-    <ClCompile Include="Engine\Core\Private\GameObject.cpp" />
-    <ClCompile Include="Engine\Core\Private\UpdateableObject.cpp" />
+    <ClCompile Include="Engine\Core\Private\Actor.cpp" />
+    <ClCompile Include="Engine\Core\Private\ActorComponent.cpp" />
     <ClCompile Include="Engine\Core\Private\EngineEntry.cpp" />
     <ClCompile Include="EngineSide\GridLine.cpp" />
+    <ClCompile Include="Engine\Systems\Private\CollisionSystem.cpp" />
     <ClCompile Include="Engine\Systems\Private\InputManager.cpp" />
     <ClCompile Include="Engine\Systems\Private\InputMapper.cpp" />
     <ClCompile Include="Engine\Systems\Private\ObjectManager.cpp" />
@@ -173,14 +172,12 @@
     <ClInclude Include="Engine\Systems\Public\CollisionSystem.h" />
     <ClInclude Include="Engine\GameFramework\Public\DefaultPawn.h" />
     <ClInclude Include="Engine\Components\Public\CameraComponent.h" />
-    <ClInclude Include="Engine\Components\Public\BaseComponent.h" />
     <ClInclude Include="Engine\Components\Public\SceneComponent.h" />
     <ClInclude Include="Engine\Components\Public\SpriteComponent.h" />
-    <ClInclude Include="Engine\Components\Public\UpdateableComponent.h" />
     <ClInclude Include="Engine\Core\Public\Application.h" />
     <ClInclude Include="Engine\Core\Public\BaseObject.h" />
-    <ClInclude Include="Engine\Core\Public\GameObject.h" />
-    <ClInclude Include="Engine\Core\Public\UpdateableObject.h" />
+    <ClInclude Include="Engine\Core\Public\Actor.h" />
+    <ClInclude Include="Engine\Core\Public\ActorComponent.h" />
     <ClInclude Include="EngineSide\GridLine.h" />
     <ClInclude Include="Engine\Systems\Public\InputManager.h" />
     <ClInclude Include="Engine\Systems\Public\InputMapper.h" />

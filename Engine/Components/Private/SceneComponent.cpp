@@ -1,6 +1,7 @@
 ﻿#include "Components/Public/SceneComponent.h"
 #include <cmath>
 #include "Utils/UMath.h"
+#include "Actor.h"
 
 MSceneComponent::MSceneComponent() = default;
 MSceneComponent::~MSceneComponent() = default;
@@ -17,7 +18,7 @@ void MSceneComponent::OnMessage(const std::string& message)
 {
 }
 
-void MSceneComponent::SetOwner(MUpdateableObject* owner)
+void MSceneComponent::SetOwner(AActor* owner)
 {
 	m_owner = owner;
 }
