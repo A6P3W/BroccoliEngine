@@ -51,6 +51,13 @@ bool Application::Run()
 bool Application::Update(float DeltaTime)
 {
 	InputManager::GetInstance().Update();
+    if (InputManager::GetInstance().GetKeyPressStart(KEY_INPUT_P)) {
+		m_posed = !m_posed;
+    }
+
+    if (m_posed) {
+        return true;
+    }
 	SceneManager::GetInstance().ProcessSceneChanges();
     ObjectManager::GetInstance().Update(DeltaTime);
     if (AGameModeBase* m_CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {

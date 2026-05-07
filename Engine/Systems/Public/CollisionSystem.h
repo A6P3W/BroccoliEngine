@@ -10,6 +10,7 @@ class CollisionSystem
 public:
 	void RegisterCollision(MCollisionComponent* component);
 	void UnRegisterCollision(MCollisionComponent* component);
+	void CheckCollisions();
 private:
 	std::vector<MCollisionComponent*> m_CollisionComponents;
 };

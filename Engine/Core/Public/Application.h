@@ -13,5 +13,6 @@ private:
 	bool Draw();
 	float m_DeltaTime = 0.0f;
 	AGameModeBase* m_CurrentScene = nullptr;
+	bool m_posed = false;
 };
 
