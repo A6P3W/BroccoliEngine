@@ -54,7 +54,7 @@ bool Application::Update(float DeltaTime)
 	SceneManager::GetInstance().ProcessSceneChanges();
     ObjectManager::GetInstance().Update(DeltaTime);
     if (AGameModeBase* m_CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
-		m_CurrentScene->OnUpdate(DeltaTime);
+        m_CurrentScene->Update(DeltaTime);
 
     }
 
@@ -63,11 +63,15 @@ bool Application::Update(float DeltaTime)
 
 bool Application::Draw()
 {
-	SetDrawScreen(DX_SCREEN_BACK);
-	ClearDrawScreen();
+  SetDrawScreen(DX_SCREEN_BACK);
+    ClearDrawScreen();
+
+    if (AGameModeBase* m_CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
+        m_CurrentScene->Draw();
+    }
 
     ObjectManager::GetInstance().Draw();
-	RenderSystem::GetInstance().Draw();
+    RenderSystem::GetInstance().Draw();
 	ScreenFlip();
 	return true;
 }

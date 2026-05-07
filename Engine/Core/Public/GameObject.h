@@ -32,6 +32,7 @@ public:
 	void Destroy();
 	bool IsPendingDestroy() const;
 
+	virtual void BeginOverlap(AGameObject* OtherActor) {}
 	template<class T>
 	T* GetAllGameObjectsOfClass() const {
 

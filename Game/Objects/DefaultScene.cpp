@@ -7,13 +7,15 @@
 #include "ObjectManager.h"
 #include <Utils/Umath.h>
 #include <Utils/Log.h>
-
+#include <SpriteComponent.h>
 ADefaultScene::ADefaultScene() {
 	//ObjectManager::GetInstance().SpawnObject<AMap>(FVector2D::ZeroVector, 0.0f);
 	ObjectManager::GetInstance().SpawnObject<APlayer>({ 0,0 }, { 0 });
-	ObjectManager::GetInstance().SpawnObject<ASampleA>({ 15,0 }, { 0 });
-	M_LOG("Default scene initialized");
-
+	ObjectManager::GetInstance().SpawnObject<ASampleA>({ 0,0 }, { 0 });
+	M_LOG("Default scene initialized", 0);
+	auto sprite = std::make_unique<MSpriteComponent>(-10000, RenderSpace::World);
+	sprite->SubmitCircle(300.0f, 0xFF0000, 1, 128);
+	AddComponent(std::move(sprite));
 }
 
 void ADefaultScene::OnUpdate(float DeltaTime)

@@ -12,7 +12,8 @@ ADefaultPawn::ADefaultPawn(FVector2D location, FRotator rotation)
 
 
 	int handle = ResourceManager::GetInstance().LoadResourceGraph("BaseFile/texture_Checker_64px.png");
-	auto sprite = std::make_unique<MSpriteComponent>(handle, 0);
+	auto sprite = std::make_unique<MSpriteComponent>(0, RenderSpace::World);
+	sprite->SubmitGraph(1.0, handle);
 	sprite->SetParentComponent(this->GetRootComponent());
 	AddComponent(std::move(sprite));
 
@@ -41,7 +42,8 @@ void ADefaultPawn::OnUpdate(float DeltaTime)
 	}
 	if (InputManager::GetInstance().GetKeyPressStart(KEY_INPUT_SPACE)) {
 		int handle = ResourceManager::GetInstance().LoadResourceGraph("BaseFile/texture_Checker_64px.png");
-		auto sprite = std::make_unique<MSpriteComponent>(handle, 0);
+		auto sprite = std::make_unique<MSpriteComponent>(0, RenderSpace::World);
+		sprite->SubmitGraph(1.0, handle);
 		sprite->SetParentComponent(this->GetRootComponent());
 		sprite->AddWorldOffset({ 220.0f, -100.0f });
 		sprite->SetScale(0.5f);

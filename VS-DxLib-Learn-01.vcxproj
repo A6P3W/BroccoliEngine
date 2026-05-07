@@ -167,8 +167,10 @@
     <ClCompile Include="Engine\GameFramework\Private\PlayerController.cpp" />
     <ClCompile Include="Engine\Systems\Private\SceneManager.cpp" />
     <ClCompile Include="Game\Objects\DefaultScene.cpp" />
+    <ClCompile Include="Engine\Components\Private\CollisionComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Systems\Public\CollisionSystem.h" />
     <ClInclude Include="Engine\GameFramework\Public\DefaultPawn.h" />
     <ClInclude Include="Engine\Components\Public\CameraComponent.h" />
     <ClInclude Include="Engine\Components\Public\BaseComponent.h" />
@@ -195,6 +197,7 @@
     <ClInclude Include="Engine\GameFramework\Public\PlayerController.h" />
     <ClInclude Include="Engine\Systems\Public\SceneManager.h" />
     <ClInclude Include="Game\Objects\DefaultScene.h" />
+    <ClInclude Include="Engine\Components\Public\CollisionComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md">
