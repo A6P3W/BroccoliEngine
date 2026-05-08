@@ -5,7 +5,7 @@
 #include "SpriteComponent.h"
 #include "CameraComponent.h"
 #include "SceneManager.h"
-#include "Objects/DefaultScene2.h"
+#include "Objects/DefaultScene.h"
 #include <DxLib.h>
 APlayer::APlayer(FVector2D location, FRotator rotation)
 {
@@ -51,6 +51,6 @@ void APlayer::OnUpdate(float DeltaTime)
 		AddComponent(std::move(sprite));
 	}
 	if (InputManager::GetInstance().GetKeyPressStart(KEY_INPUT_Z)) {
-		SceneManager::GetInstance().OpenScene<ADefaultScene2>();
+		SceneManager::GetInstance().OpenScene<ADefaultScene>();
 	}
 }

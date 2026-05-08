@@ -15,7 +15,10 @@ ADefaultScene::ADefaultScene() {
 	M_LOG("Default scene initialized", 0);
 	auto sprite = std::make_unique<MSpriteComponent>(-10000, RenderSpace::World);
 	sprite->SubmitCircle(300.0f, 0xFF0000, 1, 128);
-	AddComponent(std::move(sprite));
+	//AddComponent(std::move(sprite));
+	auto sprite2 = std::make_unique<MSpriteComponent>(-10000, RenderSpace::World);
+	sprite2->SubmitText("center", 0xFF0000, -1, 255);
+	AddComponent(std::move(sprite2));
 }
 
 void ADefaultScene::OnUpdate(float DeltaTime)

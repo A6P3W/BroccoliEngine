@@ -2,7 +2,7 @@
 #include "BaseObject.h"
 #include <string>
 #include <vector>
-#include "Components/Public/SceneComponent.h"
+#include "SceneComponent.h"
 #include "Utils/Umath.h"
 #include "ActorComponent.h"
 class MSceneComponent;

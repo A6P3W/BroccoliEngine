@@ -1,6 +1,7 @@
 ﻿#include "SpriteComponent.h"
 #include "Actor.h"
 #include "Utils/UMath.h"
+#include "ResourceManager.h"
 
 MSpriteComponent::MSpriteComponent(int priority, RenderSpace space)
 {
@@ -32,7 +33,11 @@ void MSpriteComponent::SubmitText(const std::string& text, int color, int handle
 	m_command.type = RenderType::Text;
 	m_command.text = text;
 	m_command.color = color;
-	m_command.handle = handle;
+	if (handle != -1) {
+		m_command.handle = handle;
+	} else {
+		m_command.handle = ResourceManager::GetInstance().GetFont(12, 5); 
+	}
 	m_command.alpha = alpha;
 }
 

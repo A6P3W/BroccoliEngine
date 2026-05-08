@@ -113,48 +113,62 @@ void RenderSystem::Draw()
 		});
 	FVector2D CamPos = FVector2D::ZeroVector;
 	float camAngle = 0.0f;
+	float camFOV = 1.0f;
+	MATRIX viewMat = MGetIdent();
 	if (m_MainCamera) {
 		CamPos = m_MainCamera->GetWorldLocation();
 		camAngle = m_MainCamera->GetWorldRotation().Rotation;
+		camFOV = m_MainCamera->GetFOV();
+		MATRIX scaleMat = MGetScale(VGet(camFOV, camFOV, 1.0f));
+		MATRIX matTrans = MGetTranslate(VGet(-CamPos.X, -CamPos.Y, 0.0f));
+		MATRIX matRot = MGetRotZ(UMath::DegToRad(-camAngle));
+		viewMat = MMult(matTrans, matRot);
+		viewMat = MMult(viewMat, scaleMat);
 	}
+
+
 	int WindowWidth, WindowHeight;
 	GetDrawScreenSize(&WindowWidth, &WindowHeight);
 	const float centerX = WindowWidth * 0.5f;
 	const float centerY = WindowHeight * 0.5f;
-	const float rad = UMath::DegToRad(-camAngle);
+
 	const float camAngleRad = UMath::DegToRad(camAngle);
-	const float s = std::sin(rad);
-	const float c = std::cos(rad);
+
+	MATRIX screenMat = MGetTranslate(VGet(centerX, centerY, 0.0f));
+
+	MATRIX renderMat = MMult(viewMat, screenMat);
+
 	for (const auto& command : m_commands) {
-		float x1 = command.x1;
-		float y1 = command.y1;
-		float x2 = command.x2;
-		float y2 = command.y2;
+		float renderX = command.x1;
+		float renderY = command.y1;
+		float optX = command.x2;
+		float optY = command.y2;
+		float finalScale = command.Scale ;
+		float finalRadius = command.x2;
 		double drawAngle = command.AngleDeg;
 		int normalizedAlpha = std::clamp(command.alpha, 0, 255);
 
+		float rx1 = 0.0f, ry1 = 0.0f;
+
 		switch (command.space) {
-		case RenderSpace::World:
-			x1 -= CamPos.X;
-			y1 -= CamPos.Y;
-			if (command.type != RenderType::Circle) {
-				x2 -= CamPos.X;
-				y2 -= CamPos.Y;
+		case RenderSpace::World: {
+			VECTOR v1 = VGet(renderX, renderY, 0.0f);
+			VECTOR v2 = VGet(optX, optY, 0.0f);
+			optX = v2.x; optY = v2.y;
+			v1 = VTransform(v1, renderMat);
+			renderX = v1.x; renderY = v1.y;
+			if (command.type == RenderType::Box || command.type == RenderType::Line) {
+				VECTOR v2 = VTransform(VGet(optX, optY, 0.0f), renderMat);
+				optX = v2.x;
+				optY = v2.y;
 			}
-			{
-				float rx1 = x1 * c - y1 * s;
-				float ry1 = x1 * s + y1 * c;
-				x1 = rx1 + centerX;
-				y1 = ry1 + centerY;
-				if (command.type != RenderType::Circle) {
-					float rx2 = x2 * c - y2 * s;
-					float ry2 = x2 * s + y2 * c;
-					x2 = rx2 + centerX;
-					y2 = ry2 + centerY;
-				}
-			}
+
+			finalScale *= camFOV;
+			finalRadius *= camFOV;
+
 			drawAngle -= camAngleRad;
 			break;
+		}
 		case RenderSpace::Screen:
 			break;
 		}
@@ -162,22 +176,22 @@ void RenderSystem::Draw()
 		SetDrawBlendMode(DX_BLENDMODE_ALPHA, normalizedAlpha);
 		switch (command.type) {
 		case RenderType::Graph:
-			DrawRotaGraphF(static_cast<int>(x1), static_cast<int>(y1), command.Scale, drawAngle, command.handle, TRUE);
+			DrawRotaGraphF(static_cast<int>(renderX), static_cast<int>(renderY), finalScale, drawAngle, command.handle, TRUE);
 			break;
 		case RenderType::Box:
-			DrawBox(static_cast<int>(x1), static_cast<int>(y1), static_cast<int>(x2), static_cast<int>(y2), command.color, command.fill);
+			DrawBox(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(optX), static_cast<int>(optY), command.color, command.fill);
 			break;
 		case RenderType::Text:
-			DrawStringToHandle(static_cast<int>(x1), static_cast<int>(y1), command.text.c_str(), command.color, command.handle);
+			DrawStringToHandle(static_cast<int>(renderX), static_cast<int>(renderY), command.text.c_str(), command.color, command.handle);
 			break;
 		case RenderType::Line:
-			DrawLine(static_cast<int>(x1), static_cast<int>(y1), static_cast<int>(x2), static_cast<int>(y2), command.color);
+			DrawLine(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(optX), static_cast<int>(optY), command.color);
 			break;
 		case RenderType::Circle:
-			DrawCircle(static_cast<int>(x1), static_cast<int>(y1), static_cast<int>(x2), command.color, command.fill);
+			DrawCircle(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(finalRadius), command.color, command.fill);
 			break;
 		case RenderType::RectGraph:
-			DrawRectGraph(static_cast<int>(x1), static_cast<int>(y1),           // 描画先のX, Y (変換済み)
+			DrawRectGraph(static_cast<int>(renderX), static_cast<int>(renderY),           // 描画先のX, Y (変換済み)
 				static_cast<int>(command.srcX), static_cast<int>(command.srcY), // 元画像の切り出し開始X, Y
 				static_cast<int>(command.srcWidth), static_cast<int>(command.srcHeight), // 元画像の切り出し幅, 高さ
 				command.handle, TRUE); // グラフィックハンドル, TRUEで透過描画

@@ -7,6 +7,6 @@ public:
 	float GetFOV() const { return m_fov; }
 	void SetActiveCamera();
 private:
-	float m_fov=90;
+	float m_fov=0.5f;
 };
 
