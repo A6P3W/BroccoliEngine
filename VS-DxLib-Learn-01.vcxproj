@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -161,32 +161,12 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\ResourceManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\SceneManager.cpp" />
     <ClCompile Include="Engine\EngineSide\GridLine.cpp" />
-    <ClCompile Include="Engine\GameFramework\Private\DefaultPawn.cpp" />
-    <ClCompile Include="Engine\Components\Private\CameraComponent.cpp" />
-    <ClCompile Include="Engine\Components\Private\SceneComponent.cpp" />
-    <ClCompile Include="Engine\Components\Private\SpriteComponent.cpp" />
-    <ClCompile Include="Engine\Core\Private\Application.cpp" />
-    <ClCompile Include="Engine\Core\Private\BaseObject.cpp" />
-    <ClCompile Include="Engine\Core\Private\Actor.cpp" />
-    <ClCompile Include="Engine\Core\Private\ActorComponent.cpp" />
-    <ClCompile Include="Engine\Core\Private\EngineEntry.cpp" />
-    <ClCompile Include="EngineSide\GridLine.cpp" />
-    <ClCompile Include="Engine\Systems\Private\CollisionSystem.cpp" />
-    <ClCompile Include="Engine\Systems\Private\InputManager.cpp" />
-    <ClCompile Include="Engine\Systems\Private\InputMapper.cpp" />
-    <ClCompile Include="Engine\Systems\Private\ObjectManager.cpp" />
-    <ClCompile Include="Engine\Systems\Private\RenderSystem.cpp" />
-    <ClCompile Include="Engine\Systems\Private\ResourceManager.cpp" />
-    <ClCompile Include="Engine\GameFramework\Private\GameModeBase.cpp" />
-    <ClCompile Include="Game\Objects\DefaultScene2.cpp" />
     <ClCompile Include="Game\GameMain.cpp" />
+    <ClCompile Include="Game\Objects\DefaultScene2.cpp" />
     <ClCompile Include="Game\Objects\Player.cpp" />
     <ClCompile Include="Game\Objects\SampleA.cpp" />
     <ClCompile Include="Game\Objects\Map.cpp" />
-    <ClCompile Include="Engine\GameFramework\Private\PlayerController.cpp" />
-    <ClCompile Include="Engine\Systems\Private\SceneManager.cpp" />
     <ClCompile Include="Game\Objects\DefaultScene.cpp" />
-    <ClCompile Include="Engine\Components\Private\CollisionComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Components\Public\CameraComponent.h" />
@@ -210,32 +190,13 @@
     <ClInclude Include="Engine\EngineCore\Utils\Log.h" />
     <ClInclude Include="Engine\EngineCore\Utils\UMath.h" />
     <ClInclude Include="Engine\EngineSide\GridLine.h" />
-    <ClInclude Include="Engine\Systems\Public\CollisionSystem.h" />
-    <ClInclude Include="Engine\GameFramework\Public\DefaultPawn.h" />
-    <ClInclude Include="Engine\Components\Public\CameraComponent.h" />
-    <ClInclude Include="Engine\Components\Public\SceneComponent.h" />
-    <ClInclude Include="Engine\Components\Public\SpriteComponent.h" />
-    <ClInclude Include="Engine\Core\Public\Application.h" />
-    <ClInclude Include="Engine\Core\Public\BaseObject.h" />
-    <ClInclude Include="Engine\Core\Public\Actor.h" />
-    <ClInclude Include="Engine\Core\Public\ActorComponent.h" />
-    <ClInclude Include="EngineSide\GridLine.h" />
-    <ClInclude Include="Engine\Systems\Public\InputManager.h" />
-    <ClInclude Include="Engine\Systems\Public\InputMapper.h" />
-    <ClInclude Include="Engine\Systems\Public\ObjectManager.h" />
-    <ClInclude Include="Engine\Systems\Public\RenderSystem.h" />
-    <ClInclude Include="Engine\Systems\Public\ResourceManager.h" />
     <ClInclude Include="Engine\Utils\Log.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />
-    <ClInclude Include="Engine\GameFramework\Public\GameModeBase.h" />
     <ClInclude Include="Game\Objects\DefaultScene2.h" />
     <ClInclude Include="Game\Objects\Player.h" />
     <ClInclude Include="Game\Objects\SampleA.h" />
     <ClInclude Include="Game\Objects\Map.h" />
-    <ClInclude Include="Engine\GameFramework\Public\PlayerController.h" />
-    <ClInclude Include="Engine\Systems\Public\SceneManager.h" />
     <ClInclude Include="Game\Objects\DefaultScene.h" />
-    <ClInclude Include="Engine\Components\Public\CollisionComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md">
