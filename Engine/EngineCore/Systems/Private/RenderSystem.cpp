@@ -176,7 +176,7 @@ void RenderSystem::Draw()
 		SetDrawBlendMode(DX_BLENDMODE_ALPHA, normalizedAlpha);
 		switch (command.type) {
 		case RenderType::Graph:
-			DrawRotaGraphF(static_cast<int>(renderX), static_cast<int>(renderY), finalScale, drawAngle, command.handle, TRUE);
+			DrawRotaGraphF(static_cast<float>(renderX), static_cast<float>(renderY), finalScale, drawAngle, command.handle, TRUE);
 			break;
 		case RenderType::Box:
 			DrawBox(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(optX), static_cast<int>(optY), command.color, command.fill);

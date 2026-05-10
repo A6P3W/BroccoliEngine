@@ -167,6 +167,7 @@ void MSpriteComponent::Draw()
 }
 
 
+
 void MSpriteComponent::OnMessage(const std::string& message)
 {
 	if (message == "HIT") {

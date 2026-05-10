@@ -5,11 +5,20 @@
 #include "SceneComponent.h"
 #include "Utils/Umath.h"
 #include "ActorComponent.h"
+
+#define DEFINE_ACTOR_CLASS(ClassName) \
+public: \
+    virtual std::string GetClassName() const override { return #ClassName; }
+
+
 class MSceneComponent;
 class AActor :
 	public MBaseObject
+
 {
+
 public:
+
 	AActor();
 	virtual void Update(float DeltaTime) final;
 	virtual void Draw()final;
@@ -37,6 +46,7 @@ public:
 	bool IsPendingDestroy() const;
 
 	virtual void BeginOverlap(AActor* OtherActor) {}
+	virtual void EndOverlap(AActor* OtherActor) {}
 	template<class T>
 	T* GetAllGameObjectsOfClass() const {
 

@@ -142,6 +142,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Engine\EngineCore\Components\Private\CameraComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\CircleCollisionComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\CollisionComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\SceneComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\SpriteComponent.cpp" />
@@ -170,6 +171,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Components\Public\CameraComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\CircleCollisionComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\CollisionComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\SceneComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\SpriteComponent.h" />
@@ -203,6 +205,7 @@
       <SubType>
       </SubType>
     </None>
+    <None Include="Game\Objects\DefaultScene.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

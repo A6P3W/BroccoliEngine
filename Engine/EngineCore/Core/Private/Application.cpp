@@ -8,6 +8,7 @@
 #include "SceneManager.h"
 #include "GameModeBase.h"
 #include "Objects/DefaultScene.h"
+#include "CollisionSystem.h"
 extern void SetupGame();
 Application::Application()
 {
@@ -64,7 +65,7 @@ bool Application::Update(float DeltaTime)
         m_CurrentScene->Update(DeltaTime);
 
     }
-
+    CollisionSystem::GetInstance().CheckCollisions();
 	return true;
 }
 

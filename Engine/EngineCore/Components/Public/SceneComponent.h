@@ -37,12 +37,26 @@ public:
 	bool SetScale(float nScale);
 	float GetScale() const;
 
-	FVector2D RelativeLocation;
-	FRotator RelativeRotation;
-	FScale Scale;
+	void SetVisibility(bool bNewVisibility);
+	bool IsVisible() const { return bVisible; }
+	bool bVisible;
+
 protected:
 	AActor* m_owner = nullptr;
 	MSceneComponent* m_parentComponent = nullptr;
 	std::vector<MSceneComponent*> m_childComponents;
 	
+	FVector2D RelativeLocation;
+	FRotator RelativeRotation;
+	FScale Scale;
+
+	mutable FVector2D WorldLocation;
+	mutable FRotator WorldRotation;
+	mutable FScale WorldScale;
+
+	void MakeTransformDirty();
+	void UpdateTransform() const;
+
+	mutable bool IsTransformDirty = true;
+
 };

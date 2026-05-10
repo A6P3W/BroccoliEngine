@@ -55,18 +55,21 @@ bool MSceneComponent::SetWorldLocation(const FVector2D& NewWorldLocation)
 		RelativeLocation.X = diffX * c + diffY * s;
 		RelativeLocation.Y = -diffX * s + diffY * c;
 	}
+	MakeTransformDirty();
 	return true;
 }
 
 bool MSceneComponent::SetRelativeLocation(const FVector2D& NewRelativeLocation)
 {
 	RelativeLocation = NewRelativeLocation;
+	MakeTransformDirty();
 	return true;
 }
 
 bool MSceneComponent::AddWorldOffset(const FVector2D& Offset)
 {
-   FVector2D newWorldLocation = GetWorldLocation() + Offset;
+	FVector2D newWorldLocation = GetWorldLocation() + Offset;
+	MakeTransformDirty();
 	return SetWorldLocation(newWorldLocation);
 }
 
@@ -81,6 +84,7 @@ bool MSceneComponent::AddLocalOffset(const FVector2D& Offset)
 	worldOffset.Y = Offset.X * s + Offset.Y * c;
 
 	FVector2D newWorldLocation = GetWorldLocation() + worldOffset;
+	MakeTransformDirty();
 	return SetWorldLocation(newWorldLocation);
 }
 
@@ -96,33 +100,22 @@ bool MSceneComponent::SetWorldRotation(float nAngle)
 		float parentWorldRot = m_parentComponent->GetWorldRotation().Rotation;
 		RelativeRotation.Rotation = nAngle - parentWorldRot;
 	}
+	MakeTransformDirty();
 	return true;
 }
 
 bool MSceneComponent::AddWorldRotation(float nAngleDeg)
 {
 	RelativeRotation.Rotation += nAngleDeg;
+	MakeTransformDirty();
 	return true;
 }
 
 
 FVector2D MSceneComponent::GetWorldLocation() const
 {
-	if (!m_parentComponent) {
-		return RelativeLocation;
-	}
-
-	// 親のワールド回転角を取得
-	float parentRad = UMath::DegToRad(m_parentComponent->GetWorldRotation().Rotation);
-	float s = std::sin(parentRad);
-	float c = std::cos(parentRad);
-
-	// 親の向きに合わせて、自分の相対座標を回転させてオフセットを計算
-	float rotatedX = RelativeLocation.X * c - RelativeLocation.Y * s;
-	float rotatedY = RelativeLocation.X * s + RelativeLocation.Y * c;
-
-	FVector2D ParentWorldLoc = m_parentComponent->GetWorldLocation();
-	return { ParentWorldLoc.X + rotatedX, ParentWorldLoc.Y + rotatedY };
+	UpdateTransform();
+	return WorldLocation;
 }
 
 FVector2D MSceneComponent::GetRelativeLocation() const
@@ -132,10 +125,8 @@ FVector2D MSceneComponent::GetRelativeLocation() const
 
 FRotator MSceneComponent::GetWorldRotation() const
 {
-	if (!m_parentComponent) {
-		return RelativeRotation;
-	}
-	return FRotator(m_parentComponent->GetWorldRotation().Rotation + RelativeRotation.Rotation);
+	UpdateTransform();
+	return WorldRotation;
 }
 
 FRotator MSceneComponent::GetRelativeRotation() const
@@ -146,13 +137,71 @@ FRotator MSceneComponent::GetRelativeRotation() const
 bool MSceneComponent::SetScale(float nScale)
 {
 	Scale = nScale;
+	MakeTransformDirty();
 	return true;
 }
 
 float MSceneComponent::GetScale() const
 {
- if (!m_parentComponent) {
-		return Scale.Scale;
+	UpdateTransform();
+	return WorldScale.Scale;
+}
+
+void MSceneComponent::SetVisibility(bool bNewVisibility)
+{
+	bVisible = bNewVisibility;
+	for (MSceneComponent* child : m_childComponents) {
+		child->SetVisibility(bNewVisibility);
 	}
-	return Scale.Scale * m_parentComponent->GetScale();
+}
+
+void MSceneComponent::MakeTransformDirty()
+{
+	if (IsTransformDirty) { return; }
+	IsTransformDirty = true;
+	for (MSceneComponent* child : m_childComponents) {
+		child->MakeTransformDirty();
+	}
+}
+
+void MSceneComponent::UpdateTransform() const
+{
+	if (!IsTransformDirty) return;
+
+	if (!m_parentComponent) {
+		// 親がいない場合は相対値がそのままワールド値
+		WorldLocation = RelativeLocation;
+		WorldRotation = RelativeRotation;
+		WorldScale = Scale.Scale;
+	}
+	else {
+		// 親の最新トランスフォームを先に確定させる（再帰）
+		float pScale = m_parentComponent->GetScale();
+		FRotator pRot = m_parentComponent->GetWorldRotation();
+		FVector2D pLoc = m_parentComponent->GetWorldLocation();
+
+		// 1. スケールの計算
+		WorldScale = Scale.Scale * pScale;
+
+		// 2. 回転の計算
+		WorldRotation.Rotation = pRot.Rotation + RelativeRotation.Rotation;
+
+		// 3. 座標の計算（親の回転とスケールを考慮）
+		float parentRad = UMath::DegToRad(pRot.Rotation);
+		float s = std::sin(parentRad);
+		float c = std::cos(parentRad);
+
+		// 自分の相対座標に親のスケールを適用
+		float scaledX = RelativeLocation.X * pScale;
+		float scaledY = RelativeLocation.Y * pScale;
+
+		// 親の回転に合わせて回転させる
+		float rotatedX = scaledX * c - scaledY * s;
+		float rotatedY = scaledX * s + scaledY * c;
+
+		WorldLocation.X = pLoc.X + rotatedX;
+		WorldLocation.Y = pLoc.Y + rotatedY;
+	}
+
+	IsTransformDirty = false;
 }

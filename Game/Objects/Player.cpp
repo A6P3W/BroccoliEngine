@@ -7,6 +7,8 @@
 #include "SceneManager.h"
 #include "Objects/DefaultScene.h"
 #include <DxLib.h>
+#include <Utils/Log.h>
+#include <CircleCollisionComponent.h>
 APlayer::APlayer(FVector2D location, FRotator rotation)
 {
 	SetActorLocation(location);
@@ -24,6 +26,10 @@ APlayer::APlayer(FVector2D location, FRotator rotation)
 	auto m_camera = camera.get();
 	AddComponent(std::move(camera));
 	m_camera->SetActiveCamera();
+
+
+	auto collision = std::make_unique<MCircleCollisionComponent>();
+	AddComponent(std::move(collision));
 }
 void APlayer::OnUpdate(float DeltaTime)
 {
@@ -53,4 +59,9 @@ void APlayer::OnUpdate(float DeltaTime)
 	if (InputManager::GetInstance().GetKeyPressStart(KEY_INPUT_Z)) {
 		SceneManager::GetInstance().OpenScene<ADefaultScene>();
 	}
+}
+
+void APlayer::BeginOverlap(AActor* OtherActor)
+{
+	M_LOG("gg");
 }

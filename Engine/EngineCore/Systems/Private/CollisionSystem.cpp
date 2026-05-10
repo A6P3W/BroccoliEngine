@@ -1,5 +1,11 @@
 ﻿#include "CollisionSystem.h"
 #include "Actor.h"
+#include "CircleCollisionComponent.h"
+CollisionSystem& CollisionSystem::GetInstance()
+{
+	static CollisionSystem instance;
+	return instance;
+}
 void CollisionSystem::RegisterCollision(MCollisionComponent* component)
 {
 	m_CollisionComponents.push_back(component);
@@ -7,20 +13,39 @@ void CollisionSystem::RegisterCollision(MCollisionComponent* component)
 
 void CollisionSystem::UnRegisterCollision(MCollisionComponent* component)
 {
-	std::erase(m_CollisionComponents, component);
+	auto it = std::find(m_CollisionComponents.begin(), m_CollisionComponents.end(), component);
+	if (it != m_CollisionComponents.end()) {
+		m_CollisionComponents.erase(it);
+	}
 }
 
 void CollisionSystem::CheckCollisions()
 {
-	int size = m_CollisionComponents.size();
-	for (int i = 0; i < size; i++) {
-		for (int j = i + 1; j < size; j++) {
-			auto* a = m_CollisionComponents[i];
-			auto* b = m_CollisionComponents[j];
-			auto* ownerA = a->GetOwner();
-			auto* ownerB = b->GetOwner();
-			if (ownerA == ownerB) { continue; }
-			ownerA->BeginOverlap(ownerB);
+	for (size_t i = 0; i < m_CollisionComponents.size(); ++i) {
+		for (size_t j = i + 1; j < m_CollisionComponents.size(); ++j) {
+			auto* A = m_CollisionComponents[i];
+			auto* B = m_CollisionComponents[j];
+			if (A->GetOwner() == B->GetOwner()) continue;
+			if (A->GetShapeType() == ECollisionShape::Circle && B->GetShapeType() == ECollisionShape::Circle) {
+				CircleAndCircle(static_cast<MCircleCollisionComponent*>(A), static_cast<MCircleCollisionComponent*>(B));
+			}
 		}
+	}
+}
+
+void CollisionSystem::CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b)
+{
+	FVector2D locA = a->GetWorldLocation(), locB = b->GetWorldLocation();
+	float radA = a->GetRadius(), radB = b->GetRadius();
+	float Ax = locA.X, Ay = locA.Y, Bx = locB.X, By = locB.Y;
+	auto aActor = a->GetOwner();
+	auto bActor = b->GetOwner();
+	if ((Bx - Ax) * (Bx - Ax) + (By - Ay) * (By - Ay) <= (radA + radB) * (radA + radB)) {
+		a->UpdateOverlapState(bActor, true);
+		b->UpdateOverlapState(aActor, true);
+	}
+	else {
+		a->UpdateOverlapState(bActor, false);
+		b->UpdateOverlapState(aActor, false);
 	}
 }
