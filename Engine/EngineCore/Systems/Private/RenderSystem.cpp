@@ -173,10 +173,9 @@ void RenderSystem::Draw()
 			break;
 		}
 
-		SetDrawBlendMode(DX_BLENDMODE_ALPHA, normalizedAlpha);
 		switch (command.type) {
 		case RenderType::Graph:
-			DrawRotaGraphF(static_cast<float>(renderX), static_cast<float>(renderY), finalScale, drawAngle, command.handle, TRUE);
+			DrawRotaGraphFastF(static_cast<float>(renderX), static_cast<float>(renderY), finalScale, drawAngle, command.handle, TRUE);
 			break;
 		case RenderType::Box:
 			DrawBox(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(optX), static_cast<int>(optY), command.color, command.fill);
@@ -197,7 +196,6 @@ void RenderSystem::Draw()
 				command.handle, TRUE); // グラフィックハンドル, TRUEで透過描画
 			break;
 		}
-		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 	}
 
 	m_commands.clear();

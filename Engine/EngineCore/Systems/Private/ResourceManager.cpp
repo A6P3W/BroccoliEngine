@@ -2,6 +2,11 @@
 #include <DxLib.h>
 #include <string>
 
+ResourceManager::ResourceManager()
+{
+    default_graph = LoadResourceGraph("Engine/EngineSide/Files/texture_Checker_64px.png");
+}
+
 ResourceManager& ResourceManager::GetInstance()
 {
     static ResourceManager instance;
@@ -16,6 +21,9 @@ int ResourceManager::LoadResourceGraph(const std::string& path)
         return it->second;
     }
     int handle = LoadGraph(path.c_str());
+    if (handle == -1) {
+        handle = default_graph;
+    }
     graphMap[path] = handle;
     return handle;
 }

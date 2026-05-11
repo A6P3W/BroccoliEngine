@@ -16,8 +16,11 @@ public:
 	bool GetKeyPressStart(int keyCode);
 	bool GetKeyPressing(int keyCode);
 	bool GetKeyRelease(int keyCode);
+	bool GetMouseWheelUp();
+	bool GetMouseWheelDown();
 	void Update();
 
 	bool key[256];
 	bool prevKey[256];
+	int mouseWheel;
 };

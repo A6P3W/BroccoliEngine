@@ -13,18 +13,20 @@ ObjectManager::ObjectManager()
 
 void ObjectManager::Update(float DeltaTime)
 {
+	// 更新対象のポインタをコピーしてループを回す
+	std::vector<AActor*> tempActors;
+	tempActors.reserve(m_Actors.size());
 	for (auto& object : m_Actors) {
-		object->Update(DeltaTime);
+		tempActors.push_back(object.get());
 	}
-	std::erase_if(m_Actors, [this](const std::unique_ptr<AActor>& obj) {
-		auto* gameObject = obj.get();
-		if (gameObject && gameObject->IsPendingDestroy()) {
-			m_Actors.erase(
-				std::remove(m_Actors.begin(), m_Actors.end(), obj),
-				m_Actors.end());
-			return true;
+	for (auto* object : tempActors) {
+		if (object && !object->IsPendingDestroy()) {
+			object->Update(DeltaTime);
 		}
-		return false;
+	}
+
+	std::erase_if(m_Actors, [](const std::unique_ptr<AActor>& obj) {
+		return !obj || obj->IsPendingDestroy();
 		});
 }
 

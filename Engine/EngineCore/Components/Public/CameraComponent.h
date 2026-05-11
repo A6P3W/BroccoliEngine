@@ -5,6 +5,7 @@ class MCameraComponent : public MSceneComponent
 {
 public:
 	float GetFOV() const { return m_fov; }
+	void SetFOV(float fov) { m_fov = fov; }
 	void SetActiveCamera();
 private:
 	float m_fov=1.0f;

@@ -16,7 +16,6 @@ Application::Application()
 bool Application::Run()
 {
     SetWaitVSyncFlag(FALSE);
-
     const LONGLONG TargetFrameTime = 1000000 / 60;
     LONGLONG LastTime = GetNowHiPerformanceCount();
 
