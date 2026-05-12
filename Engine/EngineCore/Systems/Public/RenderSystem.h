@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <vector>
 #include <string>
-
+#include <map>
 enum class RenderType {
     Graph,
     Box,
@@ -58,6 +58,6 @@ public:
     MCameraComponent* GetCamera();
 
 private:
-    std::vector<RenderCommand> m_commands;
+    std::map<int, std::vector<RenderCommand>> m_priorityCommands;
     MCameraComponent* m_MainCamera = nullptr;
 };
