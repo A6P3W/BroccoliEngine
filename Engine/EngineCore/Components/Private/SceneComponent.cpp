@@ -18,10 +18,6 @@ void MSceneComponent::OnMessage(const std::string& message)
 {
 }
 
-void MSceneComponent::SetOwner(AActor* owner)
-{
-	m_owner = owner;
-}
 
 void MSceneComponent::SetParentComponent(MSceneComponent* parent)
 {
