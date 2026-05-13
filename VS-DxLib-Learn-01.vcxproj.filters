@@ -96,6 +96,9 @@
     <ClCompile Include="Engine\EngineCore\Components\Private\CircleCollisionComponent.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\EngineCore\Components\Private\MMovementComponent.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game\Objects\Player.h">
@@ -183,6 +186,9 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Engine\EngineCore\Components\Public\CircleCollisionComponent.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\EngineCore\Components\Public\MMovementComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

@@ -168,6 +168,7 @@
     <ClCompile Include="Game\Objects\SampleA.cpp" />
     <ClCompile Include="Game\Objects\Map.cpp" />
     <ClCompile Include="Game\Objects\DefaultScene.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\MMovementComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Components\Public\CameraComponent.h" />
@@ -199,6 +200,7 @@
     <ClInclude Include="Game\Objects\SampleA.h" />
     <ClInclude Include="Game\Objects\Map.h" />
     <ClInclude Include="Game\Objects\DefaultScene.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\MMovementComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md">
