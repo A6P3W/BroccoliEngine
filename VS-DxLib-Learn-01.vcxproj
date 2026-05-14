@@ -27,26 +27,26 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -162,12 +162,6 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\ResourceManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\SceneManager.cpp" />
     <ClCompile Include="Engine\EngineSide\GridLine.cpp" />
-    <ClCompile Include="Game\GameMain.cpp" />
-    <ClCompile Include="Game\Objects\DefaultScene2.cpp" />
-    <ClCompile Include="Game\Objects\Player.cpp" />
-    <ClCompile Include="Game\Objects\SampleA.cpp" />
-    <ClCompile Include="Game\Objects\Map.cpp" />
-    <ClCompile Include="Game\Objects\DefaultScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Components\Public\CameraComponent.h" />
@@ -194,11 +188,6 @@
     <ClInclude Include="Engine\EngineSide\GridLine.h" />
     <ClInclude Include="Engine\Utils\Log.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />
-    <ClInclude Include="Game\Objects\DefaultScene2.h" />
-    <ClInclude Include="Game\Objects\Player.h" />
-    <ClInclude Include="Game\Objects\SampleA.h" />
-    <ClInclude Include="Game\Objects\Map.h" />
-    <ClInclude Include="Game\Objects\DefaultScene.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md">
