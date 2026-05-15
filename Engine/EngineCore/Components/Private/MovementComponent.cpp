@@ -44,7 +44,7 @@ void MMovementComponent::OnUpdate(float DeltaTime)
 	}
 	if (!GetOwner())return;
 	AActor* owner = GetOwner();
-	Velocity *= 0.98;
+	Velocity *= std::pow(Friction, DeltaTime * 60);
 
 	owner->AddActorWorldOffset(Velocity);
 }
