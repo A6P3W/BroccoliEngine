@@ -149,6 +149,9 @@
     <ClInclude Include="Engine\EngineCore\Components\Public\CircleCollisionComponent.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Utils\UMath.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />
