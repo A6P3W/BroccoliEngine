@@ -1,13 +1,14 @@
 ﻿#pragma once
 #include "Actor.h"
-#include "Actor.h"
+#include "Pawn.h"
 class APlayerController:public AActor
 {
 public :
-	void Possess(AActor* NewPawn);
+	APlayerController();
+	virtual void Possess(APawn* NewPawn);
 
 	void OnUpdate(float DeltaTime) override;
 private:
-	AActor* m_TargetPawn = nullptr;
+	APawn* m_TargetPawn = nullptr;
 };
 

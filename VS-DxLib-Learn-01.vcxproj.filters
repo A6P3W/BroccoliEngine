@@ -42,7 +42,7 @@
     <ClCompile Include="Engine\EngineCore\Core\Private\EngineEntry.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\EngineCore\GameFramework\Private\DefaultPawn.cpp">
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\Pawn.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\GameModeBase.cpp">
@@ -110,7 +110,7 @@
     <ClInclude Include="Engine\EngineCore\Core\Public\BaseObject.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\EngineCore\GameFramework\Public\DefaultPawn.h">
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\Pawn.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameModeBase.h">

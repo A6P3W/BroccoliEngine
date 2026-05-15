@@ -6,6 +6,7 @@ AActor::AActor()
 	auto root = std::make_unique<MSceneComponent>();
 	m_rootComponent = root.get();
 	AddComponent(std::move(root));
+
 }
 
 void AActor::OnUpdate(float DeltaTime)

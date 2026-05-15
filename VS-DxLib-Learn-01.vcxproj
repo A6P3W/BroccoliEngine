@@ -154,7 +154,7 @@
     <ClCompile Include="Engine\EngineCore\Core\Private\Application.cpp" />
     <ClCompile Include="Engine\EngineCore\Core\Private\BaseObject.cpp" />
     <ClCompile Include="Engine\EngineCore\Core\Private\EngineEntry.cpp" />
-    <ClCompile Include="Engine\EngineCore\GameFramework\Private\DefaultPawn.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\Pawn.cpp" />
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\GameModeBase.cpp" />
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\PlayerController.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\CollisionSystem.cpp" />
@@ -177,7 +177,7 @@
     <ClInclude Include="Engine\EngineCore\Core\Public\ActorComponent.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\Application.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\BaseObject.h" />
-    <ClInclude Include="Engine\EngineCore\GameFramework\Public\DefaultPawn.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\Pawn.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameModeBase.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\PlayerController.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\CollisionSystem.h" />
