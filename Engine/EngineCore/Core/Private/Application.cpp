@@ -1,13 +1,11 @@
 ﻿#include "Application.h"
 #include "DxLib.h"
-#include "Objects/SampleA.h"
 #include "RenderSystem.h"
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "ObjectManager.h"
 #include "SceneManager.h"
 #include "GameModeBase.h"
-#include "Objects/DefaultScene.h"
 #include "CollisionSystem.h"
 extern void SetupGame();
 Application::Application()
