@@ -146,6 +146,7 @@
     <ClCompile Include="Engine\EngineCore\Components\Private\CameraComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\CircleCollisionComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\CollisionComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\MovementComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\SceneComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\SpriteComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Core\Private\Actor.cpp" />
@@ -169,6 +170,7 @@
     <ClInclude Include="Engine\EngineCore\Components\Public\CameraComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\CircleCollisionComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\CollisionComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\MovementComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\SceneComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\SpriteComponent.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\Actor.h" />

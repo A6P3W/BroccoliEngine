@@ -19,8 +19,8 @@ const std::vector<std::unique_ptr<MActorComponent>>& AActor::GetComponents() con
 
 void AActor::AddComponent(std::unique_ptr<MActorComponent> comp)
 {
+	comp->SetOwner(this);
 	if (auto sceneComp = dynamic_cast<MSceneComponent*>(comp.get())) {
-		sceneComp->SetOwner(this);
 
 		if (auto gameObject = dynamic_cast<AActor*>(this)) {
 			if (gameObject->GetRootComponent() && gameObject->GetRootComponent() != sceneComp && sceneComp->GetParentComponent() == nullptr) {
