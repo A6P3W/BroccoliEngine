@@ -165,6 +165,7 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\ResourceManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\SceneManager.cpp" />
     <ClCompile Include="Engine\EngineSide\GridLine.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Components\Public\CameraComponent.h" />
@@ -192,6 +193,7 @@
     <ClInclude Include="Engine\EngineSide\GridLine.h" />
     <ClInclude Include="Engine\Utils\Log.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\EnhancedInputComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md">
