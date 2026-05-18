@@ -143,6 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\DefaultPawn.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\CameraComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\CircleCollisionComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\CollisionComponent.cpp" />
@@ -168,6 +169,7 @@
     <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\DefaultPawn.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\CameraComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\CircleCollisionComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\CollisionComponent.h" />

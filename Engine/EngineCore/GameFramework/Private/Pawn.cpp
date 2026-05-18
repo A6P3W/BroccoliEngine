@@ -13,13 +13,6 @@ APawn::APawn()
 	m_camera = camera.get();
 	AddComponent(std::move(camera));
 	m_camera->SetFOV(1);
-
-
-	auto InputComp = std::make_unique<MEnhancedInputComponent>();
-	m_InputCompPtr = InputComp.get();
-	AddComponent(std::move(InputComp));
-
-
 }
 void APawn::OnPossesed()
 {
@@ -44,5 +37,4 @@ void APawn::OnInteractPressed()
 void APawn::OnMove(const FInputActionValue& Value)
 {
 	AddActorWorldOffset(Value.Axis2D*200);
-	M_LOG("ActorLocation X:{} Y:{}", GetActorLocation().X, GetActorLocation().Y);
 }
