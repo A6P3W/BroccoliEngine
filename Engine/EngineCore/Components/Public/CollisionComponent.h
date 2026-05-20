@@ -6,12 +6,18 @@ enum class ECollisionShape
 {
 	Circle,
 };
+enum class ECollisionType {
+	Overlap,
+	Block
+};
 class MCollisionComponent : public MSceneComponent
 {
 public:
 	MCollisionComponent();
 	virtual ~MCollisionComponent();
 	virtual ECollisionShape GetShapeType() const = 0;
+
+	ECollisionType GetCollisionType() { return m_CollisionType; }
 
 	bool IsOverlappingActor(AActor* OtherActor) const {
 		return m_OverlappingActors.contains(OtherActor);
@@ -31,5 +37,6 @@ public:
 
 private:
 	std::unordered_set<AActor*> m_OverlappingActors;
+	ECollisionType m_CollisionType = ECollisionType::Overlap;
 };
 

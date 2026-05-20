@@ -1,6 +1,7 @@
 ﻿#include "CollisionSystem.h"
 #include "Actor.h"
 #include "CircleCollisionComponent.h"
+#include "MovementComponent.h"
 CollisionSystem& CollisionSystem::GetInstance()
 {
 	static CollisionSystem instance;
@@ -37,15 +38,47 @@ void CollisionSystem::CircleAndCircle(MCircleCollisionComponent* a, MCircleColli
 {
 	FVector2D locA = a->GetWorldLocation(), locB = b->GetWorldLocation();
 	float radA = a->GetRadius(), radB = b->GetRadius();
-	float Ax = locA.X, Ay = locA.Y, Bx = locB.X, By = locB.Y;
+	float dx = locB.X - locA.X;
+	float dy = locB.Y - locA.Y;
+	float distanceSquared = dx * dx + dy * dy;
+	float minDistance = radA + radB;
+
 	auto aActor = a->GetOwner();
 	auto bActor = b->GetOwner();
-	if ((Bx - Ax) * (Bx - Ax) + (By - Ay) * (By - Ay) <= (radA + radB) * (radA + radB)) {
+
+	if (distanceSquared <= minDistance * minDistance) {
 		a->UpdateOverlapState(bActor, true);
 		b->UpdateOverlapState(aActor, true);
+
+		if (a->GetCollisionType() == ECollisionType::Block && b->GetCollisionType() == ECollisionType::Block) {
+			float distance = std::sqrt(distanceSquared);
+
+			FVector2D normal = { dx / distance, dy / distance };
+
+			float overlapDepth = minDistance - distance;
+
+
+			auto* moveA = aActor->GetComponents<MMovementComponent>()[0];
+			auto* moveB = bActor->GetComponents<MMovementComponent>()[0];
+
+			if (moveA && moveB) {
+				moveA->SetWorldForce({ 0,0 });
+				moveB->SetWorldForce({ 0,0 });
+
+				aActor->AddActorWorldOffset(normal * (-overlapDepth * 0.5f));
+				bActor->AddActorWorldOffset(normal * (overlapDepth * 0.5f));
+			}
+			else if (moveA) {
+				aActor->AddActorWorldOffset(normal * (-overlapDepth));
+			}
+			else if (moveB) {
+				bActor->AddActorWorldOffset(normal * overlapDepth);
+			}
+		}
 	}
 	else {
 		a->UpdateOverlapState(bActor, false);
 		b->UpdateOverlapState(aActor, false);
 	}
+
 }

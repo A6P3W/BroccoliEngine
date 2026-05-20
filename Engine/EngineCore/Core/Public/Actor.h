@@ -47,9 +47,16 @@ public:
 
 	virtual void BeginOverlap(AActor* OtherActor) {}
 	virtual void EndOverlap(AActor* OtherActor) {}
-	template<class T>
-	T* GetAllGameObjectsOfClass() const {
 
+	template<class T>
+	std::vector <T*> GetComponents() const {
+		std::vector<T*> results;
+		for (const auto& comp : m_components) {
+			if (auto casted = dynamic_cast<T*>(comp.get())) {
+				results.push_back(casted);
+			}
+		}
+		return results;
 	}
 protected:
 	virtual void OnUpdate(float DeltaTime);
