@@ -24,6 +24,8 @@ public:
 		}
 		T* ptr = obj.get();
 		m_Actors.push_back(std::move(obj));
+		ptr->SetActorLocation(location);
+		ptr->SetActorRotation(rotation);
 		return ptr;
 	}
 	void ClearAllObjects();

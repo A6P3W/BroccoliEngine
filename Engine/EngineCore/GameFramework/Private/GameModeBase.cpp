@@ -1,5 +1,5 @@
 ﻿#include "GameModeBase.h"
-#include "DefaultPawn.h"
+#include "Pawn.h"
 #include "ObjectManager.h"
 #include "CameraComponent.h"
 

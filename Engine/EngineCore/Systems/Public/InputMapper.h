@@ -9,7 +9,12 @@ enum E_INPUT_ACTION
 	LEFT,
 	RIGHT,
 	INTERACT,
-
+	MOVE
+};
+enum class ETriggerEvent {
+	Started,
+	Triggered,
+	Completed
 };
 class InputMapper {
 public:

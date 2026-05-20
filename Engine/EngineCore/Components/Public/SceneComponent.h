@@ -3,7 +3,6 @@
 #include<vector>
 #include "ActorComponent.h"
 #include "Utils/UMath.h"
-class MActorComponent; 
 class AActor;
 
 class MSceneComponent : public MActorComponent {
@@ -15,9 +14,6 @@ public:
 
 	// メッセージ受信用の仮想関数
 	virtual void OnMessage(const std::string& message);
-
-	void SetOwner(AActor* owner);
-	auto GetOwner() const { return m_owner; }
 
 	void SetParentComponent(MSceneComponent* parent);
 	auto GetParentComponent() const { return m_parentComponent; }
@@ -42,7 +38,7 @@ public:
 	bool bVisible;
 
 protected:
-	AActor* m_owner = nullptr;
+	
 	MSceneComponent* m_parentComponent = nullptr;
 	std::vector<MSceneComponent*> m_childComponents;
 	
