@@ -167,6 +167,8 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\SceneManager.cpp" />
     <ClCompile Include="Engine\EngineSide\GridLine.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp" />
+    <ClCompile Include="Engine\EngineSide\SampleScene01\SamplePawn01.cpp" />
+    <ClCompile Include="Engine\EngineSide\SampleScene01\SampleScene01.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\DefaultPawn.h" />
@@ -193,6 +195,8 @@
     <ClInclude Include="Engine\EngineCore\Utils\Log.h" />
     <ClInclude Include="Engine\EngineCore\Utils\UMath.h" />
     <ClInclude Include="Engine\EngineSide\GridLine.h" />
+    <ClInclude Include="Engine\EngineSide\SampleScene01\SamplePawn01.h" />
+    <ClInclude Include="Engine\EngineSide\SampleScene01\SampleScene01.h" />
     <ClInclude Include="Engine\Utils\Log.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\EnhancedInputComponent.h" />

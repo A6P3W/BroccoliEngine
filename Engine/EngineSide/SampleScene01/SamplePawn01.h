@@ -1,0 +1,23 @@
+﻿#pragma once
+#include "Pawn.h"
+#include <Utils/Umath.h>
+
+class MEnhancedInputComponent;
+struct FInputActionValue;
+class MMovementComponent;
+
+
+class ASamplePawn01 : public APawn
+{
+public:
+	ASamplePawn01();
+	void OnPossesed() override;
+    void OnUpdate(float DeltaTime) override;
+	void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
+
+private:
+	void OnInteractPressed();
+	void OnMove(const FInputActionValue& Value);
+	MMovementComponent* m_movement = nullptr;
+};
+

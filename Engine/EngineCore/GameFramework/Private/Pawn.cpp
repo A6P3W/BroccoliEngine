@@ -36,5 +36,5 @@ void APawn::OnInteractPressed()
 
 void APawn::OnMove(const FInputActionValue& Value)
 {
-	AddActorWorldOffset(Value.Axis2D*200);
+	AddActorWorldOffset(Value.Axis2D*-10);
 }

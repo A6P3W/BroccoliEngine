@@ -87,6 +87,12 @@
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\DefaultPawn.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\EngineSide\SampleScene01\SampleScene01.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\EngineSide\SampleScene01\SamplePawn01.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Utils\Log.h">
@@ -168,6 +174,12 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\DefaultPawn.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\EngineSide\SampleScene01\SampleScene01.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\EngineSide\SampleScene01\SamplePawn01.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
