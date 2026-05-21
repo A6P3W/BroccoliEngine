@@ -17,7 +17,9 @@ public:
 	virtual ~MCollisionComponent();
 	virtual ECollisionShape GetShapeType() const = 0;
 
+	
 	ECollisionType GetCollisionType() { return m_CollisionType; }
+	void SetCollisionType(ECollisionType NewType) { m_CollisionType = NewType; }
 
 	bool IsOverlappingActor(AActor* OtherActor) const {
 		return m_OverlappingActors.contains(OtherActor);
