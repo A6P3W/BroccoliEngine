@@ -5,6 +5,8 @@
 enum class ECollisionShape
 {
 	Circle,
+	Rectangle,
+	Line,
 };
 enum class ECollisionType {
 	Overlap,

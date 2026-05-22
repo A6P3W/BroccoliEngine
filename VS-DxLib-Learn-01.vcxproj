@@ -143,6 +143,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\EngineCore\Components\Private\LineCollisionComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\RectangleCollisionComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\DefaultPawn.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\CameraComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\CircleCollisionComponent.cpp" />
@@ -169,6 +171,8 @@
     <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\EngineCore\Components\Public\LineCollisionComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\RectangleCollisionComponent.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\DefaultPawn.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\CameraComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\CircleCollisionComponent.h" />

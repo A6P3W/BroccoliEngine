@@ -176,7 +176,21 @@ void RenderSystem::Draw()
 				DrawRotaGraphFastF(static_cast<float>(renderX), static_cast<float>(renderY), finalScale, drawAngle, command.handle, TRUE);
 				break;
 			case RenderType::Box:
-				DrawBox(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(optX), static_cast<int>(optY), command.color, command.fill);
+				if (command.space == RenderSpace::World) {
+					VECTOR v1 = VTransform(VGet(command.x1, command.y1, 0.0f), renderMat);
+					VECTOR v2 = VTransform(VGet(command.x2, command.y1, 0.0f), renderMat);
+					VECTOR v3 = VTransform(VGet(command.x2, command.y2, 0.0f), renderMat);
+					VECTOR v4 = VTransform(VGet(command.x1, command.y2, 0.0f), renderMat);
+
+					DrawQuadrangle(
+						static_cast<int>(v1.x), static_cast<int>(v1.y),
+						static_cast<int>(v2.x), static_cast<int>(v2.y),
+						static_cast<int>(v3.x), static_cast<int>(v3.y),
+						static_cast<int>(v4.x), static_cast<int>(v4.y),
+						command.color, command.fill);
+				} else {
+					DrawBox(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(optX), static_cast<int>(optY), command.color, command.fill);
+				}
 				break;
 			case RenderType::Text:
 				DrawStringToHandle(static_cast<int>(renderX), static_cast<int>(renderY), command.text.c_str(), command.color, command.handle);
