@@ -10,7 +10,3 @@ AGameModeBase::AGameModeBase()
     this->AddComponent(std::move(camera)); 
     camPtr->SetActiveCamera();
 }
-
-void AGameModeBase::OnUpdate(float DeltaTime)
-{
-}

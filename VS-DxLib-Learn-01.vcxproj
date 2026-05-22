@@ -114,7 +114,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
@@ -133,7 +133,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -167,8 +167,11 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\RenderSystem.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\ResourceManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\SceneManager.cpp" />
+    <ClCompile Include="Engine\EngineSide\Default\Private\DefaultCircleCollisionActor.cpp" />
     <ClCompile Include="Engine\EngineSide\GridLine.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp" />
+    <ClCompile Include="Engine\EngineSide\SampleScene01\SamplePawn01.cpp" />
+    <ClCompile Include="Engine\EngineSide\SampleScene01\SampleScene01.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Components\Public\LineCollisionComponent.h" />
@@ -196,7 +199,10 @@
     <ClInclude Include="Engine\EngineCore\Systems\Public\SceneManager.h" />
     <ClInclude Include="Engine\EngineCore\Utils\Log.h" />
     <ClInclude Include="Engine\EngineCore\Utils\UMath.h" />
+    <ClInclude Include="Engine\EngineSide\Default\Public\DefaultCircleCollisionActor.h" />
     <ClInclude Include="Engine\EngineSide\GridLine.h" />
+    <ClInclude Include="Engine\EngineSide\SampleScene01\SamplePawn01.h" />
+    <ClInclude Include="Engine\EngineSide\SampleScene01\SampleScene01.h" />
     <ClInclude Include="Engine\Utils\Log.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\EnhancedInputComponent.h" />
