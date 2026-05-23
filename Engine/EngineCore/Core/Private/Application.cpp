@@ -44,6 +44,9 @@ bool Application::Run()
         Update(m_DeltaTime);
         Draw();
     }
+    CollisionSystem::GetInstance().BeginSceneTransition();
+    ObjectManager::GetInstance().ClearAllObjects();
+    CollisionSystem::GetInstance().EndSceneTransition();
     return true;
 }
 bool Application::Update(float DeltaTime)

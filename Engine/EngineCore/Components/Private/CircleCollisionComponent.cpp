@@ -15,3 +15,16 @@ void MCircleCollisionComponent::Draw()
 		120                   // アルファ値
 	);
 }
+
+FAABB MCircleCollisionComponent::GetAABB() const
+{
+	FVector2D center = GetWorldLocation();
+	float radius = m_radius * GetScale();
+
+	FAABB aabb;
+	aabb.MinX = center.X - radius;
+	aabb.MinY = center.Y - radius;
+	aabb.MaxX = center.X + radius;
+	aabb.MaxY = center.Y + radius;
+	return aabb;
+}

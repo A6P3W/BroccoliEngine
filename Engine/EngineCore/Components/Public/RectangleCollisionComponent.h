@@ -13,6 +13,7 @@ public:
 	float GetHeight() const { return m_height; }
 
 	void Draw() override;
+	FAABB GetAABB() const override;
 
 private:
 	float m_width;

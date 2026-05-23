@@ -2,12 +2,22 @@
 #include <CollisionSystem.h>
 MCollisionComponent::MCollisionComponent()
 {
-	CollisionSystem::GetInstance().RegisterCollision(this);
 
 }
 
 MCollisionComponent::~MCollisionComponent()
 {
-	CollisionSystem::GetInstance().UnRegisterCollision(this);
+	if (CollisionSystem::IsAlive()) {
+		CollisionSystem::GetInstance().UnRegisterCollision(this);
+	}
+}
+
+void MCollisionComponent::SetStatic(bool IsStatic)
+{
+	if (bIsStatic == IsStatic) {
+		return;
+	}
+	bIsStatic = IsStatic;
+	CollisionSystem::GetInstance().RebuildStaticCollisionMap();
 }
 

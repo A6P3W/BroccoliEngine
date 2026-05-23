@@ -1,6 +1,8 @@
 ﻿#include "Actor.h"
 #include "SceneComponent.h"
 #include "ActorComponent.h"
+#include "CollisionComponent.h"
+#include "CollisionSystem.h"
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();
@@ -28,6 +30,9 @@ void AActor::AddComponent(std::unique_ptr<MActorComponent> comp)
 				sceneComp->SetParentComponent(gameObject->GetRootComponent());
 			}
 		}
+	}
+	if (auto collisionComp = dynamic_cast<MCollisionComponent*>(comp.get())) {
+		CollisionSystem::GetInstance().RegisterCollision(collisionComp);
 	}
 	m_components.push_back(std::move(comp));
 }

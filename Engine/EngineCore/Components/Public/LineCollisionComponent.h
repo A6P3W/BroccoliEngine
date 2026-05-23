@@ -17,6 +17,7 @@ public:
 	FVector2D GetWorldEnd() const { return GetWorldLocation() + m_localEnd.RotateVector(GetWorldRotation()) * GetScale(); }
 
 	void Draw() override;
+	FAABB GetAABB() const override;
 
 private:
 	FVector2D m_localStart;

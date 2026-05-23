@@ -4,6 +4,24 @@
 #include "RectangleCollisionComponent.h"
 #include "LineCollisionComponent.h"
 #include "MovementComponent.h"
+#include <atomic>
+namespace {
+	std::atomic<bool> g_CollisionSystemAlive{ false };
+}
+CollisionSystem::CollisionSystem()
+{
+	g_CollisionSystemAlive.store(true, std::memory_order_release);
+}
+
+CollisionSystem::~CollisionSystem()
+{
+	g_CollisionSystemAlive.store(false, std::memory_order_release);
+}
+
+bool CollisionSystem::IsAlive()
+{
+	return g_CollisionSystemAlive.load(std::memory_order_acquire);
+}
 CollisionSystem& CollisionSystem::GetInstance()
 {
 	static CollisionSystem instance;
@@ -12,6 +30,19 @@ CollisionSystem& CollisionSystem::GetInstance()
 void CollisionSystem::RegisterCollision(MCollisionComponent* component)
 {
 	m_CollisionComponents.push_back(component);
+	if (component->IsStatic()) {
+		FAABB box = component->GetAABB();
+		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionCellSize));
+		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionCellSize));
+		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionCellSize));
+		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionCellSize));
+
+		for (int x = minX; x <= maxX; ++x) {
+			for (int y = minY; y <= maxY; ++y) {
+				m_StaticCollisionMap[{x, y}].push_back(component);
+			}
+		}
+	}
 }
 
 void CollisionSystem::UnRegisterCollision(MCollisionComponent* component)
@@ -20,49 +51,118 @@ void CollisionSystem::UnRegisterCollision(MCollisionComponent* component)
 	if (it != m_CollisionComponents.end()) {
 		m_CollisionComponents.erase(it);
 	}
+	if (component->IsStatic()) {
+		if (m_DeferStaticRebuild) {
+			m_PendingStaticRebuild = true;
+		}
+		else {
+			RebuildStaticCollisionMap();
+		}
+	}
+}
+
+void CollisionSystem::BeginSceneTransition()
+{
+	m_DeferStaticRebuild = true;
+}
+
+void CollisionSystem::EndSceneTransition()
+{
+	m_DeferStaticRebuild = false;
+	if (m_PendingStaticRebuild) {
+		RebuildStaticCollisionMap();
+		m_PendingStaticRebuild = false;
+	}
+}
+
+void CollisionSystem::RebuildStaticCollisionMap()
+{
+	m_StaticCollisionMap.clear();
+	for (auto collision : m_CollisionComponents) {
+		if (!collision->IsStatic()) {
+			continue;
+		}
+		FAABB box = collision->GetAABB();
+		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionCellSize));
+		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionCellSize));
+		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionCellSize));
+		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionCellSize));
+
+		for (int x = minX; x <= maxX; ++x) {
+			for (int y = minY; y <= maxY; ++y) {
+				m_StaticCollisionMap[{x, y}].push_back(collision);
+			}
+		}
+		collision->SetGridClean();
+	}
+}
+
+void CollisionSystem::UpdateCollisionMap()
+{
+	m_DynamicCollisionMap.clear();
+	for (auto collision : m_CollisionComponents) {
+		if (collision->IsStatic()) {
+			continue;
+		}
+		FAABB box = collision->GetAABB();
+
+		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionCellSize));
+		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionCellSize));
+		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionCellSize));
+		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionCellSize));
+
+		for (int x = minX; x <= maxX; ++x) {
+			for (int y = minY; y <= maxY; ++y) {
+				m_DynamicCollisionMap[{x, y}].push_back(collision);
+			}
+		}
+		collision->SetGridClean();
+	}
 }
 
 void CollisionSystem::CheckCollisions()
 {
-	for (size_t i = 0; i < m_CollisionComponents.size(); ++i) {
-		for (size_t j = i + 1; j < m_CollisionComponents.size(); ++j) {
-			auto* A = m_CollisionComponents[i];
-			auto* B = m_CollisionComponents[j];
-			if (A->GetOwner() == B->GetOwner()) continue;
-			switch (A->GetShapeType()) {
-			case ECollisionShape::Circle:
-				if (B->GetShapeType() == ECollisionShape::Circle) {
-					CircleAndCircle(static_cast<MCircleCollisionComponent*>(A), static_cast<MCircleCollisionComponent*>(B));
+	UpdateCollisionMap();
+	++m_FrameId;
+
+	for (auto& [loc, vec] : m_DynamicCollisionMap) {
+		auto staticIter = m_StaticCollisionMap.find(loc);
+		const auto* staticVec = staticIter != m_StaticCollisionMap.end() ? &staticIter->second : nullptr;
+
+		for (size_t i = 0; i < vec.size(); ++i) {
+			auto* A = vec[i];
+			if (staticVec) {
+				for (auto* B : *staticVec) {
+					if (A == B) {
+						continue;
+					}
+					if (A > B) {
+						if (!B->ShouldProcessPair(A, m_FrameId)) {
+							continue;
+						}
+					}
+					else {
+						if (!A->ShouldProcessPair(B, m_FrameId)) {
+							continue;
+						}
+					}
+					CheckCollisionPair(A, B);
 				}
-				else if (B->GetShapeType() == ECollisionShape::Rectangle) {
-					CircleAndRectangle(static_cast<MCircleCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
+			}
+
+			for (size_t j = i + 1; j < vec.size(); ++j) {
+				auto* B = vec[j];
+				if (A > B) {
+					if (!B->ShouldProcessPair(A, m_FrameId)) {
+						continue;
+					}
 				}
-				else if (B->GetShapeType() == ECollisionShape::Line) {
-					LineAndCircle(static_cast<MLineCollisionComponent*>(B), static_cast<MCircleCollisionComponent*>(A));
+				else {
+					if (!A->ShouldProcessPair(B, m_FrameId)) {
+						continue;
+					}
 				}
-				break;
-			case ECollisionShape::Rectangle:
-				if (B->GetShapeType() == ECollisionShape::Circle) {
-					CircleAndRectangle(static_cast<MCircleCollisionComponent*>(B), static_cast<MRectangleCollisionComponent*>(A));
-				}
-				else if (B->GetShapeType() == ECollisionShape::Rectangle) {
-					RectangleAndRectangle(static_cast<MRectangleCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
-				}
-				else if (B->GetShapeType() == ECollisionShape::Line) {
-					LineAndRectangle(static_cast<MLineCollisionComponent*>(B), static_cast<MRectangleCollisionComponent*>(A));
-				}
-				break;
-			case ECollisionShape::Line:
-				if (B->GetShapeType() == ECollisionShape::Circle) {
-					LineAndCircle(static_cast<MLineCollisionComponent*>(A), static_cast<MCircleCollisionComponent*>(B));
-				}
-				else if (B->GetShapeType() == ECollisionShape::Rectangle) {
-					LineAndRectangle(static_cast<MLineCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
-				}
-				else if (B->GetShapeType() == ECollisionShape::Line) {
-					LineAndLine(static_cast<MLineCollisionComponent*>(A), static_cast<MLineCollisionComponent*>(B));
-				}
-				break;
+				CheckCollisionPair(A, B);
 			}
 		}
 	}
@@ -393,4 +493,46 @@ void CollisionSystem::CollisionResolution(AActor* ActorA, AActor* ActorB, const 
 		CancelNormalVelocity(moveB, { -normal.X, -normal.Y });
 	}
 
+}
+
+
+void CollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B)
+{
+	if (A->GetOwner() == B->GetOwner()) return;
+	if (A->IsStatic() && B->IsStatic())return;
+	switch (A->GetShapeType()) {
+	case ECollisionShape::Circle:
+		if (B->GetShapeType() == ECollisionShape::Circle) {
+			CircleAndCircle(static_cast<MCircleCollisionComponent*>(A), static_cast<MCircleCollisionComponent*>(B));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Rectangle) {
+			CircleAndRectangle(static_cast<MCircleCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Line) {
+			LineAndCircle(static_cast<MLineCollisionComponent*>(B), static_cast<MCircleCollisionComponent*>(A));
+		}
+		break;
+	case ECollisionShape::Rectangle:
+		if (B->GetShapeType() == ECollisionShape::Circle) {
+			CircleAndRectangle(static_cast<MCircleCollisionComponent*>(B), static_cast<MRectangleCollisionComponent*>(A));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Rectangle) {
+			RectangleAndRectangle(static_cast<MRectangleCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Line) {
+			LineAndRectangle(static_cast<MLineCollisionComponent*>(B), static_cast<MRectangleCollisionComponent*>(A));
+		}
+		break;
+	case ECollisionShape::Line:
+		if (B->GetShapeType() == ECollisionShape::Circle) {
+			LineAndCircle(static_cast<MLineCollisionComponent*>(A), static_cast<MCircleCollisionComponent*>(B));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Rectangle) {
+			LineAndRectangle(static_cast<MLineCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Line) {
+			LineAndLine(static_cast<MLineCollisionComponent*>(A), static_cast<MLineCollisionComponent*>(B));
+		}
+		break;
+	}
 }

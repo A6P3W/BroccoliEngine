@@ -155,6 +155,7 @@ void MSceneComponent::MakeTransformDirty()
 {
 	if (IsTransformDirty) { return; }
 	IsTransformDirty = true;
+	IsGridDirty = true;
 	for (MSceneComponent* child : m_childComponents) {
 		child->MakeTransformDirty();
 	}
