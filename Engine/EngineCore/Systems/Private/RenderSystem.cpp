@@ -106,29 +106,79 @@ void RenderSystem::SubmitRectGraph(float destX, float destY, float srcX, float s
 	m_priorityCommands[priority].push_back(std::move(command));
 }
 
-void RenderSystem::Draw()
+FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPosition) const
 {
-
-	FVector2D CamPos = FVector2D::ZeroVector;
+	FVector2D camPos = FVector2D::ZeroVector;
 	float camAngle = 0.0f;
 	float camFOV = 1.0f;
-	MATRIX viewMat = MGetIdent();
 	if (m_MainCamera) {
-		CamPos = m_MainCamera->GetWorldLocation();
+		camPos = m_MainCamera->GetWorldLocation();
 		camAngle = m_MainCamera->GetWorldRotation().Rotation;
 		camFOV = m_MainCamera->GetFOV();
-		MATRIX scaleMat = MGetScale(VGet(camFOV, camFOV, 1.0f));
-		MATRIX matTrans = MGetTranslate(VGet(-CamPos.X, -CamPos.Y, 0.0f));
-		MATRIX matRot = MGetRotZ(UMath::DegToRad(-camAngle));
-		viewMat = MMult(matTrans, matRot);
-		viewMat = MMult(viewMat, scaleMat);
 	}
-	int WindowWidth, WindowHeight;
-	GetDrawScreenSize(&WindowWidth, &WindowHeight);
-	const float centerX = WindowWidth * 0.5f;
-	const float centerY = WindowHeight * 0.5f;
-	MATRIX screenMat = MGetTranslate(VGet(centerX, centerY, 0.0f));
-	MATRIX renderMat = MMult(viewMat, screenMat);
+
+	int windowWidth = 0;
+	int windowHeight = 0;
+	GetDrawScreenSize(&windowWidth, &windowHeight);
+	const float centerX = windowWidth * 0.5f;
+	const float centerY = windowHeight * 0.5f;
+
+	const float localX = worldPosition.X - camPos.X;
+	const float localY = worldPosition.Y - camPos.Y;
+	const float rad = UMath::DegToRad(-camAngle);
+	const float cosTheta = std::cos(rad);
+	const float sinTheta = std::sin(rad);
+
+	const float rotatedX = localX * cosTheta - localY * sinTheta;
+	const float rotatedY = localX * sinTheta + localY * cosTheta;
+
+	return {
+		rotatedX * camFOV + centerX,
+		rotatedY * camFOV + centerY
+	};
+}
+
+FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPosition) const
+{
+	FVector2D camPos = FVector2D::ZeroVector;
+	float camAngle = 0.0f;
+	float camFOV = 1.0f;
+	if (m_MainCamera) {
+		camPos = m_MainCamera->GetWorldLocation();
+		camAngle = m_MainCamera->GetWorldRotation().Rotation;
+		camFOV = m_MainCamera->GetFOV();
+	}
+
+	int windowWidth = 0;
+	int windowHeight = 0;
+	GetDrawScreenSize(&windowWidth, &windowHeight);
+	const float centerX = windowWidth * 0.5f;
+	const float centerY = windowHeight * 0.5f;
+
+	const float safeFOV = (std::abs(camFOV) < 1.0e-6f) ? 1.0e-6f : camFOV;
+	const float localX = (screenPosition.X - centerX) / safeFOV;
+	const float localY = (screenPosition.Y - centerY) / safeFOV;
+	const float rad = UMath::DegToRad(camAngle);
+	const float cosTheta = std::cos(rad);
+	const float sinTheta = std::sin(rad);
+
+	const float rotatedX = localX * cosTheta - localY * sinTheta;
+	const float rotatedY = localX * sinTheta + localY * cosTheta;
+
+	return {
+		rotatedX + camPos.X,
+		rotatedY + camPos.Y
+	};
+}
+
+void RenderSystem::Draw()
+{
+	float camAngle = 0.0f;
+	float camFOV = 1.0f;
+	if (m_MainCamera) {
+		camAngle = m_MainCamera->GetWorldRotation().Rotation;
+		camFOV = m_MainCamera->GetFOV();
+	}
 	int current_blendmode, current_alpha;
 	GetDrawBlendMode(&current_blendmode, &current_alpha);
 
@@ -150,15 +200,14 @@ void RenderSystem::Draw()
 
 			switch (command.space) {
 			case RenderSpace::World: {
-				VECTOR v1 = VGet(renderX, renderY, 0.0f);
-
-				v1 = VTransform(v1, renderMat);
-				renderX = v1.x; renderY = v1.y;
+				const FVector2D screenPos = WorldToScreen({ renderX, renderY });
+				renderX = screenPos.X;
+				renderY = screenPos.Y;
 
 				if (command.type == RenderType::Box || command.type == RenderType::Line) {
-					VECTOR v2_transformed = VTransform(VGet(optX, optY, 0.0f), renderMat);
-					optX = v2_transformed.x;
-					optY = v2_transformed.y;
+					const FVector2D optScreenPos = WorldToScreen({ optX, optY });
+					optX = optScreenPos.X;
+					optY = optScreenPos.Y;
 				}
 
 				finalScale *= camFOV;
@@ -177,16 +226,16 @@ void RenderSystem::Draw()
 				break;
 			case RenderType::Box:
 				if (command.space == RenderSpace::World) {
-					VECTOR v1 = VTransform(VGet(command.x1, command.y1, 0.0f), renderMat);
-					VECTOR v2 = VTransform(VGet(command.x2, command.y1, 0.0f), renderMat);
-					VECTOR v3 = VTransform(VGet(command.x2, command.y2, 0.0f), renderMat);
-					VECTOR v4 = VTransform(VGet(command.x1, command.y2, 0.0f), renderMat);
+					const FVector2D v1 = WorldToScreen({ command.x1, command.y1 });
+					const FVector2D v2 = WorldToScreen({ command.x2, command.y1 });
+					const FVector2D v3 = WorldToScreen({ command.x2, command.y2 });
+					const FVector2D v4 = WorldToScreen({ command.x1, command.y2 });
 
 					DrawQuadrangle(
-						static_cast<int>(v1.x), static_cast<int>(v1.y),
-						static_cast<int>(v2.x), static_cast<int>(v2.y),
-						static_cast<int>(v3.x), static_cast<int>(v3.y),
-						static_cast<int>(v4.x), static_cast<int>(v4.y),
+						static_cast<int>(v1.X), static_cast<int>(v1.Y),
+						static_cast<int>(v2.X), static_cast<int>(v2.Y),
+						static_cast<int>(v3.X), static_cast<int>(v3.Y),
+						static_cast<int>(v4.X), static_cast<int>(v4.Y),
 						command.color, command.fill);
 				} else {
 					DrawBox(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(optX), static_cast<int>(optY), command.color, command.fill);
