@@ -15,7 +15,6 @@ void SceneManager::ProcessSceneChanges()
 		m_CurrentScene = m_PendingSceneFactory();
 		m_PendingSceneFactory = nullptr;
 		auto Grid = ObjectManager::GetInstance().SpawnObject<AGridLine>();
-		Grid->SetLineWidth(100);
 		CollisionSystem::GetInstance().EndSceneTransition();
 
 	}

@@ -32,6 +32,8 @@ public:
 	void UpdateCollisionMap();
 
 	void CheckCollisions();
+
+	float GetCollisionCellSize() { return m_CollisionCellSize; }
 private:
 	void CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b);
 	void CircleAndRectangle(MCircleCollisionComponent* circle, MRectangleCollisionComponent* rect);
@@ -50,7 +52,7 @@ private:
 	std::vector<MCollisionComponent*> m_CollisionComponents;
 	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> m_StaticCollisionMap;
 	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> m_DynamicCollisionMap;
-	float m_CollisionMapSize = 100;
+	float m_CollisionCellSize = 100;
 	std::uint64_t m_FrameId = 0;
 	bool m_DeferStaticRebuild = false;
 	bool m_PendingStaticRebuild = false;

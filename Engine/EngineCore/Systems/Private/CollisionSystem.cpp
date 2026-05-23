@@ -32,10 +32,10 @@ void CollisionSystem::RegisterCollision(MCollisionComponent* component)
 	m_CollisionComponents.push_back(component);
 	if (component->IsStatic()) {
 		FAABB box = component->GetAABB();
-		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionMapSize));
-		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionMapSize));
-		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionMapSize));
-		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionMapSize));
+		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionCellSize));
+		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionCellSize));
+		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionCellSize));
+		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionCellSize));
 
 		for (int x = minX; x <= maxX; ++x) {
 			for (int y = minY; y <= maxY; ++y) {
@@ -83,10 +83,10 @@ void CollisionSystem::RebuildStaticCollisionMap()
 			continue;
 		}
 		FAABB box = collision->GetAABB();
-		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionMapSize));
-		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionMapSize));
-		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionMapSize));
-		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionMapSize));
+		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionCellSize));
+		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionCellSize));
+		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionCellSize));
+		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionCellSize));
 
 		for (int x = minX; x <= maxX; ++x) {
 			for (int y = minY; y <= maxY; ++y) {
@@ -106,10 +106,10 @@ void CollisionSystem::UpdateCollisionMap()
 		}
 		FAABB box = collision->GetAABB();
 
-		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionMapSize));
-		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionMapSize));
-		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionMapSize));
-		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionMapSize));
+		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionCellSize));
+		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionCellSize));
+		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionCellSize));
+		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionCellSize));
 
 		for (int x = minX; x <= maxX; ++x) {
 			for (int y = minY; y <= maxY; ++y) {
