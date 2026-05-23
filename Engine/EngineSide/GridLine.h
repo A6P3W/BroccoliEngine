@@ -6,9 +6,8 @@ class AGridLine :
 public:
 	AGridLine();
 	void OnUpdate(float DeltaTime) override;
-	void SetLineWidth(float LineWidth);
+	void SimpleDraw(float cellSize, int color);
 private:
-	float m_LineWidth;
-	int m_LineColor ;
+	float m_CollisionCellSize;
 };
 
