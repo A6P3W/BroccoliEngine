@@ -10,6 +10,8 @@ public:
 		return m_radius;
 	};
 	void Draw() override;
+
+	FAABB GetAABB() const override;
 private:
 	float m_radius;
 };

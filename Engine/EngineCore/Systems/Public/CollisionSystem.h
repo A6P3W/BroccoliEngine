@@ -19,9 +19,15 @@ class CollisionSystem
 {
 
 public:
+	CollisionSystem();
+	~CollisionSystem();
+	static bool IsAlive();
 	static CollisionSystem& GetInstance();
 	void RegisterCollision(MCollisionComponent* component);
 	void UnRegisterCollision(MCollisionComponent* component);
+	void RebuildStaticCollisionMap();
+	void BeginSceneTransition();
+	void EndSceneTransition();
 
 	void UpdateCollisionMap();
 
@@ -38,15 +44,15 @@ private:
 
 	void CollisionResolution(AActor* ActorA, AActor* ActorB, const FVector2D& normal, float overlapDepth);
 
-
-	void CheckCell(std::vector<MCollisionComponent*> Cell);
-	void CheckCellPair(std::vector<MCollisionComponent*> CellA, std::vector<MCollisionComponent*> CellB);
 	void CheckCollisionPair(MCollisionComponent* A,MCollisionComponent* B);
 
 
 	std::vector<MCollisionComponent*> m_CollisionComponents;
-
-	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> CollisionMap;
-	float m_CollisionMapSize = 30;
+	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> m_StaticCollisionMap;
+	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> m_DynamicCollisionMap;
+	float m_CollisionMapSize = 100;
+	std::uint64_t m_FrameId = 0;
+	bool m_DeferStaticRebuild = false;
+	bool m_PendingStaticRebuild = false;
 };
 
