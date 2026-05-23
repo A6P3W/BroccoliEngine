@@ -22,47 +22,43 @@ void CollisionSystem::UnRegisterCollision(MCollisionComponent* component)
 	}
 }
 
+void CollisionSystem::UpdateCollisionMap()
+{
+	CollisionMap.clear();
+	for (auto collision : m_CollisionComponents) {
+		FVector2D loc = collision->GetWorldLocation();
+
+		// 2. グリッドサイズ(m_CollisionMapSize)で割ってセル座標を出す
+		// 現在は1単位(1ピクセル)ごとにセルが作られており、メモリ消費が異常です
+		int cellX = static_cast<int>(std::floor(loc.X / m_CollisionMapSize));
+		int cellY = static_cast<int>(std::floor(loc.Y / m_CollisionMapSize));
+
+		CollisionMap[{cellX, cellY}].push_back(collision);
+		collision->SetGridClean();
+	}
+
+
+}
+
 void CollisionSystem::CheckCollisions()
 {
-	for (size_t i = 0; i < m_CollisionComponents.size(); ++i) {
-		for (size_t j = i + 1; j < m_CollisionComponents.size(); ++j) {
-			auto* A = m_CollisionComponents[i];
-			auto* B = m_CollisionComponents[j];
-			if (A->GetOwner() == B->GetOwner()) continue;
-			switch (A->GetShapeType()) {
-			case ECollisionShape::Circle:
-				if (B->GetShapeType() == ECollisionShape::Circle) {
-					CircleAndCircle(static_cast<MCircleCollisionComponent*>(A), static_cast<MCircleCollisionComponent*>(B));
-				}
-				else if (B->GetShapeType() == ECollisionShape::Rectangle) {
-					CircleAndRectangle(static_cast<MCircleCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
-				}
-				else if (B->GetShapeType() == ECollisionShape::Line) {
-					LineAndCircle(static_cast<MLineCollisionComponent*>(B), static_cast<MCircleCollisionComponent*>(A));
-				}
-				break;
-			case ECollisionShape::Rectangle:
-				if (B->GetShapeType() == ECollisionShape::Circle) {
-					CircleAndRectangle(static_cast<MCircleCollisionComponent*>(B), static_cast<MRectangleCollisionComponent*>(A));
-				}
-				else if (B->GetShapeType() == ECollisionShape::Rectangle) {
-					RectangleAndRectangle(static_cast<MRectangleCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
-				}
-				else if (B->GetShapeType() == ECollisionShape::Line) {
-					LineAndRectangle(static_cast<MLineCollisionComponent*>(B), static_cast<MRectangleCollisionComponent*>(A));
-				}
-				break;
-			case ECollisionShape::Line:
-				if (B->GetShapeType() == ECollisionShape::Circle) {
-					LineAndCircle(static_cast<MLineCollisionComponent*>(A), static_cast<MCircleCollisionComponent*>(B));
-				}
-				else if (B->GetShapeType() == ECollisionShape::Rectangle) {
-					LineAndRectangle(static_cast<MLineCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
-				}
-				else if (B->GetShapeType() == ECollisionShape::Line) {
-					LineAndLine(static_cast<MLineCollisionComponent*>(A), static_cast<MLineCollisionComponent*>(B));
-				}
-				break;
+	UpdateCollisionMap();
+
+	for (auto& [loc, vec] : CollisionMap) {
+		// 自セル内の全組み合わせ判定
+		CheckCell(vec);
+
+		// 隣接4方向（右、右下、下、左下）をチェック
+		// ※ 2回判定を避けるため、一方向のみ探索する（ハッシュグリッドの定石）
+		static const std::pair<int, int> neighbors[] = {
+			{0, 1}, {1, 1}, {1, 0}, {-1, 1}
+		};
+
+		for (const auto& offset : neighbors) {
+			auto it = CollisionMap.find({ loc.first + offset.first, loc.second + offset.second });
+			if (it != CollisionMap.end()) {
+				// 新しい vector を作らず、既存の vector をそのまま渡す
+				CheckCellPair(vec, it->second);
 			}
 		}
 	}
@@ -393,4 +389,65 @@ void CollisionSystem::CollisionResolution(AActor* ActorA, AActor* ActorB, const 
 		CancelNormalVelocity(moveB, { -normal.X, -normal.Y });
 	}
 
+}
+
+void CollisionSystem::CheckCell(std::vector<MCollisionComponent*> Cell)
+{
+	for (size_t i = 0; i < Cell.size(); ++i) {
+		for (size_t j = i + 1; j < Cell.size(); ++j) {
+			auto* A = Cell[i];
+			auto* B = Cell[j];
+			CheckCollisionPair(A, B);
+		}
+	}
+}
+
+void CollisionSystem::CheckCellPair(std::vector<MCollisionComponent*> CellA, std::vector<MCollisionComponent*> CellB)
+{
+	for (auto ComponentA : CellA) {
+		for (auto ComponentB : CellB) {
+			CheckCollisionPair(ComponentA, ComponentB);
+		}
+	}
+}
+
+void CollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B)
+{
+	if (A->GetOwner() == B->GetOwner()) return;
+	if (A->IsStatic() && B->IsStatic())return;
+	switch (A->GetShapeType()) {
+	case ECollisionShape::Circle:
+		if (B->GetShapeType() == ECollisionShape::Circle) {
+			CircleAndCircle(static_cast<MCircleCollisionComponent*>(A), static_cast<MCircleCollisionComponent*>(B));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Rectangle) {
+			CircleAndRectangle(static_cast<MCircleCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Line) {
+			LineAndCircle(static_cast<MLineCollisionComponent*>(B), static_cast<MCircleCollisionComponent*>(A));
+		}
+		break;
+	case ECollisionShape::Rectangle:
+		if (B->GetShapeType() == ECollisionShape::Circle) {
+			CircleAndRectangle(static_cast<MCircleCollisionComponent*>(B), static_cast<MRectangleCollisionComponent*>(A));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Rectangle) {
+			RectangleAndRectangle(static_cast<MRectangleCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Line) {
+			LineAndRectangle(static_cast<MLineCollisionComponent*>(B), static_cast<MRectangleCollisionComponent*>(A));
+		}
+		break;
+	case ECollisionShape::Line:
+		if (B->GetShapeType() == ECollisionShape::Circle) {
+			LineAndCircle(static_cast<MLineCollisionComponent*>(A), static_cast<MCircleCollisionComponent*>(B));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Rectangle) {
+			LineAndRectangle(static_cast<MLineCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B));
+		}
+		else if (B->GetShapeType() == ECollisionShape::Line) {
+			LineAndLine(static_cast<MLineCollisionComponent*>(A), static_cast<MLineCollisionComponent*>(B));
+		}
+		break;
+	}
 }

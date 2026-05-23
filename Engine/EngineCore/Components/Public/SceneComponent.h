@@ -37,6 +37,9 @@ public:
 	bool IsVisible() const { return bVisible; }
 	bool bVisible;
 
+	bool bGridDirty() { return IsGridDirty; }
+	void SetGridClean() { IsGridDirty = true; }
+
 protected:
 	
 	MSceneComponent* m_parentComponent = nullptr;
@@ -54,5 +57,7 @@ protected:
 	void UpdateTransform() const;
 
 	mutable bool IsTransformDirty = true;
+
+	mutable bool IsGridDirty = true;
 
 };

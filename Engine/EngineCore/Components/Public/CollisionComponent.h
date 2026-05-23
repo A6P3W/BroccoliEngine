@@ -19,7 +19,7 @@ public:
 	virtual ~MCollisionComponent();
 	virtual ECollisionShape GetShapeType() const = 0;
 
-	
+
 	ECollisionType GetCollisionType() { return m_CollisionType; }
 	void SetCollisionType(ECollisionType NewType) { m_CollisionType = NewType; }
 
@@ -38,9 +38,11 @@ public:
 			}
 		}
 	}
-
+	void SetStatic(bool IsStatic) { bIsStatic = IsStatic; }
+	bool IsStatic() const { return bIsStatic; }
 private:
 	std::unordered_set<AActor*> m_OverlappingActors;
 	ECollisionType m_CollisionType = ECollisionType::Overlap;
+	bool bIsStatic = true;
 };
 

@@ -7,6 +7,14 @@
 #include "LineCollisionComponent.h"
 #include "MovementComponent.h"
 #include <Actor.h>
+#include <utility>
+#include <map>
+
+struct pair_hash {
+	inline std::size_t operator()(const std::pair<int, int>& v) const {
+		return v.first * 31 + v.second;
+	}
+};
 class CollisionSystem
 {
 
@@ -14,6 +22,9 @@ public:
 	static CollisionSystem& GetInstance();
 	void RegisterCollision(MCollisionComponent* component);
 	void UnRegisterCollision(MCollisionComponent* component);
+
+	void UpdateCollisionMap();
+
 	void CheckCollisions();
 private:
 	void CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b);
@@ -27,6 +38,15 @@ private:
 
 	void CollisionResolution(AActor* ActorA, AActor* ActorB, const FVector2D& normal, float overlapDepth);
 
+
+	void CheckCell(std::vector<MCollisionComponent*> Cell);
+	void CheckCellPair(std::vector<MCollisionComponent*> CellA, std::vector<MCollisionComponent*> CellB);
+	void CheckCollisionPair(MCollisionComponent* A,MCollisionComponent* B);
+
+
 	std::vector<MCollisionComponent*> m_CollisionComponents;
+
+	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> CollisionMap;
+	float m_CollisionMapSize = 30;
 };
 
