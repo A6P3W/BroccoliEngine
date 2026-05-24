@@ -13,11 +13,15 @@ APlayerController::APlayerController()
     AddComponent(std::move(InputComp));
     m_InputMapper = std::make_unique<InputMapper>();
 
+
     SetPlayerId(0);
 }
 
 void APlayerController::Possess(APawn* NewPawn)
 {
+    if (GetInputComponent()) {
+        GetInputComponent()->ClearBindings();
+    }
 	m_TargetPawn = NewPawn;
     m_TargetPawn->OnPossesed();
 
@@ -40,7 +44,7 @@ void APlayerController::SetPlayerId(int id)
     m_PlayerId = id;
     m_InputMapper->RemoveMapping(InputAction::MoveX);
     m_InputMapper->RemoveMapping(InputAction::MoveY);
-    m_InputMapper->RemoveMapping(InputAction::Wheel);
+    m_InputMapper->RemoveMapping(InputActionMouse::Wheel);
     m_InputMapper->RemoveMapping(InputAction::Interact);
 
     auto& IM = InputManager::GetInstance();
@@ -50,14 +54,14 @@ void APlayerController::SetPlayerId(int id)
 
     if (id == 0 && kb) {
         // キーボード
-        m_InputMapper->AddMapping(InputAction::MoveX, kb, KEY_INPUT_A, 1.0f); // A = 正方向
+        m_InputMapper->AddMapping(InputAction::MoveX, kb, KEY_INPUT_A, 1.0f); 
         m_InputMapper->AddMapping(InputAction::MoveX, kb, KEY_INPUT_D, -1.0f);
         m_InputMapper->AddMapping(InputAction::MoveY, kb, KEY_INPUT_W, 1.0f);
         m_InputMapper->AddMapping(InputAction::MoveY, kb, KEY_INPUT_S, -1.0f);
         m_InputMapper->AddMapping(InputAction::Interact, kb, KEY_INPUT_F);
     }
     if (mouse) {
-        m_InputMapper->AddAxisMapping(InputAction::Wheel, mouse, MouseDevice::AxisID::Wheel);
+        m_InputMapper->AddAxisMapping(InputActionMouse::Wheel, mouse, MouseDevice::AxisID::Wheel);
     }
     //if (pad) {
     //    // ゲームパッド軸

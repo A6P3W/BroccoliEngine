@@ -24,6 +24,7 @@ private:
     std::vector<FInputBinding> m_bindings;
 
 public:
+    void ClearBindings() { m_bindings.clear(); }
     template<class T>
     void BindAction(const std::string& actionName, ETriggerEvent event,
         T* obj, void (T::* func)(const FInputActionValue&)) {
