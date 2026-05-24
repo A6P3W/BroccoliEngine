@@ -12,6 +12,7 @@
 		  $(MSBuildThisFileDirectory)Engine/EngineSide/;
 		  $(MSBuildThisFileDirectory)Engine/EngineSide/Default/Public;
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/GameFramework/Public;
+		  $(MSBuildThisFileDirectory)Engine/ThirdParty;
 		  %(AdditionalIncludeDirectories)
 	  </AdditionalIncludeDirectories>
     </ClCompile>
