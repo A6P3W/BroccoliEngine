@@ -25,12 +25,9 @@ public:
 		return nullptr;
 	}
 
-	bool GetMouseWheelUp();
-	bool GetMouseWheelDown();
 	void Update();
 
 
 private:
 	std::vector<std::unique_ptr<InputDevice>> m_devices;
-	int m_mouseWheel = 0;
 };

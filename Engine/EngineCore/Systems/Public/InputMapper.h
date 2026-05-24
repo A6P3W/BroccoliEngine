@@ -6,6 +6,7 @@
 struct InputAction {
 	static constexpr auto MoveX = "MoveX";
 	static constexpr auto MoveY = "MoveY";
+	static constexpr auto Wheel = "Wheel";
 	static constexpr auto Interact = "Interact";
 	static constexpr auto Cancel = "Cancel";
 };

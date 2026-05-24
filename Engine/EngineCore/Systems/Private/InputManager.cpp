@@ -1,4 +1,3 @@
-﻿#include <DxLib.h>
 #include "InputManager.h"
 
 InputManager::InputManager(){}
@@ -16,16 +15,4 @@ void InputManager::AddDevice(std::unique_ptr<InputDevice> device)
 void InputManager::Update()
 {
 	for (auto& d : m_devices) d->Update();
-	m_mouseWheel = GetMouseWheelRotVol();
-}
-
-
-bool InputManager::GetMouseWheelUp()
-{
-	return m_mouseWheel > 0;
-}
-
-bool InputManager::GetMouseWheelDown()
-{
-	return m_mouseWheel < 0;
 }

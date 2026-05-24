@@ -5,6 +5,7 @@
 #include <DxLib.h>
 #include <InputDevice.h>
 #include <KeyboardDevice.h>
+#include <MouseDevice.h>
 APlayerController::APlayerController()
 {
     auto InputComp = std::make_unique<MEnhancedInputComponent>();
@@ -39,10 +40,12 @@ void APlayerController::SetPlayerId(int id)
     m_PlayerId = id;
     m_InputMapper->RemoveMapping(InputAction::MoveX);
     m_InputMapper->RemoveMapping(InputAction::MoveY);
+    m_InputMapper->RemoveMapping(InputAction::Wheel);
     m_InputMapper->RemoveMapping(InputAction::Interact);
 
     auto& IM = InputManager::GetInstance();
     auto* kb = IM.GetDevice<KeyboardDevice>();
+    auto* mouse = IM.GetDevice<MouseDevice>();
     //uto* pad = IM.GetDevice<GamepadDevice>(); 
 
     if (id == 0 && kb) {
@@ -52,6 +55,9 @@ void APlayerController::SetPlayerId(int id)
         m_InputMapper->AddMapping(InputAction::MoveY, kb, KEY_INPUT_W, 1.0f);
         m_InputMapper->AddMapping(InputAction::MoveY, kb, KEY_INPUT_S, -1.0f);
         m_InputMapper->AddMapping(InputAction::Interact, kb, KEY_INPUT_F);
+    }
+    if (mouse) {
+        m_InputMapper->AddAxisMapping(InputAction::Wheel, mouse, MouseDevice::AxisID::Wheel);
     }
     //if (pad) {
     //    // ゲームパッド軸
