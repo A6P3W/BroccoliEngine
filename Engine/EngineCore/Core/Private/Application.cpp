@@ -4,6 +4,7 @@
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "KeyboardDevice.h"
+#include "MouseDevice.h"
 #include "ObjectManager.h"
 #include "SceneManager.h"
 #include "GameModeBase.h"
@@ -21,6 +22,7 @@ bool Application::Run()
     SetupGame();
     auto& IM = InputManager::GetInstance();
     IM.AddDevice(std::make_unique<KeyboardDevice>());
+    IM.AddDevice(std::make_unique<MouseDevice>());
     while (ProcessMessage() == 0) {
 
         LONGLONG CurrentTime = GetNowHiPerformanceCount();

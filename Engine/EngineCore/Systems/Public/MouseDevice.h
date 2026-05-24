@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "InputDevice.h"
 
 class MouseDevice : public InputDevice {

@@ -15,10 +15,8 @@ class InputMapper {
 public:
 	InputMapper() = default;
 
-	// ボタン入力をアクションに登録（複数登録可）
 	void AddMapping(const std::string& actionName, InputDevice* device, int code, float scale = 1.0f);
 
-	// アナログ軸をアクションに登録（scaleで反転や感度調整）
 	void AddAxisMapping(const std::string& actionName, InputDevice* device, int axisId, float scale = 1.0f);
 
 	void RemoveMapping(const std::string& actionName);

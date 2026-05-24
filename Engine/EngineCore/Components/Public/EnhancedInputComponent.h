@@ -10,6 +10,7 @@ enum class ETriggerEvent { Started, Triggered, Completed }; // InputMapper.h か
 
 struct FInputActionValue {
     FVector2D Axis2D = FVector2D::ZeroVector;
+	float Axis1D = 0.0f;
     bool      bIsPressed = false;
 };
 
