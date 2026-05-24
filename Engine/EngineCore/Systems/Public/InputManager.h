@@ -1,5 +1,9 @@
 ﻿#pragma once
+#include "InputDevice.h"
+#include <vector>
+#include <memory>
 
+class KeyboardDevice;
 class InputManager
 {
 private:
@@ -11,15 +15,22 @@ public:
 		static InputManager instance;
 		return instance;
 	}
+	void AddDevice(std::unique_ptr<InputDevice> device);
 
-	bool GetKeyPressStart(int keyCode);
-	bool GetKeyPressing(int keyCode);
-	bool GetKeyRelease(int keyCode);
+	template<class T>
+	T* GetDevice() const {
+		for (const auto& d : m_devices) {
+			if (auto* p = dynamic_cast<T*>(d.get())) return p;
+		}
+		return nullptr;
+	}
+
 	bool GetMouseWheelUp();
 	bool GetMouseWheelDown();
 	void Update();
 
-	bool key[256];
-	bool prevKey[256];
-	int mouseWheel;
+
+private:
+	std::vector<std::unique_ptr<InputDevice>> m_devices;
+	int m_mouseWheel = 0;
 };

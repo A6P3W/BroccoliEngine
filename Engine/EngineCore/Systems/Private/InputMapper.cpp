@@ -1,39 +1,47 @@
 ﻿#include "InputMapper.h"
-#include "InputManager.h"
-#include <DxLib.h>
-
-InputMapper::InputMapper() {
-    keyBindings[E_INPUT_ACTION::CANCEL] = { KEY_INPUT_ESCAPE };
-	keyBindings[E_INPUT_ACTION::UP] = { KEY_INPUT_UP, KEY_INPUT_W };
-    keyBindings[E_INPUT_ACTION::DOWN] = { KEY_INPUT_DOWN, KEY_INPUT_S };
-    keyBindings[E_INPUT_ACTION::LEFT] = { KEY_INPUT_LEFT, KEY_INPUT_A };
-    keyBindings[E_INPUT_ACTION::RIGHT] = { KEY_INPUT_RIGHT, KEY_INPUT_D };
-    keyBindings[E_INPUT_ACTION::MOVE] = {
-    KEY_INPUT_UP, KEY_INPUT_DOWN,
-    KEY_INPUT_LEFT, KEY_INPUT_RIGHT,
-    KEY_INPUT_W, KEY_INPUT_S,
-    KEY_INPUT_A, KEY_INPUT_D
-    };
-    keyBindings[E_INPUT_ACTION::INTERACT] = { KEY_INPUT_F };
+#include "InputDevice.h"
+void InputMapper::AddMapping(const std::string& actionName, InputDevice* device, int code,float scale) {
+    m_buttonBindings[actionName].push_back({ device, code, scale });
 }
-
-bool InputMapper::GetKeyPressStart(E_INPUT_ACTION action) {
-    for (int keyCode : keyBindings[action]) {
-        if (InputManager::GetInstance().GetKeyPressStart(keyCode)) return true;
-    }
+void InputMapper::AddAxisMapping(const std::string& actionName, InputDevice* device, int axisId, float scale) {
+    m_axisBindings[actionName].push_back({ device, axisId, scale });
+}
+void InputMapper::RemoveMapping(const std::string& actionName) {
+    m_buttonBindings.erase(actionName);
+    m_axisBindings.erase(actionName);
+}
+bool InputMapper::GetPressStart(const std::string& actionName) const {
+    auto it = m_buttonBindings.find(actionName);
+    if (it == m_buttonBindings.end()) return false;
+    for (auto& b : it->second)
+        if (b.Device->GetPressStart(b.Code)) return true;
     return false;
 }
-
-bool InputMapper::GetKeyPressing(E_INPUT_ACTION action) {
-    for (int keyCode : keyBindings[action]) {
-        if (InputManager::GetInstance().GetKeyPressing(keyCode)) return true;
-    }
+bool InputMapper::GetPressing(const std::string& actionName) const {
+    auto it = m_buttonBindings.find(actionName);
+    if (it == m_buttonBindings.end()) return false;
+    for (auto& b : it->second)
+        if (b.Device->GetPressing(b.Code)) return true;
     return false;
 }
-
-bool InputMapper::GetKeyRelease(E_INPUT_ACTION action) {
-    for (int keyCode : keyBindings[action]) {
-        if (InputManager::GetInstance().GetKeyRelease(keyCode)) return true;
-    }
+bool InputMapper::GetRelease(const std::string& actionName) const {
+    auto it = m_buttonBindings.find(actionName);
+    if (it == m_buttonBindings.end()) return false;
+    for (auto& b : it->second)
+        if (b.Device->GetRelease(b.Code)) return true;
     return false;
+}
+float InputMapper::GetAxisValue(const std::string& actionName) const {
+    float result = 0.0f;
+    auto it = m_axisBindings.find(actionName);
+    if (it != m_axisBindings.end())
+        for (auto& b : it->second)
+            result += b.Device->GetAxis(b.AxisId) * b.Scale;
+    // ボタンでの軸エミュレート
+    auto bit = m_buttonBindings.find(actionName);
+    if (bit != m_buttonBindings.end())
+        for (auto& b : bit->second) {
+            if (b.Device->GetPressing(b.Code)) result += b.Scale;
+        }
+    return result;
 }

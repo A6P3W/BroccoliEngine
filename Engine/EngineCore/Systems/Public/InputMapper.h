@@ -1,33 +1,34 @@
 ﻿#pragma once
-#include <map>
+#include "InputDevice.h"
+#include <string>
 #include <vector>
-enum E_INPUT_ACTION
-{
-	CANCEL,
-	UP,
-	DOWN,
-	LEFT,
-	RIGHT,
-	INTERACT,
-	MOVE
+#include <unordered_map>
+struct InputAction {
+	static constexpr auto MoveX = "MoveX";
+	static constexpr auto MoveY = "MoveY";
+	static constexpr auto Interact = "Interact";
+	static constexpr auto Cancel = "Cancel";
 };
-enum class ETriggerEvent {
-	Started,
-	Triggered,
-	Completed
-};
+
 class InputMapper {
 public:
-    static InputMapper& GetInstance() {
-        static InputMapper instance;
-        return instance;
-    }
+	InputMapper() = default;
 
-    bool GetKeyPressStart(E_INPUT_ACTION action);
-    bool GetKeyPressing(E_INPUT_ACTION action);
-	bool GetKeyRelease(E_INPUT_ACTION action);
+	// ボタン入力をアクションに登録（複数登録可）
+	void AddMapping(const std::string& actionName, InputDevice* device, int code, float scale = 1.0f);
 
+	// アナログ軸をアクションに登録（scaleで反転や感度調整）
+	void AddAxisMapping(const std::string& actionName, InputDevice* device, int axisId, float scale = 1.0f);
+
+	void RemoveMapping(const std::string& actionName);
+
+	bool  GetPressStart(const std::string& actionName) const;
+	bool  GetPressing(const std::string& actionName) const;
+	bool  GetRelease(const std::string& actionName) const;
+	float GetAxisValue(const std::string& actionName) const;
 private:
-	InputMapper();
-    std::map<E_INPUT_ACTION, std::vector<int>> keyBindings;
+	struct FButtonBinding { InputDevice* Device; int Code; float Scale; };
+	struct FAxisBinding { InputDevice* Device; int AxisId; float Scale; };
+	std::unordered_map<std::string, std::vector<FButtonBinding>> m_buttonBindings;
+	std::unordered_map<std::string, std::vector<FAxisBinding>>   m_axisBindings;
 };

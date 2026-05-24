@@ -167,6 +167,7 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\RenderSystem.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\ResourceManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\SceneManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\KeyboardDevice.cpp" />
     <ClCompile Include="Engine\EngineSide\Default\Private\DefaultCircleCollisionActor.cpp" />
     <ClCompile Include="Engine\EngineSide\GridLine.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp" />
@@ -191,8 +192,10 @@
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameModeBase.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\PlayerController.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\CollisionSystem.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\InputDevice.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\InputManager.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\InputMapper.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\KeyboardDevice.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\ObjectManager.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\RenderSystem.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\ResourceManager.h" />
