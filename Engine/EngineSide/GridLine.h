@@ -4,6 +4,7 @@ class AGridLine :
     public AActor
 {
 public:
+	DEFINE_ACTOR_CLASS(AGridLine)
 	AGridLine();
 	void OnUpdate(float DeltaTime) override;
 	void SimpleDraw(float cellSize, int color);

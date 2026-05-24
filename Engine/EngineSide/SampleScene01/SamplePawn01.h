@@ -10,6 +10,7 @@ class MMovementComponent;
 class ASamplePawn01 : public APawn
 {
 public:
+	DEFINE_ACTOR_CLASS(ASamplePawn01)
 	ASamplePawn01();
 	void OnPossesed() override;
     void OnUpdate(float DeltaTime) override;

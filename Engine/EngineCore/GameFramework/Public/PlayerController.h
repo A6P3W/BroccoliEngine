@@ -8,6 +8,7 @@ class MEnhancedInputComponent;
 class APlayerController:public AActor
 {
 public :
+	DEFINE_ACTOR_CLASS(APlayerController)
 	APlayerController();
 	virtual void Possess(APawn* NewPawn);
 
