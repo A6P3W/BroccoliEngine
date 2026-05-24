@@ -114,7 +114,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
@@ -133,7 +133,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -208,6 +208,7 @@
     <ClInclude Include="Engine\EngineSide\GridLine.h" />
     <ClInclude Include="Engine\EngineSide\SampleScene01\SamplePawn01.h" />
     <ClInclude Include="Engine\EngineSide\SampleScene01\SampleScene01.h" />
+    <ClInclude Include="Engine\ThirdParty\nlohmann\json.hpp" />
     <ClInclude Include="Engine\Utils\Log.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\EnhancedInputComponent.h" />
