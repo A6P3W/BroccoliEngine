@@ -6,9 +6,18 @@
 struct InputAction {
 	static constexpr auto MoveX = "MoveX";
 	static constexpr auto MoveY = "MoveY";
-	static constexpr auto Wheel = "Wheel";
+
+	static constexpr auto LookX = "LookX";
+	static constexpr auto LookY = "LookY";
+
 	static constexpr auto Interact = "Interact";
 	static constexpr auto Cancel = "Cancel";
+
+};
+struct InputActionMouse {
+	static constexpr auto MouseLeft = "MouseLeft";
+	static constexpr auto MouseRight = "MouseRight";
+	static constexpr auto Wheel = "Wheel";
 };
 
 class InputMapper {

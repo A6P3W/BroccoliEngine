@@ -6,9 +6,7 @@
 #include <PlayerController.h>
 #include "SamplePawn01.h"
 ASampleScene01::ASampleScene01() {
-	auto* Pawn = ObjectManager::GetInstance().SpawnObject<ASamplePawn01>({ 0,0 }, { 0 });
-	auto* Controller = ObjectManager::GetInstance().SpawnObject<APlayerController>();
-	Controller->Possess(Pawn);
+	SpawnPlayer<ASamplePawn01, APlayerController>({ 0,0 }, 0);
 
 }
 
