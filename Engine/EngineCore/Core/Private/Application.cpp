@@ -3,6 +3,8 @@
 #include "RenderSystem.h"
 #include "InputManager.h"
 #include "InputMapper.h"
+#include "KeyboardDevice.h"
+#include "MouseDevice.h"
 #include "ObjectManager.h"
 #include "SceneManager.h"
 #include "GameModeBase.h"
@@ -18,8 +20,10 @@ bool Application::Run()
     LONGLONG LastTime = GetNowHiPerformanceCount();
 
     SetupGame();
-    auto& IMI = InputManager::GetInstance();
-    while (ProcessMessage() == 0 && !IMI.GetKeyPressing(KEY_INPUT_ESCAPE)|| IMI.GetKeyPressing(KEY_INPUT_LSHIFT)) {
+    auto& IM = InputManager::GetInstance();
+    IM.AddDevice(std::make_unique<KeyboardDevice>());
+    IM.AddDevice(std::make_unique<MouseDevice>());
+    while (ProcessMessage() == 0) {
 
         LONGLONG CurrentTime = GetNowHiPerformanceCount();
         LONGLONG ElapsedTime = CurrentTime - LastTime;
@@ -52,9 +56,6 @@ bool Application::Run()
 bool Application::Update(float DeltaTime)
 {
 	InputManager::GetInstance().Update();
-    if (InputManager::GetInstance().GetKeyPressStart(KEY_INPUT_P)) {
-		m_posed = !m_posed;
-    }
 
     if (m_posed) {
         return true;

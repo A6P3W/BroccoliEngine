@@ -22,11 +22,10 @@ void APawn::OnUpdate(float DeltaTime)
 {
 }
 
-void APawn::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent)
-{	
-	PlayerInputComponent->BindAction(E_INPUT_ACTION::INTERACT, ETriggerEvent::Started, this, &APawn::OnInteractPressed);
-	PlayerInputComponent->BindAction(E_INPUT_ACTION::MOVE, ETriggerEvent::Triggered, this, &APawn::OnMove);
-
+void APawn::SetupPlayerInputComponent(MEnhancedInputComponent* comp) {
+	comp->BindAction(InputAction::Interact, ETriggerEvent::Started, this, &APawn::OnInteractPressed);
+	comp->BindAction(InputAction::MoveX, ETriggerEvent::Triggered, this, &APawn::OnMove);
+	comp->BindAction(InputAction::MoveY, ETriggerEvent::Triggered, this, &APawn::OnMove);
 }
 
 void APawn::OnInteractPressed()
