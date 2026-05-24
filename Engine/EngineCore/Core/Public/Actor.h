@@ -8,6 +8,7 @@
 
 #define DEFINE_ACTOR_CLASS(ClassName) \
 public: \
+	static std::string StaticClassName() { return #ClassName; }\
     virtual std::string GetActorClassName() const override { return #ClassName; }\
 
 
