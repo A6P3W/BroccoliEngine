@@ -37,7 +37,6 @@ void MMovementComponent::SetVelocityRotation(const FRotator& Rotation)
 
 void MMovementComponent::OnUpdate(float DeltaTime)
 {
-	MLog::Log("Velocity: " + std::to_string(Velocity.X) + ", " + std::to_string(Velocity.Y));
 	if (Velocity.SizeSquared() < 0.1f) {
 		Velocity = FVector2D::ZeroVector;
 		return;

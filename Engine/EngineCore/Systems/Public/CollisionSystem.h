@@ -46,7 +46,7 @@ private:
 
 	void CollisionResolution(AActor* ActorA, AActor* ActorB, const FVector2D& normal, float overlapDepth);
 
-	void CheckCollisionPair(MCollisionComponent* A,MCollisionComponent* B);
+	void CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B);
 
 
 	std::vector<MCollisionComponent*> m_CollisionComponents;
@@ -56,5 +56,8 @@ private:
 	std::uint64_t m_FrameId = 0;
 	bool m_DeferStaticRebuild = false;
 	bool m_PendingStaticRebuild = false;
+
+	std::vector<MCollisionComponent*> m_PendingStaticRegistrations;
+	void RegisterToStaticMap(MCollisionComponent* component);
 };
 

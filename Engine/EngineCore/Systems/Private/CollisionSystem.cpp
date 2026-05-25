@@ -31,17 +31,7 @@ void CollisionSystem::RegisterCollision(MCollisionComponent* component)
 {
 	m_CollisionComponents.push_back(component);
 	if (component->IsStatic()) {
-		FAABB box = component->GetAABB();
-		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionCellSize));
-		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionCellSize));
-		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionCellSize));
-		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionCellSize));
-
-		for (int x = minX; x <= maxX; ++x) {
-			for (int y = minY; y <= maxY; ++y) {
-				m_StaticCollisionMap[{x, y}].push_back(component);
-			}
-		}
+		m_PendingStaticRegistrations.push_back(component);
 	}
 }
 
@@ -78,22 +68,11 @@ void CollisionSystem::EndSceneTransition()
 void CollisionSystem::RebuildStaticCollisionMap()
 {
 	m_StaticCollisionMap.clear();
-	for (auto collision : m_CollisionComponents) {
-		if (!collision->IsStatic()) {
-			continue;
-		}
-		FAABB box = collision->GetAABB();
-		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionCellSize));
-		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionCellSize));
-		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionCellSize));
-		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionCellSize));
-
-		for (int x = minX; x <= maxX; ++x) {
-			for (int y = minY; y <= maxY; ++y) {
-				m_StaticCollisionMap[{x, y}].push_back(collision);
-			}
-		}
-		collision->SetGridClean();
+	for (auto* comp : m_CollisionComponents)
+	{
+		if (!comp->IsStatic()) continue;
+		RegisterToStaticMap(comp);
+		comp->SetGridClean();
 	}
 }
 
@@ -122,6 +101,10 @@ void CollisionSystem::UpdateCollisionMap()
 
 void CollisionSystem::CheckCollisions()
 {
+	for (auto* comp : m_PendingStaticRegistrations)
+		RegisterToStaticMap(comp);
+	m_PendingStaticRegistrations.clear();
+
 	UpdateCollisionMap();
 	++m_FrameId;
 
@@ -536,3 +519,20 @@ void CollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionCompo
 		break;
 	}
 }
+
+void CollisionSystem::RegisterToStaticMap(MCollisionComponent* component)
+{
+	FAABB box = component->GetAABB();
+	int minX = static_cast<int>(std::floor(box.MinX / m_CollisionCellSize));
+	int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionCellSize));
+	int minY = static_cast<int>(std::floor(box.MinY / m_CollisionCellSize));
+	int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionCellSize));
+
+	for (int x = minX; x <= maxX; ++x) {
+		for (int y = minY; y <= maxY; ++y) {
+			m_StaticCollisionMap[{x, y}].push_back(component);
+		}
+	}
+	
+}
+
