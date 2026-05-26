@@ -3,9 +3,11 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include "Utils/Umath.h"
 struct InputAction {
 	static constexpr auto MoveX = "MoveX";
 	static constexpr auto MoveY = "MoveY";
+	static constexpr auto Move = "Move";
 
 	static constexpr auto LookX = "LookX";
 	static constexpr auto LookY = "LookY";
@@ -34,6 +36,7 @@ public:
 	bool  GetPressing(const std::string& actionName) const;
 	bool  GetRelease(const std::string& actionName) const;
 	float GetAxisValue(const std::string& actionName) const;
+	FVector2D GetAxis2DValue(const std::string& actionNameX, const std::string& actionNameY) const;
 private:
 	struct FButtonBinding { InputDevice* Device; int Code; float Scale; };
 	struct FAxisBinding { InputDevice* Device; int AxisId; float Scale; };
