@@ -8,7 +8,7 @@ void MEnhancedInputComponent::ProcessInputBindings(const InputMapper& mapper) {
         case ETriggerEvent::Started:   trigger = mapper.GetPressStart(b.ActionName); break;
         case ETriggerEvent::Triggered: 
             if (b.ActionName == InputAction::Move) {
-                FVector2D moveAxis2D = mapper.GetAxis2DValue(InputAction::MoveX, InputAction::MoveY); 
+                FVector2D moveAxis2D = mapper.GetAxis2DValue(InputActionLower::MoveX, InputActionLower::MoveY); 
                 trigger = (moveAxis2D.SizeSquared() > 0.0001f);
             }
             else{ 
@@ -25,7 +25,7 @@ void MEnhancedInputComponent::ProcessInputBindings(const InputMapper& mapper) {
 
 
         if (b.ActionName == InputAction::Move) {
-            value.Axis2D = mapper.GetAxis2DValue(InputAction::MoveX, InputAction::MoveY);
+            value.Axis2D = mapper.GetAxis2DValue(InputActionLower::MoveX, InputActionLower::MoveY);
         }
         b.Callback(value);
     }
