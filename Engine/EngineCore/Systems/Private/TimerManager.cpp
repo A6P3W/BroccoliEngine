@@ -1,11 +1,32 @@
-#include "TimerManager.h"
+﻿#include "TimerManager.h"
 
 #include <algorithm>
+#include <atomic>
+
+namespace
+{
+	std::atomic_bool g_timerManagerAlive{ false };
+}
 
 TimerManager& TimerManager::GetInstance()
 {
 	static TimerManager Instance;
 	return Instance;
+}
+
+bool TimerManager::IsAlive()
+{
+	return g_timerManagerAlive.load(std::memory_order_acquire);
+}
+
+TimerManager::TimerManager()
+{
+	g_timerManagerAlive.store(true, std::memory_order_release);
+}
+
+TimerManager::~TimerManager()
+{
+	g_timerManagerAlive.store(false, std::memory_order_release);
 }
 
 void TimerManager::SetTimerInternal(
