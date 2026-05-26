@@ -3,12 +3,20 @@
 #include "ActorComponent.h"
 #include "CollisionComponent.h"
 #include "CollisionSystem.h"
+#include "TimerManager.h"
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();
 	m_rootComponent = root.get();
 	AddComponent(std::move(root));
 
+}
+
+AActor::~AActor()
+{
+	if (TimerManager::IsAlive()) {
+		TimerManager::GetInstance().ClearAllTimersForObject(this);
+	}
 }
 
 void AActor::OnUpdate(float DeltaTime)
@@ -88,6 +96,9 @@ void AActor::AddActorRotation(const FRotator& DeltaRotation)
 void AActor::Destroy()
 {
 	m_PendingDestroy = true;
+	if (TimerManager::IsAlive()) {
+		TimerManager::GetInstance().ClearAllTimersForObject(this);
+	}
 }
 
 bool AActor::IsPendingDestroy() const
@@ -117,4 +128,9 @@ void AActor::SetRootComponent(MSceneComponent* Component)
 	}
 
 	m_rootComponent = Component;
+}
+
+TimerManager& AActor::GetWorldTimerManager()
+{
+	return TimerManager::GetInstance();
 }
