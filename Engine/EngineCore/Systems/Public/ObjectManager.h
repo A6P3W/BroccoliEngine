@@ -12,6 +12,7 @@ public:
 	void Update(float DeltaTime);
 	void Draw();
 
+	const std::vector<std::unique_ptr<AActor>>& GetAllActors() const { return m_Actors; }
 
 	template<class T, std::enable_if_t<std::is_base_of_v<AActor, T>, int> = 0>
 	T* SpawnObject(const FVector2D& location = FVector2D::ZeroVector, FRotator rotation = 0.0f) {

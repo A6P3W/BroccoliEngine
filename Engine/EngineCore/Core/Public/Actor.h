@@ -8,7 +8,8 @@
 
 #define DEFINE_ACTOR_CLASS(ClassName) \
 public: \
-    virtual std::string GetClassName() const override { return #ClassName; }
+	static std::string StaticClassName() { return #ClassName; }\
+    virtual std::string GetActorClassName() const override { return #ClassName; }\
 
 
 class MSceneComponent;
@@ -21,7 +22,10 @@ class AActor :
 public:
 
 	AActor();
-	virtual ~AActor() override;
+  virtual ~AActor() override;
+  
+	virtual std::string GetActorClassName() const = 0;
+
 	virtual void Update(float DeltaTime) final;
 	virtual void Draw()final;
 	MSceneComponent* GetRootComponent() const { return m_rootComponent; };

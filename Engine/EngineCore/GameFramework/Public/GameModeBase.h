@@ -5,6 +5,7 @@
 class AGameModeBase : public AActor
 {
 public:
+    DEFINE_ACTOR_CLASS(AGameModeBase)
 	AGameModeBase();
 protected:
 

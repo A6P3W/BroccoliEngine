@@ -108,6 +108,16 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\MouseDevice.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorPawn.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorMode.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Editor\LevelSerializer.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\ThirdParty\imgui_impl_dx11\imgui_impl_dx11.cpp">
     <ClCompile Include="Engine\EngineCore\Systems\Private\TimerManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -221,6 +231,19 @@
     <ClInclude Include="Engine\ThirdParty\nlohmann\json.hpp">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorPawn.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorMode.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\LevelSerializer.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\ActorRegistry.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\ThirdParty\imgui_impl_dx11\imgui_impl_dx11.h">
     <ClInclude Include="Engine\EngineCore\Core\Public\TimerHandle.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>

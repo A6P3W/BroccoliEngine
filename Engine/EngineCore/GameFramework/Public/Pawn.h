@@ -8,6 +8,7 @@ struct FInputActionValue;
 class APawn : public AActor
 {
 public:
+	DEFINE_ACTOR_CLASS(APawn)
 	APawn();
 	virtual void OnPossesed();
     void OnUpdate(float DeltaTime) override;
