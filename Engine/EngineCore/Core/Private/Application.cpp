@@ -9,6 +9,7 @@
 #include "SceneManager.h"
 #include "GameModeBase.h"
 #include "CollisionSystem.h"
+#include "TimerManager.h"
 extern void SetupGame();
 Application::Application()
 {
@@ -62,6 +63,7 @@ bool Application::Update(float DeltaTime)
     }
 	SceneManager::GetInstance().ProcessSceneChanges();
     ObjectManager::GetInstance().Update(DeltaTime);
+    TimerManager::GetInstance().Update(DeltaTime);
     if (AGameModeBase* m_CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
         m_CurrentScene->Update(DeltaTime);
 

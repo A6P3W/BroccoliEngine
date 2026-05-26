@@ -12,6 +12,7 @@ public: \
 
 
 class MSceneComponent;
+class TimerManager;
 class AActor :
 	public MBaseObject
 
@@ -20,9 +21,11 @@ class AActor :
 public:
 
 	AActor();
+	virtual ~AActor() override;
 	virtual void Update(float DeltaTime) final;
 	virtual void Draw()final;
 	MSceneComponent* GetRootComponent() const { return m_rootComponent; };
+	TimerManager& GetWorldTimerManager();
 
 	const std::vector<std::unique_ptr<MActorComponent>>& GetComponents() const;
 
