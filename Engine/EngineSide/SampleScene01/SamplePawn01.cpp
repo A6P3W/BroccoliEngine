@@ -34,8 +34,8 @@ void ASamplePawn01::OnUpdate(float DeltaTime)
 void ASamplePawn01::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent)
 {	
 	PlayerInputComponent->BindAction(InputAction::Interact, ETriggerEvent::Started, this, &ASamplePawn01::OnInteractPressed);
-	PlayerInputComponent->BindAction(InputAction::MoveX, ETriggerEvent::Triggered, this, &ASamplePawn01::OnMove);
-	PlayerInputComponent->BindAction(InputAction::MoveY, ETriggerEvent::Triggered, this, &ASamplePawn01::OnMove);
+	PlayerInputComponent->BindAction(InputActionLower::MoveX, ETriggerEvent::Triggered, this, &ASamplePawn01::OnMove);
+	PlayerInputComponent->BindAction(InputActionLower::MoveY, ETriggerEvent::Triggered, this, &ASamplePawn01::OnMove);
 
 }
 

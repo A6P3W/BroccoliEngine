@@ -24,8 +24,8 @@ void APawn::OnUpdate(float DeltaTime)
 
 void APawn::SetupPlayerInputComponent(MEnhancedInputComponent* comp) {
 	comp->BindAction(InputAction::Interact, ETriggerEvent::Started, this, &APawn::OnInteractPressed);
-	comp->BindAction(InputAction::MoveX, ETriggerEvent::Triggered, this, &APawn::OnMove);
-	comp->BindAction(InputAction::MoveY, ETriggerEvent::Triggered, this, &APawn::OnMove);
+	comp->BindAction(InputActionLower::MoveX, ETriggerEvent::Triggered, this, &APawn::OnMove);
+	comp->BindAction(InputActionLower::MoveY, ETriggerEvent::Triggered, this, &APawn::OnMove);
 }
 
 void APawn::OnInteractPressed()
