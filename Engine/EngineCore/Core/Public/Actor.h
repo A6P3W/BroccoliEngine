@@ -5,6 +5,20 @@
 #include "SceneComponent.h"
 #include "Utils/Umath.h"
 #include "ActorComponent.h"
+#include "ActorRegistry.h"
+
+template<class T>
+struct TActorAutoRegister
+{
+	TActorAutoRegister()
+	{
+		ActorRegistry::GetInstance().Register<T>();
+	}
+};
+
+#define REGISTER_ACTOR(ClassName) \
+    static TActorAutoRegister<ClassName> AutoRegister_##ClassName;
+
 
 #define DEFINE_ACTOR_CLASS(ClassName) \
 public: \
@@ -22,8 +36,8 @@ class AActor :
 public:
 
 	AActor();
-  virtual ~AActor() override;
-  
+	virtual ~AActor() override;
+
 	virtual std::string GetActorClassName() const = 0;
 
 	virtual void Update(float DeltaTime) final;

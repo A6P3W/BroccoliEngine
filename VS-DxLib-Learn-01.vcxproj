@@ -114,7 +114,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
@@ -133,7 +133,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -181,7 +181,7 @@
     <ClCompile Include="Engine\ThirdParty\imgui_impl_dx11\imgui_impl_dx11.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\Editor\ActorRegistry.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
     <ClInclude Include="Engine\Editor\EditorMode.h" />
     <ClInclude Include="Engine\Editor\EditorPawn.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\LineCollisionComponent.h" />

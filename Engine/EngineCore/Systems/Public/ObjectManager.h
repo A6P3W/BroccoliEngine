@@ -1,14 +1,17 @@
 ﻿#pragma once
 #include <string>
-#include "Actor.h"
 #include <vector>
 #include <memory>
 #include <type_traits>
+#include "Utils/UMath.h"
+
+class AActor;
 class ObjectManager
 {
 public:
 	static ObjectManager& GetInstance();
 	ObjectManager();
+	~ObjectManager();
 	void Update(float DeltaTime);
 	void Draw();
 
