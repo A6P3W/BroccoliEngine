@@ -14,7 +14,9 @@ AActor::AActor()
 
 AActor::~AActor()
 {
-	TimerManager::GetInstance().ClearAllTimersForObject(this);
+	if (TimerManager::IsAlive()) {
+		TimerManager::GetInstance().ClearAllTimersForObject(this);
+	}
 }
 
 void AActor::OnUpdate(float DeltaTime)
@@ -94,7 +96,9 @@ void AActor::AddActorRotation(const FRotator& DeltaRotation)
 void AActor::Destroy()
 {
 	m_PendingDestroy = true;
-	TimerManager::GetInstance().ClearAllTimersForObject(this);
+	if (TimerManager::IsAlive()) {
+		TimerManager::GetInstance().ClearAllTimersForObject(this);
+	}
 }
 
 bool AActor::IsPendingDestroy() const
