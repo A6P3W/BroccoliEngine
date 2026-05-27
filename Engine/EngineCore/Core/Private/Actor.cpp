@@ -4,6 +4,7 @@
 #include "CollisionComponent.h"
 #include "CollisionSystem.h"
 #include "TimerManager.h"
+#include <algorithm>
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();
@@ -133,4 +134,11 @@ void AActor::SetRootComponent(MSceneComponent* Component)
 TimerManager& AActor::GetWorldTimerManager()
 {
 	return TimerManager::GetInstance();
+}
+
+bool AActor::HasTag(std::string_view Tag) const
+{
+	return std::any_of(Tags.begin(), Tags.end(), [&](const std::string& existing) {
+		return existing == Tag;
+	});
 }
