@@ -1,255 +1,87 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="ソース ファイル">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="ヘッダー ファイル">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="リソース ファイル">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
+    <ClCompile Include="Engine\Editor\EditorMode.cpp" />
+    <ClCompile Include="Engine\Editor\EditorPawn.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\LineCollisionComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\RectangleCollisionComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\DefaultPawn.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\CameraComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\CircleCollisionComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\CollisionComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\MovementComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\SceneComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\SpriteComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Core\Private\Actor.cpp" />
+    <ClCompile Include="Engine\EngineCore\Core\Private\ActorComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Core\Private\Application.cpp" />
+    <ClCompile Include="Engine\EngineCore\Core\Private\BaseObject.cpp" />
+    <ClCompile Include="Engine\EngineCore\Core\Private\EngineEntry.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\Pawn.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\GameModeBase.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\PlayerController.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\CollisionSystem.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\InputManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\InputMapper.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\MouseDevice.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\ObjectManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\RenderSystem.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\ResourceManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\SceneManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\TimerManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\KeyboardDevice.cpp" />
+    <ClCompile Include="Engine\EngineSide\Default\Private\DefaultCircleCollisionActor.cpp" />
+    <ClCompile Include="Engine\EngineSide\GridLine.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp" />
+    <ClCompile Include="Engine\EngineSide\SampleScene01\SamplePawn01.cpp" />
+    <ClCompile Include="Engine\EngineSide\SampleScene01\SampleScene01.cpp" />
+    <ClCompile Include="Engine\Editor\LevelSerializer.cpp" />
+    <ClCompile Include="Engine\ThirdParty\imgui_impl_dx11\imgui_impl_dx11.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\EngineCore\Components\Private\CameraComponent.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Components\Private\CollisionComponent.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Components\Private\SceneComponent.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Components\Private\SpriteComponent.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Core\Private\Actor.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Core\Private\ActorComponent.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Core\Private\Application.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Core\Private\BaseObject.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Core\Private\EngineEntry.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\GameFramework\Private\Pawn.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\GameFramework\Private\GameModeBase.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\GameFramework\Private\PlayerController.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Systems\Private\CollisionSystem.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Systems\Private\InputManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Systems\Private\InputMapper.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Systems\Private\ObjectManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Systems\Private\RenderSystem.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Systems\Private\ResourceManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Systems\Private\SceneManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineSide\GridLine.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Components\Private\CircleCollisionComponent.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Components\Private\MovementComponent.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\GameFramework\Private\DefaultPawn.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineSide\SampleScene01\SampleScene01.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineSide\SampleScene01\SamplePawn01.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineSide\Default\Private\DefaultCircleCollisionActor.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Components\Private\RectangleCollisionComponent.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Components\Private\LineCollisionComponent.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Systems\Private\KeyboardDevice.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\EngineCore\Systems\Private\MouseDevice.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Editor\EditorPawn.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Editor\EditorMode.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Editor\LevelSerializer.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\ThirdParty\imgui_impl_dx11\imgui_impl_dx11.cpp">
-    <ClCompile Include="Engine\EngineCore\Systems\Private\TimerManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Engine\Utils\Log.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Components\Public\CameraComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Components\Public\CollisionComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Components\Public\SceneComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Components\Public\SpriteComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Core\Public\Actor.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Core\Public\ActorComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Core\Public\Application.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Core\Public\BaseObject.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\GameFramework\Public\Pawn.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameModeBase.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\GameFramework\Public\PlayerController.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Systems\Public\CollisionSystem.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Systems\Public\InputManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Systems\Public\InputMapper.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Systems\Public\ObjectManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Systems\Public\RenderSystem.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Systems\Public\ResourceManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Systems\Public\SceneManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Utils\Log.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Utils\UMath.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineSide\GridLine.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Components\Public\CircleCollisionComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Utils\UMath.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Components\Public\MovementComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Components\Public\EnhancedInputComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\GameFramework\Public\DefaultPawn.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineSide\SampleScene01\SampleScene01.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineSide\SampleScene01\SamplePawn01.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineSide\Default\Public\DefaultCircleCollisionActor.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Components\Public\RectangleCollisionComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Components\Public\LineCollisionComponent.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Systems\Public\InputDevice.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Systems\Public\KeyboardDevice.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Systems\Public\MouseDevice.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\ThirdParty\nlohmann\json.hpp">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Editor\EditorPawn.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Editor\EditorMode.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Editor\LevelSerializer.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Editor\ActorRegistry.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\ThirdParty\imgui_impl_dx11\imgui_impl_dx11.h">
-    <ClInclude Include="Engine\EngineCore\Core\Public\TimerHandle.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\EngineCore\Systems\Public\TimerManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
+    <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
+    <ClInclude Include="Engine\Editor\EditorMode.h" />
+    <ClInclude Include="Engine\Editor\EditorPawn.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\LineCollisionComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\RectangleCollisionComponent.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\DefaultPawn.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\CameraComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\CircleCollisionComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\CollisionComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\MovementComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\SceneComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\SpriteComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\Actor.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\ActorComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\Application.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\BaseObject.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\TimerHandle.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\Pawn.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameModeBase.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\PlayerController.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\CollisionSystem.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\InputDevice.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\InputManager.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\InputMapper.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\KeyboardDevice.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\MouseDevice.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\ObjectManager.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\RenderSystem.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\ResourceManager.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\SceneManager.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\TimerManager.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\Log.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\UMath.h" />
+    <ClInclude Include="Engine\EngineSide\Default\Public\DefaultCircleCollisionActor.h" />
+    <ClInclude Include="Engine\EngineSide\GridLine.h" />
+    <ClInclude Include="Engine\EngineSide\SampleScene01\SamplePawn01.h" />
+    <ClInclude Include="Engine\EngineSide\SampleScene01\SampleScene01.h" />
+    <ClInclude Include="Engine\ThirdParty\imgui_impl_dx11\imgui_impl_dx11.h" />
+    <ClInclude Include="Engine\ThirdParty\nlohmann\json.hpp" />
+    <ClInclude Include="Engine\Utils\Log.h" />
+    <ClInclude Include="Engine\Utils\UMath.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\EnhancedInputComponent.h" />
+    <ClInclude Include="Engine\Editor\LevelSerializer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />

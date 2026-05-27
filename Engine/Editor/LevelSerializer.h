@@ -7,6 +7,7 @@
 struct FActorSaveData
 {
 	std::string ClassName;
+	std::string InstanceName;
 	FVector2D   Location;
 	float       Rotation = 0.0f;
 	float       Scale = 1.0f;

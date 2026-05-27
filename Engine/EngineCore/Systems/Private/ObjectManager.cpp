@@ -1,5 +1,6 @@
 ﻿#include "ObjectManager.h"
 #include <algorithm>
+#include "Actor.h"
 
 ObjectManager& ObjectManager::GetInstance()
 {
@@ -10,6 +11,9 @@ ObjectManager& ObjectManager::GetInstance()
 ObjectManager::ObjectManager()
 {
 }
+
+ObjectManager::~ObjectManager() = default;
+
 
 void ObjectManager::Update(float DeltaTime)
 {

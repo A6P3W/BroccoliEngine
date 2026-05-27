@@ -4,7 +4,8 @@
 #include <unordered_map>
 #include <vector>
 #include <functional>
-
+#include "Utils/UMath.h"
+class AActor;
 class ActorRegistry
 {
 public:
