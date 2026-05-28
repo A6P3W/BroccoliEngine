@@ -20,7 +20,7 @@ private:
 	};
 
 	std::vector<FShakeInstance> m_activeShakes;
-	FVector2D m_lastAppliedWorldOffset = FVector2D::ZeroVector;
-	FVector2D m_baseWorldLocation = FVector2D::ZeroVector;
-	bool m_hasBaseWorldLocation = false;
+	FVector2D m_lastAppliedLocalOffset = FVector2D::ZeroVector;
+	FVector2D m_baseLocalLocation = FVector2D::ZeroVector;
+	bool m_hasBaseLocalLocation = false;
 };

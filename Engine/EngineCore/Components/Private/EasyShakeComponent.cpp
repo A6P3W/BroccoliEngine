@@ -61,59 +61,34 @@ void MEasyShakeComponent::ApplyShake(const FVector2D& StrengthXY, float Duration
 
 void MEasyShakeComponent::OnUpdate(float DeltaTime)
 {
-	MSceneComponent* target = GetParentComponent();
-	if (!target) {
-		m_activeShakes.clear();
-		m_lastAppliedWorldOffset = FVector2D::ZeroVector;
-		m_baseWorldLocation = FVector2D::ZeroVector;
-		m_hasBaseWorldLocation = false;
+	MSceneComponent* target = this;
+	if (!target) return;
+
+	if (m_lastAppliedLocalOffset.SizeSquared() > 1e-8f) {
+		target->AddLocalOffset(m_lastAppliedLocalOffset * -1.0f);
+		m_lastAppliedLocalOffset = FVector2D::ZeroVector;
+	}
+
+	if (m_activeShakes.empty()) {
 		return;
 	}
 
-	const FVector2D currentWorldLocation = target->GetWorldLocation();
-	if (!m_hasBaseWorldLocation) {
-		m_baseWorldLocation = currentWorldLocation;
-		m_lastAppliedWorldOffset = FVector2D::ZeroVector;
-		m_hasBaseWorldLocation = true;
-	}
-	else {
-		const float expectedX = m_baseWorldLocation.X + m_lastAppliedWorldOffset.X;
-		const float expectedY = m_baseWorldLocation.Y + m_lastAppliedWorldOffset.Y;
-		const float diffX = currentWorldLocation.X - expectedX;
-		const float diffY = currentWorldLocation.Y - expectedY;
-		if ((diffX * diffX + diffY * diffY) > LocationChangeEpsilonSq) {
-			m_baseWorldLocation = currentWorldLocation;
-			m_lastAppliedWorldOffset = FVector2D::ZeroVector;
-		}
-	}
-
-	// Advance & purge expired shakes, then compute the combined offset.
 	FVector2D totalOffset = FVector2D::ZeroVector;
-	for (auto it = m_activeShakes.begin(); it != m_activeShakes.end(); /* no increment */) {
+	for (auto it = m_activeShakes.begin(); it != m_activeShakes.end();) {
 		it->ElapsedSeconds += DeltaTime;
-
 		if (it->ElapsedSeconds >= it->DurationSeconds) {
 			it = m_activeShakes.erase(it);
 			continue;
 		}
 
 		const float envelope = ComputeEnvelope(it->ElapsedSeconds, it->DurationSeconds, it->bFadeIn, it->bFadeOut);
-		FVector2D offset = RandomOffsetInRange(it->StrengthXY) * envelope;
-		totalOffset = totalOffset + offset;
+		totalOffset = totalOffset + RandomOffsetInRange(it->StrengthXY) * envelope;
 		++it;
 	}
 
-	const FVector2D desiredLocation{
-		m_baseWorldLocation.X + totalOffset.X,
-		m_baseWorldLocation.Y + totalOffset.Y
-	};
-	const FVector2D delta{
-		desiredLocation.X - currentWorldLocation.X,
-		desiredLocation.Y - currentWorldLocation.Y
-	};
-	if (delta.SizeSquared() > 0.0f) {
-		target->AddWorldOffset(delta);
-	}
 
-	m_lastAppliedWorldOffset = totalOffset;
+	if (totalOffset.SizeSquared() > 1e-8f) {
+		target->AddLocalOffset(totalOffset);
+		m_lastAppliedLocalOffset = totalOffset;
+	}
 }
