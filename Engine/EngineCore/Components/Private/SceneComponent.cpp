@@ -1,5 +1,6 @@
 ﻿#include "Components/Public/SceneComponent.h"
 #include <cmath>
+#include <algorithm>
 #include "Utils/UMath.h"
 #include "Actor.h"
 
@@ -18,6 +19,21 @@ void MSceneComponent::OnMessage(const std::string& message)
 {
 }
 
+void MSceneComponent::OnComponentDestroy()
+{
+	const auto children = m_childComponents;
+	for (auto* child : children) {
+		if (child != nullptr) {
+			child->DestroyComponent();
+		}
+	}
+	m_childComponents.clear();
+
+	if (m_parentComponent != nullptr) {
+		std::erase(m_parentComponent->m_childComponents, this);
+		m_parentComponent = nullptr;
+	}
+}
 
 void MSceneComponent::SetParentComponent(MSceneComponent* parent)
 {

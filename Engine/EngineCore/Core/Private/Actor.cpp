@@ -4,6 +4,7 @@
 #include "CollisionComponent.h"
 #include "CollisionSystem.h"
 #include "TimerManager.h"
+#include <algorithm>
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();
@@ -47,13 +48,25 @@ void AActor::AddComponent(std::unique_ptr<MActorComponent> comp)
 
 void AActor::Update(float DeltaTime)
 {
-	for (auto& comp : m_components) comp->Update(DeltaTime);
+	for (auto& comp : m_components) {
+		if (comp && !comp->IsPendingDestroy()) {
+			comp->Update(DeltaTime);
+		}
+	}
 	this->OnUpdate(DeltaTime);
+
+	std::erase_if(m_components, [](const std::unique_ptr<MActorComponent>& comp) {
+		return !comp || comp->IsPendingDestroy();
+		});
 }
 
 void AActor::Draw()
 {
-	for (auto& comp : GetComponents()) comp->Draw();
+	for (auto& comp : GetComponents()) {
+		if (comp && !comp->IsPendingDestroy()) {
+			comp->Draw();
+		}
+	}
 }
 
 FVector2D AActor::GetActorLocation() const

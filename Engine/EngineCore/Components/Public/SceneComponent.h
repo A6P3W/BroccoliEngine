@@ -41,6 +41,7 @@ public:
 	void SetGridClean() { IsGridDirty = true; }
 
 protected:
+	void OnComponentDestroy() override;
 	
 	MSceneComponent* m_parentComponent = nullptr;
 	std::vector<MSceneComponent*> m_childComponents;
