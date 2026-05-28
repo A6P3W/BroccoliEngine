@@ -101,6 +101,6 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime)
 	}
 
 	m_lastAppliedWorldOffset = totalOffset;
-	m_lastAppliedWorldLocation = currentWorldLocation + delta;
+	m_lastAppliedWorldLocation = target->GetWorldLocation();
 	m_hasLastAppliedWorldLocation = true;
 }
