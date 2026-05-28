@@ -7,6 +7,7 @@
 namespace
 {
 	constexpr float ShakeFadePortion = 0.2f;
+	constexpr float LocationChangeEpsilonSq = 1e-6f;
 
 	float ComputeEnvelope(float elapsedSeconds, float durationSeconds, bool bFadeIn, bool bFadeOut)
 	{
@@ -64,7 +65,18 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime)
 	if (!target) {
 		m_activeShakes.clear();
 		m_lastAppliedWorldOffset = FVector2D::ZeroVector;
+		m_lastAppliedWorldLocation = FVector2D::ZeroVector;
+		m_hasLastAppliedWorldLocation = false;
 		return;
+	}
+
+	const FVector2D currentWorldLocation = target->GetWorldLocation();
+	if (m_hasLastAppliedWorldLocation) {
+		const float diffX = currentWorldLocation.X - m_lastAppliedWorldLocation.X;
+		const float diffY = currentWorldLocation.Y - m_lastAppliedWorldLocation.Y;
+		if ((diffX * diffX + diffY * diffY) > LocationChangeEpsilonSq) {
+			m_lastAppliedWorldOffset = FVector2D::ZeroVector;
+		}
 	}
 
 	// Advance & purge expired shakes, then compute the combined offset.
@@ -89,4 +101,6 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime)
 	}
 
 	m_lastAppliedWorldOffset = totalOffset;
+	m_lastAppliedWorldLocation = currentWorldLocation + delta;
+	m_hasLastAppliedWorldLocation = true;
 }
