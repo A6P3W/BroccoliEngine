@@ -28,7 +28,7 @@ void MActorComponent::DestroyComponent()
 	if (m_owner != nullptr) {
 		const auto* rootComponent = m_owner->GetRootComponent();
 		if (rootComponent != nullptr && static_cast<const MActorComponent*>(rootComponent) == this) {
-			M_LOG("DestroyComponent ignored: attempted to destroy RootComponent (ActorClass={})", m_owner->GetActorClassName());
+			M_LOG("DestroyComponent ignored: attempted to destroy RootComponent");
 			return;
 		}
 	}
