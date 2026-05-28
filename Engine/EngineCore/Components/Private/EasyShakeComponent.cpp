@@ -65,16 +65,24 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime)
 	if (!target) {
 		m_activeShakes.clear();
 		m_lastAppliedWorldOffset = FVector2D::ZeroVector;
-		m_lastAppliedWorldLocation = FVector2D::ZeroVector;
-		m_hasLastAppliedWorldLocation = false;
+		m_baseWorldLocation = FVector2D::ZeroVector;
+		m_hasBaseWorldLocation = false;
 		return;
 	}
 
 	const FVector2D currentWorldLocation = target->GetWorldLocation();
-	if (m_hasLastAppliedWorldLocation) {
-		const float diffX = currentWorldLocation.X - m_lastAppliedWorldLocation.X;
-		const float diffY = currentWorldLocation.Y - m_lastAppliedWorldLocation.Y;
+	if (!m_hasBaseWorldLocation) {
+		m_baseWorldLocation = currentWorldLocation;
+		m_lastAppliedWorldOffset = FVector2D::ZeroVector;
+		m_hasBaseWorldLocation = true;
+	}
+	else {
+		const float expectedX = m_baseWorldLocation.X + m_lastAppliedWorldOffset.X;
+		const float expectedY = m_baseWorldLocation.Y + m_lastAppliedWorldOffset.Y;
+		const float diffX = currentWorldLocation.X - expectedX;
+		const float diffY = currentWorldLocation.Y - expectedY;
 		if ((diffX * diffX + diffY * diffY) > LocationChangeEpsilonSq) {
+			m_baseWorldLocation = currentWorldLocation;
 			m_lastAppliedWorldOffset = FVector2D::ZeroVector;
 		}
 	}
@@ -95,12 +103,17 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime)
 		++it;
 	}
 
-	const FVector2D delta = totalOffset + (m_lastAppliedWorldOffset * -1.0f);
+	const FVector2D desiredLocation{
+		m_baseWorldLocation.X + totalOffset.X,
+		m_baseWorldLocation.Y + totalOffset.Y
+	};
+	const FVector2D delta{
+		desiredLocation.X - currentWorldLocation.X,
+		desiredLocation.Y - currentWorldLocation.Y
+	};
 	if (delta.SizeSquared() > 0.0f) {
 		target->AddWorldOffset(delta);
 	}
 
 	m_lastAppliedWorldOffset = totalOffset;
-	m_lastAppliedWorldLocation = target->GetWorldLocation();
-	m_hasLastAppliedWorldLocation = true;
 }
