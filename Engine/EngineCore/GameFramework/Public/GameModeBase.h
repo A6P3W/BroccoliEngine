@@ -19,10 +19,11 @@ protected:
     TController* SpawnPlayer(const FVector2D& Location = FVector2D::ZeroVector, int PlayerId = 0)
     {
         auto* Controller = ObjectManager::GetInstance().SpawnObject<TController>();
+		m_PlayerController = Controller;
         Controller->SetPlayerId(PlayerId);
 
         auto* Pawn = ObjectManager::GetInstance().SpawnObject<TPawn>(Location);
-
+		m_PlayerPawn = Pawn;
         Controller->Possess(Pawn);
 
         return Controller;
