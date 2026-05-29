@@ -155,6 +155,9 @@ void CollisionSystem::CheckCollisions()
 			}
 		}
 	}
+	for (auto* comp : m_CollisionComponents) {
+		comp->FlushOverlapState();
+	}
 }
 
 void CollisionSystem::CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b)
@@ -252,11 +255,17 @@ void CollisionSystem::CircleAndRectangle(MCircleCollisionComponent* circle, MRec
 	float closestY = ClampFloat(circleCenter.Y, minY, maxY);
 	float dx = circleCenter.X - closestX;
 	float dy = circleCenter.Y - closestY;
+	float distanceSquared = dx * dx + dy * dy;
 	float radius = circle->GetRadius() * circle->GetScale();
-	bool isOverlapping = (dx * dx + dy * dy) <= (radius * radius);
+
+	
 
 	auto circleActor = circle->GetOwner();
 	auto rectActor = rect->GetOwner();
+	constexpr float HysteresisMargin = 1.0f;
+	float exitRadius = radius + (circle->IsOverlappingActor(rectActor) ? HysteresisMargin : 0.0f);
+	bool isOverlapping = distanceSquared <= (exitRadius * exitRadius);
+
 	circle->UpdateOverlapState(rectActor, isOverlapping);
 	rect->UpdateOverlapState(circleActor, isOverlapping);
 	if (isOverlapping
@@ -264,7 +273,6 @@ void CollisionSystem::CircleAndRectangle(MCircleCollisionComponent* circle, MRec
 		&& rect->GetCollisionType() == ECollisionType::Block) {
 		FVector2D normal{ 0.0f, 0.0f };
 		float overlapDepth = 0.0f;
-		float distanceSquared = dx * dx + dy * dy;
 		if (distanceSquared <= 0.0001f) {
 			float left = circleCenter.X - minX;
 			float right = maxX - circleCenter.X;

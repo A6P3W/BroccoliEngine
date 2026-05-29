@@ -35,31 +35,37 @@ public:
 	bool ShouldProcessPair(MCollisionComponent* OtherComponent, std::uint64_t FrameId) {
 		auto it = m_LastCheckedFrame.find(OtherComponent);
 		if (it != m_LastCheckedFrame.end() && it->second == FrameId) {
+			m_CheckedThisFrame.insert(OtherComponent->GetOwner());
 			return false;
 		}
+
 		m_LastCheckedFrame[OtherComponent] = FrameId;
+
+		auto& otherFrame = OtherComponent->m_LastCheckedFrame;
+		otherFrame[this] = FrameId;
+
 		return true;
 	}
 	void UpdateOverlapState(AActor* OtherActor, bool bIsIntersecting) {
+		m_CheckedThisFrame.insert(OtherActor);
 		if (bIsIntersecting) {
+			m_IntersectingThisFrame.insert(OtherActor);
 			if (m_OverlappingActors.insert(OtherActor).second) {
 				GetOwner()->BeginOverlap(OtherActor);
-			}
-		}
-		else {
-			if (m_OverlappingActors.erase(OtherActor) > 0) {
-				GetOwner()->EndOverlap(OtherActor);
 			}
 		}
 	}
 	void SetStatic(bool IsStatic);
 	bool IsStatic() const { return bIsStatic; }
-
+	void MarkCheckedThisFrame(AActor* OtherActor);
+	void FlushOverlapState();
 protected:
 	void OnComponentDestroy() override;
 private:
+	std::unordered_set<AActor*> m_CheckedThisFrame;
 	std::unordered_set<AActor*> m_OverlappingActors;
 	std::unordered_map<MCollisionComponent*, std::uint64_t> m_LastCheckedFrame;
+	std::unordered_set<AActor*> m_IntersectingThisFrame;
 	ECollisionType m_CollisionType = ECollisionType::Overlap;
 	bool bIsStatic = true;
 };
