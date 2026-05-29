@@ -2,11 +2,17 @@
 #include "Actor.h"
 #include "PlayerController.h"
 #include "ObjectManager.h"
+
+class APawn;
+class APlayerController;
 class AGameModeBase : public AActor
 {
 public:
     DEFINE_ACTOR_CLASS(AGameModeBase)
 	AGameModeBase();
+
+    APawn* GetPlayerPawn() const { return m_PlayerPawn; }
+    APlayerController* GetPlayerController() const { return m_PlayerController; }
 protected:
 
     template<class TPawn, class TController = APlayerController>
@@ -22,9 +28,8 @@ protected:
         return Controller;
     }
 
-	AActor* m_PlayerPawn;
-	AActor* m_PlayerController;
 private:
-
+    APawn* m_PlayerPawn;
+    APlayerController* m_PlayerController;
 };
 
