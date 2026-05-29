@@ -5,6 +5,7 @@
 #include "LineCollisionComponent.h"
 #include "MovementComponent.h"
 #include <atomic>
+#include <algorithm>
 namespace {
 	std::atomic<bool> g_CollisionSystemAlive{ false };
 }
@@ -31,7 +32,9 @@ void CollisionSystem::RegisterCollision(MCollisionComponent* component)
 {
 	m_CollisionComponents.push_back(component);
 	if (component->IsStatic()) {
-		m_PendingStaticRegistrations.push_back(component);
+		if (std::find(m_PendingStaticRegistrations.begin(), m_PendingStaticRegistrations.end(), component) == m_PendingStaticRegistrations.end()) {
+			m_PendingStaticRegistrations.push_back(component);
+		}
 	}
 }
 
@@ -41,6 +44,9 @@ void CollisionSystem::UnRegisterCollision(MCollisionComponent* component)
 	if (it != m_CollisionComponents.end()) {
 		m_CollisionComponents.erase(it);
 	}
+	m_PendingStaticRegistrations.erase(
+		std::remove(m_PendingStaticRegistrations.begin(), m_PendingStaticRegistrations.end(), component),
+		m_PendingStaticRegistrations.end());
 	if (component->IsStatic()) {
 		if (m_DeferStaticRebuild) {
 			m_PendingStaticRebuild = true;

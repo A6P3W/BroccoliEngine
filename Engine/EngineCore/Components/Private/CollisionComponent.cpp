@@ -7,6 +7,13 @@ MCollisionComponent::MCollisionComponent()
 
 MCollisionComponent::~MCollisionComponent()
 {
+	if (CollisionSystem::IsAlive() && !IsPendingDestroy()) {
+		CollisionSystem::GetInstance().UnRegisterCollision(this);
+	}
+}
+
+void MCollisionComponent::OnComponentDestroy()
+{
 	if (CollisionSystem::IsAlive()) {
 		CollisionSystem::GetInstance().UnRegisterCollision(this);
 	}
@@ -20,4 +27,3 @@ void MCollisionComponent::SetStatic(bool IsStatic)
 	bIsStatic = IsStatic;
 	CollisionSystem::GetInstance().RebuildStaticCollisionMap();
 }
-
