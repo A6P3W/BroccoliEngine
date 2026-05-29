@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "BaseObject.h"
 #include <string>
+#include <string_view>
 #include <vector>
 #include "SceneComponent.h"
 #include "Utils/Umath.h"
@@ -39,6 +40,10 @@ public:
 	virtual ~AActor() override;
 
 	virtual std::string GetActorClassName() const = 0;
+
+	// Unreal Engine 互換の「タグ」機能
+	std::vector<std::string> Tags;
+	bool HasTag(std::string_view Tag) const;
 
 	virtual void Update(float DeltaTime) final;
 	virtual void Draw()final;
@@ -88,4 +93,3 @@ private:
 	bool m_PendingDestroy = false;
 	std::vector<std::unique_ptr<MActorComponent>> m_components;
 };
-
