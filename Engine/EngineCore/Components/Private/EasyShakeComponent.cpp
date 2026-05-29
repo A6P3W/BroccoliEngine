@@ -51,12 +51,71 @@ void MEasyShakeComponent::ApplyShake(const FVector2D& StrengthXY, float Duration
 	if (DurationSeconds <= 0.0f) return;
 
 	FShakeInstance inst;
+	inst.Id = 0; // non-handle shake
 	inst.StrengthXY = StrengthXY;
 	inst.DurationSeconds = DurationSeconds;
 	inst.ElapsedSeconds = 0.0f;
 	inst.bFadeIn = bEnableFadeIn;
 	inst.bFadeOut = bEnableFadeOut;
 	m_activeShakes.push_back(inst);
+}
+
+void MEasyShakeComponent::StartShake(FShakeHandle& Handle, const FVector2D& StrengthXY, float DurationSeconds)
+{
+	if (DurationSeconds <= 0.0f) {
+		Handle.Invalidate();
+		return;
+	}
+
+	// If handle already refers to an active shake, end it first (no fade-out)
+	if (Handle.IsValid()) {
+		EndShake(Handle);
+	}
+
+	uint64_t NewId = ++m_nextShakeId;
+	Handle = FShakeHandle(NewId);
+
+	FShakeInstance inst;
+	inst.Id = Handle.GetId();
+	inst.StrengthXY = StrengthXY;
+	inst.DurationSeconds = DurationSeconds;
+	inst.ElapsedSeconds = 0.0f;
+	inst.bFadeIn = false;
+	inst.bFadeOut = false;
+	m_activeShakes.push_back(inst);
+}
+
+void MEasyShakeComponent::EndShake(FShakeHandle& Handle, bool bEnableFadeOut)
+{
+	if (!Handle.IsValid()) return;
+
+	const uint64_t Id = Handle.GetId();
+	for (auto it = m_activeShakes.begin(); it != m_activeShakes.end(); ++it) {
+		if (it->Id == Id) {
+			if (!bEnableFadeOut) {
+				m_activeShakes.erase(it);
+				Handle.Invalidate();
+			}
+			else {
+				// enable fade-out by shortening duration to a small fade window
+				float originalDuration = it->DurationSeconds;
+				float fadeOutTime = std::min(originalDuration * ::ShakeFadePortion, originalDuration * 0.5f);
+				it->bFadeOut = true;
+				it->DurationSeconds = it->ElapsedSeconds + fadeOutTime;
+			}
+			break;
+		}
+	}
+}
+
+bool MEasyShakeComponent::IsShakeActive(const FShakeHandle& Handle) const
+{
+	if (!Handle.IsValid()) return false;
+	const uint64_t Id = Handle.GetId();
+	for (const auto& inst : m_activeShakes) {
+		if (inst.Id == Id) return true;
+	}
+	return false;
 }
 
 void MEasyShakeComponent::OnUpdate(float DeltaTime)
