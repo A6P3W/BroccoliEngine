@@ -13,7 +13,6 @@ public:
     void OnUpdate(float DeltaTime) override;
     void OnPossesed() override;
     void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
-
 private:
     void OnMouseLeftPress(const FInputActionValue& Value);
     void OnMouseLeftRelease(const FInputActionValue& Value);

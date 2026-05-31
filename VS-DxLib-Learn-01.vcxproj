@@ -115,7 +115,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor</AdditionalIncludeDirectories>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -134,7 +134,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor</AdditionalIncludeDirectories>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -145,6 +145,7 @@
   <ItemGroup>
     <ClCompile Include="Engine\Editor\EditorMode.cpp" />
     <ClCompile Include="Engine\Editor\EditorPawn.cpp" />
+    <ClCompile Include="Engine\Editor\EditorUI.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\EasyShakeComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\LineCollisionComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\RectangleCollisionComponent.cpp" />
@@ -179,9 +180,11 @@
     <ClCompile Include="Engine\EngineSide\SampleScene01\SamplePawn01.cpp" />
     <ClCompile Include="Engine\EngineSide\SampleScene01\SampleScene01.cpp" />
     <ClCompile Include="Engine\Editor\LevelSerializer.cpp" />
-    <ClCompile Include="Engine\ThirdParty\imgui_impl_dx11\imgui_impl_dx11.cpp" />
+    <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_dx11.cpp" />
+    <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_win32.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Editor\EditorUI.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
     <ClInclude Include="Engine\Editor\EditorMode.h" />
     <ClInclude Include="Engine\Editor\EditorPawn.h" />
@@ -220,7 +223,8 @@
     <ClInclude Include="Engine\EngineSide\GridLine.h" />
     <ClInclude Include="Engine\EngineSide\SampleScene01\SamplePawn01.h" />
     <ClInclude Include="Engine\EngineSide\SampleScene01\SampleScene01.h" />
-    <ClInclude Include="Engine\ThirdParty\imgui_impl_dx11\imgui_impl_dx11.h" />
+    <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_dx11.h" />
+    <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_win32.h" />
     <ClInclude Include="Engine\ThirdParty\nlohmann\json.hpp" />
     <ClInclude Include="Engine\Utils\Log.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />

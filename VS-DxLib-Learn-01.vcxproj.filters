@@ -37,7 +37,9 @@
     <ClCompile Include="Engine\EngineSide\SampleScene01\SamplePawn01.cpp" />
     <ClCompile Include="Engine\EngineSide\SampleScene01\SampleScene01.cpp" />
     <ClCompile Include="Engine\Editor\LevelSerializer.cpp" />
-    <ClCompile Include="Engine\ThirdParty\imgui_impl_dx11\imgui_impl_dx11.cpp" />
+    <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_dx11.cpp" />
+    <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_win32.cpp" />
+    <ClCompile Include="Engine\Editor\EditorUI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
@@ -78,12 +80,14 @@
     <ClInclude Include="Engine\EngineSide\GridLine.h" />
     <ClInclude Include="Engine\EngineSide\SampleScene01\SamplePawn01.h" />
     <ClInclude Include="Engine\EngineSide\SampleScene01\SampleScene01.h" />
-    <ClInclude Include="Engine\ThirdParty\imgui_impl_dx11\imgui_impl_dx11.h" />
     <ClInclude Include="Engine\ThirdParty\nlohmann\json.hpp" />
     <ClInclude Include="Engine\Utils\Log.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\EnhancedInputComponent.h" />
     <ClInclude Include="Engine\Editor\LevelSerializer.h" />
+    <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_dx11.h" />
+    <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_win32.h" />
+    <ClInclude Include="Engine\Editor\EditorUI.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />

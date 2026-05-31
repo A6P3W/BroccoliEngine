@@ -4,7 +4,9 @@
 #include "Utils/UMath.h"
 #include <string>
 #include <vector>
+
 class AActor;
+class EditorUI;
 
 // エディタの操作状態
 enum class EEditorState
@@ -16,16 +18,22 @@ enum class EEditorState
 class EditorMode : public AGameModeBase
 {
 public:
-	static EditorMode& GetInstance()
+	DEFINE_ACTOR_CLASS(EditorMode)
+
+		static EditorMode& GetInstance()
 	{
 		static EditorMode instance;
 		return instance;
 	}
 
-	// --- アクタ選択 ---
+	// --- アクタ選択 (クラスブラウザ用) ---
 	void SelectClass(const std::string& className) { m_selectedClass = className; }
 	const std::string& GetSelectedClass() const { return m_selectedClass; }
 	const std::vector<std::string>& GetClassList() const;
+
+	// --- アクタ選択 (インスペクタ・アウトライナ用) ---
+	void SetSelectedActor(AActor* actor) { m_selectedActor = actor; }
+	AActor* GetSelectedActor() const { return m_selectedActor; }
 
 	// --- マウス入力（EditorPawnから呼ぶ） ---
 	void OnMousePress(const FVector2D& worldPos);   // ドラッグ開始
@@ -36,13 +44,11 @@ public:
 	bool SaveLevel(const std::string& filePath);
 	bool LoadLevel(const std::string& filePath);    // 現シーンをクリアしてからロード
 
-	// --- 配置済みアクタ一覧 ---
-	const std::vector<FActorSaveData>& GetPlacedActors() const { return m_placedActors; }
-
 	EEditorState GetState() const { return m_state; }
 
 public:
-	EditorMode() = default;
+	EditorMode();
+	void OnUpdate(float DeltaTime) override;
 
 private:
 	EditorMode(const EditorMode&) = delete;
@@ -52,6 +58,6 @@ private:
 
 	EEditorState             m_state = EEditorState::Idle;
 	std::string              m_selectedClass;
-	AActor*                  m_previewActor = nullptr; // ドラッグ中のゴースト
-	std::vector<FActorSaveData> m_placedActors;         // 保存用の記録
+	AActor* m_previewActor = nullptr; // ドラッグ中のゴースト
+	AActor* m_selectedActor = nullptr; // 選択中のアクタ
 };

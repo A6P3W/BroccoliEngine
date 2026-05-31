@@ -1,0 +1,128 @@
+﻿#include "EditorUI.h"
+#include <imgui.h>
+#include "EditorMode.h"
+#include "ObjectManager.h"
+#include "Actor.h"
+#include "Utils/UMath.h"
+
+void EditorUI::UpdateAndDraw(EditorMode* editorMode)
+{
+    // エディタのメインメニューバー
+    DrawMenuBar(editorMode);
+
+    // ウィンドウを描画
+    DrawClassBrowser(editorMode);
+    DrawOutliner(editorMode);
+    DrawInspector(editorMode);
+}
+
+void EditorUI::DrawMenuBar(EditorMode* editorMode)
+{
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Save Level")) {
+                editorMode->SaveLevel("level.json");
+            }
+            if (ImGui::MenuItem("Load Level")) {
+                editorMode->LoadLevel("level.json");
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+}
+
+void EditorUI::DrawClassBrowser(EditorMode* editorMode)
+{
+    ImGui::Begin("Class Browser");
+
+    const auto& classes = editorMode->GetClassList();
+    const std::string& selectedClass = editorMode->GetSelectedClass();
+
+    for (const auto& className : classes)
+    {
+        bool isSelected = (className == selectedClass);
+        if (ImGui::Selectable(className.c_str(), isSelected))
+        {
+            editorMode->SelectClass(className);
+        }
+    }
+
+    ImGui::End();
+}
+
+void EditorUI::DrawOutliner(EditorMode* editorMode)
+{
+    ImGui::Begin("Outliner");
+
+    const auto& actors = ObjectManager::GetInstance().GetAllActors();
+    for (size_t i = 0; i < actors.size(); ++i)
+    {
+        AActor* actor = actors[i].get();
+        if (!actor || actor->IsPendingDestroy()) continue;
+
+        std::string label = actor->GetActorClassName() + "##" + std::to_string(i);
+        bool isSelected = (editorMode->GetSelectedActor() == actor);
+
+        if (ImGui::Selectable(label.c_str(), isSelected))
+        {
+            editorMode->SetSelectedActor(actor);
+        }
+    }
+
+    ImGui::End();
+}
+
+void EditorUI::DrawInspector(EditorMode* editorMode)
+{
+    ImGui::Begin("Inspector");
+
+    AActor* selectedActor = editorMode->GetSelectedActor();
+    if (selectedActor && !selectedActor->IsPendingDestroy())
+    {
+        ImGui::Text("Class: %s", selectedActor->GetActorClassName().c_str());
+        ImGui::Separator();
+
+        // Transform の編集
+        if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            FVector2D loc = selectedActor->GetActorLocation();
+            float locArr[2] = { loc.X, loc.Y };
+            if (ImGui::DragFloat2("Location", locArr, 1.0f))
+            {
+                selectedActor->SetActorLocation({ locArr[0], locArr[1] });
+            }
+
+            FRotator rot = selectedActor->GetActorRotation();
+            float rotVal = rot.Rotation;
+            if (ImGui::DragFloat("Rotation", &rotVal, 1.0f))
+            {
+                selectedActor->SetActorRotation(FRotator(rotVal));
+            }
+
+            FScale scale = selectedActor->GetActorScale();
+            float scaleVal = scale.Scale;
+            if (ImGui::DragFloat("Scale", &scaleVal, 0.01f))
+            {
+                selectedActor->SetActorScale(scaleVal);
+            }
+        }
+
+        ImGui::Separator();
+
+        // アクタの削除
+        if (ImGui::Button("Destroy Actor", ImVec2(-1, 0)))
+        {
+            selectedActor->Destroy();
+            editorMode->SetSelectedActor(nullptr);
+        }
+    }
+    else
+    {
+        ImGui::Text("Select an actor in Outliner to view properties.");
+    }
+
+    ImGui::End();
+}
