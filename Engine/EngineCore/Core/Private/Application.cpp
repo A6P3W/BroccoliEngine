@@ -1,5 +1,10 @@
 ﻿#include "Application.h"
 #include "DxLib.h"
+
+#include <imgui.h>
+#include <imgui_impl/imgui_impl_win32.h>
+#include <imgui_impl/imgui_impl_dx11.h>
+
 #include "RenderSystem.h"
 #include "InputManager.h"
 #include "InputMapper.h"
@@ -10,15 +15,47 @@
 #include "GameModeBase.h"
 #include "CollisionSystem.h"
 #include "TimerManager.h"
+
+
 extern void SetupGame();
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+LRESULT CALLBACK ImGuiHookProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
+        return 1;
+    }
+    return 0; 
+}
+
 Application::Application()
 {
+}
+Application::~Application() {
+    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
 }
 bool Application::Run()
 {
     SetWaitVSyncFlag(FALSE);
     const LONGLONG TargetFrameTime = 1000000 / 60;
     LONGLONG LastTime = GetNowHiPerformanceCount();
+
+    // --- ImGuiの初期化 ---
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+
+    // DxLibからウィンドウハンドルとDX11デバイスを取得してImGuiに渡す
+    ImGui_ImplWin32_Init(GetMainWindowHandle());
+    ImGui_ImplDX11_Init(
+        reinterpret_cast<ID3D11Device*>(const_cast<void*>(GetUseDirect3D11Device())),
+        reinterpret_cast<ID3D11DeviceContext*>(const_cast<void*>(GetUseDirect3D11DeviceContext()))
+    );
+    // マウス入力等をImGuiに流すためにフックを設定
+    SetHookWinProc(ImGuiHookProc);
 
     SetupGame();
     auto& IM = InputManager::GetInstance();
@@ -56,6 +93,11 @@ bool Application::Run()
 }
 bool Application::Update(float DeltaTime)
 {
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
+    //ImGui::ShowDemoWindow();
 	InputManager::GetInstance().Update();
 
     if (m_posed) {
@@ -83,6 +125,10 @@ bool Application::Draw()
 
     ObjectManager::GetInstance().Draw();
     RenderSystem::GetInstance().Draw();
+
+    ImGui::Render();
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
 	ScreenFlip();
 	return true;
 }

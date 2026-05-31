@@ -6,6 +6,7 @@ class Application
 {
 public:
 	Application();
+	~Application();
 	bool Run();
 private:
 	bool Update(float DeltaTime);

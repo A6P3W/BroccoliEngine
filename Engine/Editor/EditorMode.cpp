@@ -2,7 +2,9 @@
 #include "ActorRegistry.h"
 #include "ObjectManager.h"
 #include "Actor.h"
-
+#include "EditorUI.h"
+#include "EditorPawn.h"
+#include <PlayerController.h>
 const std::vector<std::string>& EditorMode::GetClassList() const
 {
     return ActorRegistry::GetInstance().GetClassNames();
@@ -37,43 +39,40 @@ void EditorMode::OnMouseRelease(const FVector2D& worldPos)
     {
         m_previewActor->SetActorLocation(worldPos);
 
-        // 配置記録に追加
-        FActorSaveData data;
-        data.ClassName = m_selectedClass;
-        data.Location = worldPos;
-        data.Rotation = m_previewActor->GetActorRotation().Rotation;
-        data.Scale = m_previewActor->GetActorScale().Scale;
-        m_placedActors.push_back(data);
+        // 配置したアクタを選択状態にする
+        SetSelectedActor(m_previewActor);
 
         m_previewActor = nullptr;
     }
-
     m_state = EEditorState::Idle;
 }
 
 bool EditorMode::SaveLevel(const std::string& filePath)
 {
-    return LevelSerializer::SaveData(filePath, m_placedActors);
+    // ObjectManager上のアクタを保存
+    return LevelSerializer::Save(filePath);
 }
 
 bool EditorMode::LoadLevel(const std::string& filePath)
 {
     // 既存アクタを全破棄
     ObjectManager::GetInstance().ClearAllObjects();
-    m_placedActors.clear();
     m_previewActor = nullptr;
+    m_selectedActor = nullptr;
     m_state = EEditorState::Idle;
 
     // ロードしてスポーン
-    std::vector<FActorSaveData> loaded;
-    if (!LevelSerializer::LoadData(filePath, loaded)) return false;
+    return LevelSerializer::Load(filePath);
+}
 
-    auto& registry = ActorRegistry::GetInstance();
-    for (const auto& data : loaded)
-    {
-        AActor* actor = registry.Spawn(data.ClassName, data.Location, data.Rotation);
-        if (actor) actor->SetActorScale(data.Scale);
-        m_placedActors.push_back(data);
-    }
-    return true;
+EditorMode::EditorMode()
+{
+    SpawnPlayer<EditorPawn, APlayerController>({0,0},0);
+}
+
+void EditorMode::OnUpdate(float DeltaTime)
+{
+    // ここでUIの更新（構築）を行う
+    static EditorUI ui;
+    ui.UpdateAndDraw(this);
 }

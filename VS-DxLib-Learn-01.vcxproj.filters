@@ -39,6 +39,7 @@
     <ClCompile Include="Engine\Editor\LevelSerializer.cpp" />
     <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_dx11.cpp" />
     <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_win32.cpp" />
+    <ClCompile Include="Engine\Editor\EditorUI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
@@ -86,6 +87,7 @@
     <ClInclude Include="Engine\Editor\LevelSerializer.h" />
     <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_dx11.h" />
     <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_win32.h" />
+    <ClInclude Include="Engine\Editor\EditorUI.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />
