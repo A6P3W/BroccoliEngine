@@ -185,6 +185,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Editor\EditorUI.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\EngineDefine.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
     <ClInclude Include="Engine\Editor\EditorMode.h" />
     <ClInclude Include="Engine\Editor\EditorPawn.h" />

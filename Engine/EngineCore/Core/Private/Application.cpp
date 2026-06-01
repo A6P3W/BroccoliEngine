@@ -15,8 +15,8 @@
 #include "GameModeBase.h"
 #include "CollisionSystem.h"
 #include "TimerManager.h"
-
-
+#include "EngineDefine.h"
+#include "EditorMode.h"
 extern void SetupGame();
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -56,8 +56,12 @@ bool Application::Run()
     );
     // マウス入力等をImGuiに流すためにフックを設定
     SetHookWinProc(ImGuiHookProc);
-
-    SetupGame();
+    if (IsDebug) {
+        SceneManager::GetInstance().OpenScene<EditorMode>();
+    }
+    else {
+        SetupGame();
+    }
     auto& IM = InputManager::GetInstance();
     IM.AddDevice(std::make_unique<KeyboardDevice>());
     IM.AddDevice(std::make_unique<MouseDevice>());
