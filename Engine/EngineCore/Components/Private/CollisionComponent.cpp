@@ -7,9 +7,9 @@ MCollisionComponent::MCollisionComponent()
 
 MCollisionComponent::~MCollisionComponent()
 {
-	if (CollisionSystem::IsAlive() && !IsPendingDestroy()) {
-		CollisionSystem::GetInstance().UnRegisterCollision(this);
-	}
+    if (CollisionSystem::IsAlive()) {
+        CollisionSystem::GetInstance().UnRegisterCollision(this);
+    }
 }
 void MCollisionComponent::MarkCheckedThisFrame(AActor* OtherActor) {
     m_CheckedThisFrame.insert(OtherActor);

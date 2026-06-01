@@ -5,6 +5,7 @@
 #include "CameraComponent.h"
 #include "Actor.h"
 #include "CollisionSystem.h"
+#include "EngineDefine.h"
 void SceneManager::ProcessSceneChanges()
 {
 	if (m_PendingSceneFactory) {
@@ -14,8 +15,10 @@ void SceneManager::ProcessSceneChanges()
 
 		m_CurrentScene = m_PendingSceneFactory();
 		m_PendingSceneFactory = nullptr;
-		auto Grid = ObjectManager::GetInstance().SpawnObject<AGridLine>();
-		CollisionSystem::GetInstance().EndSceneTransition();
 
+		if (IsDebug) {
+			auto Grid = ObjectManager::GetInstance().SpawnObject<AGridLine>();
+			CollisionSystem::GetInstance().EndSceneTransition();
+		}
 	}
 }

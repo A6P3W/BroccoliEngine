@@ -88,6 +88,7 @@
     <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_dx11.h" />
     <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_win32.h" />
     <ClInclude Include="Engine\Editor\EditorUI.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\EngineDefine.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />

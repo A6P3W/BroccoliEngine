@@ -258,7 +258,7 @@ void CollisionSystem::CircleAndRectangle(MCircleCollisionComponent* circle, MRec
 	float distanceSquared = dx * dx + dy * dy;
 	float radius = circle->GetRadius() * circle->GetScale();
 
-	
+
 
 	auto circleActor = circle->GetOwner();
 	auto rectActor = rect->GetOwner();
@@ -547,6 +547,6 @@ void CollisionSystem::RegisterToStaticMap(MCollisionComponent* component)
 			m_StaticCollisionMap[{x, y}].push_back(component);
 		}
 	}
-	
+
 }
 
