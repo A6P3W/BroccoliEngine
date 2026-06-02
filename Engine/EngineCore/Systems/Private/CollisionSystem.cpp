@@ -6,6 +6,9 @@
 #include "MovementComponent.h"
 #include <atomic>
 #include <algorithm>
+
+std::unique_ptr<CollisionSystem> CollisionSystem::s_Instance = nullptr;
+
 namespace {
 	std::atomic<bool> g_CollisionSystemAlive{ false };
 }
@@ -18,6 +21,12 @@ CollisionSystem::~CollisionSystem()
 {
 	g_CollisionSystemAlive.store(false, std::memory_order_release);
 }
+
+void CollisionSystem::Initialize()
+{}
+
+void CollisionSystem::Terminate()
+{}
 
 bool CollisionSystem::IsAlive()
 {

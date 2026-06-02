@@ -21,6 +21,10 @@ class CollisionSystem
 public:
 	CollisionSystem();
 	~CollisionSystem();
+
+	static void Initialize();
+	static void Terminate();
+
 	static bool IsAlive();
 	static CollisionSystem& GetInstance();
 	void RegisterCollision(MCollisionComponent* component);
@@ -48,6 +52,7 @@ private:
 
 	void CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B);
 
+	static std::unique_ptr<CollisionSystem> s_Instance;
 
 	std::vector<MCollisionComponent*> m_CollisionComponents;
 	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> m_StaticCollisionMap;

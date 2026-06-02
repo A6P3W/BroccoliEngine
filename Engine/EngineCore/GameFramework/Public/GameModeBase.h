@@ -2,6 +2,8 @@
 #include "Actor.h"
 #include "PlayerController.h"
 #include "ObjectManager.h"
+#include "CollisionSystem.h"
+#include "TimerManager.h"
 #include "Utils/Log.h"
 class APawn;
 class APlayerController;
@@ -13,6 +15,11 @@ public:
 
     APawn* GetPlayerPawn() const { return m_PlayerPawn; }
     APlayerController* GetPlayerController() const { return m_PlayerController; }
+
+	ObjectManager* GetObjectManager() { return m_ObjectManager.get(); }
+	CollisionSystem* GetCollisionSystem() { return m_CollisionSystem.get(); }
+	TimerManager* GetTimerManager() { return m_TimerManager.get(); }
+
 protected:
 
     template<class TPawn, class TController = APlayerController>
@@ -32,5 +39,9 @@ protected:
 private:
     APawn* m_PlayerPawn;
     APlayerController* m_PlayerController;
+
+	std::unique_ptr<ObjectManager> m_ObjectManager;
+	std::unique_ptr<CollisionSystem> m_CollisionSystem;
+	std::unique_ptr<TimerManager> m_TimerManager;
 };
 
