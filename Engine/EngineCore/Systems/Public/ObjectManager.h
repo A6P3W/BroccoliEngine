@@ -4,7 +4,7 @@
 #include <memory>
 #include <type_traits>
 #include "Utils/UMath.h"
-
+#include "Utils/Log.h"
 class AActor;
 class ObjectManager
 {
@@ -31,6 +31,8 @@ public:
 		m_Actors.push_back(std::move(obj));
 		ptr->SetActorLocation(location);
 		ptr->SetActorRotation(rotation);
+		ptr->Spawned();
+		M_LOG(ptr->GetActorClassName());
 		return ptr;
 	}
 	void ClearAllObjects();

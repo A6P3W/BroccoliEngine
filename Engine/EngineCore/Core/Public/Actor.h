@@ -39,9 +39,10 @@ public:
 	AActor();
 	virtual ~AActor() override;
 
+	void Spawned();
+
 	virtual std::string GetActorClassName() const = 0;
 
-	// Unreal Engine 互換の「タグ」機能
 	std::vector<std::string> Tags;
 	bool HasTag(std::string_view Tag) const;
 
@@ -85,6 +86,7 @@ public:
 		return results;
 	}
 protected:
+	virtual void BeginPlay() {}
 	virtual void OnUpdate(float DeltaTime);
 	MSceneComponent* m_rootComponent = nullptr;
 	void SetRootComponent(MSceneComponent* Component);
