@@ -39,6 +39,7 @@ bool LevelSerializer::Load(const std::string& filePath)
 	M_LOG("Loaded actor count: {}", actors.size());
 
 	auto& registry = ActorRegistry::GetInstance();
+	std::vector<AActor*> spawnedActors;
 	for (const auto& data : actors)
 	{
 		M_LOG("Spawning: {}", data.ClassName);
@@ -49,7 +50,13 @@ bool LevelSerializer::Load(const std::string& filePath)
 			continue;
 		}
 		actor->SetActorScale(data.Scale);
+		spawnedActors.push_back(actor);
 	}
+	for (auto* actor : spawnedActors)
+	{
+		if (actor) actor->Spawned();
+	}
+
 	return true;
 }
 

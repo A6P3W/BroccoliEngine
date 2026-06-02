@@ -23,7 +23,7 @@ public:
 	{
 		std::string className = T::StaticClassName();
 		m_factories[className] = [](const FVector2D& loc, FRotator rot) -> AActor* {
-			return ObjectManager::GetInstance().SpawnObject<T>(loc, rot);
+			return ObjectManager::GetInstance().SpawnObject<T>(loc, rot,true);
 			};
 		m_classNames.push_back(className);
 	}

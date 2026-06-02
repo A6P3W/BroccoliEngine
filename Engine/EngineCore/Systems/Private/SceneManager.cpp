@@ -14,6 +14,7 @@ void SceneManager::ProcessSceneChanges()
 		ObjectManager::GetInstance().ClearAllObjects();
 
 		m_CurrentScene = m_PendingSceneFactory();
+		m_CurrentScene->Spawned();
 		m_PendingSceneFactory = nullptr;
 
 		if (IsDebug) {

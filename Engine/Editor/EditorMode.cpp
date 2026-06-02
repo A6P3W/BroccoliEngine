@@ -5,6 +5,7 @@
 #include "EditorUI.h"
 #include "EditorPawn.h"
 #include <PlayerController.h>
+#include "Utils/Log.h"
 const std::vector<std::string>& EditorMode::GetClassList() const
 {
     return ActorRegistry::GetInstance().GetClassNames();
@@ -67,7 +68,8 @@ bool EditorMode::LoadLevel(const std::string& filePath)
 
 EditorMode::EditorMode()
 {
-    SpawnPlayer<EditorPawn, APlayerController>({0,0},0);
+	M_LOG("EditorMode initialized");
+    
 }
 
 void EditorMode::OnUpdate(float DeltaTime)
@@ -76,3 +78,9 @@ void EditorMode::OnUpdate(float DeltaTime)
     static EditorUI ui;
     ui.UpdateAndDraw(this);
 }
+
+void EditorMode::BeginPlay()
+{
+    SpawnPlayer<EditorPawn, APlayerController>({ 0,0 }, 0);
+}
+

@@ -9,7 +9,7 @@ class AActor;
 class MActorComponent : public MBaseObject {
 public:
 	virtual ~MActorComponent() override;
-
+	virtual void BeginPlay() {}
 	bool Update(float DeltaTime);
 	virtual void Draw() {}
 

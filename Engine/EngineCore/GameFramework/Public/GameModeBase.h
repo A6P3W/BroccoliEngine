@@ -2,7 +2,7 @@
 #include "Actor.h"
 #include "PlayerController.h"
 #include "ObjectManager.h"
-
+#include "Utils/Log.h"
 class APawn;
 class APlayerController;
 class AGameModeBase : public AActor
@@ -25,7 +25,7 @@ protected:
         auto* Pawn = ObjectManager::GetInstance().SpawnObject<TPawn>(Location);
 		m_PlayerPawn = Pawn;
         Controller->Possess(Pawn);
-
+		M_LOG("Spawned Player Pawn: {} at ({}, {})", Pawn->GetActorClassName(), Location.X, Location.Y);
         return Controller;
     }
 

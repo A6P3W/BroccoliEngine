@@ -20,6 +20,17 @@ AActor::~AActor()
 	}
 }
 
+void AActor::Spawned()
+{
+	BeginPlay();
+	for (auto& comp : m_components) {
+		if (comp && !comp->IsPendingDestroy()) {
+			comp->BeginPlay();
+		}
+	}
+
+}
+
 void AActor::OnUpdate(float DeltaTime)
 {
 }
