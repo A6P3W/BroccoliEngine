@@ -18,13 +18,7 @@ enum class EEditorState
 class EditorMode : public AGameModeBase
 {
 public:
-	DEFINE_ACTOR_CLASS(EditorMode)
-
-		static EditorMode& GetInstance()
-	{
-		static EditorMode instance;
-		return instance;
-	}
+	DEFINE_ACTOR_CLASS(EditorMode);
 
 	// --- アクタ選択 (クラスブラウザ用) ---
 	void SelectClass(const std::string& className) { m_selectedClass = className; }
@@ -56,6 +50,7 @@ private:
 	EditorMode(EditorMode&&) = delete;
 	EditorMode& operator=(EditorMode&&) = delete;
 
+	void BeginPlay() override;
 	EEditorState             m_state = EEditorState::Idle;
 	std::string              m_selectedClass;
 	AActor* m_previewActor = nullptr; // ドラッグ中のゴースト

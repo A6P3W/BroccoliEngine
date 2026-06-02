@@ -2,14 +2,19 @@
 #include "EditorMode.h"
 #include "EnhancedInputComponent.h"
 #include "RenderSystem.h"
+#include "SceneManager.h"
 #include <DxLib.h>
-
+#include "EditorMode.h"
 EditorPawn::EditorPawn()
-{}
+{
+}
+
 
 void EditorPawn::OnPossesed()
 {
 	APawn::OnPossesed();
+	
+
 }
 
 void EditorPawn::SetupPlayerInputComponent(MEnhancedInputComponent* comp)
@@ -24,19 +29,23 @@ void EditorPawn::SetupPlayerInputComponent(MEnhancedInputComponent* comp)
 void EditorPawn::OnUpdate(float DeltaTime)
 {
 	// ドラッグ中はプレビューアクタをマウス追従
-	if (EditorMode::GetInstance().GetState() == EEditorState::Dragging)
+	if (m_editorMode->GetState() == EEditorState::Dragging)
 	{
-		EditorMode::GetInstance().OnMouseMove(GetMouseWorldPosition());
+		m_editorMode->OnMouseMove(GetMouseWorldPosition());
 	}
+}
+void EditorPawn::BeginPlay()
+{
+	m_editorMode = dynamic_cast<EditorMode*>(SceneManager::GetInstance().GetCurrentScene());
 }
 void EditorPawn::OnMouseLeftPress(const FInputActionValue&)
 {
-	EditorMode::GetInstance().OnMousePress(GetMouseWorldPosition());
+	m_editorMode->OnMousePress(GetMouseWorldPosition());
 }
 
 void EditorPawn::OnMouseLeftRelease(const FInputActionValue&)
 {
-	EditorMode::GetInstance().OnMouseRelease(GetMouseWorldPosition());
+	m_editorMode->OnMouseRelease(GetMouseWorldPosition());
 }
 
 FVector2D EditorPawn::GetMouseWorldPosition() const
