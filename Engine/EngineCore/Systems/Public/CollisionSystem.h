@@ -1,14 +1,17 @@
 ﻿#pragma once
-#include "CollisionComponent.h"
 #include <vector>
 #include <unordered_map>
-#include "CircleCollisionComponent.h"
-#include "RectangleCollisionComponent.h"
-#include "LineCollisionComponent.h"
-#include "MovementComponent.h"
-#include <Actor.h>
 #include <utility>
 #include <map>
+#include <memory>
+#include "Utils/UMath.h"
+
+class MCollisionComponent;
+class MCircleCollisionComponent;
+class MRectangleCollisionComponent;
+class MLineCollisionComponent;
+class MMovementComponent;
+class AActor;
 
 struct pair_hash {
 	inline std::size_t operator()(const std::pair<int, int>& v) const {

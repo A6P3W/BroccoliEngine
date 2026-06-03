@@ -6,6 +6,7 @@ class AGridLine :
 public:
 	DEFINE_ACTOR_CLASS(AGridLine)
 	AGridLine();
+	void BeginPlay() override;
 	void OnUpdate(float DeltaTime) override;
 	void SimpleDraw(float cellSize, int color);
 private:

@@ -1,5 +1,7 @@
 ﻿#include "CollisionComponent.h"
 #include <CollisionSystem.h>
+#include "World.h"
+
 MCollisionComponent::MCollisionComponent()
 {
 
@@ -8,7 +10,11 @@ MCollisionComponent::MCollisionComponent()
 MCollisionComponent::~MCollisionComponent()
 {
     if (CollisionSystem::IsAlive()) {
-        CollisionSystem::GetInstance().UnRegisterCollision(this);
+        if (GetOwner() && GetOwner()->GetWorld()) {
+			if (auto CS = GetOwner()->GetWorld()->GetCollisionSystem()) {
+				CS->UnRegisterCollision(this);
+			}
+        }
     }
 }
 void MCollisionComponent::MarkCheckedThisFrame(AActor* OtherActor) {
@@ -32,7 +38,11 @@ void MCollisionComponent::FlushOverlapState() {
 void MCollisionComponent::OnComponentDestroy()
 {
 	if (CollisionSystem::IsAlive()) {
-		CollisionSystem::GetInstance().UnRegisterCollision(this);
+		if (GetOwner() && GetOwner()->GetWorld()) {
+			if (auto CS = GetOwner()->GetWorld()->GetCollisionSystem()) {
+				CS->UnRegisterCollision(this);
+			}
+		}
 	}
 }
 
@@ -42,5 +52,7 @@ void MCollisionComponent::SetStatic(bool IsStatic)
 		return;
 	}
 	bIsStatic = IsStatic;
-	CollisionSystem::GetInstance().RebuildStaticCollisionMap();
+    if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetCollisionSystem()) {
+        GetOwner()->GetWorld()->GetCollisionSystem()->RebuildStaticCollisionMap();
+    }
 }

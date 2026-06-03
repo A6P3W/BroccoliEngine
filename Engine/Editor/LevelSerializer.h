@@ -13,15 +13,17 @@ struct FActorSaveData
 	float       Scale = 1.0f;
 };
 
+class World;
+
 class LevelSerializer
 {
 public:
 	// 現在ObjectManagerにいる全アクタを保存
 	// （ActorRegistryに登録されているクラスのみ対象）
-	static bool Save(const std::string& filePath);
+	static bool Save(World* world, const std::string& filePath);
 
 	// JSONからアクタをスポーン（現シーンはクリアしない）
-	static bool Load(const std::string& filePath);
+	static bool Load(World* world, const std::string& filePath);
 
 	// 低レベルAPI（EditorModeから直接データを渡す場合）
 	static bool SaveData(const std::string& filePath,

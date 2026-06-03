@@ -5,14 +5,15 @@
 #include "nlohmann/json.hpp"
 #include <fstream>
 #include "Utils/Log.h"
+#include "World.h"
 using json = nlohmann::json;
 
-bool LevelSerializer::Save(const std::string& filePath)
+bool LevelSerializer::Save(World* world, const std::string& filePath)
 {
 	std::vector<FActorSaveData> actors;
 	auto& registry = ActorRegistry::GetInstance();
 
-	for (const auto& actorPtr : ObjectManager::GetInstance().GetAllActors())
+	for (const auto& actorPtr : world->GetObjectManager()->GetAllActors())
 	{
 		AActor* actor = actorPtr.get();
 		if (!actor || actor->IsPendingDestroy()) continue;
@@ -30,7 +31,7 @@ bool LevelSerializer::Save(const std::string& filePath)
 	return SaveData(filePath, actors);
 }
 
-bool LevelSerializer::Load(const std::string& filePath)
+bool LevelSerializer::Load(World* world, const std::string& filePath)
 {
 	std::vector<FActorSaveData> actors;
 	if (!LoadData(filePath, actors)) return false;
@@ -43,7 +44,7 @@ bool LevelSerializer::Load(const std::string& filePath)
 	for (const auto& data : actors)
 	{
 		M_LOG("Spawning: {}", data.ClassName);
-		AActor* actor = registry.Spawn(data.ClassName, data.Location, data.Rotation);
+		AActor* actor = registry.Spawn(world, data.ClassName, data.Location, data.Rotation);
 		if (!actor)
 		{
 			M_LOG("Spawn failed: {} (not registered?)", data.ClassName);

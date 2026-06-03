@@ -4,6 +4,7 @@
 #include "RectangleCollisionComponent.h"
 #include "LineCollisionComponent.h"
 #include "MovementComponent.h"
+#include "CollisionComponent.h"
 #include <atomic>
 #include <algorithm>
 
@@ -14,13 +15,10 @@ namespace {
 }
 CollisionSystem::CollisionSystem()
 {
-	g_CollisionSystemAlive.store(true, std::memory_order_release);
 }
 
 CollisionSystem::~CollisionSystem()
-{
-	g_CollisionSystemAlive.store(false, std::memory_order_release);
-}
+{}
 
 void CollisionSystem::Initialize()
 {}

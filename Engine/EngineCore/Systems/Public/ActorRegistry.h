@@ -5,11 +5,12 @@
 #include <vector>
 #include <functional>
 #include "Utils/UMath.h"
+#include "World.h"
 class AActor;
 class ActorRegistry
 {
 public:
-	using FactoryFn = std::function<AActor* (const FVector2D&, FRotator)>;
+	using FactoryFn = std::function<AActor* (World*, const FVector2D&, FRotator)>;
 
 	static ActorRegistry& GetInstance()
 	{
@@ -22,20 +23,23 @@ public:
 	void Register()
 	{
 		std::string className = T::StaticClassName();
-		m_factories[className] = [](const FVector2D& loc, FRotator rot) -> AActor* {
-			return ObjectManager::GetInstance().SpawnObject<T>(loc, rot,true);
-			};
+		m_factories[className] = [](World* world, const FVector2D& loc, FRotator rot) -> AActor* {
+			return world->SpawnActor<T>(loc, rot, true);
+		};
 		m_classNames.push_back(className);
 	}
 
 	// クラス名からスポーン
-	AActor* Spawn(const std::string& className,
+	AActor* Spawn(
+		World* world,
+		const std::string& className,
 		const FVector2D& loc = FVector2D::ZeroVector,
-		FRotator rot = 0.0f)
+		FRotator rot = 0.0f
+	)
 	{
 		auto it = m_factories.find(className);
 		if (it == m_factories.end()) return nullptr;
-		return it->second(loc, rot);
+		return it->second(world, loc, rot);
 	}
 
 	const std::vector<std::string>& GetClassNames() const { return m_classNames; }

@@ -5,6 +5,7 @@
 #include "SceneManager.h"
 #include <DxLib.h>
 #include "EditorMode.h"
+#include "World.h"
 EditorPawn::EditorPawn()
 {
 }
@@ -36,7 +37,7 @@ void EditorPawn::OnUpdate(float DeltaTime)
 }
 void EditorPawn::BeginPlay()
 {
-	m_editorMode = dynamic_cast<EditorMode*>(SceneManager::GetInstance().GetCurrentScene());
+	m_editorMode = dynamic_cast<EditorMode*>(GetWorld()->GetGameMode());
 }
 void EditorPawn::OnMouseLeftPress(const FInputActionValue&)
 {

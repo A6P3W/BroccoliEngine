@@ -4,7 +4,7 @@
 #include "ObjectManager.h"
 #include "Actor.h"
 #include "Utils/UMath.h"
-
+#include "World.h"
 void EditorUI::UpdateAndDraw(EditorMode* editorMode)
 {
     // エディタのメインメニューバー
@@ -57,7 +57,7 @@ void EditorUI::DrawOutliner(EditorMode* editorMode)
 {
     ImGui::Begin("Outliner");
 
-    const auto& actors = ObjectManager::GetInstance().GetAllActors();
+    const auto& actors = editorMode->GetWorld()->GetObjectManager()->GetAllActors();
     for (size_t i = 0; i < actors.size(); ++i)
     {
         AActor* actor = actors[i].get();

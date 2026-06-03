@@ -24,11 +24,12 @@ struct TActorAutoRegister
 #define DEFINE_ACTOR_CLASS(ClassName) \
 public: \
 	static std::string StaticClassName() { return #ClassName; }\
-    virtual std::string GetActorClassName() const override { return #ClassName; }\
+    virtual std::string GetActorClassName() const override { return #ClassName; }
 
 
 class MSceneComponent;
 class TimerManager;
+class World;
 class AActor :
 	public MBaseObject
 
@@ -85,6 +86,8 @@ public:
 		}
 		return results;
 	}
+	World* GetWorld() { return m_world; }
+	void SetWorld(World* world) { m_world = world; }
 protected:
 	virtual void BeginPlay() {}
 	virtual void OnUpdate(float DeltaTime);
@@ -94,4 +97,5 @@ private:
 	std::vector<AActor*> m_childObjects;
 	bool m_PendingDestroy = false;
 	std::vector<std::unique_ptr<MActorComponent>> m_components;
+	World* m_world=nullptr;
 };

@@ -6,6 +6,7 @@
 #include "Utils/UMath.h"
 #include "Utils/Log.h"
 class AActor;
+class World;
 class ObjectManager
 {
 public:
@@ -18,6 +19,9 @@ public:
 
 	void Update(float DeltaTime);
 	void Draw();
+
+	void SetWorld(World* world) { m_World = world; }
+	World* GetWorld() const { return m_World; }
 
 	const std::vector<std::unique_ptr<AActor>>& GetAllActors() const { return m_Actors; }
 
@@ -32,6 +36,7 @@ public:
 			obj = std::make_unique<T>();
 		}
 		T* ptr = obj.get();
+		ptr->SetWorld(m_World);
 		m_Actors.push_back(std::move(obj));
 		ptr->SetActorLocation(location);
 		ptr->SetActorRotation(rotation);
@@ -44,5 +49,6 @@ public:
 	void ClearAllObjects();
 private:
 	std::vector<std::unique_ptr<AActor>> m_Actors;
+	World* m_World = nullptr;
 };
 

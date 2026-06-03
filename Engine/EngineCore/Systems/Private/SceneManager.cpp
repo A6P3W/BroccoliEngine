@@ -6,13 +6,14 @@
 #include "Actor.h"
 #include "CollisionSystem.h"
 #include "EngineDefine.h"
+#include"GameModeBase.h"
 void SceneManager::ProcessSceneChanges()
 {
 	if (m_PendingSceneFactory) {
 		RenderSystem::GetInstance().SetCameraView(nullptr);
 
 		m_CurrentScene = m_PendingSceneFactory();
-		m_CurrentScene->Spawned();
+
 		m_PendingSceneFactory = nullptr;
 
 		if (IsDebug) {
@@ -20,6 +21,6 @@ void SceneManager::ProcessSceneChanges()
 		}
 	}
 }
-inline AGameModeBase* GetGameMode() {
+inline World* GetGameMode() {
 	return SceneManager::GetInstance().GetCurrentScene();
 }

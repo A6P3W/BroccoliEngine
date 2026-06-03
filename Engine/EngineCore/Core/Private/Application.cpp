@@ -105,9 +105,8 @@ bool Application::Update(float DeltaTime)
         return true;
     }
 	SceneManager::GetInstance().ProcessSceneChanges();
-    if (AGameModeBase* m_CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
-        m_CurrentScene->Update(DeltaTime);
-
+    if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
+        currentScene->Update(DeltaTime);
     }
 	return true;
 }
@@ -117,8 +116,8 @@ bool Application::Draw()
   SetDrawScreen(DX_SCREEN_BACK);
     ClearDrawScreen();
 
-    if (AGameModeBase* m_CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
-        m_CurrentScene->Draw();
+    if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
+        currentScene->Draw();
     }
 
     RenderSystem::GetInstance().Draw();

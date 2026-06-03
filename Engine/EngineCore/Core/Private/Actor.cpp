@@ -5,6 +5,7 @@
 #include "CollisionSystem.h"
 #include "TimerManager.h"
 #include <algorithm>
+#include "World.h"
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();
@@ -15,8 +16,8 @@ AActor::AActor()
 
 AActor::~AActor()
 {
-	if (TimerManager::IsAlive()) {
-		TimerManager::GetInstance().ClearAllTimersForObject(this);
+	if (m_world && m_world->GetTimerManager()) {
+		m_world->GetTimerManager()->ClearAllTimersForObject(this);
 	}
 }
 
@@ -44,19 +45,21 @@ void AActor::AddComponent(std::unique_ptr<MActorComponent> comp)
 {
 	comp->SetOwner(this);
 	if (auto sceneComp = dynamic_cast<MSceneComponent*>(comp.get())) {
-
 		if (auto gameObject = dynamic_cast<AActor*>(this)) {
 			if (gameObject->GetRootComponent() && gameObject->GetRootComponent() != sceneComp && sceneComp->GetParentComponent() == nullptr) {
 				sceneComp->SetParentComponent(gameObject->GetRootComponent());
 			}
 		}
 	}
-	if (auto collisionComp = dynamic_cast<MCollisionComponent*>(comp.get())) {
-		CollisionSystem::GetInstance().RegisterCollision(collisionComp);
+	if (m_world) {
+		if (auto collisionComp = dynamic_cast<MCollisionComponent*>(comp.get())) {
+			if (m_world->GetCollisionSystem()) {
+				m_world->GetCollisionSystem()->RegisterCollision(collisionComp);
+			}
+		}
 	}
 	m_components.push_back(std::move(comp));
 }
-
 void AActor::Update(float DeltaTime)
 {
 	for (auto& comp : m_components) {
@@ -120,8 +123,8 @@ void AActor::AddActorRotation(const FRotator& DeltaRotation)
 void AActor::Destroy()
 {
 	m_PendingDestroy = true;
-	if (TimerManager::IsAlive()) {
-		TimerManager::GetInstance().ClearAllTimersForObject(this);
+	if (m_world && m_world->GetTimerManager()) {
+		m_world->GetTimerManager()->ClearAllTimersForObject(this);
 	}
 }
 
@@ -156,7 +159,7 @@ void AActor::SetRootComponent(MSceneComponent* Component)
 
 TimerManager& AActor::GetWorldTimerManager()
 {
-	return TimerManager::GetInstance();
+	return *(m_world->GetTimerManager());
 }
 
 bool AActor::HasTag(std::string_view Tag) const
