@@ -32,11 +32,6 @@ bool CollisionSystem::IsAlive()
 {
 	return g_CollisionSystemAlive.load(std::memory_order_acquire);
 }
-CollisionSystem& CollisionSystem::GetInstance()
-{
-	static CollisionSystem instance;
-	return instance;
-}
 void CollisionSystem::RegisterCollision(MCollisionComponent* component)
 {
 	m_CollisionComponents.push_back(component);

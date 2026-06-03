@@ -90,9 +90,6 @@ bool Application::Run()
         Update(m_DeltaTime);
         Draw();
     }
-    CollisionSystem::GetInstance().BeginSceneTransition();
-    ObjectManager::GetInstance().ClearAllObjects();
-    CollisionSystem::GetInstance().EndSceneTransition();
     return true;
 }
 bool Application::Update(float DeltaTime)
@@ -108,13 +105,10 @@ bool Application::Update(float DeltaTime)
         return true;
     }
 	SceneManager::GetInstance().ProcessSceneChanges();
-    ObjectManager::GetInstance().Update(DeltaTime);
-    TimerManager::GetInstance().Update(DeltaTime);
     if (AGameModeBase* m_CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
         m_CurrentScene->Update(DeltaTime);
 
     }
-    CollisionSystem::GetInstance().CheckCollisions();
 	return true;
 }
 
@@ -127,7 +121,6 @@ bool Application::Draw()
         m_CurrentScene->Draw();
     }
 
-    ObjectManager::GetInstance().Draw();
     RenderSystem::GetInstance().Draw();
 
     ImGui::Render();

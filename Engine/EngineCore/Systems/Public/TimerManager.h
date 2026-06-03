@@ -11,8 +11,13 @@
 class TimerManager
 {
 public:
-	static TimerManager& GetInstance();
 	static bool IsAlive();
+
+	TimerManager();
+	~TimerManager();
+
+	static void Initialize();
+	static void Terminate();
 
 	template<class UserClass>
 	void SetTimer(
@@ -44,8 +49,6 @@ public:
 	void Update(float DeltaTime);
 
 private:
-	TimerManager();
-	~TimerManager();
 	TimerManager(const TimerManager&) = delete;
 	TimerManager& operator=(const TimerManager&) = delete;
 

@@ -9,17 +9,17 @@
 void SceneManager::ProcessSceneChanges()
 {
 	if (m_PendingSceneFactory) {
-		CollisionSystem::GetInstance().BeginSceneTransition();
 		RenderSystem::GetInstance().SetCameraView(nullptr);
-		ObjectManager::GetInstance().ClearAllObjects();
 
 		m_CurrentScene = m_PendingSceneFactory();
 		m_CurrentScene->Spawned();
 		m_PendingSceneFactory = nullptr;
 
 		if (IsDebug) {
-			auto Grid = ObjectManager::GetInstance().SpawnObject<AGridLine>();
-			CollisionSystem::GetInstance().EndSceneTransition();
+			auto Grid = m_CurrentScene->SpawnActor<AGridLine>();
 		}
 	}
+}
+inline AGameModeBase* GetGameMode() {
+	return SceneManager::GetInstance().GetCurrentScene();
 }

@@ -9,9 +9,13 @@ class AActor;
 class ObjectManager
 {
 public:
-	static ObjectManager& GetInstance();
 	ObjectManager();
 	~ObjectManager();
+
+	static void Initialize();
+	static void Terminate();
+
+
 	void Update(float DeltaTime);
 	void Draw();
 

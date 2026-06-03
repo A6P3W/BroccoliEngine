@@ -58,6 +58,7 @@ bool EditorMode::LoadLevel(const std::string& filePath)
 {
     // 既存アクタを全破棄
     ObjectManager::GetInstance().ClearAllObjects();
+    
     m_previewActor = nullptr;
     m_selectedActor = nullptr;
     m_state = EEditorState::Idle;

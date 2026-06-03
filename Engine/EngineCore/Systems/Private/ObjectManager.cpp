@@ -2,17 +2,17 @@
 #include <algorithm>
 #include "Actor.h"
 
-ObjectManager& ObjectManager::GetInstance()
-{
-	static ObjectManager Instance;
-	return Instance;
-}
-
 ObjectManager::ObjectManager()
 {
 }
 
 ObjectManager::~ObjectManager() = default;
+
+void ObjectManager::Initialize()
+{}
+
+void ObjectManager::Terminate()
+{}
 
 
 void ObjectManager::Update(float DeltaTime)

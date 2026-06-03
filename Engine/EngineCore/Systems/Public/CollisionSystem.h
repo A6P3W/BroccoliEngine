@@ -26,7 +26,6 @@ public:
 	static void Terminate();
 
 	static bool IsAlive();
-	static CollisionSystem& GetInstance();
 	void RegisterCollision(MCollisionComponent* component);
 	void UnRegisterCollision(MCollisionComponent* component);
 	void RebuildStaticCollisionMap();

@@ -8,11 +8,6 @@ namespace
 	std::atomic_bool g_timerManagerAlive{ false };
 }
 
-TimerManager& TimerManager::GetInstance()
-{
-	static TimerManager Instance;
-	return Instance;
-}
 
 bool TimerManager::IsAlive()
 {
@@ -28,6 +23,12 @@ TimerManager::~TimerManager()
 {
 	g_timerManagerAlive.store(false, std::memory_order_release);
 }
+
+void TimerManager::Initialize()
+{}
+
+void TimerManager::Terminate()
+{}
 
 void TimerManager::SetTimerInternal(
 	FTimerHandle& Handle,

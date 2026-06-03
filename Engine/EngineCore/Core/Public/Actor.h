@@ -47,7 +47,7 @@ public:
 	bool HasTag(std::string_view Tag) const;
 
 	virtual void Update(float DeltaTime) final;
-	virtual void Draw()final;
+	virtual void Draw();
 	MSceneComponent* GetRootComponent() const { return m_rootComponent; };
 	TimerManager& GetWorldTimerManager();
 
