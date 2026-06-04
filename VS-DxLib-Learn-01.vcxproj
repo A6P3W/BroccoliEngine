@@ -189,6 +189,7 @@
     <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_dx11.cpp" />
     <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_win32.cpp" />
     <ClCompile Include="Engine\EngineCore\Core\Private\World.cpp" />
+    <ClCompile Include="Engine\EngineCore\Utils\FileDialog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Editor\EditorUI.h" />
@@ -239,6 +240,7 @@
     <ClInclude Include="Engine\EngineCore\Components\Public\EnhancedInputComponent.h" />
     <ClInclude Include="Engine\Editor\LevelSerializer.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\World.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\FileDialog.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md">

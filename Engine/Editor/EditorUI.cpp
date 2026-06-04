@@ -4,6 +4,7 @@
 #include "ObjectManager.h"
 #include "Actor.h"
 #include "Utils/UMath.h"
+#include "Utils/FileDialog.h"
 #include "World.h"
 void EditorUI::UpdateAndDraw(EditorMode* editorMode)
 {
@@ -23,10 +24,18 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode)
         if (ImGui::BeginMenu("File"))
         {
             if (ImGui::MenuItem("Save Level")) {
-                editorMode->SaveLevel("level.json");
+                // 保存ダイアログを開く
+                std::string filepath = FileDialog::SaveFile("JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0");
+                if (!filepath.empty()) {
+                    editorMode->SaveLevel(filepath);
+                }
             }
             if (ImGui::MenuItem("Load Level")) {
-                editorMode->LoadLevel("level.json");
+                // 開くダイアログを開く
+                std::string filepath = FileDialog::OpenFile("JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0");
+                if (!filepath.empty()) {
+                    editorMode->LoadLevel(filepath);
+                }
             }
             ImGui::EndMenu();
         }
