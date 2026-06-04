@@ -10,7 +10,12 @@
 #include "CollisionSystem.h"
 AGridLine::AGridLine()
 {
-    m_CollisionCellSize = CollisionSystem::GetInstance().GetCollisionCellSize();
+    
+}
+
+void AGridLine::BeginPlay()
+{
+    m_CollisionCellSize = GetWorld()->GetCollisionSystem()->GetCollisionCellSize();
 }
 
 void AGridLine::OnUpdate(float DeltaTime)

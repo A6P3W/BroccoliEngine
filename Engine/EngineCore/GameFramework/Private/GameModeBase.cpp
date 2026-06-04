@@ -1,6 +1,8 @@
 ﻿#include "GameModeBase.h"
 #include "Pawn.h"
 #include "ObjectManager.h"
+#include "CollisionSystem.h"
+#include "TimerManager.h"
 #include "CameraComponent.h"
 
 AGameModeBase::AGameModeBase()
@@ -10,3 +12,13 @@ AGameModeBase::AGameModeBase()
     this->AddComponent(std::move(camera)); 
     camPtr->SetActiveCamera();
 }
+
+void AGameModeBase::OnUpdate(float DeltaTime)
+{
+}
+
+void AGameModeBase::Draw()
+{
+    AActor::Draw();
+}
+

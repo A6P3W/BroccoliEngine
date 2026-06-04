@@ -1,14 +1,17 @@
 ﻿#pragma once
-#include "CollisionComponent.h"
 #include <vector>
 #include <unordered_map>
-#include "CircleCollisionComponent.h"
-#include "RectangleCollisionComponent.h"
-#include "LineCollisionComponent.h"
-#include "MovementComponent.h"
-#include <Actor.h>
 #include <utility>
 #include <map>
+#include <memory>
+#include "Utils/UMath.h"
+
+class MCollisionComponent;
+class MCircleCollisionComponent;
+class MRectangleCollisionComponent;
+class MLineCollisionComponent;
+class MMovementComponent;
+class AActor;
 
 struct pair_hash {
 	inline std::size_t operator()(const std::pair<int, int>& v) const {
@@ -21,8 +24,7 @@ class CollisionSystem
 public:
 	CollisionSystem();
 	~CollisionSystem();
-	static bool IsAlive();
-	static CollisionSystem& GetInstance();
+
 	void RegisterCollision(MCollisionComponent* component);
 	void UnRegisterCollision(MCollisionComponent* component);
 	void RebuildStaticCollisionMap();
@@ -48,6 +50,7 @@ private:
 
 	void CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B);
 
+	static std::unique_ptr<CollisionSystem> s_Instance;
 
 	std::vector<MCollisionComponent*> m_CollisionComponents;
 	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> m_StaticCollisionMap;

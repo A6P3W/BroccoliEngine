@@ -2,11 +2,11 @@
 #include "Actor.h"
 #include "TimerManager.h"
 #include "Utils/Log.h"
-
+#include "World.h"
 MActorComponent::~MActorComponent()
 {
-	if (TimerManager::IsAlive()) {
-		TimerManager::GetInstance().ClearAllTimersForObject(this);
+	if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetTimerManager()) {
+		GetOwner()->GetWorld()->GetTimerManager()->ClearAllTimersForObject(this);
 	}
 }
 
@@ -35,9 +35,11 @@ void MActorComponent::DestroyComponent()
 
 	m_bPendingDestroy = true;
 
-	if (TimerManager::IsAlive()) {
-		TimerManager::GetInstance().ClearAllTimersForObject(this);
+	if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetTimerManager()) {
+		GetOwner()->GetWorld()->GetTimerManager()->ClearAllTimersForObject(this);
 	}
+
+	UnRegisterComponent();
 
 	OnComponentDestroy();
 }

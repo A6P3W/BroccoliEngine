@@ -6,6 +6,7 @@
 #include "EditorPawn.h"
 #include <PlayerController.h>
 #include "Utils/Log.h"
+#include "World.h"
 const std::vector<std::string>& EditorMode::GetClassList() const
 {
     return ActorRegistry::GetInstance().GetClassNames();
@@ -17,7 +18,7 @@ void EditorMode::OnMousePress(const FVector2D& worldPos)
     if (m_state == EEditorState::Dragging) return;
 
     // プレビュー用アクタをスポーン
-    m_previewActor = ActorRegistry::GetInstance().Spawn(m_selectedClass, worldPos);
+    m_previewActor = ActorRegistry::GetInstance().Spawn(GetWorld(), m_selectedClass, worldPos);
     if (!m_previewActor) return;
 
     m_state = EEditorState::Dragging;
@@ -51,19 +52,19 @@ void EditorMode::OnMouseRelease(const FVector2D& worldPos)
 bool EditorMode::SaveLevel(const std::string& filePath)
 {
     // ObjectManager上のアクタを保存
-    return LevelSerializer::Save(filePath);
+    return LevelSerializer::Save(GetWorld(), filePath);
 }
 
 bool EditorMode::LoadLevel(const std::string& filePath)
 {
     // 既存アクタを全破棄
-    ObjectManager::GetInstance().ClearAllObjects();
+	if (GetWorld()->GetCollisionSystem()) GetWorld()->GetObjectManager()->ClearAllObjects();
     m_previewActor = nullptr;
     m_selectedActor = nullptr;
     m_state = EEditorState::Idle;
 
     // ロードしてスポーン
-    return LevelSerializer::Load(filePath);
+    return LevelSerializer::Load(GetWorld(), filePath);
 }
 
 EditorMode::EditorMode()

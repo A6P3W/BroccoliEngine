@@ -4,30 +4,18 @@
 #include "RectangleCollisionComponent.h"
 #include "LineCollisionComponent.h"
 #include "MovementComponent.h"
+#include "CollisionComponent.h"
 #include <atomic>
 #include <algorithm>
-namespace {
-	std::atomic<bool> g_CollisionSystemAlive{ false };
-}
+
 CollisionSystem::CollisionSystem()
 {
-	g_CollisionSystemAlive.store(true, std::memory_order_release);
 }
 
 CollisionSystem::~CollisionSystem()
-{
-	g_CollisionSystemAlive.store(false, std::memory_order_release);
-}
+{}
 
-bool CollisionSystem::IsAlive()
-{
-	return g_CollisionSystemAlive.load(std::memory_order_acquire);
-}
-CollisionSystem& CollisionSystem::GetInstance()
-{
-	static CollisionSystem instance;
-	return instance;
-}
+
 void CollisionSystem::RegisterCollision(MCollisionComponent* component)
 {
 	m_CollisionComponents.push_back(component);

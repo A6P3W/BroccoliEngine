@@ -1,10 +1,9 @@
 ﻿#include "Actor.h"
 #include "SceneComponent.h"
 #include "ActorComponent.h"
-#include "CollisionComponent.h"
-#include "CollisionSystem.h"
 #include "TimerManager.h"
 #include <algorithm>
+#include "World.h"
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();
@@ -15,8 +14,8 @@ AActor::AActor()
 
 AActor::~AActor()
 {
-	if (TimerManager::IsAlive()) {
-		TimerManager::GetInstance().ClearAllTimersForObject(this);
+	if (m_world && m_world->GetTimerManager()) {
+		m_world->GetTimerManager()->ClearAllTimersForObject(this);
 	}
 }
 
@@ -29,6 +28,19 @@ void AActor::Spawned()
 		}
 	}
 
+}
+
+void AActor::SetWorld(World* world)
+{
+	if (m_world == world) return;
+
+	m_world = world;
+
+	for (auto& comp : m_components) {
+		if (comp) {
+			comp->RegisterComponent();
+		}
+	}
 }
 
 void AActor::OnUpdate(float DeltaTime)
@@ -44,19 +56,20 @@ void AActor::AddComponent(std::unique_ptr<MActorComponent> comp)
 {
 	comp->SetOwner(this);
 	if (auto sceneComp = dynamic_cast<MSceneComponent*>(comp.get())) {
-
 		if (auto gameObject = dynamic_cast<AActor*>(this)) {
 			if (gameObject->GetRootComponent() && gameObject->GetRootComponent() != sceneComp && sceneComp->GetParentComponent() == nullptr) {
 				sceneComp->SetParentComponent(gameObject->GetRootComponent());
 			}
 		}
 	}
-	if (auto collisionComp = dynamic_cast<MCollisionComponent*>(comp.get())) {
-		CollisionSystem::GetInstance().RegisterCollision(collisionComp);
-	}
-	m_components.push_back(std::move(comp));
-}
 
+	m_components.push_back(std::move(comp));
+
+	if (m_world) {
+		m_components.back()->RegisterComponent();
+	}
+	
+}
 void AActor::Update(float DeltaTime)
 {
 	for (auto& comp : m_components) {
@@ -120,8 +133,8 @@ void AActor::AddActorRotation(const FRotator& DeltaRotation)
 void AActor::Destroy()
 {
 	m_PendingDestroy = true;
-	if (TimerManager::IsAlive()) {
-		TimerManager::GetInstance().ClearAllTimersForObject(this);
+	if (m_world && m_world->GetTimerManager()) {
+		m_world->GetTimerManager()->ClearAllTimersForObject(this);
 	}
 }
 
@@ -156,7 +169,7 @@ void AActor::SetRootComponent(MSceneComponent* Component)
 
 TimerManager& AActor::GetWorldTimerManager()
 {
-	return TimerManager::GetInstance();
+	return *(m_world->GetTimerManager());
 }
 
 bool AActor::HasTag(std::string_view Tag) const
