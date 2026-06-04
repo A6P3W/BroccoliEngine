@@ -25,10 +25,6 @@ public:
 	CollisionSystem();
 	~CollisionSystem();
 
-	static void Initialize();
-	static void Terminate();
-
-	static bool IsAlive();
 	void RegisterCollision(MCollisionComponent* component);
 	void UnRegisterCollision(MCollisionComponent* component);
 	void RebuildStaticCollisionMap();

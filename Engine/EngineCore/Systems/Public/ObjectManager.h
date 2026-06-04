@@ -13,10 +13,6 @@ public:
 	ObjectManager();
 	~ObjectManager();
 
-	static void Initialize();
-	static void Terminate();
-
-
 	void Update(float DeltaTime);
 	void Draw();
 

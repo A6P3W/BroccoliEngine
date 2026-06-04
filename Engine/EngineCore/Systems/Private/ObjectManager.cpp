@@ -8,13 +8,6 @@ ObjectManager::ObjectManager()
 
 ObjectManager::~ObjectManager() = default;
 
-void ObjectManager::Initialize()
-{}
-
-void ObjectManager::Terminate()
-{}
-
-
 void ObjectManager::Update(float DeltaTime)
 {
 	// 更新対象のポインタをコピーしてループを回す

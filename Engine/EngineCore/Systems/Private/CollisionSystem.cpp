@@ -8,11 +8,6 @@
 #include <atomic>
 #include <algorithm>
 
-std::unique_ptr<CollisionSystem> CollisionSystem::s_Instance = nullptr;
-
-namespace {
-	std::atomic<bool> g_CollisionSystemAlive{ false };
-}
 CollisionSystem::CollisionSystem()
 {
 }
@@ -20,16 +15,7 @@ CollisionSystem::CollisionSystem()
 CollisionSystem::~CollisionSystem()
 {}
 
-void CollisionSystem::Initialize()
-{}
 
-void CollisionSystem::Terminate()
-{}
-
-bool CollisionSystem::IsAlive()
-{
-	return g_CollisionSystemAlive.load(std::memory_order_acquire);
-}
 void CollisionSystem::RegisterCollision(MCollisionComponent* component)
 {
 	m_CollisionComponents.push_back(component);

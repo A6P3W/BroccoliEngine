@@ -11,13 +11,9 @@
 class TimerManager
 {
 public:
-	static bool IsAlive();
 
 	TimerManager();
 	~TimerManager();
-
-	static void Initialize();
-	static void Terminate();
 
 	template<class UserClass>
 	void SetTimer(

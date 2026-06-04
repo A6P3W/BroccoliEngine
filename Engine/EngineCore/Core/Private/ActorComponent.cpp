@@ -5,10 +5,8 @@
 #include "World.h"
 MActorComponent::~MActorComponent()
 {
-	if (TimerManager::IsAlive()) {
-		if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetTimerManager()) {
-			GetOwner()->GetWorld()->GetTimerManager()->ClearAllTimersForObject(this);
-		}
+	if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetTimerManager()) {
+		GetOwner()->GetWorld()->GetTimerManager()->ClearAllTimersForObject(this);
 	}
 }
 
