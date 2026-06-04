@@ -62,10 +62,13 @@ void AActor::AddComponent(std::unique_ptr<MActorComponent> comp)
 			}
 		}
 	}
+
+	m_components.push_back(std::move(comp));
+
 	if (m_world) {
 		m_components.back()->RegisterComponent();
 	}
-	m_components.push_back(std::move(comp));
+	
 }
 void AActor::Update(float DeltaTime)
 {
