@@ -59,6 +59,9 @@ public:
 	bool IsStatic() const { return bIsStatic; }
 	void MarkCheckedThisFrame(AActor* OtherActor);
 	void FlushOverlapState();
+
+	virtual void RegisterComponent() override;
+	virtual void UnRegisterComponent() override;
 protected:
 	void OnComponentDestroy() override;
 private:

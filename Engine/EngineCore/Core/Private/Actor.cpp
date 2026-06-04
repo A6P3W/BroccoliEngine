@@ -1,8 +1,6 @@
 ﻿#include "Actor.h"
 #include "SceneComponent.h"
 #include "ActorComponent.h"
-#include "CollisionComponent.h"
-#include "CollisionSystem.h"
 #include "TimerManager.h"
 #include <algorithm>
 #include "World.h"
@@ -32,6 +30,19 @@ void AActor::Spawned()
 
 }
 
+void AActor::SetWorld(World* world)
+{
+	if (m_world == world) return;
+
+	m_world = world;
+
+	for (auto& comp : m_components) {
+		if (comp) {
+			comp->RegisterComponent();
+		}
+	}
+}
+
 void AActor::OnUpdate(float DeltaTime)
 {
 }
@@ -52,11 +63,7 @@ void AActor::AddComponent(std::unique_ptr<MActorComponent> comp)
 		}
 	}
 	if (m_world) {
-		if (auto collisionComp = dynamic_cast<MCollisionComponent*>(comp.get())) {
-			if (m_world->GetCollisionSystem()) {
-				m_world->GetCollisionSystem()->RegisterCollision(collisionComp);
-			}
-		}
+		m_components.back()->RegisterComponent();
 	}
 	m_components.push_back(std::move(comp));
 }

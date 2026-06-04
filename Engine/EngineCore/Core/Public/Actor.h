@@ -87,7 +87,7 @@ public:
 		return results;
 	}
 	World* GetWorld() { return m_world; }
-	void SetWorld(World* world) { m_world = world; }
+	void SetWorld(World* world);
 protected:
 	virtual void BeginPlay() {}
 	virtual void OnUpdate(float DeltaTime);

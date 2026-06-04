@@ -40,7 +40,8 @@ void MActorComponent::DestroyComponent()
 	if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetTimerManager()) {
 		GetOwner()->GetWorld()->GetTimerManager()->ClearAllTimersForObject(this);
 	}
-	OnComponentDestroy();
+
+	UnRegisterComponent();
 
 	OnComponentDestroy();
 }

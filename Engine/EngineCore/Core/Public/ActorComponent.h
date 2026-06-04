@@ -19,6 +19,8 @@ public:
 	void DestroyComponent();
 	bool IsPendingDestroy() const { return m_bPendingDestroy; }
 
+	virtual void RegisterComponent(){}
+	virtual void UnRegisterComponent() {}
 protected:
 	virtual void OnComponentDestroy() {}
 

@@ -9,13 +9,7 @@ MCollisionComponent::MCollisionComponent()
 
 MCollisionComponent::~MCollisionComponent()
 {
-    if (CollisionSystem::IsAlive()) {
-        if (GetOwner() && GetOwner()->GetWorld()) {
-			if (auto CS = GetOwner()->GetWorld()->GetCollisionSystem()) {
-				CS->UnRegisterCollision(this);
-			}
-        }
-    }
+	UnRegisterComponent();
 }
 void MCollisionComponent::MarkCheckedThisFrame(AActor* OtherActor) {
     m_CheckedThisFrame.insert(OtherActor);
@@ -35,7 +29,14 @@ void MCollisionComponent::FlushOverlapState() {
     m_CheckedThisFrame.clear();
     m_IntersectingThisFrame.clear();
 }
-void MCollisionComponent::OnComponentDestroy()
+void MCollisionComponent::RegisterComponent()
+{
+	if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetCollisionSystem()) {
+		GetOwner()->GetWorld()->GetCollisionSystem()->RegisterCollision(this);
+	}
+}
+
+void MCollisionComponent::UnRegisterComponent()
 {
 	if (CollisionSystem::IsAlive()) {
 		if (GetOwner() && GetOwner()->GetWorld()) {
@@ -44,6 +45,9 @@ void MCollisionComponent::OnComponentDestroy()
 			}
 		}
 	}
+}
+void MCollisionComponent::OnComponentDestroy()
+{
 }
 
 void MCollisionComponent::SetStatic(bool IsStatic)
