@@ -56,7 +56,7 @@ bool Application::Run()
     );
     // マウス入力等をImGuiに流すためにフックを設定
     SetHookWinProc(ImGuiHookProc);
-    if (IsDebug) {
+    if (IsEditor) {
         SceneManager::GetInstance().OpenScene<EditorMode>();
     }
     else {

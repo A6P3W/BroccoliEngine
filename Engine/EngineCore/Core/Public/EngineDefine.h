@@ -6,3 +6,10 @@ true;
 #else
 false;
 #endif
+
+constexpr bool IsEditor =
+#if defined _EDITOR
+true;
+#else
+false;
+#endif
