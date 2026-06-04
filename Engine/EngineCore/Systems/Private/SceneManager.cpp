@@ -21,6 +21,3 @@ void SceneManager::ProcessSceneChanges()
 		}
 	}
 }
-inline World* GetGameMode() {
-	return SceneManager::GetInstance().GetCurrentScene();
-}
