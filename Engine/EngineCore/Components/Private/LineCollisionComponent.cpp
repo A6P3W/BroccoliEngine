@@ -1,8 +1,11 @@
 ﻿#include "LineCollisionComponent.h"
 #include <RenderSystem.h>
+#include "EngineDefine.h"
 
 void MLineCollisionComponent::Draw()
 {
+	if (!IsDebug)return;
+
 	FVector2D start = GetWorldStart();
 	FVector2D end = GetWorldEnd();
 

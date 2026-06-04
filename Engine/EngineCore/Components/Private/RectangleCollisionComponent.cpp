@@ -1,8 +1,10 @@
 ﻿#include "RectangleCollisionComponent.h"
 #include <RenderSystem.h>
+#include "EngineDefine.h"
 
 void MRectangleCollisionComponent::Draw()
 {
+	if (!IsDebug)return;
 	FVector2D center = GetWorldLocation();
 	float halfWidth = (m_width * GetScale()) * 0.5f;
 	float halfHeight = (m_height * GetScale()) * 0.5f;

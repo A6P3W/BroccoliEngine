@@ -1,7 +1,9 @@
 ﻿#include "CircleCollisionComponent.h"
 #include <RenderSystem.h>
+#include "EngineDefine.h"
 void MCircleCollisionComponent::Draw()
 {
+	if (!IsDebug)return;
 	// デバッグ用として緑色の円を描画（透過度120程度）
 	// 塗りつぶさない設定(fill=0)で枠線のみ表示
 	RenderSystem::GetInstance().SubmitCircle(
