@@ -7,6 +7,7 @@
 #include <PlayerController.h>
 #include "Utils/Log.h"
 #include "World.h"
+#include "SceneManager.h"
 const std::vector<std::string>& EditorMode::GetClassList() const
 {
     return ActorRegistry::GetInstance().GetClassNames();
@@ -57,13 +58,7 @@ bool EditorMode::SaveLevel(const std::string& filePath)
 
 bool EditorMode::LoadLevel(const std::string& filePath)
 {
-    // 既存アクタを全破棄
-	if (GetWorld()->GetCollisionSystem()) GetWorld()->GetObjectManager()->ClearAllObjects();
-    m_previewActor = nullptr;
-    m_selectedActor = nullptr;
-    m_state = EEditorState::Idle;
-
-    // ロードしてスポーン
+	SceneManager::GetInstance().OpenScene<EditorMode>();
     return LevelSerializer::Load(GetWorld(), filePath);
 }
 
