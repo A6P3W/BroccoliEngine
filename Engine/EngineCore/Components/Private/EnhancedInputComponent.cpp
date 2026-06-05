@@ -6,10 +6,14 @@ void MEnhancedInputComponent::ProcessInputBindings(const InputMapper& mapper) {
         bool trigger = false;
         switch (b.Event) {
         case ETriggerEvent::Started:   trigger = mapper.GetPressStart(b.ActionName); break;
-        case ETriggerEvent::Triggered: 
+        case ETriggerEvent::Triggered:
             if (b.ActionName == InputAction::Move) {
-                FVector2D moveAxis2D = mapper.GetAxis2DValue(InputActionLower::MoveX, InputActionLower::MoveY); 
+                FVector2D moveAxis2D = mapper.GetAxis2DValue(InputActionLower::MoveX, InputActionLower::MoveY);
                 trigger = (moveAxis2D.SizeSquared() > 0.0001f);
+            }
+            else if (b.ActionName == InputAction::Look) {
+                FVector2D lookAxis2D = mapper.GetAxis2DValue(InputActionLower::LookX, InputActionLower::LookY);
+                trigger = (lookAxis2D.SizeSquared() > 0.0001f);
             }
             else{ 
                 trigger = mapper.GetPressing(b.ActionName) || (std::abs(axisVal) > 0.0001f); }
@@ -27,6 +31,9 @@ void MEnhancedInputComponent::ProcessInputBindings(const InputMapper& mapper) {
         if (b.ActionName == InputAction::Move) {
             value.Axis2D = mapper.GetAxis2DValue(InputActionLower::MoveX, InputActionLower::MoveY);
         }
+		else if (b.ActionName == InputAction::Look) {
+			value.Axis2D = mapper.GetAxis2DValue(InputActionLower::LookX, InputActionLower::LookY);
+		}
         b.Callback(value);
     }
 }

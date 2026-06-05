@@ -3,8 +3,11 @@
 
 class MouseDevice : public InputDevice {
 public:
+	MouseDevice();
 	enum AxisID {
 		Wheel = 0,
+		MouseX,
+		MouseY
 	};
 
 	void Update() override;
@@ -17,4 +20,9 @@ private:
 	int m_buttons = 0;
 	int m_prevButtons = 0;
 	float m_wheelDelta = 0.0f;
+
+	int m_mouseX = 0;
+	int m_mouseY = 0;
+	int m_prevMouseX = 0;
+	int m_prevMouseY = 0;
 };

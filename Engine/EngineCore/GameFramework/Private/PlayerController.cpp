@@ -61,7 +61,13 @@ void APlayerController::SetPlayerId(int id)
         m_InputMapper->AddMapping(InputAction::Interact, kb, KEY_INPUT_F);
     }
     if (id == 0 && mouse) {
+        m_InputMapper->AddMapping(InputActionMouse::MouseLeft, mouse, MOUSE_INPUT_LEFT);
+        m_InputMapper->AddMapping(InputActionMouse::MouseRight, mouse, MOUSE_INPUT_RIGHT);
+
         m_InputMapper->AddAxisMapping(InputActionMouse::Wheel, mouse, MouseDevice::AxisID::Wheel);
+
+        m_InputMapper->AddAxisMapping(InputActionLower::LookX, mouse, MouseDevice::AxisID::MouseX);
+        m_InputMapper->AddAxisMapping(InputActionLower::LookY, mouse, MouseDevice::AxisID::MouseY);
     }
     //if (pad) {
     //    // ゲームパッド軸

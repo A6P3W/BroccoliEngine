@@ -6,6 +6,8 @@
 #include "Utils/Umath.h"
 struct InputAction {
 	static constexpr auto Move = "Move";
+	static constexpr auto Look = "Look";
+
 
 	static constexpr auto Interact = "Interact";
 	static constexpr auto Cancel = "Cancel";
