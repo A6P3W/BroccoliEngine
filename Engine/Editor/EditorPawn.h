@@ -20,7 +20,14 @@ private:
     void OnMouseLeftPress(const FInputActionValue& Value);
     void OnMouseLeftRelease(const FInputActionValue& Value);
 
+	void OnMouseRightPress(const FInputActionValue& Value);
+	void OnMouseRightRelease(const FInputActionValue& Value);
+	void OnMouseMove(const FInputActionValue& Value);
     FVector2D GetMouseWorldPosition() const;
 
 	EditorMode* m_editorMode = nullptr;
+
+    bool m_RightMousePressed = false;
+    FVector2D m_dragStartMousePos; 
+    FVector2D m_dragStartCameraPos;
 };
