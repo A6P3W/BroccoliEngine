@@ -4,11 +4,11 @@
 #include <cmath>
 #include "CameraComponent.h"
 #include "Utils/UMath.h"
+#include "EngineDefine.h"
 
 RenderSystem::RenderSystem()
-{
+{}
 
-}
 RenderSystem& RenderSystem::GetInstance()
 {
 	static RenderSystem instance;
@@ -93,12 +93,12 @@ void RenderSystem::SubmitRectGraph(float destX, float destY, float srcX, float s
 {
 	RenderCommand command;
 	command.type = RenderType::RectGraph;
-	command.x1 = destX; // 描画先のX座標
-	command.y1 = destY; // 描画先のY座標
-	command.srcX = srcX; // 元画像の切り出し開始X座標
-	command.srcY = srcY; // 元画像の切り出し開始Y座標
-	command.srcWidth = srcW; // 元画像の切り出し幅
-	command.srcHeight = srcH; // 元画像の切り出し高さ
+	command.x1 = destX;
+	command.y1 = destY;
+	command.srcX = srcX;
+	command.srcY = srcY;
+	command.srcWidth = srcW;
+	command.srcHeight = srcH;
 	command.handle = handle;
 	command.space = space;
 	command.priority = priority;
@@ -117,14 +117,13 @@ FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPosition) const
 		camFOV = m_MainCamera->GetFOV();
 	}
 
-	int windowWidth = 0;
-	int windowHeight = 0;
-	GetDrawScreenSize(&windowWidth, &windowHeight);
-	const float centerX = windowWidth * 0.5f;
-	const float centerY = windowHeight * 0.5f;
+	// 仮想解像度を基準にする
+	const float centerX = VirtualWidth * 0.5f;
+	const float centerY = VirtualHeight * 0.5f;
 
 	const float localX = worldPosition.X - camPos.X;
 	const float localY = worldPosition.Y - camPos.Y;
+
 	const float rad = UMath::DegToRad(-camAngle);
 	const float cosTheta = std::cos(rad);
 	const float sinTheta = std::sin(rad);
@@ -149,15 +148,14 @@ FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPosition) const
 		camFOV = m_MainCamera->GetFOV();
 	}
 
-	int windowWidth = 0;
-	int windowHeight = 0;
-	GetDrawScreenSize(&windowWidth, &windowHeight);
-	const float centerX = windowWidth * 0.5f;
-	const float centerY = windowHeight * 0.5f;
+	// 仮想解像度を基準にする
+	const float centerX = VirtualWidth * 0.5f;
+	const float centerY = VirtualHeight * 0.5f;
 
 	const float safeFOV = (std::abs(camFOV) < 1.0e-6f) ? 1.0e-6f : camFOV;
 	const float localX = (screenPosition.X - centerX) / safeFOV;
 	const float localY = (screenPosition.Y - centerY) / safeFOV;
+
 	const float rad = UMath::DegToRad(camAngle);
 	const float cosTheta = std::cos(rad);
 	const float sinTheta = std::sin(rad);
@@ -179,6 +177,7 @@ void RenderSystem::Draw()
 		camAngle = m_MainCamera->GetWorldRotation().Rotation;
 		camFOV = m_MainCamera->GetFOV();
 	}
+
 	int current_blendmode, current_alpha;
 	GetDrawBlendMode(&current_blendmode, &current_alpha);
 
@@ -203,20 +202,17 @@ void RenderSystem::Draw()
 				const FVector2D screenPos = WorldToScreen({ renderX, renderY });
 				renderX = screenPos.X;
 				renderY = screenPos.Y;
-
 				if (command.type == RenderType::Box || command.type == RenderType::Line) {
 					const FVector2D optScreenPos = WorldToScreen({ optX, optY });
 					optX = optScreenPos.X;
 					optY = optScreenPos.Y;
 				}
-
 				finalScale *= camFOV;
 				finalRadius *= camFOV;
-				drawAngle -= UMath::DegToRad(camAngle); // カメラの回転を反映
+				drawAngle -= UMath::DegToRad(camAngle);
 				break;
 			}
 			case RenderSpace::Screen:
-				// スクリーン空間の描画はそのまま
 				break;
 			}
 
@@ -230,14 +226,14 @@ void RenderSystem::Draw()
 					const FVector2D v2 = WorldToScreen({ command.x2, command.y1 });
 					const FVector2D v3 = WorldToScreen({ command.x2, command.y2 });
 					const FVector2D v4 = WorldToScreen({ command.x1, command.y2 });
-
 					DrawQuadrangle(
 						static_cast<int>(v1.X), static_cast<int>(v1.Y),
 						static_cast<int>(v2.X), static_cast<int>(v2.Y),
 						static_cast<int>(v3.X), static_cast<int>(v3.Y),
 						static_cast<int>(v4.X), static_cast<int>(v4.Y),
 						command.color, command.fill);
-				} else {
+				}
+				else {
 					DrawBox(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(optX), static_cast<int>(optY), command.color, command.fill);
 				}
 				break;
@@ -259,7 +255,8 @@ void RenderSystem::Draw()
 			}
 		}
 	}
-	m_priorityCommands.clear(); // 全コマンドをクリア
+
+	m_priorityCommands.clear();
 }
 
 void RenderSystem::SetCameraView(MCameraComponent* m)
