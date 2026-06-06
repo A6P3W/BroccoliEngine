@@ -63,21 +63,23 @@ const std::vector<std::unique_ptr<MActorComponent>>& AActor::GetComponents() con
 	return m_components;
 }
 
-void AActor::AddComponent(std::unique_ptr<MActorComponent> comp)
+void AActor::AddComponent(std::unique_ptr<MActorComponent> NewComponent)
 {
-	comp->SetOwner(this);
-	if (auto sceneComp = dynamic_cast<MSceneComponent*>(comp.get())) {
+	MActorComponent* NewComponentPtr = NewComponent.get();
+
+	NewComponentPtr->SetOwner(this);
+	if (auto sceneComp = dynamic_cast<MSceneComponent*>(NewComponentPtr)) {
 		if (auto gameObject = dynamic_cast<AActor*>(this)) {
 			if (gameObject->GetRootComponent() && gameObject->GetRootComponent() != sceneComp && sceneComp->GetParentComponent() == nullptr) {
-				sceneComp->SetParentComponent(gameObject->GetRootComponent());
+				sceneComp->SetParentComponent(GetRootComponent());
 			}
 		}
 	}
 
-	m_components.push_back(std::move(comp));
+	m_components.push_back(std::move(NewComponent));
 
 	if (m_world) {
-		m_components.back()->RegisterComponent();
+		NewComponentPtr->RegisterComponent();
 	}
 	
 }

@@ -87,10 +87,11 @@ bool EditorMode::SaveLevel(const std::string& filePath)
 
 bool EditorMode::LoadLevel(const std::string& filePath)
 {
+	PendingLoadPath = filePath;
 	SceneManager::GetInstance().OpenScene<EditorMode>();
-	return LevelSerializer::Load(GetWorld(), filePath);
+	return true;
 }
-
+std::string EditorMode::PendingLoadPath = "";
 EditorMode::EditorMode()
 {
 	M_LOG("EditorMode initialized");
@@ -107,5 +108,11 @@ void EditorMode::OnUpdate(float DeltaTime)
 void EditorMode::BeginPlay()
 {
 	SpawnPlayer<EditorPawn, APlayerController>({ 0,0 }, 0);
+
+	if (PendingLoadPath != "")
+	{
+		LevelSerializer::Load(GetWorld(), PendingLoadPath);
+	}
+	PendingLoadPath.clear();
 }
 

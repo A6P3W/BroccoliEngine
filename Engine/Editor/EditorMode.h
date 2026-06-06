@@ -56,4 +56,6 @@ private:
 	AActor* m_previewActor = nullptr; // ドラッグ中のゴースト
 	AActor* m_selectedActor = nullptr; // 選択中のアクタ
 	EditorSelectPointComponent* SelectedPointComponent = nullptr;
+
+	static std::string PendingLoadPath;
 };
