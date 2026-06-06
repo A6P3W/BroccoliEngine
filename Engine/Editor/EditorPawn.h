@@ -6,6 +6,7 @@ class MEnhancedInputComponent;
 struct FInputActionValue;
 class MMovementComponent;
 class EditorMode;
+class MSpriteComponent;
 class EditorPawn : public APawn
 {
 public:
@@ -23,6 +24,7 @@ private:
 	void OnMouseRightPress(const FInputActionValue& Value);
 	void OnMouseRightRelease(const FInputActionValue& Value);
 	void OnMouseMove(const FInputActionValue& Value);
+	void OnWheel(const FInputActionValue& Value);
     FVector2D GetMouseWorldPosition() const;
 
 	EditorMode* m_editorMode = nullptr;
@@ -30,4 +32,7 @@ private:
     bool m_RightMousePressed = false;
     FVector2D m_dragStartMousePos; 
     FVector2D m_dragStartCameraPos;
+
+	int MousePointX, MousePointY=0;
+    MSpriteComponent* GameScreenView;
 };
