@@ -7,7 +7,7 @@
 
 class AActor;
 class EditorUI;
-
+class EditorSelectPointComponent;
 // エディタの操作状態
 enum class EEditorState
 {
@@ -55,4 +55,5 @@ private:
 	std::string              m_selectedClass;
 	AActor* m_previewActor = nullptr; // ドラッグ中のゴースト
 	AActor* m_selectedActor = nullptr; // 選択中のアクタ
+	EditorSelectPointComponent* SelectedPointComponent = nullptr;
 };

@@ -4,6 +4,13 @@
 #include "TimerManager.h"
 #include <algorithm>
 #include "World.h"
+#include "EngineDefine.h"
+
+#ifdef _EDITOR
+#include "EditorSelectPointComponent.h"
+#include <DxLib.h>
+#endif
+
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();
@@ -41,6 +48,10 @@ void AActor::SetWorld(World* world)
 			comp->RegisterComponent();
 		}
 	}
+#ifdef _EDITOR
+	auto selectPoint = std::make_unique<EditorSelectPointComponent>();
+	AddComponent(std::move(selectPoint));
+#endif
 }
 
 void AActor::OnUpdate(float DeltaTime)

@@ -53,6 +53,11 @@ void EditorPawn::BeginPlay()
 {
 	m_editorMode = dynamic_cast<EditorMode*>(GetWorld()->GetGameMode());
 }
+void EditorPawn::OnMove(const FInputActionValue& Value)
+{
+	if (!m_RightMousePressed)return;
+
+}
 void EditorPawn::OnMouseLeftPress(const FInputActionValue&)
 {
 	if (ImGui::GetIO().WantCaptureMouse) return;

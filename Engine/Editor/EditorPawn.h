@@ -18,6 +18,9 @@ public:
     void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
 private:
 	void BeginPlay() override;
+
+	void OnMove(const FInputActionValue& Value);
+
     void OnMouseLeftPress(const FInputActionValue& Value);
     void OnMouseLeftRelease(const FInputActionValue& Value);
 

@@ -6,6 +6,7 @@
 #include <fstream>
 #include "Utils/Log.h"
 #include "World.h"
+#include "EditorSelectPointComponent.h"
 using json = nlohmann::json;
 
 bool LevelSerializer::Save(World* world, const std::string& filePath)
