@@ -9,6 +9,7 @@
 
 EditorController::EditorController()
 {
+	bEditorActor = true;
 }
 
 void EditorController::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent)

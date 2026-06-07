@@ -32,11 +32,17 @@ public:
 	T* SpawnActor(const FVector2D& Loc = { 0,0 }, FRotator Rot = 0, bool DeferBeginPlay = false) {
 		return m_ObjectManager->SpawnObject<T>(Loc, Rot, DeferBeginPlay);
 	}
+
+	void SetSimulating(bool bRunning) { bSimulating = bRunning; }
+	bool IsSimulating() const { return bSimulating; }
+
 private:
 	void SetGameMode(AGameModeBase* mode);
 	std::unique_ptr<CollisionSystem> m_CollisionSystem = nullptr;
 	std::unique_ptr<TimerManager> m_TimerManager = nullptr;
 	std::unique_ptr<ObjectManager> m_ObjectManager = nullptr;
 	AGameModeBase* m_GameMode = nullptr;
+
+	bool bSimulating = true;
 };
 

@@ -33,7 +33,7 @@ public:
 	const std::vector<std::string>& GetClassList() const;
 
 	// --- アクタ選択 (インスペクタ・アウトライナ用) ---
-	void SetSelectedActor(AActor* actor) { m_selectedActor = actor; }
+	void SetSelectedActor(AActor* actor);
 	AActor* GetSelectedActor() const { return m_selectedActor; }
 
 	// --- マウス入力（EditorPawnから呼ぶ） ---

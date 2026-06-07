@@ -88,14 +88,21 @@ public:
 	}
 	World* GetWorld() { return m_world; }
 	void SetWorld(World* world);
+
+	bool IsEditorActor() const { return bEditorActor; }
 protected:
 	virtual void BeginPlay() {}
 	virtual void OnUpdate(float DeltaTime);
 	MSceneComponent* m_rootComponent = nullptr;
 	void SetRootComponent(MSceneComponent* Component);
+
+	bool bEditorActor = false;
+
 private:
 	std::vector<AActor*> m_childObjects;
 	bool m_PendingDestroy = false;
 	std::vector<std::unique_ptr<MActorComponent>> m_components;
 	World* m_world=nullptr;
+
+	
 };

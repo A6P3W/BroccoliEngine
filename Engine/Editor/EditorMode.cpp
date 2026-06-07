@@ -18,6 +18,30 @@ const std::vector<std::string>& EditorMode::GetClassList() const
 	return ActorRegistry::GetInstance().GetClassNames();
 }
 
+void EditorMode::SetSelectedActor(AActor* actor)
+{
+	if (SelectedPointComponent != nullptr)
+	{
+		try {
+			SelectedPointComponent->Selected(false);
+		}
+		catch (...) {}
+	}
+
+	m_selectedActor = actor;
+	SelectedPointComponent = nullptr; 
+
+	if (m_selectedActor)
+	{
+		auto components = m_selectedActor->GetComponents<EditorSelectPointComponent>();
+		if (!components.empty())
+		{
+			SelectedPointComponent = components[0];
+			SelectedPointComponent->Selected(true);
+		}
+	}
+}
+
 void EditorMode::OnMousePress(const FVector2D& worldPos)
 {
 	const auto& actors = GetWorld()->GetObjectManager()->GetAllActors();
@@ -30,7 +54,7 @@ void EditorMode::OnMousePress(const FVector2D& worldPos)
 		if (distanceSq <= selectionRadiusSq) {
 			hitActor = actor.get();
 			SetSelectedActor(hitActor);
-			if (SelectedPointComponent)
+			if (SelectedPointComponent != nullptr)
 			{
 				SelectedPointComponent->Selected(false);
 			}
@@ -44,7 +68,7 @@ void EditorMode::OnMousePress(const FVector2D& worldPos)
 
 		}
 	}
-
+	SetSelectedActor(nullptr);
 
 	if (m_selectedClass.empty()) return;
 	if (m_state == EEditorState::Dragging) return;
@@ -52,7 +76,7 @@ void EditorMode::OnMousePress(const FVector2D& worldPos)
 	// プレビュー用アクタをスポーン
 	SelectingActor = ActorRegistry::GetInstance().Spawn(GetWorld(), m_selectedClass, worldPos);
 	if (!SelectingActor) return;
-	if (SelectedPointComponent)
+	if (SelectedPointComponent != nullptr)
 	{
 		SelectedPointComponent->Selected(false);
 	}
@@ -113,7 +137,7 @@ std::string EditorMode::PendingLoadPath = "";
 EditorMode::EditorMode()
 {
 	M_LOG("EditorMode initialized");
-
+	bEditorActor = true;
 }
 
 void EditorMode::OnUpdate(float DeltaTime)
@@ -125,6 +149,7 @@ void EditorMode::OnUpdate(float DeltaTime)
 
 void EditorMode::BeginPlay()
 {
+	GetWorld()->SetSimulating(false);
 	SpawnPlayer<EditorPawn, EditorController>({ 0,0 }, 0);
 
 	if (PendingLoadPath != "")

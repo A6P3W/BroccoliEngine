@@ -10,7 +10,7 @@
 #include "CollisionSystem.h"
 AGridLine::AGridLine()
 {
-    
+    bEditorActor = true;
 }
 
 void AGridLine::BeginPlay()

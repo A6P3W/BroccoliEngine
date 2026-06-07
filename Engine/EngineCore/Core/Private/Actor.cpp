@@ -10,7 +10,7 @@
 #include "EditorSelectPointComponent.h"
 #include <DxLib.h>
 #endif
-
+#include "Utils/Log.h"
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();
@@ -28,6 +28,7 @@ AActor::~AActor()
 
 void AActor::Spawned()
 {
+	M_LOG("Actor spawned: {}", GetActorClassName());
 	BeginPlay();
 	for (auto& comp : m_components) {
 		if (comp && !comp->IsPendingDestroy()) {

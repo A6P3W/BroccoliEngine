@@ -16,6 +16,7 @@ EditorPawn::EditorPawn()
 	GameScreenComp->SubmitBox(1920, 1080, GetColor(255,255,255), 0);
 	GameScreenView = GameScreenComp.get();
 	AddComponent(std::move(GameScreenComp));
+	bEditorActor = true;
 }
 
 

@@ -54,6 +54,9 @@ bool LevelSerializer::Load(World* world, const std::string& filePath)
 		actor->SetActorScale(data.Scale);
 		spawnedActors.push_back(actor);
 	}
+	if (!world->IsSimulating()) {
+		return true;
+	}
 	for (auto* actor : spawnedActors)
 	{
 		if (actor) actor->Spawned();
