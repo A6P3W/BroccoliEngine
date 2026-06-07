@@ -6,9 +6,13 @@
 #include "EditorPawn.h"
 #include <PlayerController.h>
 #include "Utils/Log.h"
+#include "Utils/UMath.h"
 #include "World.h"
 #include "SceneManager.h"
 #include "EditorSelectPointComponent.h"
+#include "EditorController.h"
+#include <DxLib.h>
+#include "RenderSystem.h"
 const std::vector<std::string>& EditorMode::GetClassList() const
 {
 	return ActorRegistry::GetInstance().GetClassNames();
@@ -22,17 +26,20 @@ void EditorMode::OnMousePress(const FVector2D& worldPos)
 	for (auto& actor : actors) {
 		FVector2D actorPos = actor->GetActorLocation();
 		float distanceSq = FVector2D({ actorPos.X - worldPos.X, actorPos.Y - worldPos.Y }).SizeSquared();
-		const float selectionRadiusSq = 15.0f * 15.0f; 
+		const float selectionRadiusSq = 15.0f * 15.0f;
 		if (distanceSq <= selectionRadiusSq) {
 			hitActor = actor.get();
 			SetSelectedActor(hitActor);
-			if(SelectedPointComponent)
+			if (SelectedPointComponent)
 			{
 				SelectedPointComponent->Selected(false);
 			}
+			SelectingActor = hitActor;
 			SelectedPointComponent = hitActor->GetComponents<EditorSelectPointComponent>()[0];
 			SelectedPointComponent->Selected(true);
 			M_LOG("Hit Actor: {}", hitActor->GetActorClassName());
+			M_LOG("Current Actor Action: {}", (int)GetActorAction());
+			m_state = EEditorState::Dragging;
 			return;
 
 		}
@@ -43,39 +50,50 @@ void EditorMode::OnMousePress(const FVector2D& worldPos)
 	if (m_state == EEditorState::Dragging) return;
 
 	// プレビュー用アクタをスポーン
-	m_previewActor = ActorRegistry::GetInstance().Spawn(GetWorld(), m_selectedClass, worldPos);
-	if (!m_previewActor) return;
+	SelectingActor = ActorRegistry::GetInstance().Spawn(GetWorld(), m_selectedClass, worldPos);
+	if (!SelectingActor) return;
 	if (SelectedPointComponent)
 	{
 		SelectedPointComponent->Selected(false);
 	}
-	SelectedPointComponent = m_previewActor->GetComponents<EditorSelectPointComponent>()[0];
+	SelectedPointComponent = SelectingActor->GetComponents<EditorSelectPointComponent>()[0];
 	SelectedPointComponent->Selected(true);
 
-	SetSelectedActor(m_previewActor);
+	SetSelectedActor(SelectingActor);
 
 	m_state = EEditorState::Dragging;
 }
 
-void EditorMode::OnMouseMove(const FVector2D& worldPos)
+void EditorMode::OnMouseMove(const FVector2D& Delta)
 {
 	if (m_state != EEditorState::Dragging) return;
-	if (!m_previewActor) return;
-
-	// プレビューアクタをマウス位置に追従
-	m_previewActor->SetActorLocation(worldPos);
+	if (!SelectingActor) return;
+	
+	switch (GetActorAction())
+	{
+	case EActorAction::Select:
+		break;
+	case EActorAction::Move:
+		SelectingActor->SetActorLocation(GetMouseWorldPosition());
+		break;
+	case EActorAction::Rotate:
+		SelectingActor->AddActorRotation(Delta.X*0.25);
+		break;
+	case EActorAction::Scale:
+		float NewScale = SelectingActor->GetActorScale().Scale * (1 + Delta.X * 0.001f);
+		SelectingActor->SetActorScale(NewScale);
+		break;
+	}
 }
 
 void EditorMode::OnMouseRelease(const FVector2D& worldPos)
 {
 	if (m_state != EEditorState::Dragging) return;
 
-	if (m_previewActor)
-	{
-		m_previewActor->SetActorLocation(worldPos);
+	if (!SelectingActor) return;
 
-		m_previewActor = nullptr;
-	}
+	SelectingActor = nullptr;
+
 	m_state = EEditorState::Idle;
 }
 
@@ -107,7 +125,7 @@ void EditorMode::OnUpdate(float DeltaTime)
 
 void EditorMode::BeginPlay()
 {
-	SpawnPlayer<EditorPawn, APlayerController>({ 0,0 }, 0);
+	SpawnPlayer<EditorPawn, EditorController>({ 0,0 }, 0);
 
 	if (PendingLoadPath != "")
 	{
@@ -116,3 +134,10 @@ void EditorMode::BeginPlay()
 	PendingLoadPath.clear();
 }
 
+FVector2D EditorMode::GetMouseWorldPosition() const
+{
+	int mx, my;
+	GetMousePoint(&mx, &my);
+	return RenderSystem::GetInstance().ScreenToWorld({ static_cast<float>(mx),
+													   static_cast<float>(my) });
+}

@@ -8,130 +8,162 @@
 #include "World.h"
 void EditorUI::UpdateAndDraw(EditorMode* editorMode)
 {
-    // エディタのメインメニューバー
-    DrawMenuBar(editorMode);
+	// エディタのメインメニューバー
+	DrawMenuBar(editorMode);
 
-    // ウィンドウを描画
-    DrawClassBrowser(editorMode);
-    DrawOutliner(editorMode);
-    DrawInspector(editorMode);
+	// ウィンドウを描画
+	DrawClassBrowser(editorMode);
+	DrawOutliner(editorMode);
+	DrawInspector(editorMode);
+
+	DrawSelectAction(editorMode);
 }
 
 void EditorUI::DrawMenuBar(EditorMode* editorMode)
 {
-    if (ImGui::BeginMainMenuBar())
-    {
-        if (ImGui::BeginMenu("File"))
-        {
-            if (ImGui::MenuItem("Save Level")) {
-                // 保存ダイアログを開く
-                std::string filepath = FileDialog::SaveFile("JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0");
-                if (!filepath.empty()) {
-                    editorMode->SaveLevel(filepath);
-                }
-            }
-            if (ImGui::MenuItem("Load Level")) {
-                // 開くダイアログを開く
-                std::string filepath = FileDialog::OpenFile("JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0");
-                if (!filepath.empty()) {
-                    editorMode->LoadLevel(filepath);
-                }
-            }
-            ImGui::EndMenu();
-        }
-        ImGui::EndMainMenuBar();
-    }
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("Save Level")) {
+				// 保存ダイアログを開く
+				std::string filepath = FileDialog::SaveFile("JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0");
+				if (!filepath.empty()) {
+					editorMode->SaveLevel(filepath);
+				}
+			}
+			if (ImGui::MenuItem("Load Level")) {
+				// 開くダイアログを開く
+				std::string filepath = FileDialog::OpenFile("JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0");
+				if (!filepath.empty()) {
+					editorMode->LoadLevel(filepath);
+				}
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
 }
 
 void EditorUI::DrawClassBrowser(EditorMode* editorMode)
 {
-    ImGui::Begin("Class Browser");
+	ImGui::Begin("Class Browser");
 
-    const auto& classes = editorMode->GetClassList();
-    const std::string& selectedClass = editorMode->GetSelectedClass();
+	const auto& classes = editorMode->GetClassList();
+	const std::string& selectedClass = editorMode->GetSelectedClass();
 
-    for (const auto& className : classes)
-    {
-        bool isSelected = (className == selectedClass);
-        if (ImGui::Selectable(className.c_str(), isSelected))
-        {
-            editorMode->SelectClass(className);
-        }
-    }
+	for (const auto& className : classes)
+	{
+		bool isSelected = (className == selectedClass);
+		if (ImGui::Selectable(className.c_str(), isSelected))
+		{
+			editorMode->SelectClass(className);
+		}
+	}
 
-    ImGui::End();
+	ImGui::End();
 }
 
 void EditorUI::DrawOutliner(EditorMode* editorMode)
 {
-    ImGui::Begin("Outliner");
+	ImGui::Begin("Outliner");
 
-    const auto& actors = editorMode->GetWorld()->GetObjectManager()->GetAllActors();
-    for (size_t i = 0; i < actors.size(); ++i)
-    {
-        AActor* actor = actors[i].get();
-        if (!actor || actor->IsPendingDestroy()) continue;
+	const auto& actors = editorMode->GetWorld()->GetObjectManager()->GetAllActors();
+	for (size_t i = 0; i < actors.size(); ++i)
+	{
+		AActor* actor = actors[i].get();
+		if (!actor || actor->IsPendingDestroy()) continue;
 
-        std::string label = actor->GetActorClassName() + "##" + std::to_string(i);
-        bool isSelected = (editorMode->GetSelectedActor() == actor);
+		std::string label = actor->GetActorClassName() + "##" + std::to_string(i);
+		bool isSelected = (editorMode->GetSelectedActor() == actor);
 
-        if (ImGui::Selectable(label.c_str(), isSelected))
-        {
-            editorMode->SetSelectedActor(actor);
-        }
-    }
+		if (ImGui::Selectable(label.c_str(), isSelected))
+		{
+			editorMode->SetSelectedActor(actor);
+		}
+	}
 
-    ImGui::End();
+	ImGui::End();
 }
 
 void EditorUI::DrawInspector(EditorMode* editorMode)
 {
-    ImGui::Begin("Inspector");
+	ImGui::Begin("Inspector");
 
-    AActor* selectedActor = editorMode->GetSelectedActor();
-    if (selectedActor && !selectedActor->IsPendingDestroy())
-    {
-        ImGui::Text("Class: %s", selectedActor->GetActorClassName().c_str());
-        ImGui::Separator();
+	AActor* selectedActor = editorMode->GetSelectedActor();
+	if (selectedActor && !selectedActor->IsPendingDestroy())
+	{
+		ImGui::Text("Class: %s", selectedActor->GetActorClassName().c_str());
+		ImGui::Separator();
 
-        // Transform の編集
-        if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            FVector2D loc = selectedActor->GetActorLocation();
-            float locArr[2] = { loc.X, loc.Y };
-            if (ImGui::DragFloat2("Location", locArr, 1.0f))
-            {
-                selectedActor->SetActorLocation({ locArr[0], locArr[1] });
-            }
+		// Transform の編集
+		if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			FVector2D loc = selectedActor->GetActorLocation();
+			float locArr[2] = { loc.X, loc.Y };
+			if (ImGui::DragFloat2("Location", locArr, 1.0f))
+			{
+				selectedActor->SetActorLocation({ locArr[0], locArr[1] });
+			}
 
-            FRotator rot = selectedActor->GetActorRotation();
-            float rotVal = rot.Rotation;
-            if (ImGui::DragFloat("Rotation", &rotVal, 1.0f))
-            {
-                selectedActor->SetActorRotation(FRotator(rotVal));
-            }
+			FRotator rot = selectedActor->GetActorRotation();
+			float rotVal = rot.Rotation;
+			if (ImGui::DragFloat("Rotation", &rotVal, 1.0f))
+			{
+				selectedActor->SetActorRotation(FRotator(rotVal));
+			}
 
-            FScale scale = selectedActor->GetActorScale();
-            float scaleVal = scale.Scale;
-            if (ImGui::DragFloat("Scale", &scaleVal, 0.01f))
-            {
-                selectedActor->SetActorScale(scaleVal);
-            }
-        }
+			FScale scale = selectedActor->GetActorScale();
+			float scaleVal = scale.Scale;
+			if (ImGui::DragFloat("Scale", &scaleVal, 0.01f))
+			{
+				selectedActor->SetActorScale(scaleVal);
+			}
+		}
 
-        ImGui::Separator();
+		ImGui::Separator();
 
-        // アクタの削除
-        if (ImGui::Button("Destroy Actor", ImVec2(-1, 0)))
-        {
-            selectedActor->Destroy();
-            editorMode->SetSelectedActor(nullptr);
-        }
-    }
-    else
-    {
-        ImGui::Text("Select an actor in Outliner to view properties.");
-    }
+		// アクタの削除
+		if (ImGui::Button("Destroy Actor", ImVec2(-1, 0)))
+		{
+			selectedActor->Destroy();
+			editorMode->SetSelectedActor(nullptr);
+		}
+	}
+	else
+	{
+		ImGui::Text("Select an actor in Outliner to view properties.");
+	}
 
-    ImGui::End();
+	ImGui::End();
 }
+
+void EditorUI::DrawSelectAction(EditorMode* editorMode)
+{
+	ImGui::Begin("Action");
+	int currentSelection = static_cast<int>(editorMode->GetActorAction());
+	ImGui::SameLine();
+
+	if (ImGui::RadioButton("Select", &currentSelection, 0)) 
+	{
+		editorMode->SetActorAction(EActorAction::Select);
+	}
+	ImGui::SameLine();
+
+	if (ImGui::RadioButton("Move", &currentSelection, 1)) 
+	{
+		editorMode->SetActorAction(EActorAction::Move);
+	}
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Rotate", &currentSelection, 2))
+	{
+		editorMode->SetActorAction(EActorAction::Rotate);
+	}
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Scale", &currentSelection, 3))
+	{
+		editorMode->SetActorAction(EActorAction::Scale);
+	}
+	ImGui::End();
+}
+

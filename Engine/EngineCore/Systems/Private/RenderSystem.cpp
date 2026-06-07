@@ -45,7 +45,7 @@ void RenderSystem::SubmitCircle(float x, float y, float radius, int color, int f
 	m_priorityCommands[priority].push_back(std::move(command));
 }
 
-void RenderSystem::SubmitBox(float x1, float y1, float x2, float y2, int color, int fill, RenderSpace space, int priority, int alpha)
+void RenderSystem::SubmitBox(float x1, float y1, float x2, float y2, float AngleDeg, int color, int fill, RenderSpace space, int priority, int alpha)
 {
 	RenderCommand command;
 	command.type = RenderType::Box;
@@ -53,6 +53,7 @@ void RenderSystem::SubmitBox(float x1, float y1, float x2, float y2, int color, 
 	command.y1 = y1;
 	command.x2 = x2;
 	command.y2 = y2;
+	command.AngleDeg = AngleDeg;
 	command.color = color;
 	command.fill = fill;
 	command.space = space;
@@ -169,6 +170,7 @@ FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPosition) const
 	};
 }
 
+
 void RenderSystem::Draw()
 {
 	float camAngle = 0.0f;
@@ -183,6 +185,43 @@ void RenderSystem::Draw()
 
 	for (const auto& pair : m_priorityCommands) {
 		for (const auto& command : pair.second) {
+			// アルファ値の設定
+			if (command.alpha != current_alpha) {
+				int normalizedAlpha = std::clamp(command.alpha, 0, 255);
+				SetDrawBlendMode(DX_BLENDMODE_ALPHA, normalizedAlpha);
+				current_alpha = normalizedAlpha;
+			}
+
+			if (command.space == RenderSpace::World && command.type == RenderType::Box) {
+				float worldW = command.x2 - command.x1;
+				float worldH = command.y2 - command.y1;
+
+				double objAngleRad = command.AngleDeg;
+				float cosA = static_cast<float>(std::cos(objAngleRad));
+				float sinA = static_cast<float>(std::sin(objAngleRad));
+
+				auto GetProjectedVertex = [&](float lx, float ly) -> FVector2D {
+					float rx = lx * cosA - ly * sinA;
+					float ry = lx * sinA + ly * cosA;
+
+					return WorldToScreen({ command.x1 + rx, command.y1 + ry });
+					};
+
+				FVector2D v1 = GetProjectedVertex(0, 0);           // 左上
+				FVector2D v2 = GetProjectedVertex(worldW, 0);      // 右上
+				FVector2D v3 = GetProjectedVertex(worldW, worldH); // 右下
+				FVector2D v4 = GetProjectedVertex(0, worldH);      // 左下
+
+				DrawQuadrangle(
+					static_cast<int>(v1.X), static_cast<int>(v1.Y),
+					static_cast<int>(v2.X), static_cast<int>(v2.Y),
+					static_cast<int>(v3.X), static_cast<int>(v3.Y),
+					static_cast<int>(v4.X), static_cast<int>(v4.Y),
+					command.color, command.fill);
+
+				continue;
+			}
+
 			float renderX = command.x1;
 			float renderY = command.y1;
 			float optX = command.x2;
@@ -191,18 +230,11 @@ void RenderSystem::Draw()
 			float finalRadius = command.x2;
 			double drawAngle = command.AngleDeg;
 
-			if (command.alpha != current_alpha) {
-				int normalizedAlpha = std::clamp(command.alpha, 0, 255);
-				SetDrawBlendMode(DX_BLENDMODE_ALPHA, normalizedAlpha);
-				current_alpha = normalizedAlpha;
-			}
-
-			switch (command.space) {
-			case RenderSpace::World: {
+			if (command.space == RenderSpace::World) {
 				const FVector2D screenPos = WorldToScreen({ renderX, renderY });
 				renderX = screenPos.X;
 				renderY = screenPos.Y;
-				if (command.type == RenderType::Box || command.type == RenderType::Line) {
+				if (command.type == RenderType::Line) {
 					const FVector2D optScreenPos = WorldToScreen({ optX, optY });
 					optX = optScreenPos.X;
 					optY = optScreenPos.Y;
@@ -210,52 +242,27 @@ void RenderSystem::Draw()
 				finalScale *= camFOV;
 				finalRadius *= camFOV;
 				drawAngle -= UMath::DegToRad(camAngle);
-				break;
-			}
-			case RenderSpace::Screen:
-				break;
 			}
 
 			switch (command.type) {
 			case RenderType::Graph:
-				DrawRotaGraphFastF(static_cast<float>(renderX), static_cast<float>(renderY), finalScale, drawAngle, command.handle, TRUE);
-				break;
-			case RenderType::Box:
-				if (command.space == RenderSpace::World) {
-					const FVector2D v1 = WorldToScreen({ command.x1, command.y1 });
-					const FVector2D v2 = WorldToScreen({ command.x2, command.y1 });
-					const FVector2D v3 = WorldToScreen({ command.x2, command.y2 });
-					const FVector2D v4 = WorldToScreen({ command.x1, command.y2 });
-					DrawQuadrangle(
-						static_cast<int>(v1.X), static_cast<int>(v1.Y),
-						static_cast<int>(v2.X), static_cast<int>(v2.Y),
-						static_cast<int>(v3.X), static_cast<int>(v3.Y),
-						static_cast<int>(v4.X), static_cast<int>(v4.Y),
-						command.color, command.fill);
-				}
-				else {
-					DrawBox(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(optX), static_cast<int>(optY), command.color, command.fill);
-				}
+				DrawRotaGraphFastF(renderX, renderY, (float)finalScale, (float)drawAngle, command.handle, TRUE);
 				break;
 			case RenderType::Text:
-				DrawStringToHandle(static_cast<int>(renderX), static_cast<int>(renderY), command.text.c_str(), command.color, command.handle);
+				DrawStringToHandle((int)renderX, (int)renderY, command.text.c_str(), command.color, command.handle);
 				break;
 			case RenderType::Line:
-				DrawLine(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(optX), static_cast<int>(optY), command.color);
+				DrawLine((int)renderX, (int)renderY, (int)optX, (int)optY, command.color);
 				break;
 			case RenderType::Circle:
-				DrawCircle(static_cast<int>(renderX), static_cast<int>(renderY), static_cast<int>(finalRadius), command.color, command.fill);
+				DrawCircle((int)renderX, (int)renderY, (int)finalRadius, command.color, command.fill);
 				break;
-			case RenderType::RectGraph:
-				DrawRectGraph(static_cast<int>(renderX), static_cast<int>(renderY),
-					static_cast<int>(command.srcX), static_cast<int>(command.srcY),
-					static_cast<int>(command.srcWidth), static_cast<int>(command.srcHeight),
-					command.handle, TRUE);
+			case RenderType::Box:
+				DrawBox((int)renderX, (int)renderY, (int)optX, (int)optY, command.color, command.fill);
 				break;
 			}
 		}
 	}
-
 	m_priorityCommands.clear();
 }
 

@@ -41,11 +41,7 @@ void EditorPawn::SetupPlayerInputComponent(MEnhancedInputComponent* comp)
 
 void EditorPawn::OnUpdate(float DeltaTime)
 {
-	// ドラッグ中はプレビューアクタをマウス追従
-	if (m_editorMode->GetState() == EEditorState::Dragging)
-	{
-		m_editorMode->OnMouseMove(GetMouseWorldPosition());
-	}
+
 	FVector2D ZeroPoint={150,150};
 	GameScreenView->SetWorldLocation(RenderSystem::GetInstance().ScreenToWorld(ZeroPoint));
 }
@@ -88,6 +84,10 @@ void EditorPawn::OnMouseRightRelease(const FInputActionValue & Value)
 }
 
 void EditorPawn::OnMouseMove(const FInputActionValue& Value) {
+	if (m_editorMode->GetState() == EEditorState::Dragging)
+	{
+		m_editorMode->OnMouseMove(Value.Axis2D);
+	}
 	if (m_RightMousePressed) {
 		int mx, my;
 		GetMousePoint(&mx, &my);

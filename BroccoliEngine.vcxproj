@@ -212,6 +212,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\Editor\EditorController.cpp" />
     <ClCompile Include="Engine\Editor\EditorMode.cpp" />
     <ClCompile Include="Engine\Editor\EditorPawn.cpp" />
     <ClCompile Include="Engine\Editor\EditorSelectPointComponent.cpp" />
@@ -256,6 +257,7 @@
     <ClCompile Include="Engine\EngineCore\Utils\FileDialog.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Editor\EditorController.h" />
     <ClInclude Include="Engine\Editor\EditorSelectPointComponent.h" />
     <ClInclude Include="Engine\Editor\EditorUI.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\EngineDefine.h" />

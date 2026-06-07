@@ -14,6 +14,7 @@ void MRectangleCollisionComponent::Draw()
 		center.Y - halfHeight,
 		center.X + halfWidth,
 		center.Y + halfHeight,
+		GetWorldRotation().Rotation,
 		0x00FF00,
 		0,
 		RenderSpace::World,

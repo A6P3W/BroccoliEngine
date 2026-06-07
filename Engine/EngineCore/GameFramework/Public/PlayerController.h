@@ -14,6 +14,7 @@ public :
 
 	void OnUpdate(float DeltaTime) override;
 	void SetPlayerId(int id);
+	virtual void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) {}
 	InputMapper* GetInputMapper() { return m_InputMapper.get(); }
 	MEnhancedInputComponent* GetInputComponent() { return m_InputCompPtr; }
 private:
