@@ -2,9 +2,11 @@
 
 #include "ObjectManager.h"
 #include "CollisionSystem.h"
+#include "SoundManager.h"
 #include "TimerManager.h"
 #include "Utils/Log.h"
 #include "Utils/UMath.h"
+#include <memory>
 class AActor;
 class AGameModeBase;
 
@@ -18,6 +20,7 @@ public:
 
 	ObjectManager* GetObjectManager() { return m_ObjectManager.get(); }
 	CollisionSystem* GetCollisionSystem() { return m_CollisionSystem.get(); }
+	SoundManager* GetSoundManager() { return m_SoundManager.get(); }
 	TimerManager* GetTimerManager() { return m_TimerManager.get(); }
 	AGameModeBase* GetGameMode() const { return m_GameMode; }
 	template<class T>
@@ -39,6 +42,7 @@ public:
 private:
 	void SetGameMode(AGameModeBase* mode);
 	std::unique_ptr<CollisionSystem> m_CollisionSystem = nullptr;
+	std::unique_ptr<SoundManager> m_SoundManager = nullptr;
 	std::unique_ptr<TimerManager> m_TimerManager = nullptr;
 	std::unique_ptr<ObjectManager> m_ObjectManager = nullptr;
 	AGameModeBase* m_GameMode = nullptr;
