@@ -6,6 +6,7 @@
 #include <fstream>
 #include "Utils/Log.h"
 #include "World.h"
+#include "EditorSelectPointComponent.h"
 using json = nlohmann::json;
 
 bool LevelSerializer::Save(World* world, const std::string& filePath)
@@ -52,6 +53,9 @@ bool LevelSerializer::Load(World* world, const std::string& filePath)
 		}
 		actor->SetActorScale(data.Scale);
 		spawnedActors.push_back(actor);
+	}
+	if (!world->IsSimulating()) {
+		return true;
 	}
 	for (auto* actor : spawnedActors)
 	{

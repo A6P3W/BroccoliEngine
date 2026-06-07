@@ -10,7 +10,7 @@
 #include "CollisionSystem.h"
 AGridLine::AGridLine()
 {
-    
+    bEditorActor = true;
 }
 
 void AGridLine::BeginPlay()
@@ -32,7 +32,7 @@ void AGridLine::SimpleDraw(float cellSize, int color) {
     float fov = Cam->GetFOV(); 
 
 
-    float minScreenSpacing = 25.0f;
+    float minScreenSpacing = 50.0f;
     int skipFactor = 1;
 
 

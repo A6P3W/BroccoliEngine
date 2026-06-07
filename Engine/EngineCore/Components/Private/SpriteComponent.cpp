@@ -83,6 +83,7 @@ void MSpriteComponent::Draw()
 	if (command.type == RenderType::Box) {
 		command.x2 = WorldLocation.X + command.x2;
 		command.y2 = WorldLocation.Y + command.y2;
+		command.AngleDeg = WorldRadRotation;
 	} else if (command.type == RenderType::Line) {
 		command.x2 = WorldLocation.X + command.x2;
 		command.y2 = WorldLocation.Y + command.y2;
@@ -111,6 +112,7 @@ void MSpriteComponent::Draw()
 			command.y1,
 			command.x2,
 			command.y2,
+			command.AngleDeg,
 			command.color,
 			command.fill,
 			command.space,

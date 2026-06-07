@@ -7,12 +7,19 @@
 
 class AActor;
 class EditorUI;
-
+class EditorSelectPointComponent;
 // エディタの操作状態
 enum class EEditorState
 {
 	Idle,       // 何もしていない
 	Dragging,   // アクタをドラッグ中（プレビュー表示）
+};
+enum class EActorAction
+{
+	Select,
+	Move,
+	Rotate,
+	Scale
 };
 
 class EditorMode : public AGameModeBase
@@ -26,12 +33,12 @@ public:
 	const std::vector<std::string>& GetClassList() const;
 
 	// --- アクタ選択 (インスペクタ・アウトライナ用) ---
-	void SetSelectedActor(AActor* actor) { m_selectedActor = actor; }
+	void SetSelectedActor(AActor* actor);
 	AActor* GetSelectedActor() const { return m_selectedActor; }
 
 	// --- マウス入力（EditorPawnから呼ぶ） ---
 	void OnMousePress(const FVector2D& worldPos);   // ドラッグ開始
-	void OnMouseMove(const FVector2D& worldPos);    // プレビュー位置更新
+	void OnMouseMove(const FVector2D& Delta);    // プレビュー位置更新
 	void OnMouseRelease(const FVector2D& worldPos); // 配置確定
 
 	// --- 保存/ロード ---
@@ -40,6 +47,8 @@ public:
 
 	EEditorState GetState() const { return m_state; }
 
+	EActorAction GetActorAction() const { return ActorAction; }
+	void SetActorAction(EActorAction action) { ActorAction = action; }
 public:
 	EditorMode();
 	void OnUpdate(float DeltaTime) override;
@@ -53,6 +62,12 @@ private:
 	void BeginPlay() override;
 	EEditorState             m_state = EEditorState::Idle;
 	std::string              m_selectedClass;
-	AActor* m_previewActor = nullptr; // ドラッグ中のゴースト
+	AActor* SelectingActor = nullptr; // ドラッグ中のゴースト
 	AActor* m_selectedActor = nullptr; // 選択中のアクタ
+	EditorSelectPointComponent* SelectedPointComponent = nullptr;
+	EActorAction ActorAction = EActorAction::Select;
+
+	static std::string PendingLoadPath;
+
+	FVector2D GetMouseWorldPosition() const;
 };

@@ -17,9 +17,12 @@ World::World()
 
 void World::Update(float DeltaTime)
 {
-    if (m_TimerManager)m_TimerManager->Update(DeltaTime);
+
     if (m_ObjectManager)m_ObjectManager->Update(DeltaTime);
-    if (m_CollisionSystem)m_CollisionSystem->CheckCollisions();
+    if (bSimulating) {
+        if (m_TimerManager)m_TimerManager->Update(DeltaTime);
+        if (m_CollisionSystem)m_CollisionSystem->CheckCollisions();
+    }
 }
 
 void World::Draw()

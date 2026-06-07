@@ -25,6 +25,8 @@ void APlayerController::Possess(APawn* NewPawn)
 	m_TargetPawn = NewPawn;
     m_TargetPawn->OnPossesed();
 
+	SetupPlayerInputComponent(GetInputComponent());
+
     if (GetInputComponent()) {
         m_TargetPawn->SetupPlayerInputComponent(GetInputComponent());
     }

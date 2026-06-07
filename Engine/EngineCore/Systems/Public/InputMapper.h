@@ -25,6 +25,13 @@ struct InputActionMouse {
 	static constexpr auto Wheel = "Wheel";
 };
 
+struct EditorInputAction {
+	static constexpr auto SelectMode = "SelectMode";
+	static constexpr auto MoveMode = "MoveMode";
+	static constexpr auto RotateMode = "RotateMode";
+	static constexpr auto ScaleMode = "ScaleMode";
+};
+
 class InputMapper {
 public:
 	InputMapper() = default;

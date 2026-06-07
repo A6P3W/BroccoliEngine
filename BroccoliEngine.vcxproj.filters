@@ -42,6 +42,8 @@
     <ClCompile Include="Engine\Editor\EditorUI.cpp" />
     <ClCompile Include="Engine\EngineCore\Core\Private\World.cpp" />
     <ClCompile Include="Engine\EngineCore\Utils\FileDialog.cpp" />
+    <ClCompile Include="Engine\Editor\EditorSelectPointComponent.cpp" />
+    <ClCompile Include="Engine\Editor\EditorController.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
@@ -93,6 +95,8 @@
     <ClInclude Include="Engine\EngineCore\Core\Public\EngineDefine.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\World.h" />
     <ClInclude Include="Engine\EngineCore\Utils\FileDialog.h" />
+    <ClInclude Include="Engine\Editor\EditorSelectPointComponent.h" />
+    <ClInclude Include="Engine\Editor\EditorController.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />
