@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <variant>
 #include "Utils/UMath.h"
 enum class RenderType {
     Graph,
@@ -11,52 +12,48 @@ enum class RenderType {
     RectGraph,
     Circle
 };
-enum class RenderSpace {
-    World, 
-    Screen  
+enum class RenderSpace { World, Screen };
+
+// --- 各描画タイプ固有のデータ ---
+struct GraphData { FVector2D Location; FRotator Rotation; FScale Scale; int Handle; };
+struct BoxData { FVector2D Location; FVector2D WidthHeight; FRotator Rotation; int Color; bool Fill; };
+struct TextData { FVector2D Location; std::string Text; int Color; int Handle; };
+struct LineData { FVector2D StartLocation; FVector2D EndLocation; int Color; };
+struct CircleData { FVector2D Location; float Radius; int Color; bool Fill; };
+struct RectGraphData { FVector2D DestLocation; FVector2D SrcLocation; FVector2D SrcSize; int Handle; };
+
+// Variant でまとめる
+using RenderCommandData = std::variant<GraphData, BoxData, TextData, LineData, CircleData, RectGraphData>;
+
+struct RenderCommon {
+    int priority = 0;
+    int alpha = 255;
+    RenderSpace space = RenderSpace::World;
 };
 
 struct RenderCommand {
-    int priority = 0;
-    RenderType type = RenderType::Graph;
-
-    float x1 = 0.0f;
-    float y1 = 0.0f;
-    float x2 = 0.0f;
-    float y2 = 0.0f;
-    int handle = -1;
-    int color = 0;
-    int fill = 1;
-    int alpha = 255;
-    double Scale = 1.0;
-    double AngleDeg = 0.0;
-    float srcX = 0.0f;
-    float srcY = 0.0f;
-    float srcWidth = 0.0f;
-    float srcHeight = 0.0f;
-    std::string text;
-    RenderSpace space = RenderSpace::World;
+    RenderCommon common;
+    RenderCommandData data;
 };
 
 class MCameraComponent;
 
-class RenderSystem
-{
+class RenderSystem {
 public:
     RenderSystem();
     static RenderSystem& GetInstance();
 
-    void SubmitGraph(float x, float y, double Scale, double AngleDeg, int handle, RenderSpace space , int priority, int alpha = 255);
-    void SubmitBox(float x1, float y1, float x2, float y2, float AngleDeg, int color, int fill, RenderSpace space , int priority, int alpha = 255);
-    void SubmitText(const std::string& text, float x, float y, int color, int handle, RenderSpace space ,int priority, int alpha = 255);
-    void SubmitLine(float x1, float y1, float x2, float y2, int color, RenderSpace space, int priority, int alpha = 255);
-    void SubmitRectGraph(float destX, float destY, float srcX, float srcY, float srcW, float srcH,int handle, RenderSpace space, int priority, int alpha = 255);
-    void SubmitCircle(float x, float y, float radius, int color, int fill, RenderSpace space, int priority, int alpha = 255);
+    // 以前の引数を踏襲しつつ内部で構造体化するインターフェース
+    void SubmitLine(FVector2D Start, FVector2D End, int Color, RenderSpace Space, int Priority, int Alpha = 255);
+    void SubmitBox(FVector2D Location, FVector2D WidthHeight, FRotator Rotation, int Color, bool Fill, RenderSpace Space, int Priority, int Alpha = 255);
+    void SubmitCircle(FVector2D Location, float Radius, int Color, bool Fill, RenderSpace Space, int Priority, int Alpha = 255);
+    void SubmitText(FVector2D Location, const std::string& Text, int Handle, int Color, RenderSpace Space, int Priority, int Alpha = 255);
+    void SubmitGraph(FVector2D Location, int Handle, FScale Scale, FRotator Rotation, RenderSpace Space, int Priority, int Alpha = 255);
+    void SubmitRectGraph(FVector2D Dest, FVector2D SrcLoc, FVector2D SrcSize, int Handle, RenderSpace Space, int Priority, int Alpha = 255);
+
     FVector2D WorldToScreen(const FVector2D& worldPosition) const;
     FVector2D ScreenToWorld(const FVector2D& screenPosition) const;
-
     void Draw();
-
     void SetCameraView(MCameraComponent* m);
     MCameraComponent* GetCamera();
 

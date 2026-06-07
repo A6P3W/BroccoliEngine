@@ -6,14 +6,22 @@ void MRectangleCollisionComponent::Draw()
 {
 	if (!IsDebug)return;
 	FVector2D center = GetWorldLocation();
-	float halfWidth = (m_width * GetScale()) * 0.5f;
-	float halfHeight = (m_height * GetScale()) * 0.5f;
+	float halfWidth = (m_width * GetWorldScale()) * 0.5f;
+	float halfHeight = (m_height * GetWorldScale()) * 0.5f;
+
+	// 回転時のピボット(左上)を計算するために、中心から左上へのベクトルを回転させます
+	float rad = UMath::DegToRad(GetWorldRotation().Rotation);
+	float cosA = std::cos(rad);
+	float sinA = std::sin(rad);
+
+	FVector2D rotatedTopLeftOffset = {
+		-halfWidth * cosA - (-halfHeight) * sinA,
+		-halfWidth * sinA + (-halfHeight) * cosA
+	};
 
 	RenderSystem::GetInstance().SubmitBox(
-		center.X - halfWidth,
-		center.Y - halfHeight,
-		center.X + halfWidth,
-		center.Y + halfHeight,
+		{ center.X + rotatedTopLeftOffset.X, center.Y + rotatedTopLeftOffset.Y }, // 回転を考慮した左上座標
+		{ halfWidth * 2.0f, halfHeight * 2.0f }, // ← 右下座標ではなく、正しい幅と高さを指定
 		GetWorldRotation().Rotation,
 		0x00FF00,
 		0,
@@ -25,8 +33,8 @@ void MRectangleCollisionComponent::Draw()
 FAABB MRectangleCollisionComponent::GetAABB() const
 {
 	FVector2D center = GetWorldLocation();
-	float halfWidth = (m_width * GetScale()) * 0.5f;
-	float halfHeight = (m_height * GetScale()) * 0.5f;
+	float halfWidth = (m_width * GetWorldScale()) * 0.5f;
+	float halfHeight = (m_height * GetWorldScale()) * 0.5f;
 
 	FAABB aabb;
 	aabb.MinX = center.X - halfWidth;

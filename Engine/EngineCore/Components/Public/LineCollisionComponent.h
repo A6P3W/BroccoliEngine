@@ -13,8 +13,8 @@ public:
 	FVector2D GetLocalStart() const { return m_localStart; }
 	FVector2D GetLocalEnd() const { return m_localEnd; }
 
-	FVector2D GetWorldStart() const { return GetWorldLocation() + m_localStart.RotateVector(GetWorldRotation()) * GetScale(); }
-	FVector2D GetWorldEnd() const { return GetWorldLocation() + m_localEnd.RotateVector(GetWorldRotation()) * GetScale(); }
+	FVector2D GetWorldStart() const { return GetWorldLocation() + m_localStart.RotateVector(GetWorldRotation()) * GetWorldScale(); }
+	FVector2D GetWorldEnd() const { return GetWorldLocation() + m_localEnd.RotateVector(GetWorldRotation()) * GetWorldScale(); }
 
 	void Draw() override;
 	FAABB GetAABB() const override;

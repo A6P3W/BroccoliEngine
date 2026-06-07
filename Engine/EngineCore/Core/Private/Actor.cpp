@@ -159,12 +159,12 @@ bool AActor::IsPendingDestroy() const
 
 FScale AActor::GetActorScale() const
 {
-	return m_rootComponent->GetScale();
+	return m_rootComponent->GetWorldScale();
 }
 
 bool AActor::SetActorScale(float NewScale)
 {
-	m_rootComponent->SetScale(NewScale);
+	m_rootComponent->SetWorldScale(NewScale);
 	return true;
 }
 

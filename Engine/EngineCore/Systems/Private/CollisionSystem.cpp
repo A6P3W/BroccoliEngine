@@ -151,7 +151,7 @@ void CollisionSystem::CheckCollisions()
 void CollisionSystem::CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b)
 {
 	FVector2D locA = a->GetWorldLocation(), locB = b->GetWorldLocation();
-	float radA = a->GetRadius() * a->GetScale(), radB = b->GetRadius() * b->GetScale();
+	float radA = a->GetRadius() * a->GetWorldScale(), radB = b->GetRadius() * b->GetWorldScale();
 	float dx = locB.X - locA.X;
 	float dy = locB.Y - locA.Y;
 	float distanceSquared = dx * dx + dy * dy;
@@ -232,8 +232,8 @@ void CollisionSystem::CircleAndRectangle(MCircleCollisionComponent* circle, MRec
 {
 	FVector2D circleCenter = circle->GetWorldLocation();
 	FVector2D rectCenter = rect->GetWorldLocation();
-	float halfWidth = (rect->GetWidth() * rect->GetScale()) * 0.5f;
-	float halfHeight = (rect->GetHeight() * rect->GetScale()) * 0.5f;
+	float halfWidth = (rect->GetWidth() * rect->GetWorldScale()) * 0.5f;
+	float halfHeight = (rect->GetHeight() * rect->GetWorldScale()) * 0.5f;
 	float minX = rectCenter.X - halfWidth;
 	float maxX = rectCenter.X + halfWidth;
 	float minY = rectCenter.Y - halfHeight;
@@ -244,7 +244,7 @@ void CollisionSystem::CircleAndRectangle(MCircleCollisionComponent* circle, MRec
 	float dx = circleCenter.X - closestX;
 	float dy = circleCenter.Y - closestY;
 	float distanceSquared = dx * dx + dy * dy;
-	float radius = circle->GetRadius() * circle->GetScale();
+	float radius = circle->GetRadius() * circle->GetWorldScale();
 
 
 
@@ -297,10 +297,10 @@ void CollisionSystem::RectangleAndRectangle(MRectangleCollisionComponent* a, MRe
 {
 	FVector2D aCenter = a->GetWorldLocation();
 	FVector2D bCenter = b->GetWorldLocation();
-	float aHalfW = (a->GetWidth() * a->GetScale()) * 0.5f;
-	float aHalfH = (a->GetHeight() * a->GetScale()) * 0.5f;
-	float bHalfW = (b->GetWidth() * b->GetScale()) * 0.5f;
-	float bHalfH = (b->GetHeight() * b->GetScale()) * 0.5f;
+	float aHalfW = (a->GetWidth() * a->GetWorldScale()) * 0.5f;
+	float aHalfH = (a->GetHeight() * a->GetWorldScale()) * 0.5f;
+	float bHalfW = (b->GetWidth() * b->GetWorldScale()) * 0.5f;
+	float bHalfH = (b->GetHeight() * b->GetWorldScale()) * 0.5f;
 
 	bool isOverlapping = std::abs(aCenter.X - bCenter.X) <= (aHalfW + bHalfW)
 		&& std::abs(aCenter.Y - bCenter.Y) <= (aHalfH + bHalfH);
@@ -339,7 +339,7 @@ void CollisionSystem::LineAndCircle(MLineCollisionComponent* line, MCircleCollis
 	FVector2D start = line->GetWorldStart();
 	FVector2D end = line->GetWorldEnd();
 	FVector2D center = circle->GetWorldLocation();
-	float radius = circle->GetRadius() * circle->GetScale();
+	float radius = circle->GetRadius() * circle->GetWorldScale();
 	bool isOverlapping = DistanceSquaredPointToSegment(center, start, end) <= (radius * radius);
 
 	auto lineActor = line->GetOwner();
@@ -377,8 +377,8 @@ void CollisionSystem::LineAndRectangle(MLineCollisionComponent* line, MRectangle
 	FVector2D start = line->GetWorldStart();
 	FVector2D end = line->GetWorldEnd();
 	FVector2D rectCenter = rect->GetWorldLocation();
-	float halfWidth = (rect->GetWidth() * rect->GetScale()) * 0.5f;
-	float halfHeight = (rect->GetHeight() * rect->GetScale()) * 0.5f;
+	float halfWidth = (rect->GetWidth() * rect->GetWorldScale()) * 0.5f;
+	float halfHeight = (rect->GetHeight() * rect->GetWorldScale()) * 0.5f;
 
 	float minX = rectCenter.X - halfWidth;
 	float maxX = rectCenter.X + halfWidth;
