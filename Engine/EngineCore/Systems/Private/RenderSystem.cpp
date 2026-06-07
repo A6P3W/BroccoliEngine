@@ -1,277 +1,177 @@
 ﻿#include "RenderSystem.h"
 #include "DxLib.h"
-#include <algorithm>
 #include <cmath>
+#include <algorithm>
 #include "CameraComponent.h"
-#include "Utils/UMath.h"
 #include "EngineDefine.h"
 
-RenderSystem::RenderSystem()
-{}
+RenderSystem::RenderSystem() {}
 
-RenderSystem& RenderSystem::GetInstance()
-{
-	static RenderSystem instance;
-	return instance;
+RenderSystem& RenderSystem::GetInstance() {
+    static RenderSystem instance;
+    return instance;
 }
 
-void RenderSystem::SubmitGraph(float x, float y, double Scale, double AngleDeg, int handle, RenderSpace space, int priority, int alpha)
-{
-	RenderCommand command;
-	command.type = RenderType::Graph;
-	command.x1 = x;
-	command.y1 = y;
-	command.Scale = Scale;
-	command.AngleDeg = AngleDeg;
-	command.handle = handle;
-	command.space = space;
-	command.priority = priority;
-	command.alpha = alpha;
-	m_priorityCommands[priority].push_back(std::move(command));
+// --- Submit 系の実装 ---
+
+void RenderSystem::SubmitGraph(FVector2D Location, int Handle, FScale Scale, FRotator Rotation, RenderSpace Space, int Priority, int Alpha) {
+    RenderCommand cmd;
+    cmd.common = { Priority, Alpha, Space };
+    cmd.data = GraphData{ Location, Rotation, Scale, Handle };
+    m_priorityCommands[Priority].push_back(std::move(cmd));
 }
 
-void RenderSystem::SubmitCircle(float x, float y, float radius, int color, int fill, RenderSpace space, int priority, int alpha)
-{
-	RenderCommand command;
-	command.type = RenderType::Circle;
-	command.x1 = x;
-	command.y1 = y;
-	command.x2 = radius;
-	command.color = color;
-	command.fill = fill;
-	command.space = space;
-	command.priority = priority;
-	command.alpha = alpha;
-	m_priorityCommands[priority].push_back(std::move(command));
+void RenderSystem::SubmitCircle(FVector2D Location, float Radius, int Color, bool Fill, RenderSpace Space, int Priority, int Alpha) {
+    RenderCommand cmd;
+    cmd.common = { Priority, Alpha, Space };
+    cmd.data = CircleData{ Location, Radius, Color, Fill };
+    m_priorityCommands[Priority].push_back(std::move(cmd));
 }
 
-void RenderSystem::SubmitBox(float x1, float y1, float x2, float y2, float AngleDeg, int color, int fill, RenderSpace space, int priority, int alpha)
-{
-	RenderCommand command;
-	command.type = RenderType::Box;
-	command.x1 = x1;
-	command.y1 = y1;
-	command.x2 = x2;
-	command.y2 = y2;
-	command.AngleDeg = AngleDeg;
-	command.color = color;
-	command.fill = fill;
-	command.space = space;
-	command.priority = priority;
-	command.alpha = alpha;
-	m_priorityCommands[priority].push_back(std::move(command));
+void RenderSystem::SubmitBox(FVector2D Location, FVector2D WidthHeight, FRotator Rotation, int Color, bool Fill, RenderSpace Space, int Priority, int Alpha) {
+    RenderCommand cmd;
+    cmd.common = { Priority, Alpha, Space };
+    cmd.data = BoxData{ Location, WidthHeight, Rotation, Color, Fill };
+    m_priorityCommands[Priority].push_back(std::move(cmd));
 }
 
-void RenderSystem::SubmitText(const std::string& text, float x, float y, int color, int handle, RenderSpace space, int priority, int alpha)
-{
-	RenderCommand command;
-	command.type = RenderType::Text;
-	command.text = text;
-	command.x1 = x;
-	command.y1 = y;
-	command.handle = handle;
-	command.color = color;
-	command.space = space;
-	command.priority = priority;
-	command.alpha = alpha;
-	m_priorityCommands[priority].push_back(std::move(command));
+void RenderSystem::SubmitText(FVector2D Location, const std::string& Text, int Handle, int Color, RenderSpace Space, int Priority, int Alpha) {
+    RenderCommand cmd;
+    cmd.common = { Priority, Alpha, Space };
+    cmd.data = TextData{ Location, Text, Color, Handle };
+    m_priorityCommands[Priority].push_back(std::move(cmd));
 }
 
-void RenderSystem::SubmitLine(float x1, float y1, float x2, float y2, int color, RenderSpace space, int priority, int alpha)
-{
-	RenderCommand command;
-	command.type = RenderType::Line;
-	command.x1 = x1; command.y1 = y1;
-	command.x2 = x2; command.y2 = y2;
-	command.color = color;
-	command.space = space;
-	command.priority = priority;
-	command.alpha = alpha;
-	m_priorityCommands[priority].push_back(std::move(command));
+void RenderSystem::SubmitLine(FVector2D Start, FVector2D End, int Color, RenderSpace Space, int Priority, int Alpha) {
+    RenderCommand cmd;
+    cmd.common = { Priority, Alpha, Space };
+    cmd.data = LineData{ Start, End, Color };
+    m_priorityCommands[Priority].push_back(std::move(cmd));
 }
 
-void RenderSystem::SubmitRectGraph(float destX, float destY, float srcX, float srcY, float srcW, float srcH, int handle, RenderSpace space, int priority, int alpha)
-{
-	RenderCommand command;
-	command.type = RenderType::RectGraph;
-	command.x1 = destX;
-	command.y1 = destY;
-	command.srcX = srcX;
-	command.srcY = srcY;
-	command.srcWidth = srcW;
-	command.srcHeight = srcH;
-	command.handle = handle;
-	command.space = space;
-	command.priority = priority;
-	command.alpha = alpha;
-	m_priorityCommands[priority].push_back(std::move(command));
+void RenderSystem::SubmitRectGraph(FVector2D Dest, FVector2D SrcLoc, FVector2D SrcSize, int Handle, RenderSpace Space, int Priority, int Alpha) {
+    RenderCommand cmd;
+    cmd.common = { Priority, Alpha, Space };
+    cmd.data = RectGraphData{ Dest, SrcLoc, SrcSize, Handle };
+    m_priorityCommands[Priority].push_back(std::move(cmd));
 }
 
-FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPosition) const
-{
-	FVector2D camPos = FVector2D::ZeroVector;
-	float camAngle = 0.0f;
-	float camFOV = 1.0f;
-	if (m_MainCamera) {
-		camPos = m_MainCamera->GetWorldLocation();
-		camAngle = m_MainCamera->GetWorldRotation().Rotation;
-		camFOV = m_MainCamera->GetFOV();
-	}
+// --- 座標変換 ---
 
-	// 仮想解像度を基準にする
-	const float centerX = VirtualWidth * 0.5f;
-	const float centerY = VirtualHeight * 0.5f;
-
-	const float localX = worldPosition.X - camPos.X;
-	const float localY = worldPosition.Y - camPos.Y;
-
-	const float rad = UMath::DegToRad(-camAngle);
-	const float cosTheta = std::cos(rad);
-	const float sinTheta = std::sin(rad);
-
-	const float rotatedX = localX * cosTheta - localY * sinTheta;
-	const float rotatedY = localX * sinTheta + localY * cosTheta;
-
-	return {
-		rotatedX * camFOV + centerX,
-		rotatedY * camFOV + centerY
-	};
+FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
+    FVector2D camPos = FVector2D::ZeroVector;
+    float camRot = 0.0f;
+    float camFOV = 1.0f;
+    if (m_MainCamera) {
+        camPos = m_MainCamera->GetWorldLocation();
+        camRot = m_MainCamera->GetWorldRotation().Rotation;
+        camFOV = m_MainCamera->GetFOV();
+    }
+    const float centerX = VirtualWidth * 0.5f;
+    const float centerY = VirtualHeight * 0.5f;
+    const float localX = worldPos.X - camPos.X;
+    const float localY = worldPos.Y - camPos.Y;
+    const float rad = UMath::DegToRad(-camRot);
+    const float cosT = std::cos(rad), sinT = std::sin(rad);
+    return {
+        (localX * cosT - localY * sinT) * camFOV + centerX,
+        (localX * sinT + localY * cosT) * camFOV + centerY
+    };
 }
 
-FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPosition) const
-{
-	FVector2D camPos = FVector2D::ZeroVector;
-	float camAngle = 0.0f;
-	float camFOV = 1.0f;
-	if (m_MainCamera) {
-		camPos = m_MainCamera->GetWorldLocation();
-		camAngle = m_MainCamera->GetWorldRotation().Rotation;
-		camFOV = m_MainCamera->GetFOV();
-	}
-
-	// 仮想解像度を基準にする
-	const float centerX = VirtualWidth * 0.5f;
-	const float centerY = VirtualHeight * 0.5f;
-
-	const float safeFOV = (std::abs(camFOV) < 1.0e-6f) ? 1.0e-6f : camFOV;
-	const float localX = (screenPosition.X - centerX) / safeFOV;
-	const float localY = (screenPosition.Y - centerY) / safeFOV;
-
-	const float rad = UMath::DegToRad(camAngle);
-	const float cosTheta = std::cos(rad);
-	const float sinTheta = std::sin(rad);
-
-	const float rotatedX = localX * cosTheta - localY * sinTheta;
-	const float rotatedY = localX * sinTheta + localY * cosTheta;
-
-	return {
-		rotatedX + camPos.X,
-		rotatedY + camPos.Y
-	};
+FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPos) const {
+    FVector2D camPos = FVector2D::ZeroVector;
+    float camRot = 0.0f;
+    float camFOV = 1.0f;
+    if (m_MainCamera) {
+        camPos = m_MainCamera->GetWorldLocation();
+        camRot = m_MainCamera->GetWorldRotation().Rotation;
+        camFOV = m_MainCamera->GetFOV();
+    }
+    const float centerX = VirtualWidth * 0.5f;
+    const float centerY = VirtualHeight * 0.5f;
+    const float safeFOV = (std::abs(camFOV) < 1e-6f) ? 1e-6f : camFOV;
+    const float localX = (screenPos.X - centerX) / safeFOV;
+    const float localY = (screenPos.Y - centerY) / safeFOV;
+    const float rad = UMath::DegToRad(camRot);
+    const float cosT = std::cos(rad), sinT = std::sin(rad);
+    return {
+        (localX * cosT - localY * sinT) + camPos.X,
+        (localX * sinT + localY * cosT) + camPos.Y
+    };
 }
 
+// --- メイン描画ループ ---
 
-void RenderSystem::Draw()
-{
-	float camAngle = 0.0f;
-	float camFOV = 1.0f;
-	if (m_MainCamera) {
-		camAngle = m_MainCamera->GetWorldRotation().Rotation;
-		camFOV = m_MainCamera->GetFOV();
-	}
+void RenderSystem::Draw() {
+    float camRot = m_MainCamera ? m_MainCamera->GetWorldRotation().Rotation : 0.0f;
+    float camFOV = m_MainCamera ? m_MainCamera->GetFOV() : 1.0f;
 
-	int current_blendmode, current_alpha;
-	GetDrawBlendMode(&current_blendmode, &current_alpha);
+    int curBlend, curAlpha;
+    GetDrawBlendMode(&curBlend, &curAlpha);
 
-	for (const auto& pair : m_priorityCommands) {
-		for (const auto& command : pair.second) {
-			// アルファ値の設定
-			if (command.alpha != current_alpha) {
-				int normalizedAlpha = std::clamp(command.alpha, 0, 255);
-				SetDrawBlendMode(DX_BLENDMODE_ALPHA, normalizedAlpha);
-				current_alpha = normalizedAlpha;
-			}
+    for (auto& [priority, commands] : m_priorityCommands) {
+        for (const auto& cmd : commands) {
+            // アルファ値更新
+            if (cmd.common.alpha != curAlpha) {
+                curAlpha = std::clamp(cmd.common.alpha, 0, 255);
+                SetDrawBlendMode(DX_BLENDMODE_ALPHA, curAlpha);
+            }
 
-			if (command.space == RenderSpace::World && command.type == RenderType::Box) {
-				float worldW = command.x2 - command.x1;
-				float worldH = command.y2 - command.y1;
+            // 各データ型に応じた描画処理
+            std::visit([&](auto&& d) {
+                using T = std::decay_t<decltype(d)>;
 
-				double objAngleRad = command.AngleDeg;
-				float cosA = static_cast<float>(std::cos(objAngleRad));
-				float sinA = static_cast<float>(std::sin(objAngleRad));
+                // --- Graph ---
+                if constexpr (std::is_same_v<T, GraphData>) {
+                    FVector2D drawPos = (cmd.common.space == RenderSpace::World) ? WorldToScreen(d.Location) : d.Location;
+                    float drawScale = d.Scale.Scale * (cmd.common.space == RenderSpace::World ? camFOV : 1.0f);
+                    float drawRot = UMath::DegToRad(d.Rotation.Rotation) - (cmd.common.space == RenderSpace::World ? UMath::DegToRad(camRot) : 0.0f);
+                    DrawRotaGraphFastF(drawPos.X, drawPos.Y, drawScale, drawRot, d.Handle, TRUE);
+                }
+                // --- Box ---
+                else if constexpr (std::is_same_v<T, BoxData>) {
+                    if (cmd.common.space == RenderSpace::World) {
+                        float rad = UMath::DegToRad(d.Rotation.Rotation);
+                        float cosA = std::cos(rad), sinA = std::sin(rad);
+                        auto GetV = [&](float lx, float ly) {
+                            return WorldToScreen({ d.Location.X + (lx * cosA - ly * sinA), d.Location.Y + (lx * sinA + ly * cosA) });
+                            };
+                        FVector2D v1 = GetV(0, 0), v2 = GetV(d.WidthHeight.X, 0), v3 = GetV(d.WidthHeight.X, d.WidthHeight.Y), v4 = GetV(0, d.WidthHeight.Y);
+                        DrawQuadrangle(v1.X, v1.Y, v2.X, v2.Y, v3.X, v3.Y, v4.X, v4.Y, d.Color, d.Fill);
+                    }
+                    else {
+                        DrawBox(d.Location.X, d.Location.Y, d.Location.X + d.WidthHeight.X, d.Location.Y + d.WidthHeight.Y, d.Color, d.Fill);
+                    }
+                }
+                // --- Circle ---
+                else if constexpr (std::is_same_v<T, CircleData>) {
+                    FVector2D drawPos = (cmd.common.space == RenderSpace::World) ? WorldToScreen(d.Location) : d.Location;
+                    float drawRadius = d.Radius * (cmd.common.space == RenderSpace::World ? camFOV : 1.0f);
+                    DrawCircle(drawPos.X, drawPos.Y, drawRadius, d.Color, d.Fill);
+                }
+                // --- Text ---
+                else if constexpr (std::is_same_v<T, TextData>) {
+                    FVector2D drawPos = (cmd.common.space == RenderSpace::World) ? WorldToScreen(d.Location) : d.Location;
+                    DrawStringToHandle(drawPos.X, drawPos.Y, d.Text.c_str(), d.Color, d.Handle);
+                }
+                // --- Line ---
+                else if constexpr (std::is_same_v<T, LineData>) {
+                    FVector2D p1 = (cmd.common.space == RenderSpace::World) ? WorldToScreen(d.StartLocation) : d.StartLocation;
+                    FVector2D p2 = (cmd.common.space == RenderSpace::World) ? WorldToScreen(d.EndLocation) : d.EndLocation;
+                    DrawLine(p1.X, p1.Y, p2.X, p2.Y, d.Color);
+                }
+                // --- RectGraph ---
+                else if constexpr (std::is_same_v<T, RectGraphData>) {
+                    FVector2D drawPos = (cmd.common.space == RenderSpace::World) ? WorldToScreen(d.DestLocation) : d.DestLocation;
+                    DrawRectGraphF(drawPos.X, drawPos.Y, d.SrcLocation.X, d.SrcLocation.Y, d.SrcSize.X, d.SrcSize.Y, d.Handle, TRUE);
+                }
 
-				auto GetProjectedVertex = [&](float lx, float ly) -> FVector2D {
-					float rx = lx * cosA - ly * sinA;
-					float ry = lx * sinA + ly * cosA;
-
-					return WorldToScreen({ command.x1 + rx, command.y1 + ry });
-					};
-
-				FVector2D v1 = GetProjectedVertex(0, 0);           // 左上
-				FVector2D v2 = GetProjectedVertex(worldW, 0);      // 右上
-				FVector2D v3 = GetProjectedVertex(worldW, worldH); // 右下
-				FVector2D v4 = GetProjectedVertex(0, worldH);      // 左下
-
-				DrawQuadrangle(
-					static_cast<int>(v1.X), static_cast<int>(v1.Y),
-					static_cast<int>(v2.X), static_cast<int>(v2.Y),
-					static_cast<int>(v3.X), static_cast<int>(v3.Y),
-					static_cast<int>(v4.X), static_cast<int>(v4.Y),
-					command.color, command.fill);
-
-				continue;
-			}
-
-			float renderX = command.x1;
-			float renderY = command.y1;
-			float optX = command.x2;
-			float optY = command.y2;
-			float finalScale = command.Scale;
-			float finalRadius = command.x2;
-			double drawAngle = command.AngleDeg;
-
-			if (command.space == RenderSpace::World) {
-				const FVector2D screenPos = WorldToScreen({ renderX, renderY });
-				renderX = screenPos.X;
-				renderY = screenPos.Y;
-				if (command.type == RenderType::Line) {
-					const FVector2D optScreenPos = WorldToScreen({ optX, optY });
-					optX = optScreenPos.X;
-					optY = optScreenPos.Y;
-				}
-				finalScale *= camFOV;
-				finalRadius *= camFOV;
-				drawAngle -= UMath::DegToRad(camAngle);
-			}
-
-			switch (command.type) {
-			case RenderType::Graph:
-				DrawRotaGraphFastF(renderX, renderY, (float)finalScale, (float)drawAngle, command.handle, TRUE);
-				break;
-			case RenderType::Text:
-				DrawStringToHandle((int)renderX, (int)renderY, command.text.c_str(), command.color, command.handle);
-				break;
-			case RenderType::Line:
-				DrawLine((int)renderX, (int)renderY, (int)optX, (int)optY, command.color);
-				break;
-			case RenderType::Circle:
-				DrawCircle((int)renderX, (int)renderY, (int)finalRadius, command.color, command.fill);
-				break;
-			case RenderType::Box:
-				DrawBox((int)renderX, (int)renderY, (int)optX, (int)optY, command.color, command.fill);
-				break;
-			}
-		}
-	}
-	m_priorityCommands.clear();
+                }, cmd.data);
+        }
+    }
+    m_priorityCommands.clear();
 }
 
-void RenderSystem::SetCameraView(MCameraComponent* m)
-{
-	m_MainCamera = m;
-}
-
-MCameraComponent* RenderSystem::GetCamera()
-{
-	return m_MainCamera;
-}
+void RenderSystem::SetCameraView(MCameraComponent* m) { m_MainCamera = m; }
+MCameraComponent* RenderSystem::GetCamera() { return m_MainCamera; }

@@ -7,6 +7,12 @@ EditorSelectPointComponent::EditorSelectPointComponent()
 
 }
 
+
+void EditorSelectPointComponent::Draw()
+{
+	SelectPointSprite->SetWorldScale(1);
+}
+
 void EditorSelectPointComponent::Selected(bool bSelected)
 {
 	int color = bSelected ? GetColor(255, 255, 0) : GetColor(255, 0, 0);

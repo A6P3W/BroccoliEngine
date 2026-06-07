@@ -30,12 +30,15 @@ public:
 	FRotator GetWorldRotation() const;
 	FRotator GetRelativeRotation() const;
 
-	bool SetScale(float nScale);
-	float GetScale() const;
+	bool SetRelativeScale(float nScale); 
+	float GetRelativeScale() const;
+
+	bool SetWorldScale(float nScale);
+	float GetWorldScale() const;
 
 	void SetVisibility(bool bNewVisibility);
 	bool IsVisible() const { return bVisible; }
-	bool bVisible;
+	bool bVisible = true;
 
 	bool bGridDirty() { return IsGridDirty; }
 	void SetGridClean() { IsGridDirty = true; }
@@ -48,7 +51,7 @@ protected:
 	
 	FVector2D RelativeLocation;
 	FRotator RelativeRotation;
-	FScale Scale;
+	FScale RelativeScale;
 
 	mutable FVector2D WorldLocation;
 	mutable FRotator WorldRotation;

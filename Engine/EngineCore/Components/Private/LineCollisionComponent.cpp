@@ -6,14 +6,9 @@ void MLineCollisionComponent::Draw()
 {
 	if (!IsDebug)return;
 
-	FVector2D start = GetWorldStart();
-	FVector2D end = GetWorldEnd();
-
 	RenderSystem::GetInstance().SubmitLine(
-		start.X,
-		start.Y,
-		end.X,
-		end.Y,
+		GetWorldStart(),
+		GetWorldEnd(),
 		0x00FF00,
 		RenderSpace::World,
 		100,

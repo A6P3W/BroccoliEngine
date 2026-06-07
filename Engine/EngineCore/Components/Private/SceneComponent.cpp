@@ -146,14 +146,33 @@ FRotator MSceneComponent::GetRelativeRotation() const
 	return RelativeRotation;
 }
 
-bool MSceneComponent::SetScale(float nScale)
+bool MSceneComponent::SetRelativeScale(float nScale)
 {
-	Scale = nScale;
+	RelativeScale.Scale = nScale;
 	MakeTransformDirty();
 	return true;
 }
 
-float MSceneComponent::GetScale() const
+float MSceneComponent::GetRelativeScale() const
+{
+	return RelativeScale.Scale;
+}
+
+bool MSceneComponent::SetWorldScale(float nScale)
+{
+	if (!m_parentComponent) {
+		// 親がいなければワールドスケール = 相対スケール
+		return SetRelativeScale(nScale);
+	}
+
+	// 親がいる場合： 自分の相対 = 目標ワールド / 親のワールド
+	float parentWorldScale = m_parentComponent->GetWorldScale();
+	if (std::abs(parentWorldScale) < 1e-6f) return false; // 0除算防止
+
+	return SetRelativeScale(nScale / parentWorldScale);
+}
+
+float MSceneComponent::GetWorldScale() const
 {
 	UpdateTransform();
 	return WorldScale.Scale;
@@ -185,16 +204,16 @@ void MSceneComponent::UpdateTransform() const
 		// 親がいない場合は相対値がそのままワールド値
 		WorldLocation = RelativeLocation;
 		WorldRotation = RelativeRotation;
-		WorldScale = Scale.Scale;
+		WorldScale = RelativeScale.Scale;
 	}
 	else {
 		// 親の最新トランスフォームを先に確定させる（再帰）
-		float pScale = m_parentComponent->GetScale();
+		float pScale = m_parentComponent->GetWorldScale();
 		FRotator pRot = m_parentComponent->GetWorldRotation();
 		FVector2D pLoc = m_parentComponent->GetWorldLocation();
 
 		// 1. スケールの計算
-		WorldScale = Scale.Scale * pScale;
+		WorldScale = RelativeScale.Scale * pScale;
 
 		// 2. 回転の計算
 		WorldRotation.Rotation = pRot.Rotation + RelativeRotation.Rotation;

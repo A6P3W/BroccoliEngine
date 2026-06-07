@@ -5,174 +5,97 @@
 
 MSpriteComponent::MSpriteComponent(int priority, RenderSpace space)
 {
-	m_command.priority = priority;
-	m_command.space = space;
-
+    m_common.priority = priority;
+    m_common.space = space;
+    m_common.alpha = 255;
+    // デフォルトは空のグラフ
+    m_data = GraphData{};
 }
 
-void MSpriteComponent::SubmitGraph(double Scale, int handle, int alpha)
+void MSpriteComponent::SubmitGraph(int handle, float scale, int alpha)
 {
-	m_command.type = RenderType::Graph;
-	m_command.Scale = Scale;
-	m_command.handle = handle;
-	m_command.alpha = alpha;
+    m_data = GraphData{ {0,0}, 0.0f, scale, handle };
+    m_common.alpha = alpha;
 }
 
-void MSpriteComponent::SubmitBox(float width, float height, int color, int fill, int alpha)
+void MSpriteComponent::SubmitBox(float width, float height, int color, bool fill, int alpha)
 {
-	m_command.type = RenderType::Box;
-	m_command.x2 = width;
-	m_command.y2 = height;
-	m_command.color = color;
-	m_command.fill = fill;
-	m_command.alpha = alpha;
+    m_data = BoxData{ {0,0}, {width, height}, 0.0f, color, fill };
+    m_common.alpha = alpha;
 }
 
 void MSpriteComponent::SubmitText(const std::string& text, int color, int handle, int alpha)
 {
-	m_command.type = RenderType::Text;
-	m_command.text = text;
-	m_command.color = color;
-	if (handle != -1) {
-		m_command.handle = handle;
-	} else {
-		m_command.handle = ResourceManager::GetInstance().GetFont(12, 5); 
-	}
-	m_command.alpha = alpha;
+    int fontHandle = (handle != -1) ? handle : ResourceManager::GetInstance().GetFont(12, 5);
+    m_data = TextData{ {0,0}, text, color, fontHandle };
+    m_common.alpha = alpha;
 }
 
-void MSpriteComponent::SubmitLine(float x2, float y2, int color, int alpha)
+void MSpriteComponent::SubmitLine(const FVector2D& relativeEnd, int color, int alpha)
 {
-	m_command.type = RenderType::Line;
-	m_command.x2 = x2;
-	m_command.y2 = y2;
-	m_command.color = color;
-	m_command.alpha = alpha;
+    m_data = LineData{ {0,0}, relativeEnd, color };
+    m_common.alpha = alpha;
 }
 
 void MSpriteComponent::SubmitRectGraph(float srcX, float srcY, float srcW, float srcH, int handle, int alpha)
 {
-	m_command.type = RenderType::RectGraph;
-	m_command.srcX = srcX;
-	m_command.srcY = srcY;
-	m_command.srcWidth = srcW;
-	m_command.srcHeight = srcH;
-	m_command.handle = handle;
-	m_command.alpha = alpha;
+    m_data = RectGraphData{ {0,0}, {srcX, srcY}, {srcW, srcH}, handle };
+    m_common.alpha = alpha;
 }
 
-void MSpriteComponent::SubmitCircle(float radius, int color, int fill, int alpha)
+void MSpriteComponent::SubmitCircle(float radius, int color, bool fill, int alpha)
 {
-	m_command.type = RenderType::Circle;
-	m_command.x2 = radius;
-	m_command.color = color;
-	m_command.fill = fill;
-	m_command.alpha = alpha;
+    m_data = CircleData{ {0,0}, radius, color, fill };
+    m_common.alpha = alpha;
 }
 
 void MSpriteComponent::Draw()
 {
-    const FVector2D& WorldLocation = GetWorldLocation();
-	const FRotator& WorldRotation = GetWorldRotation();
-	double WorldRadRotation = UMath::DegToRad(WorldRotation.Rotation);
-	RenderCommand command = m_command;
+    if (!bVisible) return;
 
-	command.x1 = WorldLocation.X;
-	command.y1 = WorldLocation.Y;
+    // 現在のワールドトランスフォームを取得
+    FVector2D worldPos = GetWorldLocation();
+    FRotator worldRot = GetWorldRotation();
+    float worldScale = GetWorldScale();
 
-	if (command.type == RenderType::Box) {
-		command.x2 = WorldLocation.X + command.x2;
-		command.y2 = WorldLocation.Y + command.y2;
-		command.AngleDeg = WorldRadRotation;
-	} else if (command.type == RenderType::Line) {
-		command.x2 = WorldLocation.X + command.x2;
-		command.y2 = WorldLocation.Y + command.y2;
-	}
+    auto& rs = RenderSystem::GetInstance();
 
-	if (command.type == RenderType::Graph) {
-		command.Scale *= GetScale();
-		command.AngleDeg = WorldRadRotation;
-	}
+    // std::visit を使って、保持しているデータ型に応じた Submit 関数を呼ぶ
+    std::visit([&](auto&& d) {
+        using T = std::decay_t<decltype(d)>;
 
-	switch (command.type) {
-	case RenderType::Graph:
-		RenderSystem::GetInstance().SubmitGraph(
-			command.x1,
-			command.y1,
-			command.Scale,
-			command.AngleDeg,
-			command.handle,
-			command.space,
-			command.priority,
-			command.alpha);
-		break;
-	case RenderType::Box:
-		RenderSystem::GetInstance().SubmitBox(
-			command.x1,
-			command.y1,
-			command.x2,
-			command.y2,
-			command.AngleDeg,
-			command.color,
-			command.fill,
-			command.space,
-			command.priority,
-			command.alpha);
-		break;
-	case RenderType::Text:
-		RenderSystem::GetInstance().SubmitText(
-			command.text,
-			command.x1,
-			command.y1,
-			command.color,
-			command.handle,
-			command.space,
-			command.priority,
-			command.alpha);
-		break;
-	case RenderType::Line:
-		RenderSystem::GetInstance().SubmitLine(
-			command.x1,
-			command.y1,
-			command.x2,
-			command.y2,
-			command.color,
-			command.space,
-			command.priority,
-			command.alpha);
-		break;
-	case RenderType::RectGraph:
-		RenderSystem::GetInstance().SubmitRectGraph(
-			command.x1,
-			command.y1,
-			command.srcX,
-			command.srcY,
-			command.srcWidth,
-			command.srcHeight,
-			command.handle,
-			command.space,
-			command.priority,
-			command.alpha);
-		break;
-	case RenderType::Circle:
-		RenderSystem::GetInstance().SubmitCircle(
-			command.x1,
-			command.y1,
-			command.x2,
-			command.color,
-			command.fill,
-			command.space,
-			command.priority,
-			command.alpha);
-		break;
-	}
+        if constexpr (std::is_same_v<T, GraphData>) {
+            // アクタのスケールと回転を合成して送信
+            rs.SubmitGraph(worldPos, d.Handle, d.Scale.Scale * worldScale, worldRot.Rotation + d.Rotation.Rotation,
+                m_common.space, m_common.priority, m_common.alpha);
+        }
+        else if constexpr (std::is_same_v<T, BoxData>) {
+            // Boxは左上座標(worldPos)とサイズ、回転を送信
+            rs.SubmitBox(worldPos, d.WidthHeight, worldRot, d.Color, d.Fill,
+                m_common.space, m_common.priority, m_common.alpha);
+        }
+        else if constexpr (std::is_same_v<T, CircleData>) {
+            rs.SubmitCircle(worldPos, d.Radius * worldScale, d.Color, d.Fill,
+                m_common.space, m_common.priority, m_common.alpha);
+        }
+        else if constexpr (std::is_same_v<T, TextData>) {
+            rs.SubmitText(worldPos, d.Text, d.Handle, d.Color,
+                m_common.space, m_common.priority, m_common.alpha);
+        }
+        else if constexpr (std::is_same_v<T, LineData>) {
+            // LineData.EndLocation は相対座標として保持しているので、ワールド回転を考慮して終点を計算
+            FVector2D rotatedEnd = d.EndLocation.RotateVector(worldRot) * worldScale;
+            rs.SubmitLine(worldPos, worldPos + rotatedEnd, d.Color,
+                m_common.space, m_common.priority, m_common.alpha);
+        }
+        else if constexpr (std::is_same_v<T, RectGraphData>) {
+            rs.SubmitRectGraph(worldPos, d.SrcLocation, d.SrcSize, d.Handle,
+                m_common.space, m_common.priority, m_common.alpha);
+        }
+        }, m_data);
 }
-
-
 
 void MSpriteComponent::OnMessage(const std::string& message)
 {
-	if (message == "HIT") {
-		// 当たった時に何か演出をするなどの処理
-	}
+    // 必要に応じて実装
 }

@@ -61,18 +61,24 @@ void AGridLine::SimpleDraw(float cellSize, int color) {
     // 垂直線
     for (float x = startX; x <= endX; x += visualCellSize) {
         RenderSystem::GetInstance().SubmitLine(
-            x, startY, x, endY,
+            {x, startY}, {x, endY},
             color, RenderSpace::World, -100, alpha
         );
     }
     // 水平線
     for (float y = startY; y <= endY; y += visualCellSize) {
         RenderSystem::GetInstance().SubmitLine(
-            startX, y, endX, y,
+            {startX, y}, {endX, y},
             color, RenderSpace::World, -100, alpha
         );
     }
 
-    RenderSystem::GetInstance().SubmitLine(0, startY, 0, endY, GetColor(255, 100, 100), RenderSpace::World, -99, 120);
-    RenderSystem::GetInstance().SubmitLine(startX, 0, endX, 0, GetColor(255, 100, 100), RenderSpace::World, -99, 120);
+    RenderSystem::GetInstance().SubmitLine(
+        {0, startY}, {0, endY},
+        GetColor(255, 100, 100), RenderSpace::World, -99, 120
+    );
+    RenderSystem::GetInstance().SubmitLine(
+        {startX, 0}, {endX, 0},
+        GetColor(255, 100, 100), RenderSpace::World, -99, 120
+    );
 }
