@@ -246,6 +246,8 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\TimerManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\KeyboardDevice.cpp" />
     <ClCompile Include="Engine\EngineSide\Default\Private\DefaultCircleCollisionActor.cpp" />
+    <ClCompile Include="Engine\EngineSide\Default\Private\DefaultLineCollisionActor.cpp" />
+    <ClCompile Include="Engine\EngineSide\Default\Private\DefaultRectangleCollisionActor.cpp" />
     <ClCompile Include="Engine\EngineSide\GridLine.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp" />
     <ClCompile Include="Engine\EngineSide\SampleScene01\SamplePawn01.cpp" />
@@ -296,6 +298,8 @@
     <ClInclude Include="Engine\EngineCore\Utils\Log.h" />
     <ClInclude Include="Engine\EngineCore\Utils\UMath.h" />
     <ClInclude Include="Engine\EngineSide\Default\Public\DefaultCircleCollisionActor.h" />
+    <ClInclude Include="Engine\EngineSide\Default\Public\DefaultLineCollisionActor.h" />
+    <ClInclude Include="Engine\EngineSide\Default\Public\DefaultRectangleCollisionActor.h" />
     <ClInclude Include="Engine\EngineSide\GridLine.h" />
     <ClInclude Include="Engine\EngineSide\SampleScene01\SamplePawn01.h" />
     <ClInclude Include="Engine\EngineSide\SampleScene01\SampleScene01.h" />
