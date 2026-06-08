@@ -12,7 +12,7 @@ class World
 {
 public:
 	World();
-	~World()=default;
+	~World();
 	void Update(float DeltaTime);
 	void Draw();
 
@@ -36,6 +36,7 @@ public:
 	void SetSimulating(bool bRunning) { bSimulating = bRunning; }
 	bool IsSimulating() const { return bSimulating; }
 
+	bool IsTrendingDown() const { return bTrendingDown; }
 private:
 	void SetGameMode(AGameModeBase* mode);
 	std::unique_ptr<CollisionSystem> m_CollisionSystem = nullptr;
@@ -44,5 +45,7 @@ private:
 	AGameModeBase* m_GameMode = nullptr;
 
 	bool bSimulating = true;
+
+	bool bTrendingDown = false;
 };
 

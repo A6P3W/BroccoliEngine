@@ -134,6 +134,11 @@ bool EditorMode::LoadLevel(const std::string& filePath)
 	return true;
 }
 std::string EditorMode::PendingLoadPath = "";
+void EditorMode::Simulate()
+{
+	
+	GetWorld()->SetSimulating(!GetWorld()->IsSimulating());
+}
 EditorMode::EditorMode()
 {
 	M_LOG("EditorMode initialized");

@@ -49,6 +49,8 @@ public:
 
 	EActorAction GetActorAction() const { return ActorAction; }
 	void SetActorAction(EActorAction action) { ActorAction = action; }
+
+	void Simulate();
 public:
 	EditorMode();
 	void OnUpdate(float DeltaTime) override;
@@ -68,6 +70,8 @@ private:
 	EActorAction ActorAction = EActorAction::Select;
 
 	static std::string PendingLoadPath;
+
+	std::string CurrentLevelPath;
 
 	FVector2D GetMouseWorldPosition() const;
 };

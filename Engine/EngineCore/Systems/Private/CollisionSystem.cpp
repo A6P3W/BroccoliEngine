@@ -30,7 +30,8 @@ void CollisionSystem::UnRegisterCollision(MCollisionComponent* component)
 {
 	auto it = std::find(m_CollisionComponents.begin(), m_CollisionComponents.end(), component);
 	if (it != m_CollisionComponents.end()) {
-		m_CollisionComponents.erase(it);
+		*it = m_CollisionComponents.back();
+		m_CollisionComponents.pop_back();
 	}
 	m_PendingStaticRegistrations.erase(
 		std::remove(m_PendingStaticRegistrations.begin(), m_PendingStaticRegistrations.end(), component),

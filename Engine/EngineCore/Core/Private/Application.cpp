@@ -94,6 +94,12 @@ bool Application::Run()
 	else {
 		SetupGame();
 	}
+	if (!IsRelease) {
+		HWND hwnd = GetMainWindowHandle();
+		SetWindowPos(hwnd, NULL, 0, 0, 960, 540, SWP_NOZORDER | SWP_SHOWWINDOW);
+		SetWindowLong(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+	}
+
 	auto& IM = InputManager::GetInstance();
 	IM.AddDevice(std::make_unique<KeyboardDevice>());
 	IM.AddDevice(std::make_unique<MouseDevice>());
