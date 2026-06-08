@@ -39,6 +39,9 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode)
 					editorMode->LoadLevel(filepath);
 				}
 			}
+			if (ImGui::MenuItem("Simulate")) {
+				editorMode->Simulate();
+			}
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();

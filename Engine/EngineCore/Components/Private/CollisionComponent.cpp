@@ -9,7 +9,10 @@ MCollisionComponent::MCollisionComponent()
 
 MCollisionComponent::~MCollisionComponent()
 {
+	if(!GetOwner()->GetWorld()->IsTrendingDown()){
 	UnRegisterComponent();
+	}
+	
 }
 void MCollisionComponent::MarkCheckedThisFrame(AActor* OtherActor) {
 	m_CheckedThisFrame.insert(OtherActor);

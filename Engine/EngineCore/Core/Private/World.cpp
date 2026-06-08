@@ -15,6 +15,11 @@ World::World()
 	m_ObjectManager->SetWorld(this);
 }
 
+World::~World()
+{
+	bTrendingDown = true;
+}
+
 void World::Update(float DeltaTime)
 {
 
