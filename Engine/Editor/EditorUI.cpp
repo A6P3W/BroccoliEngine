@@ -1,4 +1,4 @@
-﻿#include "EditorUI.h"
+#include "EditorUI.h"
 #include <imgui.h>
 #include "EditorMode.h"
 #include "ObjectManager.h"
@@ -6,6 +6,7 @@
 #include "Utils/UMath.h"
 #include "Utils/FileDialog.h"
 #include "World.h"
+#include "SpriteActor.h"
 void EditorUI::UpdateAndDraw(EditorMode* editorMode)
 {
 	// エディタのメインメニューバー
@@ -121,6 +122,31 @@ void EditorUI::DrawInspector(EditorMode* editorMode)
 			if (ImGui::DragFloat("Scale", &scaleVal, 0.01f))
 			{
 				selectedActor->SetActorScale(scaleVal);
+			}
+		}
+
+		// --- SpriteActor専用プロパティ ---
+		if (auto spriteActor = dynamic_cast<ASpriteActor*>(selectedActor))
+		{
+			ImGui::Separator();
+			if (ImGui::CollapsingHeader("Sprite Settings", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				char pathBuf[512] = { 0 };
+				snprintf(pathBuf, sizeof(pathBuf), "%s", spriteActor->GetImagePath().c_str());
+				if (ImGui::InputText("Image Path", pathBuf, sizeof(pathBuf)))
+				{
+					spriteActor->SetImagePath(pathBuf);
+				}
+
+				if (ImGui::Button("Select Image..."))
+				{
+					// ファイル選択ダイアログを開く
+					std::string filepath = FileDialog::OpenFile("Image Files (*.png;*.jpg;*.bmp)\0*.png;*.jpg;*.bmp\0All Files (*.*)\0*.*\0");
+					if (!filepath.empty())
+					{
+						spriteActor->SetImagePath(filepath);
+					}
+				}
 			}
 		}
 

@@ -1,4 +1,4 @@
-﻿#include "LevelSerializer.h"
+#include "LevelSerializer.h"
 #include "ActorRegistry.h"
 #include "ObjectManager.h"
 #include "Actor.h"
@@ -7,6 +7,7 @@
 #include "Utils/Log.h"
 #include "World.h"
 #include "EditorSelectPointComponent.h"
+#include "SpriteActor.h"
 using json = nlohmann::json;
 
 bool LevelSerializer::Save(World* world, const std::string& filePath)
@@ -26,6 +27,13 @@ bool LevelSerializer::Save(World* world, const std::string& filePath)
 		data.Location = actor->GetActorLocation();
 		data.Rotation = actor->GetActorRotation().Rotation;
 		data.Scale = actor->GetActorScale().Scale;
+
+		// ASpriteActorの場合は画像パスを保存
+		if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor))
+		{
+			data.CustomProperties["ImagePath"] = spriteActor->GetImagePath();
+		}
+
 		actors.push_back(data);
 	}
 
@@ -52,6 +60,17 @@ bool LevelSerializer::Load(World* world, const std::string& filePath)
 			continue;
 		}
 		actor->SetActorScale(data.Scale);
+
+		// ASpriteActorの場合は画像パスを復元
+		if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor))
+		{
+			auto it = data.CustomProperties.find("ImagePath");
+			if (it != data.CustomProperties.end())
+			{
+				spriteActor->SetImagePath(it->second);
+			}
+		}
+
 		spawnedActors.push_back(actor);
 	}
 	if (!world->IsSimulating()) {
@@ -80,6 +99,12 @@ bool LevelSerializer::SaveData(const std::string& filePath,
 			{"rotation", d.Rotation},
 			{"scale",    d.Scale}
 		};
+
+		// プロパティが存在する場合はJSONに出力
+		if (!d.CustomProperties.empty()) {
+			obj["properties"] = d.CustomProperties;
+		}
+
 		arr.push_back(obj);
 	}
 	root["actors"] = arr;
@@ -115,6 +140,16 @@ bool LevelSerializer::LoadData(const std::string& filePath,
 			data.Rotation = t.value("rotation", 0.0f);
 			data.Scale = t.value("scale", 1.0f);
 		}
+
+		// プロパティが含まれている場合は読み取る
+		if (obj.contains("properties")) {
+			for (auto& [key, val] : obj["properties"].items()) {
+				if (val.is_string()) {
+					data.CustomProperties[key] = val.get<std::string>();
+				}
+			}
+		}
+
 		outActors.push_back(data);
 	}
 	return true;
