@@ -11,14 +11,13 @@ public:
 
 	ASpriteActor();
 
-	// 画像のファイルパスをセットして描画を更新する
 	void SetImagePath(const std::string& path);
-	const std::string& GetImagePath() const { return m_ImagePath; }
+	const std::string& GetImagePath() const { return ImagePath; }
 
 protected:
 	void BeginPlay() override;
 
 private:
-	MSpriteComponent* m_SpriteComponent = nullptr;
-	std::string m_ImagePath;
+	MSpriteComponent* SpriteComponent = nullptr;
+	std::string ImagePath;
 };
