@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "GameModeBase.h"
 #include "LevelSerializer.h"
 #include "UMath.h"
@@ -51,6 +51,13 @@ public:
 	void SetActorAction(EActorAction action) { ActorAction = action; }
 
 	void Simulate();
+
+	// --- アクタ操作 ---
+	void TrimSelectedActor();
+	void CopySelectedActor();
+	void PasteActor();
+	void CutSelectedActor();
+
 public:
 	EditorMode();
 	void OnUpdate(float DeltaTime) override;
@@ -74,4 +81,8 @@ private:
 	std::string CurrentLevelPath;
 
 	FVector2D GetMouseWorldPosition() const;
+
+	// --- クリップボード ---
+	FActorSaveData m_ClipboardData;
+	bool m_bHasClipboard = false;
 };

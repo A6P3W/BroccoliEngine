@@ -56,10 +56,10 @@ void APlayerController::SetPlayerId(int id)
 
     if (id == 0 && kb) {
         // キーボード
-        m_InputMapper->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_A, 1.0f); 
-        m_InputMapper->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_D, -1.0f);
-        m_InputMapper->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_W, 1.0f);
-        m_InputMapper->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_S, -1.0f);
+        m_InputMapper->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_A,"", 1.0f);
+        m_InputMapper->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_D, "", -1.0f);
+        m_InputMapper->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_W, "", 1.0f);
+        m_InputMapper->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_S, "", -1.0f);
         m_InputMapper->AddMapping(InputAction::Interact, kb, KEY_INPUT_F);
     }
     if (id == 0 && mouse) {

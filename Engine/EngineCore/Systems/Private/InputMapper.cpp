@@ -1,8 +1,8 @@
-﻿#include "InputMapper.h"
+#include "InputMapper.h"
 #include "InputDevice.h"
 #include "UMath.h"
-void InputMapper::AddMapping(const std::string& actionName, InputDevice* device, int code, float scale) {
-	m_buttonBindings[actionName].push_back({ device, code, scale });
+void InputMapper::AddMapping(const std::string& actionName, InputDevice* device, int code, const std::string& modifierAction, float scale) {
+	m_buttonBindings[actionName].push_back({ device, code, scale, modifierAction });
 }
 void InputMapper::AddAxisMapping(const std::string& actionName, InputDevice* device, int axisId, float scale) {
 	m_axisBindings[actionName].push_back({ device, axisId, scale });
@@ -14,22 +14,37 @@ void InputMapper::RemoveMapping(const std::string& actionName) {
 bool InputMapper::GetPressStart(const std::string& actionName) const {
 	auto it = m_buttonBindings.find(actionName);
 	if (it == m_buttonBindings.end()) return false;
-	for (auto& b : it->second)
-		if (b.Device->GetPressStart(b.Code)) return true;
+	for (const auto& b : it->second) {
+		bool bModifierMet = true;
+		if (!b.ModifierAction.empty()) {
+			bModifierMet = GetPressing(b.ModifierAction);
+		}
+		if (bModifierMet && b.Device->GetPressStart(b.Code)) return true;
+	}
 	return false;
 }
 bool InputMapper::GetPressing(const std::string& actionName) const {
 	auto it = m_buttonBindings.find(actionName);
 	if (it == m_buttonBindings.end()) return false;
-	for (auto& b : it->second)
-		if (b.Device->GetPressing(b.Code)) return true;
+	for (const auto& b : it->second) {
+		bool bModifierMet = true;
+		if (!b.ModifierAction.empty()) {
+			bModifierMet = GetPressing(b.ModifierAction);
+		}
+		if (bModifierMet && b.Device->GetPressing(b.Code)) return true;
+	}
 	return false;
 }
 bool InputMapper::GetRelease(const std::string& actionName) const {
 	auto it = m_buttonBindings.find(actionName);
 	if (it == m_buttonBindings.end()) return false;
-	for (auto& b : it->second)
-		if (b.Device->GetRelease(b.Code)) return true;
+	for (const auto& b : it->second) {
+		bool bModifierMet = true;
+		if (!b.ModifierAction.empty()) {
+			bModifierMet = GetPressing(b.ModifierAction);
+		}
+		if (bModifierMet && b.Device->GetRelease(b.Code)) return true;
+	}
 	return false;
 }
 float InputMapper::GetAxisValue(const std::string& actionName) const {

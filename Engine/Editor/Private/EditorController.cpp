@@ -1,4 +1,4 @@
-﻿#include "EditorController.h"
+#include "EditorController.h"
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "KeyboardDevice.h"
@@ -18,6 +18,10 @@ void EditorController::SetupPlayerInputComponent(MEnhancedInputComponent* Player
 	PlayerInputComponent->BindAction(EditorInputAction::MoveMode, ETriggerEvent::Started, this, &EditorController::OnMoveModePressed);
 	PlayerInputComponent->BindAction(EditorInputAction::RotateMode, ETriggerEvent::Started, this, &EditorController::OnRotateModePressed);
 	PlayerInputComponent->BindAction(EditorInputAction::ScaleMode, ETriggerEvent::Started, this, &EditorController::OnScaleModePressed);
+	PlayerInputComponent->BindAction(EditorInputAction::Copy, ETriggerEvent::Started, this, &EditorController::OnCopyPressed);
+	PlayerInputComponent->BindAction(EditorInputAction::Paste, ETriggerEvent::Started, this, &EditorController::OnPastePressed);
+	PlayerInputComponent->BindAction(EditorInputAction::Cut, ETriggerEvent::Started, this, &EditorController::OnCutPressed);
+	PlayerInputComponent->BindAction("Delete", ETriggerEvent::Started, this, &EditorController::OnDeletePressed);
 }
 
 void EditorController::SetPlayerId(int id)
@@ -36,6 +40,16 @@ void EditorController::SetPlayerId(int id)
 		Mapper->AddMapping(EditorInputAction::RotateMode, kb, KEY_INPUT_E);
 		Mapper->AddMapping(EditorInputAction::ScaleMode, kb, KEY_INPUT_R);
 
+		// Ctrlキーを前提アクション(Modifier)として登録
+		Mapper->AddMapping(EditorInputAction::ModifierCtrl, kb, KEY_INPUT_LCONTROL);
+		// Copyアクションを「Ctrlが押されている状態でのCキー」として登録
+		Mapper->AddMapping(EditorInputAction::Copy, kb, KEY_INPUT_C, EditorInputAction::ModifierCtrl);
+		// Pasteアクションを「Ctrlが押されている状態でのVキー」として登録
+		Mapper->AddMapping(EditorInputAction::Paste, kb, KEY_INPUT_V, EditorInputAction::ModifierCtrl);
+		// Cutアクションを「Ctrlが押されている状態でのXキー」として登録
+		Mapper->AddMapping(EditorInputAction::Cut, kb, KEY_INPUT_X, EditorInputAction::ModifierCtrl);
+		// Deleteキー
+		Mapper->AddMapping("Delete", kb, KEY_INPUT_DELETE);
 	}
 
 }
@@ -58,4 +72,28 @@ void EditorController::OnRotateModePressed() {
 void EditorController::OnScaleModePressed() {
 	EditorModePtr->SetActorAction(EActorAction::Scale);
 	M_LOG("EditorMode: Scale");
+}
+
+void EditorController::OnCopyPressed() {
+	if (EditorModePtr) {
+		EditorModePtr->CopySelectedActor();
+	}
+}
+
+void EditorController::OnPastePressed() {
+	if (EditorModePtr) {
+		EditorModePtr->PasteActor();
+	}
+}
+
+void EditorController::OnCutPressed() {
+	if (EditorModePtr) {
+		EditorModePtr->CutSelectedActor();
+	}
+}
+
+void EditorController::OnDeletePressed() {
+	if (EditorModePtr) {
+		EditorModePtr->TrimSelectedActor();
+	}
 }

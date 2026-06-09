@@ -1,4 +1,4 @@
-﻿#include "EditorMode.h"
+#include "EditorMode.h"
 #include "ActorRegistry.h"
 #include "ObjectManager.h"
 #include "Actor.h"
@@ -13,6 +13,7 @@
 #include "EditorController.h"
 #include <DxLib.h>
 #include "RenderSystem.h"
+#include "SpriteActor.h"
 const std::vector<std::string>& EditorMode::GetClassList() const
 {
 	return ActorRegistry::GetInstance().GetClassNames();
@@ -143,6 +144,91 @@ EditorMode::EditorMode()
 {
 	M_LOG("EditorMode initialized");
 	bEditorActor = true;
+}
+
+void EditorMode::TrimSelectedActor()
+{
+	if (!m_selectedActor || m_selectedActor->IsPendingDestroy()) {
+		M_LOG("Delete failed: No actor selected.");
+		return;
+	}
+	m_selectedActor->Destroy();
+	SetSelectedActor(nullptr);
+	M_LOG("Selected actor destroyed.");
+}
+
+void EditorMode::CopySelectedActor()
+{
+	if (!m_selectedActor || m_selectedActor->IsPendingDestroy()) {
+		M_LOG("Copy failed: No actor selected.");
+		return;
+	}
+
+	// 選択中アクタの情報を LevelSerializer と同じ要領で保存
+	m_ClipboardData.ClassName = m_selectedActor->GetActorClassName();
+	m_ClipboardData.Location = m_selectedActor->GetActorLocation();
+	m_ClipboardData.Rotation = m_selectedActor->GetActorRotation().Rotation;
+	m_ClipboardData.Scale = m_selectedActor->GetActorScale().Scale;
+	m_ClipboardData.CustomProperties.clear();
+
+	// SpriteActorなどの固有プロパティの保存
+	if (auto spriteActor = dynamic_cast<ASpriteActor*>(m_selectedActor))
+	{
+		m_ClipboardData.CustomProperties["ImagePath"] = spriteActor->GetImagePath();
+	}
+
+	m_bHasClipboard = true;
+	M_LOG("Copied Actor: {} at ({}, {})", m_ClipboardData.ClassName, m_ClipboardData.Location.X, m_ClipboardData.Location.Y);
+}
+
+void EditorMode::PasteActor()
+{
+	if (!m_bHasClipboard) {
+		M_LOG("Paste failed: Clipboard is empty.");
+		return;
+	}
+
+	// マウスのワールド座標にペースト
+	FVector2D pasteLocation = GetMouseWorldPosition();
+
+	AActor* newActor = ActorRegistry::GetInstance().Spawn(
+		GetWorld(), m_ClipboardData.ClassName, pasteLocation, m_ClipboardData.Rotation);
+
+	if (!newActor) {
+		M_LOG("Paste failed: Could not spawn actor '{}'.", m_ClipboardData.ClassName);
+		return;
+	}
+
+	newActor->SetActorScale(m_ClipboardData.Scale);
+
+	// SpriteActorの場合は画像パスを復元
+	if (auto spriteActor = dynamic_cast<ASpriteActor*>(newActor))
+	{
+		auto it = m_ClipboardData.CustomProperties.find("ImagePath");
+		if (it != m_ClipboardData.CustomProperties.end())
+		{
+			spriteActor->SetImagePath(it->second);
+		}
+	}
+
+	// ペーストしたアクタを選択状態にする
+	SetSelectedActor(newActor);
+
+	M_LOG("Pasted Actor: {} at ({}, {})", m_ClipboardData.ClassName, pasteLocation.X, pasteLocation.Y);
+}
+
+void EditorMode::CutSelectedActor()
+{
+	if (!m_selectedActor || m_selectedActor->IsPendingDestroy()) {
+		M_LOG("Cut failed: No actor selected.");
+		return;
+	}
+
+	// まずコピーしてからアクタを削除
+	CopySelectedActor();
+	TrimSelectedActor();
+
+	M_LOG("Cut completed.");
 }
 
 void EditorMode::OnUpdate(float DeltaTime)
