@@ -4,8 +4,8 @@
 #include "ObjectManager.h"
 #include "CollisionSystem.h"
 #include "TimerManager.h"
-#include "Utils/Log.h"
-#include "Utils/UMath.h"
+#include "Log.h"
+#include "UMath.h"
 #include "World.h"
 class APlayerController;
 class AGameModeBase : public AActor

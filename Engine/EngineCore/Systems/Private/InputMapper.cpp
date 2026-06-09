@@ -1,6 +1,6 @@
 ﻿#include "InputMapper.h"
 #include "InputDevice.h"
-#include "Utils/Umath.h"
+#include "UMath.h"
 void InputMapper::AddMapping(const std::string& actionName, InputDevice* device, int code, float scale) {
 	m_buttonBindings[actionName].push_back({ device, code, scale });
 }

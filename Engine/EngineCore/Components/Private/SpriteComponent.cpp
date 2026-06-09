@@ -1,6 +1,6 @@
 ﻿#include "SpriteComponent.h"
 #include "Actor.h"
-#include "Utils/UMath.h"
+#include "UMath.h"
 #include "ResourceManager.h"
 
 MSpriteComponent::MSpriteComponent(int priority, RenderSpace space)

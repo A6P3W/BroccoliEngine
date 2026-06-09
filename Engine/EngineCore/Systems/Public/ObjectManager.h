@@ -3,8 +3,8 @@
 #include <vector>
 #include <memory>
 #include <type_traits>
-#include "Utils/UMath.h"
-#include "Utils/Log.h"
+#include "UMath.h"
+#include "Log.h"
 class AActor;
 class World;
 class ObjectManager

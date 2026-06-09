@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Engine\Editor\EditorMode.cpp" />
-    <ClCompile Include="Engine\Editor\EditorPawn.cpp" />
+    <ClCompile Include="Engine\Editor\Private\EditorMode.cpp" />
+    <ClCompile Include="Engine\Editor\Private\EditorPawn.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\EasyShakeComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\LineCollisionComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\RectangleCollisionComponent.cpp" />
@@ -40,22 +40,22 @@
     <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp" />
     <ClCompile Include="Engine\EngineSide\SampleScene01\SamplePawn01.cpp" />
     <ClCompile Include="Engine\EngineSide\SampleScene01\SampleScene01.cpp" />
-    <ClCompile Include="Engine\Editor\LevelSerializer.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\LevelSerializer.cpp" />
     <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_dx11.cpp" />
     <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_win32.cpp" />
-    <ClCompile Include="Engine\Editor\EditorUI.cpp" />
+    <ClCompile Include="Engine\Editor\Private\EditorUI.cpp" />
     <ClCompile Include="Engine\EngineCore\Core\Private\World.cpp" />
-    <ClCompile Include="Engine\EngineCore\Utils\FileDialog.cpp" />
-    <ClCompile Include="Engine\Editor\EditorSelectPointComponent.cpp" />
-    <ClCompile Include="Engine\Editor\EditorController.cpp" />
+    <ClCompile Include="Engine\EngineCore\Utils\Private\FileDialog.cpp" />
+    <ClCompile Include="Engine\Editor\Private\EditorSelectPointComponent.cpp" />
+    <ClCompile Include="Engine\Editor\Private\EditorController.cpp" />
     <ClCompile Include="Engine\EngineSide\StressTestActor.cpp" />
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\SpriteActor.cpp" />
-    <ClCompile Include="Engine\EngineCore\Utils\FileUtils.cpp" />
+    <ClCompile Include="Engine\EngineCore\Utils\Private\FileUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
-    <ClInclude Include="Engine\Editor\EditorMode.h" />
-    <ClInclude Include="Engine\Editor\EditorPawn.h" />
+    <ClInclude Include="Engine\Editor\Public\EditorMode.h" />
+    <ClInclude Include="Engine\Editor\Public\EditorPawn.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\EasyShakeComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\LineCollisionComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\RectangleCollisionComponent.h" />
@@ -87,8 +87,8 @@
     <ClInclude Include="Engine\EngineCore\Systems\Public\SceneManager.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\SoundManager.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\TimerManager.h" />
-    <ClInclude Include="Engine\EngineCore\Utils\Log.h" />
-    <ClInclude Include="Engine\EngineCore\Utils\UMath.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\Public\Log.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\Public\UMath.h" />
     <ClInclude Include="Engine\EngineSide\Default\Public\DefaultCircleCollisionActor.h" />
     <ClInclude Include="Engine\EngineSide\Default\Public\DefaultLineCollisionActor.h" />
     <ClInclude Include="Engine\EngineSide\Default\Public\DefaultRectangleCollisionActor.h" />
@@ -99,18 +99,18 @@
     <ClInclude Include="Engine\Utils\Log.h" />
     <ClInclude Include="Engine\Utils\UMath.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\EnhancedInputComponent.h" />
-    <ClInclude Include="Engine\Editor\LevelSerializer.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\LevelSerializer.h" />
     <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_dx11.h" />
     <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_win32.h" />
-    <ClInclude Include="Engine\Editor\EditorUI.h" />
+    <ClInclude Include="Engine\Editor\Public\EditorUI.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\EngineDefine.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\World.h" />
-    <ClInclude Include="Engine\EngineCore\Utils\FileDialog.h" />
-    <ClInclude Include="Engine\Editor\EditorSelectPointComponent.h" />
-    <ClInclude Include="Engine\Editor\EditorController.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\Public\FileDialog.h" />
+    <ClInclude Include="Engine\Editor\Public\EditorSelectPointComponent.h" />
+    <ClInclude Include="Engine\Editor\Public\EditorController.h" />
     <ClInclude Include="Engine\EngineSide\StressTestActor.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\SpriteActor.h" />
-    <ClInclude Include="Engine\EngineCore\Utils\FileUtils.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\Public\FileUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />
