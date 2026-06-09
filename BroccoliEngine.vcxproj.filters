@@ -12,6 +12,7 @@
     <ClCompile Include="Engine\EngineCore\Components\Private\CollisionComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\MovementComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\SceneComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\SoundComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\SpriteComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Core\Private\Actor.cpp" />
     <ClCompile Include="Engine\EngineCore\Core\Private\ActorComponent.cpp" />
@@ -29,6 +30,7 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\RenderSystem.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\ResourceManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\SceneManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\SoundManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\TimerManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\KeyboardDevice.cpp" />
     <ClCompile Include="Engine\EngineSide\Default\Private\DefaultCircleCollisionActor.cpp" />
@@ -63,6 +65,7 @@
     <ClInclude Include="Engine\EngineCore\Components\Public\CollisionComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\MovementComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\SceneComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\SoundComponent.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\SpriteComponent.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\Actor.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\ActorComponent.h" />
@@ -82,6 +85,7 @@
     <ClInclude Include="Engine\EngineCore\Systems\Public\RenderSystem.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\ResourceManager.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\SceneManager.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\SoundManager.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\TimerManager.h" />
     <ClInclude Include="Engine\EngineCore\Utils\Log.h" />
     <ClInclude Include="Engine\EngineCore\Utils\UMath.h" />

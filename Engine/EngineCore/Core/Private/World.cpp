@@ -3,6 +3,7 @@
 #include "Pawn.h"
 #include "ObjectManager.h"
 #include "CollisionSystem.h"
+#include "SoundManager.h"
 #include "TimerManager.h"
 #include "CameraComponent.h"
 #include "World.h"
@@ -10,6 +11,7 @@ World::World()
 {
     m_ObjectManager = std::make_unique<ObjectManager>();
     m_CollisionSystem = std::make_unique<CollisionSystem>();
+    m_SoundManager = std::make_unique<SoundManager>();
     m_TimerManager = std::make_unique<TimerManager>();
     
 	m_ObjectManager->SetWorld(this);
