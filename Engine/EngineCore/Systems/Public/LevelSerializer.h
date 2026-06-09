@@ -1,8 +1,8 @@
-#pragma once
+﻿#pragma once
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include "Utils/UMath.h"
+#include "UMath.h"
 
 // 1アクタ分のデータ
 struct FActorSaveData

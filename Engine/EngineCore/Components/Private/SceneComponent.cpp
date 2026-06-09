@@ -1,7 +1,7 @@
 ﻿#include "Components/Public/SceneComponent.h"
 #include <cmath>
 #include <algorithm>
-#include "Utils/UMath.h"
+#include "UMath.h"
 #include "Actor.h"
 
 MSceneComponent::MSceneComponent() = default;

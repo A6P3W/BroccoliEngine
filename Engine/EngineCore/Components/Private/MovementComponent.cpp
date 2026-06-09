@@ -1,8 +1,8 @@
 ﻿#include "MovementComponent.h"
 #include <SceneComponent.h>
 #include <Actor.h>
-#include <Utils/UMath.h>
-#include <Utils/Log.h>
+#include "UMath.h"
+#include "Log.h"
 void MMovementComponent::AddWorldForce(const FVector2D& Force)
 {
 	Velocity = Velocity + Force;

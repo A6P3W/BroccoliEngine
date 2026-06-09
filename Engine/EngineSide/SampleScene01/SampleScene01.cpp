@@ -1,7 +1,7 @@
 ﻿#include "SampleScene01.h"
 #include "ObjectManager.h"
-#include <Utils/Umath.h>
-#include <Utils/Log.h>
+#include "UMath.h"
+#include "Log.h"
 #include <SpriteComponent.h>
 #include <PlayerController.h>
 #include "SamplePawn01.h"

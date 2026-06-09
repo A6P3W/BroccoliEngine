@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "GameModeBase.h"
 #include "LevelSerializer.h"
-#include "Utils/UMath.h"
+#include "UMath.h"
 #include <string>
 #include <vector>
 

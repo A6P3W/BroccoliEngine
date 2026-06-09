@@ -13,6 +13,7 @@
 		  $(MSBuildThisFileDirectory)Engine/EngineSide/Default/Public;
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/GameFramework/Public;
 		  $(MSBuildThisFileDirectory)Engine/ThirdParty;
+		  $(MSBuildThisFileDirectory)Engine/EngineCore/Utils/Public;
 		  %(AdditionalIncludeDirectories)
 	  </AdditionalIncludeDirectories>
     </ClCompile>

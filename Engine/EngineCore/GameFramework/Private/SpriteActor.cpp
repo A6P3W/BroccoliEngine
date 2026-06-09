@@ -1,7 +1,7 @@
 ﻿#include "SpriteActor.h"
 #include "SpriteComponent.h"
 #include "ResourceManager.h"
-#include "Utils/FileUtils.h"
+#include "FileUtils.h"
 
 REGISTER_ACTOR(ASpriteActor);
 

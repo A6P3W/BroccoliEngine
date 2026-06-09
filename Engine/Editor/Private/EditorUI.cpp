@@ -1,10 +1,10 @@
-#include "EditorUI.h"
+﻿#include "EditorUI.h"
 #include <imgui.h>
 #include "EditorMode.h"
 #include "ObjectManager.h"
 #include "Actor.h"
-#include "Utils/UMath.h"
-#include "Utils/FileDialog.h"
+#include "UMath.h"
+#include "FileDialog.h"
 #include "World.h"
 #include "SpriteActor.h"
 void EditorUI::UpdateAndDraw(EditorMode* editorMode)

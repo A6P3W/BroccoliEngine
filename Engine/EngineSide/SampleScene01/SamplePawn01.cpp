@@ -6,7 +6,7 @@
 #include "CameraComponent.h"
 #include <DxLib.h>
 #include <EnhancedInputComponent.h>
-#include "Utils/Log.h"
+#include "Log.h"
 #include <CircleCollisionComponent.h>
 #include <MovementComponent.h>
 

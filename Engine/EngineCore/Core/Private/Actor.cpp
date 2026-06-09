@@ -10,7 +10,7 @@
 #include "EditorSelectPointComponent.h"
 #include <DxLib.h>
 #endif
-#include "Utils/Log.h"
+#include "Log.h"
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();

@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include "Utils/Umath.h"
+#include "UMath.h"
 struct InputAction {
 	static constexpr auto Move = "Move";
 	static constexpr auto Look = "Look";

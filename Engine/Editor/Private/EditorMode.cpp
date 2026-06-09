@@ -5,8 +5,8 @@
 #include "EditorUI.h"
 #include "EditorPawn.h"
 #include <PlayerController.h>
-#include "Utils/Log.h"
-#include "Utils/UMath.h"
+#include "Log.h"
+#include "UMath.h"
 #include "World.h"
 #include "SceneManager.h"
 #include "EditorSelectPointComponent.h"

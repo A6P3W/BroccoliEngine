@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "ActorComponent.h"
 #include "InputMapper.h"
-#include "Utils/UMath.h"
+#include "UMath.h"
 #include <functional>
 #include <vector>
 #include <string>

@@ -1,7 +1,7 @@
 ﻿#include "Components/Public/SceneComponent.h"
 #include "Actor.h"
 #include "TimerManager.h"
-#include "Utils/Log.h"
+#include "Log.h"
 #include "World.h"
 MActorComponent::~MActorComponent()
 {
