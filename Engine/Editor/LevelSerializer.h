@@ -1,6 +1,7 @@
-﻿#pragma once
+#pragma once
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include "Utils/UMath.h"
 
 // 1アクタ分のデータ
@@ -11,6 +12,9 @@ struct FActorSaveData
 	FVector2D   Location;
 	float       Rotation = 0.0f;
 	float       Scale = 1.0f;
+
+	// アクタ固有のプロパティ保存用
+	std::unordered_map<std::string, std::string> CustomProperties;
 };
 
 class World;

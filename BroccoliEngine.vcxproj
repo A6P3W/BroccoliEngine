@@ -233,6 +233,7 @@
     <ClCompile Include="Engine\EngineCore\Core\Private\BaseObject.cpp" />
     <ClCompile Include="Engine\EngineCore\Core\Private\EngineEntry.cpp" />
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\Pawn.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\SpriteActor.cpp" />
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\GameModeBase.cpp" />
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\PlayerController.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\CollisionSystem.cpp" />
@@ -258,6 +259,7 @@
     <ClCompile Include="Engine\EngineCore\Core\Private\World.cpp" />
     <ClCompile Include="Engine\EngineCore\Utils\FileDialog.cpp" />
     <ClCompile Include="Engine\EngineSide\StressTestActor.cpp" />
+    <ClCompile Include="Engine\EngineCore\Utils\FileUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Editor\EditorController.h" />
@@ -283,6 +285,7 @@
     <ClInclude Include="Engine\EngineCore\Core\Public\BaseObject.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\TimerHandle.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\Pawn.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\SpriteActor.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameModeBase.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\PlayerController.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\CollisionSystem.h" />
@@ -314,6 +317,7 @@
     <ClInclude Include="Engine\EngineCore\Core\Public\World.h" />
     <ClInclude Include="Engine\EngineCore\Utils\FileDialog.h" />
     <ClInclude Include="Engine\EngineSide\StressTestActor.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\FileUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md">

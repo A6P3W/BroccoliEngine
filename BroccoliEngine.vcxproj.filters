@@ -47,6 +47,8 @@
     <ClCompile Include="Engine\Editor\EditorSelectPointComponent.cpp" />
     <ClCompile Include="Engine\Editor\EditorController.cpp" />
     <ClCompile Include="Engine\EngineSide\StressTestActor.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\SpriteActor.cpp" />
+    <ClCompile Include="Engine\EngineCore\Utils\FileUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
@@ -103,6 +105,8 @@
     <ClInclude Include="Engine\Editor\EditorSelectPointComponent.h" />
     <ClInclude Include="Engine\Editor\EditorController.h" />
     <ClInclude Include="Engine\EngineSide\StressTestActor.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\SpriteActor.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\FileUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />

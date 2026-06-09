@@ -128,6 +128,17 @@ bool Application::Update(float DeltaTime)
 {
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
+
+	ImGuiIO& io = ImGui::GetIO();
+
+	int screenW, screenH;
+	GetDrawScreenSize(&screenW, &screenH);
+	io.DisplaySize = ImVec2((float)screenW, (float)screenH);
+
+	int mx, my;
+	GetMousePoint(&mx, &my);
+	io.MousePos = ImVec2((float)mx, (float)my);
+
 	ImGui::NewFrame();
 	InputManager::GetInstance().Update();
 
