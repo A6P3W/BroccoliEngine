@@ -8,11 +8,11 @@
 class AActor;
 class EditorUI;
 class EditorSelectPointComponent;
-// エディタの操作状態
+
 enum class EEditorState
 {
-	Idle,       // 何もしていない
-	Dragging,   // アクタをドラッグ中（プレビュー表示）
+	Idle,
+	Dragging,
 };
 enum class EActorAction
 {
@@ -51,6 +51,13 @@ public:
 	void SetActorAction(EActorAction action) { ActorAction = action; }
 
 	void Simulate();
+
+	// --- アクタ操作 ---
+	void CopySelectedActor();
+	void PasteActor();
+	void CutSelectedActor();
+	void DeleteSelectedActor();
+
 public:
 	EditorMode();
 	void OnUpdate(float DeltaTime) override;
@@ -74,4 +81,8 @@ private:
 	std::string CurrentLevelPath;
 
 	FVector2D GetMouseWorldPosition() const;
+
+	// --- クリップボード ---
+	FActorSaveData m_ClipboardData;
+	bool m_bHasClipboard = false;
 };

@@ -17,5 +17,10 @@ private:
 	void OnRotateModePressed();
 	void OnScaleModePressed();
 
+	void OnCopyPressed();
+	void OnPastePressed();
+	void OnCutPressed();
+	void OnDeletePressed();
+
 	EditorMode* EditorModePtr = nullptr;
 };

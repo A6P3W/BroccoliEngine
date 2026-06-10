@@ -324,6 +324,10 @@
     <ClInclude Include="Engine\EngineCore\Utils\Public\FileUtils.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="AGENTS.md">
+      <SubType>
+      </SubType>
+    </None>
     <None Include="Engine\file.md">
       <SubType>
       </SubType>

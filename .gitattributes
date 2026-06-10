@@ -61,3 +61,7 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+*.cpp text eol=crlf
+*.h text eol=crlf
+*.hpp text eol=crlf
+*.c text eol=crlf
