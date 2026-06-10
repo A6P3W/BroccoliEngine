@@ -1,4 +1,4 @@
-#include "EditorMode.h"
+﻿#include "EditorMode.h"
 #include "ActorRegistry.h"
 #include "ObjectManager.h"
 #include "Actor.h"

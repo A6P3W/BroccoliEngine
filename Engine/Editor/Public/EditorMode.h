@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "GameModeBase.h"
 #include "LevelSerializer.h"
 #include "UMath.h"

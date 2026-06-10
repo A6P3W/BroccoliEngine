@@ -1,4 +1,4 @@
-#include "InputMapper.h"
+﻿#include "InputMapper.h"
 #include "InputDevice.h"
 #include "UMath.h"
 void InputMapper::AddMapping(const std::string& actionName, InputDevice* device, int code, const std::string& modifierAction, float scale) {
