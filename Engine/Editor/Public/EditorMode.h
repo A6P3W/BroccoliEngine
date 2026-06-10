@@ -8,11 +8,11 @@
 class AActor;
 class EditorUI;
 class EditorSelectPointComponent;
-// エディタの操作状態
+
 enum class EEditorState
 {
-	Idle,       // 何もしていない
-	Dragging,   // アクタをドラッグ中（プレビュー表示）
+	Idle,
+	Dragging,
 };
 enum class EActorAction
 {
@@ -53,10 +53,10 @@ public:
 	void Simulate();
 
 	// --- アクタ操作 ---
-	void TrimSelectedActor();
 	void CopySelectedActor();
 	void PasteActor();
 	void CutSelectedActor();
+	void DeleteSelectedActor();
 
 public:
 	EditorMode();

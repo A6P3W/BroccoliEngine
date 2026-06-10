@@ -146,16 +146,7 @@ EditorMode::EditorMode()
 	bEditorActor = true;
 }
 
-void EditorMode::TrimSelectedActor()
-{
-	if (!m_selectedActor || m_selectedActor->IsPendingDestroy()) {
-		M_LOG("Delete failed: No actor selected.");
-		return;
-	}
-	m_selectedActor->Destroy();
-	SetSelectedActor(nullptr);
-	M_LOG("Selected actor destroyed.");
-}
+
 
 void EditorMode::CopySelectedActor()
 {
@@ -164,14 +155,12 @@ void EditorMode::CopySelectedActor()
 		return;
 	}
 
-	// 選択中アクタの情報を LevelSerializer と同じ要領で保存
 	m_ClipboardData.ClassName = m_selectedActor->GetActorClassName();
 	m_ClipboardData.Location = m_selectedActor->GetActorLocation();
 	m_ClipboardData.Rotation = m_selectedActor->GetActorRotation().Rotation;
 	m_ClipboardData.Scale = m_selectedActor->GetActorScale().Scale;
 	m_ClipboardData.CustomProperties.clear();
 
-	// SpriteActorなどの固有プロパティの保存
 	if (auto spriteActor = dynamic_cast<ASpriteActor*>(m_selectedActor))
 	{
 		m_ClipboardData.CustomProperties["ImagePath"] = spriteActor->GetImagePath();
@@ -188,7 +177,6 @@ void EditorMode::PasteActor()
 		return;
 	}
 
-	// マウスのワールド座標にペースト
 	FVector2D pasteLocation = GetMouseWorldPosition();
 
 	AActor* newActor = ActorRegistry::GetInstance().Spawn(
@@ -201,7 +189,6 @@ void EditorMode::PasteActor()
 
 	newActor->SetActorScale(m_ClipboardData.Scale);
 
-	// SpriteActorの場合は画像パスを復元
 	if (auto spriteActor = dynamic_cast<ASpriteActor*>(newActor))
 	{
 		auto it = m_ClipboardData.CustomProperties.find("ImagePath");
@@ -211,7 +198,6 @@ void EditorMode::PasteActor()
 		}
 	}
 
-	// ペーストしたアクタを選択状態にする
 	SetSelectedActor(newActor);
 
 	M_LOG("Pasted Actor: {} at ({}, {})", m_ClipboardData.ClassName, pasteLocation.X, pasteLocation.Y);
@@ -224,16 +210,25 @@ void EditorMode::CutSelectedActor()
 		return;
 	}
 
-	// まずコピーしてからアクタを削除
 	CopySelectedActor();
-	TrimSelectedActor();
+	DeleteSelectedActor();
 
 	M_LOG("Cut completed.");
 }
 
+void EditorMode::DeleteSelectedActor()
+{
+	if (!m_selectedActor || m_selectedActor->IsPendingDestroy()) {
+		M_LOG("Delete failed: No actor selected.");
+		return;
+	}
+	m_selectedActor->Destroy();
+	SetSelectedActor(nullptr);
+	M_LOG("Selected actor destroyed.");
+}
+
 void EditorMode::OnUpdate(float DeltaTime)
 {
-	// ここでUIの更新（構築）を行う
 	static EditorUI ui;
 	ui.UpdateAndDraw(this);
 }

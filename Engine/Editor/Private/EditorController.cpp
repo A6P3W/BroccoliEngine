@@ -40,15 +40,10 @@ void EditorController::SetPlayerId(int id)
 		Mapper->AddMapping(EditorInputAction::RotateMode, kb, KEY_INPUT_E);
 		Mapper->AddMapping(EditorInputAction::ScaleMode, kb, KEY_INPUT_R);
 
-		// Ctrlキーを前提アクション(Modifier)として登録
 		Mapper->AddMapping(EditorInputAction::ModifierCtrl, kb, KEY_INPUT_LCONTROL);
-		// Copyアクションを「Ctrlが押されている状態でのCキー」として登録
 		Mapper->AddMapping(EditorInputAction::Copy, kb, KEY_INPUT_C, EditorInputAction::ModifierCtrl);
-		// Pasteアクションを「Ctrlが押されている状態でのVキー」として登録
 		Mapper->AddMapping(EditorInputAction::Paste, kb, KEY_INPUT_V, EditorInputAction::ModifierCtrl);
-		// Cutアクションを「Ctrlが押されている状態でのXキー」として登録
 		Mapper->AddMapping(EditorInputAction::Cut, kb, KEY_INPUT_X, EditorInputAction::ModifierCtrl);
-		// Deleteキー
 		Mapper->AddMapping("Delete", kb, KEY_INPUT_DELETE);
 	}
 
@@ -94,6 +89,6 @@ void EditorController::OnCutPressed() {
 
 void EditorController::OnDeletePressed() {
 	if (EditorModePtr) {
-		EditorModePtr->TrimSelectedActor();
+		EditorModePtr->DeleteSelectedActor();
 	}
 }

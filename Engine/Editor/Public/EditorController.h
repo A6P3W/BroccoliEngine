@@ -16,6 +16,7 @@ private:
 	void OnMoveModePressed();
 	void OnRotateModePressed();
 	void OnScaleModePressed();
+
 	void OnCopyPressed();
 	void OnPastePressed();
 	void OnCutPressed();
