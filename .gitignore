@@ -486,3 +486,5 @@ $RECYCLE.BIN/
 
 .codex/
 /.antigravitycli
+/Launcher/imgui.ini
+/Launcher/Log.txt
