@@ -18,7 +18,6 @@ public:
 		return instance;
 	}
 
-	// ゲーム側から呼ぶ登録関数
 	template<class T>
 	void Register()
 	{

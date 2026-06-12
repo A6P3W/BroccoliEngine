@@ -52,17 +52,14 @@ struct FRotator {
 	FRotator() = default;
 	FRotator(float InRotation) : Rotation(InRotation) {}
 
-	// 加算演算子
 	FRotator operator+(const FRotator& Other) const {
 		return FRotator(Rotation + Other.Rotation);
 	}
 
-	// 減算演算子
 	FRotator operator-(const FRotator& Other) const {
 		return FRotator(Rotation - Other.Rotation);
 	}
 
-	// 複合代入演算子
 	FRotator& operator+=(const FRotator& Other) {
 		Rotation += Other.Rotation;
 		return *this;
@@ -73,7 +70,6 @@ struct FRotator {
 		return *this;
 	}
 
-	// 比較演算子
 	auto operator<=>(const FRotator&) const = default;
 };
 

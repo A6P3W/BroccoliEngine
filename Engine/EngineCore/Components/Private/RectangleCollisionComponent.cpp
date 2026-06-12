@@ -21,7 +21,7 @@ void MRectangleCollisionComponent::Draw()
 
 	RenderSystem::GetInstance().SubmitBox(
 		{ center.X + rotatedTopLeftOffset.X, center.Y + rotatedTopLeftOffset.Y }, // 回転を考慮した左上座標
-		{ halfWidth * 2.0f, halfHeight * 2.0f }, // ← 右下座標ではなく、正しい幅と高さを指定
+		{ halfWidth * 2.0f, halfHeight * 2.0f },
 		GetWorldRotation().Rotation,
 		0x00FF00,
 		0,

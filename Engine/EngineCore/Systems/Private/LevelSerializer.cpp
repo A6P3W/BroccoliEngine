@@ -45,7 +45,6 @@ bool LevelSerializer::Load(World* world, const std::string& filePath)
 	std::vector<FActorSaveData> actors;
 	if (!LoadData(filePath, actors)) return false;
 
-	// ここでactorsが空でないか確認
 	M_LOG("Loaded actor count: {}", actors.size());
 
 	auto& registry = ActorRegistry::GetInstance();

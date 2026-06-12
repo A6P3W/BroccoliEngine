@@ -9,10 +9,8 @@
 #include "SpriteActor.h"
 void EditorUI::UpdateAndDraw(EditorMode* editorMode)
 {
-	// エディタのメインメニューバー
 	DrawMenuBar(editorMode);
 
-	// ウィンドウを描画
 	DrawClassBrowser(editorMode);
 	DrawOutliner(editorMode);
 	DrawInspector(editorMode);

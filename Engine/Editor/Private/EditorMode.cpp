@@ -102,7 +102,7 @@ void EditorMode::OnMouseMove(const FVector2D& Delta)
 		SelectingActor->SetActorLocation(GetMouseWorldPosition());
 		break;
 	case EActorAction::Rotate:
-		SelectingActor->AddActorRotation(Delta.X*0.25);
+		SelectingActor->AddActorRotation(Delta.X*0.25f);
 		break;
 	case EActorAction::Scale:
 		float NewScale = SelectingActor->GetActorScale().Scale * (1 + Delta.X * 0.001f);

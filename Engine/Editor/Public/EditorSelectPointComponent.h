@@ -11,6 +11,6 @@ public:
 	void Selected(bool bSelected);
 private:
 	void RegisterComponent() override;
-	MSpriteComponent* SelectPointSprite;
+	MSpriteComponent* SelectPointSprite=nullptr;
 };
 

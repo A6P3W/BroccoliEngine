@@ -24,16 +24,14 @@ AStressTestActor::AStressTestActor()
 			float posX = x * size - offsetX;
 			float posY = y * size - offsetY;
 
-			// スプライトコンポーネントの作成と配置
 			auto sprite = std::make_unique<MSpriteComponent>();
 			sprite->SubmitGraph(texHandle);
 			sprite->SetRelativeLocation({ posX, posY });
-			sprite->SetWorldScale(0.9f); 
+			sprite->SetWorldScale(0.9f);
 			AddComponent(std::move(sprite));
 
-			// コリジョンコンポーネントの作成と配置
 			auto collision = std::make_unique<MRectangleCollisionComponent>(size, size);
-			collision->SetStatic(true); // 静的(Static)コリジョンとして設定
+			collision->SetStatic(true);
 			collision->SetRelativeLocation({ posX, posY });
 			AddComponent(std::move(collision));
 		}

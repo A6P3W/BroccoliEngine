@@ -12,7 +12,6 @@ public:
 	virtual void OnUpdate(float DeltaTime);
     virtual void Draw();
 
-	// メッセージ受信用の仮想関数
 	virtual void OnMessage(const std::string& message);
 
 	void SetParentComponent(MSceneComponent* parent);

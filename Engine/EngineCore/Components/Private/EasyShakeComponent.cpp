@@ -51,7 +51,7 @@ void MEasyShakeComponent::ApplyShake(const FVector2D& StrengthXY, float Duration
 	if (DurationSeconds <= 0.0f) return;
 
 	FShakeInstance inst;
-	inst.Id = 0; // non-handle shake
+	inst.Id = 0;
 	inst.StrengthXY = StrengthXY;
 	inst.DurationSeconds = DurationSeconds;
 	inst.ElapsedSeconds = 0.0f;
@@ -67,7 +67,6 @@ void MEasyShakeComponent::StartShake(FShakeHandle& Handle, const FVector2D& Stre
 		return;
 	}
 
-	// If handle already refers to an active shake, end it first (no fade-out)
 	if (Handle.IsValid()) {
 		EndShake(Handle);
 	}
@@ -97,7 +96,6 @@ void MEasyShakeComponent::EndShake(FShakeHandle& Handle, bool bEnableFadeOut)
 				Handle.Invalidate();
 			}
 			else {
-				// enable fade-out by shortening duration to a small fade window
 				float originalDuration = it->DurationSeconds;
 				float fadeOutTime = std::min(originalDuration * ::ShakeFadePortion, originalDuration * 0.5f);
 				it->bFadeOut = true;
