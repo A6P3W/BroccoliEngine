@@ -69,6 +69,6 @@ private:
 	std::unordered_set<AActor*> m_OverlappingActors;
 	std::unordered_map<MCollisionComponent*, std::uint64_t> m_LastCheckedFrame;
 	std::unordered_set<AActor*> m_IntersectingThisFrame;
-	ECollisionType m_CollisionType = ECollisionType::Overlap;
+	ECollisionType m_CollisionType = ECollisionType::Block;
 	bool bIsStatic = true;
 };
