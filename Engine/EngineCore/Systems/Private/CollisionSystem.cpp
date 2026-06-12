@@ -235,103 +235,142 @@ void CollisionSystem::CircleAndRectangle(MCircleCollisionComponent* circle, MRec
 	FVector2D rectCenter = rect->GetWorldLocation();
 	float halfWidth = (rect->GetWidth() * rect->GetWorldScale()) * 0.5f;
 	float halfHeight = (rect->GetHeight() * rect->GetWorldScale()) * 0.5f;
-	float minX = rectCenter.X - halfWidth;
-	float maxX = rectCenter.X + halfWidth;
-	float minY = rectCenter.Y - halfHeight;
-	float maxY = rectCenter.Y + halfHeight;
 
-	float closestX = ClampFloat(circleCenter.X, minX, maxX);
-	float closestY = ClampFloat(circleCenter.Y, minY, maxY);
-	float dx = circleCenter.X - closestX;
-	float dy = circleCenter.Y - closestY;
-	float distanceSquared = dx * dx + dy * dy;
+	float rad = UMath::DegToRad(rect->GetWorldRotation().Rotation);
+	float cosA = std::cos(rad);
+	float sinA = std::sin(rad);
+
+	// 円の中心を矩形のローカル座標に変換
+	float dx = circleCenter.X - rectCenter.X;
+	float dy = circleCenter.Y - rectCenter.Y;
+	float localCircleX = dx * cosA + dy * sinA;
+	float localCircleY = -dx * sinA + dy * cosA;
+
+	float closestX = ClampFloat(localCircleX, -halfWidth, halfWidth);
+	float closestY = ClampFloat(localCircleY, -halfHeight, halfHeight);
+
+	float localDx = localCircleX - closestX;
+	float localDy = localCircleY - closestY;
+	float distanceSquared = localDx * localDx + localDy * localDy;
 	float radius = circle->GetRadius() * circle->GetWorldScale();
-
-
 
 	auto circleActor = circle->GetOwner();
 	auto rectActor = rect->GetOwner();
+
 	constexpr float HysteresisMargin = 1.0f;
 	float exitRadius = radius + (circle->IsOverlappingActor(rectActor) ? HysteresisMargin : 0.0f);
 	bool isOverlapping = distanceSquared <= (exitRadius * exitRadius);
 
 	circle->UpdateOverlapState(rectActor, isOverlapping);
 	rect->UpdateOverlapState(circleActor, isOverlapping);
+
 	if (isOverlapping
 		&& circle->GetCollisionType() == ECollisionType::Block
 		&& rect->GetCollisionType() == ECollisionType::Block) {
-		FVector2D normal{ 0.0f, 0.0f };
+
+		FVector2D localNormal{ 0.0f, 0.0f };
 		float overlapDepth = 0.0f;
+
 		if (distanceSquared <= 0.0001f) {
-			float left = circleCenter.X - minX;
-			float right = maxX - circleCenter.X;
-			float top = circleCenter.Y - minY;
-			float bottom = maxY - circleCenter.Y;
+			float left = localCircleX - (-halfWidth);
+			float right = halfWidth - localCircleX;
+			float top = localCircleY - (-halfHeight);
+			float bottom = halfHeight - localCircleY;
 			float minEdge = left;
-			normal = { -1.0f, 0.0f };
-			if (right < minEdge) {
-				minEdge = right;
-				normal = { 1.0f, 0.0f };
-			}
-			if (top < minEdge) {
-				minEdge = top;
-				normal = { 0.0f, -1.0f };
-			}
-			if (bottom < minEdge) {
-				minEdge = bottom;
-				normal = { 0.0f, 1.0f };
-			}
+			localNormal = { -1.0f, 0.0f };
+			if (right < minEdge) { minEdge = right; localNormal = { 1.0f, 0.0f }; }
+			if (top < minEdge) { minEdge = top; localNormal = { 0.0f, -1.0f }; }
+			if (bottom < minEdge) { minEdge = bottom; localNormal = { 0.0f, 1.0f }; }
 			overlapDepth = radius + minEdge;
 		}
 		else {
 			float distance = std::sqrt(distanceSquared);
-			normal = { dx / distance, dy / distance };
+			localNormal = { localDx / distance, localDy / distance };
 			overlapDepth = radius - distance;
 		}
 
+		// ローカル法線をワールド法線に変換
+		FVector2D worldNormal = {
+			localNormal.X * cosA - localNormal.Y * sinA,
+			localNormal.X * sinA + localNormal.Y * cosA
+		};
 
-		CollisionResolution(circleActor, rectActor, normal, overlapDepth);
+		CollisionResolution(circleActor, rectActor, worldNormal, overlapDepth);
 	}
 }
 
+struct OBB {
+	FVector2D Center;
+	FVector2D AxisX;
+	FVector2D AxisY;
+	float HalfW;
+	float HalfH;
+};
+
 void CollisionSystem::RectangleAndRectangle(MRectangleCollisionComponent* a, MRectangleCollisionComponent* b)
 {
-	FVector2D aCenter = a->GetWorldLocation();
-	FVector2D bCenter = b->GetWorldLocation();
-	float aHalfW = (a->GetWidth() * a->GetWorldScale()) * 0.5f;
-	float aHalfH = (a->GetHeight() * a->GetWorldScale()) * 0.5f;
-	float bHalfW = (b->GetWidth() * b->GetWorldScale()) * 0.5f;
-	float bHalfH = (b->GetHeight() * b->GetWorldScale()) * 0.5f;
+	auto GetOBB = [](MRectangleCollisionComponent* rect) -> OBB {
+		OBB obb;
+		obb.Center = rect->GetWorldLocation();
+		float rad = UMath::DegToRad(rect->GetWorldRotation().Rotation);
+		obb.AxisX = { std::cos(rad), std::sin(rad) };
+		obb.AxisY = { -std::sin(rad), std::cos(rad) };
+		obb.HalfW = (rect->GetWidth() * rect->GetWorldScale()) * 0.5f;
+		obb.HalfH = (rect->GetHeight() * rect->GetWorldScale()) * 0.5f;
+		return obb;
+		};
 
-	bool isOverlapping = std::abs(aCenter.X - bCenter.X) <= (aHalfW + bHalfW)
-		&& std::abs(aCenter.Y - bCenter.Y) <= (aHalfH + bHalfH);
+	OBB obbA = GetOBB(a);
+	OBB obbB = GetOBB(b);
+
+	// 互いのローカルX軸とY軸の計4本でSAT(分離軸定理)を行う
+	FVector2D axes[4] = { obbA.AxisX, obbA.AxisY, obbB.AxisX, obbB.AxisY };
+
+	float minOverlap = 1e9f;
+	FVector2D mtvAxis{ 0.0f, 0.0f }; // Minimum Translation Vector (押し出し方向)
+	bool isOverlapping = true;
+
+	for (int i = 0; i < 4; ++i) {
+		FVector2D axis = axes[i];
+		if (axis.X * axis.X + axis.Y * axis.Y < 0.0001f) continue;
+
+		auto Project = [](const OBB& obb, const FVector2D& ax) -> float {
+			return std::abs(obb.AxisX.X * ax.X + obb.AxisX.Y * ax.Y) * obb.HalfW +
+				std::abs(obb.AxisY.X * ax.X + obb.AxisY.Y * ax.Y) * obb.HalfH;
+			};
+
+		float rA = Project(obbA, axis);
+		float rB = Project(obbB, axis);
+
+		FVector2D t = { obbB.Center.X - obbA.Center.X, obbB.Center.Y - obbA.Center.Y };
+		float distance = std::abs(t.X * axis.X + t.Y * axis.Y);
+
+		float overlap = rA + rB - distance;
+		if (overlap <= 0.0f) {
+			isOverlapping = false;
+			break; // 1つでも隙間があれば非衝突
+		}
+
+		if (overlap < minOverlap) {
+			minOverlap = overlap;
+			mtvAxis = axis;
+			// 常に A から B への方向に合わせる
+			if (t.X * axis.X + t.Y * axis.Y < 0.0f) {
+				mtvAxis = { -axis.X, -axis.Y };
+			}
+		}
+	}
 
 	auto aActor = a->GetOwner();
 	auto bActor = b->GetOwner();
+
 	a->UpdateOverlapState(bActor, isOverlapping);
 	b->UpdateOverlapState(aActor, isOverlapping);
+
 	if (isOverlapping
 		&& a->GetCollisionType() == ECollisionType::Block
 		&& b->GetCollisionType() == ECollisionType::Block) {
-		float dx = bCenter.X - aCenter.X;
-		float dy = bCenter.Y - aCenter.Y;
-		float overlapX = (aHalfW + bHalfW) - std::abs(dx);
-		float overlapY = (aHalfH + bHalfH) - std::abs(dy);
-		if (overlapX <= 0.0f || overlapY <= 0.0f) {
-			return;
-		}
-		FVector2D normal{ 0.0f, 0.0f };
-		float overlapDepth = 0.0f;
-		if (overlapX < overlapY) {
-			normal = { dx >= 0.0f ? 1.0f : -1.0f, 0.0f };
-			overlapDepth = overlapX;
-		}
-		else {
-			normal = { 0.0f, dy >= 0.0f ? 1.0f : -1.0f };
-			overlapDepth = overlapY;
-		}
-
-		CollisionResolution(aActor, bActor, normal, overlapDepth);
+		CollisionResolution(aActor, bActor, mtvAxis, minOverlap);
 	}
 }
 
@@ -378,59 +417,82 @@ void CollisionSystem::LineAndRectangle(MLineCollisionComponent* line, MRectangle
 	FVector2D start = line->GetWorldStart();
 	FVector2D end = line->GetWorldEnd();
 	FVector2D rectCenter = rect->GetWorldLocation();
+
 	float halfWidth = (rect->GetWidth() * rect->GetWorldScale()) * 0.5f;
 	float halfHeight = (rect->GetHeight() * rect->GetWorldScale()) * 0.5f;
 
-	float minX = rectCenter.X - halfWidth;
-	float maxX = rectCenter.X + halfWidth;
-	float minY = rectCenter.Y - halfHeight;
-	float maxY = rectCenter.Y + halfHeight;
+	float rad = UMath::DegToRad(rect->GetWorldRotation().Rotation);
+	float cosA = std::cos(rad);
+	float sinA = std::sin(rad);
 
-	bool startInside = start.X >= minX && start.X <= maxX && start.Y >= minY && start.Y <= maxY;
-	bool endInside = end.X >= minX && end.X <= maxX && end.Y >= minY && end.Y <= maxY;
+	// 線分を矩形のローカル座標に変換
+	auto ToLocal = [&](const FVector2D& pt) -> FVector2D {
+		float dx = pt.X - rectCenter.X;
+		float dy = pt.Y - rectCenter.Y;
+		return { dx * cosA + dy * sinA, -dx * sinA + dy * cosA };
+		};
+
+	FVector2D localStart = ToLocal(start);
+	FVector2D localEnd = ToLocal(end);
+
+	float minX = -halfWidth;
+	float maxX = halfWidth;
+	float minY = -halfHeight;
+	float maxY = halfHeight;
+
+	bool startInside = localStart.X >= minX && localStart.X <= maxX && localStart.Y >= minY && localStart.Y <= maxY;
+	bool endInside = localEnd.X >= minX && localEnd.X <= maxX && localEnd.Y >= minY && localEnd.Y <= maxY;
+
 	bool isOverlapping = startInside || endInside;
 	if (!isOverlapping) {
 		FVector2D topLeft{ minX, minY };
 		FVector2D topRight{ maxX, minY };
 		FVector2D bottomLeft{ minX, maxY };
 		FVector2D bottomRight{ maxX, maxY };
-		isOverlapping = LineSegmentsIntersect(start, end, topLeft, topRight)
-			|| LineSegmentsIntersect(start, end, topRight, bottomRight)
-			|| LineSegmentsIntersect(start, end, bottomRight, bottomLeft)
-			|| LineSegmentsIntersect(start, end, bottomLeft, topLeft);
+		isOverlapping = LineSegmentsIntersect(localStart, localEnd, topLeft, topRight)
+			|| LineSegmentsIntersect(localStart, localEnd, topRight, bottomRight)
+			|| LineSegmentsIntersect(localStart, localEnd, bottomRight, bottomLeft)
+			|| LineSegmentsIntersect(localStart, localEnd, bottomLeft, topLeft);
 	}
 
 	auto lineActor = line->GetOwner();
 	auto rectActor = rect->GetOwner();
 	line->UpdateOverlapState(rectActor, isOverlapping);
 	rect->UpdateOverlapState(lineActor, isOverlapping);
+
 	if (isOverlapping
 		&& line->GetCollisionType() == ECollisionType::Block
 		&& rect->GetCollisionType() == ECollisionType::Block) {
-		FVector2D ab{ end.X - start.X, end.Y - start.Y };
-		FVector2D ap{ rectCenter.X - start.X, rectCenter.Y - start.Y };
+
+		FVector2D ab{ localEnd.X - localStart.X, localEnd.Y - localStart.Y };
+		FVector2D ap{ -localStart.X, -localStart.Y }; // center (0,0) - localStart
 		float abLenSq = ab.X * ab.X + ab.Y * ab.Y;
 		float t = 0.0f;
 		if (abLenSq > 0.0001f) {
 			t = (ap.X * ab.X + ap.Y * ab.Y) / abLenSq;
 			t = ClampFloat(t, 0.0f, 1.0f);
 		}
-		FVector2D closest{ start.X + ab.X * t, start.Y + ab.Y * t };
-		float dx = rectCenter.X - closest.X;
-		float dy = rectCenter.Y - closest.Y;
+		FVector2D closest{ localStart.X + ab.X * t, localStart.Y + ab.Y * t };
+		float dx = -closest.X; // 0 - closest.X
+		float dy = -closest.Y; // 0 - closest.Y
 		float distanceSquared = dx * dx + dy * dy;
-		if (distanceSquared <= 0.0001f) {
-			return;
-		}
-		float distance = std::sqrt(distanceSquared);
-		FVector2D normal{ dx / distance, dy / distance };
-		float supportRadius = std::abs(normal.X) * halfWidth + std::abs(normal.Y) * halfHeight;
-		float overlapDepth = supportRadius - distance;
-		if (overlapDepth <= 0.0f) {
-			return;
-		}
 
-		CollisionResolution(lineActor, rectActor, normal, overlapDepth);
+		if (distanceSquared <= 0.0001f) return;
+
+		float distance = std::sqrt(distanceSquared);
+		FVector2D localNormal{ dx / distance, dy / distance };
+		float supportRadius = std::abs(localNormal.X) * halfWidth + std::abs(localNormal.Y) * halfHeight;
+		float overlapDepth = supportRadius - distance;
+
+		if (overlapDepth <= 0.0f) return;
+
+		// ローカル法線をワールド法線に変換
+		FVector2D worldNormal = {
+			localNormal.X * cosA - localNormal.Y * sinA,
+			localNormal.X * sinA + localNormal.Y * cosA
+		};
+
+		CollisionResolution(lineActor, rectActor, worldNormal, overlapDepth);
 	}
 }
 
