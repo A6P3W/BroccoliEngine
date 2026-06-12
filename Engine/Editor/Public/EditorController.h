@@ -22,5 +22,7 @@ private:
 	void OnCutPressed();
 	void OnDeletePressed();
 
+	void OnSavePressed();
+
 	EditorMode* EditorModePtr = nullptr;
 };

@@ -124,14 +124,30 @@ void EditorMode::OnMouseRelease(const FVector2D& worldPos)
 
 bool EditorMode::SaveLevel(const std::string& filePath)
 {
-	// ObjectManager上のアクタを保存
-	return LevelSerializer::Save(GetWorld(), filePath);
+	if (LevelSerializer::Save(GetWorld(), filePath)) {
+		CurrentLevelPath = filePath;
+		M_LOG("Level saved to '{}'", filePath);
+
+	}
+	else {
+		M_LOG("Failed to save level to '{}'", filePath);
+		return false;
+	}
+	return true;
 }
 
 bool EditorMode::LoadLevel(const std::string& filePath)
 {
 	PendingLoadPath = filePath;
 	SceneManager::GetInstance().OpenScene<EditorMode>();
+	return true;
+}
+bool EditorMode::QuickSaveLevel()
+{
+	if (CurrentLevelPath=="") {
+		return false;
+	}
+	SaveLevel(CurrentLevelPath);
 	return true;
 }
 std::string EditorMode::PendingLoadPath = "";
