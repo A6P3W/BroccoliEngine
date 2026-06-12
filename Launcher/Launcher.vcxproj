@@ -175,6 +175,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/WHOLEARCHIVE:BroccoliEngine.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -194,6 +195,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/WHOLEARCHIVE:BroccoliEngine.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -215,6 +217,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/WHOLEARCHIVE:BroccoliEngine.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>

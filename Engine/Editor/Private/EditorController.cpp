@@ -22,6 +22,7 @@ void EditorController::SetupPlayerInputComponent(MEnhancedInputComponent* Player
 	PlayerInputComponent->BindAction(EditorInputAction::Paste, ETriggerEvent::Started, this, &EditorController::OnPastePressed);
 	PlayerInputComponent->BindAction(EditorInputAction::Cut, ETriggerEvent::Started, this, &EditorController::OnCutPressed);
 	PlayerInputComponent->BindAction("Delete", ETriggerEvent::Started, this, &EditorController::OnDeletePressed);
+	PlayerInputComponent->BindAction("Save", ETriggerEvent::Started, this, &EditorController::OnSavePressed);
 }
 
 void EditorController::SetPlayerId(int id)
@@ -44,6 +45,7 @@ void EditorController::SetPlayerId(int id)
 		Mapper->AddMapping(EditorInputAction::Copy, kb, KEY_INPUT_C, EditorInputAction::ModifierCtrl);
 		Mapper->AddMapping(EditorInputAction::Paste, kb, KEY_INPUT_V, EditorInputAction::ModifierCtrl);
 		Mapper->AddMapping(EditorInputAction::Cut, kb, KEY_INPUT_X, EditorInputAction::ModifierCtrl);
+		Mapper->AddMapping("Save", kb, KEY_INPUT_S, EditorInputAction::ModifierCtrl);
 		Mapper->AddMapping("Delete", kb, KEY_INPUT_DELETE);
 	}
 
@@ -90,5 +92,12 @@ void EditorController::OnCutPressed() {
 void EditorController::OnDeletePressed() {
 	if (EditorModePtr) {
 		EditorModePtr->DeleteSelectedActor();
+	}
+}
+
+void EditorController::OnSavePressed()
+{
+	if (EditorModePtr) {
+		EditorModePtr->QuickSaveLevel();
 	}
 }

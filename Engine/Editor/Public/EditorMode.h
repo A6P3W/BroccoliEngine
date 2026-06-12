@@ -44,6 +44,9 @@ public:
 	// --- 保存/ロード ---
 	bool SaveLevel(const std::string& filePath);
 	bool LoadLevel(const std::string& filePath);    // 現シーンをクリアしてからロード
+	bool QuickSaveLevel();
+
+	void SetCurrentLevelPath(const std::string& path) { CurrentLevelPath = path; }
 
 	EEditorState GetState() const { return m_state; }
 
