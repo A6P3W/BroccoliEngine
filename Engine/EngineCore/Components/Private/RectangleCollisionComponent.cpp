@@ -27,7 +27,16 @@ void MRectangleCollisionComponent::Draw()
 		0,
 		RenderSpace::World,
 		100,
-		120);
+		255);
+	RenderSystem::GetInstance().SubmitBox(
+		{ center.X + rotatedTopLeftOffset.X, center.Y + rotatedTopLeftOffset.Y }, // 回転を考慮した左上座標
+		{ halfWidth * 2.0f, halfHeight * 2.0f },
+		GetWorldRotation().Rotation,
+		11111111,
+		1,
+		RenderSpace::World,
+		100,
+		50);
 }
 
 FAABB MRectangleCollisionComponent::GetAABB() const
