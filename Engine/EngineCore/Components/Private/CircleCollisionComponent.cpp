@@ -11,7 +11,16 @@ void MCircleCollisionComponent::Draw()
 		0,
 		RenderSpace::World,
 		100,
-		120
+		255
+	);
+	RenderSystem::GetInstance().SubmitCircle(
+		GetWorldLocation(),
+		m_radius * GetWorldScale(),
+		11111111,
+		1,
+		RenderSpace::World,
+		100,
+		50
 	);
 }
 
