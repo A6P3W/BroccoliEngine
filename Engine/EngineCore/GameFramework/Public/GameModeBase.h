@@ -32,6 +32,7 @@ protected:
 		auto* Controller = GetWorld()->SpawnActor<TController>(Location);
 		m_PlayerController = Controller;
 		Controller->SetPlayerId(PlayerId);
+		Controller->SetupInputMappings();
 
 		auto* Pawn = GetWorld()->SpawnActor<TPawn>(Location);
 		m_PlayerPawn = Pawn;

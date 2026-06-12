@@ -9,8 +9,7 @@ public:
 	EditorController();
 
 	void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
-	void SetPlayerId(int id);
-
+	void SetupInputMappings() override;
 private:
 	void OnSelectModePressed();
 	void OnMoveModePressed();
