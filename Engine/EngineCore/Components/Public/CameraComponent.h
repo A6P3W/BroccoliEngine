@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Components/Public/SceneComponent.h"
+#include "SceneComponent.h"
 
 class MCameraComponent : public MSceneComponent
 {

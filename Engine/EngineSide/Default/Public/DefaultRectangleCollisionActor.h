@@ -2,7 +2,6 @@
 
 #include "Actor.h"
 
-// Default: Rectangle collision component only.
 class ADefaultRectangleCollisionActor : public AActor
 {
 public:

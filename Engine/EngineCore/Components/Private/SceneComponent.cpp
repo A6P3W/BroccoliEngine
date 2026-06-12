@@ -1,4 +1,4 @@
-﻿#include "Components/Public/SceneComponent.h"
+﻿#include "SceneComponent.h"
 #include <cmath>
 #include <algorithm>
 #include "UMath.h"
@@ -8,16 +8,13 @@ MSceneComponent::MSceneComponent() = default;
 MSceneComponent::~MSceneComponent() = default;
 
 void MSceneComponent::OnUpdate(float DeltaTime)
-{
-}
+{}
 
 void MSceneComponent::Draw()
-{
-}
+{}
 
 void MSceneComponent::OnMessage(const std::string& message)
-{
-}
+{}
 
 void MSceneComponent::OnComponentDestroy()
 {
@@ -167,7 +164,7 @@ bool MSceneComponent::SetWorldScale(float nScale)
 
 	// 親がいる場合： 自分の相対 = 目標ワールド / 親のワールド
 	float parentWorldScale = m_parentComponent->GetWorldScale();
-	if (std::abs(parentWorldScale) < 1e-6f) return false; // 0除算防止
+	if (std::abs(parentWorldScale) < 1e-6f) return false;
 
 	return SetRelativeScale(nScale / parentWorldScale);
 }

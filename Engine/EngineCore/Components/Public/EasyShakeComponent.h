@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Components/Public/SceneComponent.h"
+#include "SceneComponent.h"
 #include <cstdint>
 #include <vector>
 
@@ -27,7 +27,6 @@ class MEasyShakeComponent : public MSceneComponent
 public:
 	void ApplyShake(const FVector2D& StrengthXY, float DurationSeconds, bool bEnableFadeIn, bool bEnableFadeOut);
 
-	// TimerHandle-like API
 	void StartShake(FShakeHandle& Handle, const FVector2D& StrengthXY, float DurationSeconds);
 	void EndShake(FShakeHandle& Handle, bool bEnableFadeOut = false);
 	bool IsShakeActive(const FShakeHandle& Handle) const;

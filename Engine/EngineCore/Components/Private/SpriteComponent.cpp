@@ -60,7 +60,6 @@ void MSpriteComponent::Draw()
 
     auto& rs = RenderSystem::GetInstance();
 
-    // std::visit を使って、保持しているデータ型に応じた Submit 関数を呼ぶ
     std::visit([&](auto&& d) {
         using T = std::decay_t<decltype(d)>;
 
@@ -93,9 +92,4 @@ void MSpriteComponent::Draw()
                 m_common.space, m_common.priority, m_common.alpha);
         }
         }, m_data);
-}
-
-void MSpriteComponent::OnMessage(const std::string& message)
-{
-    // 必要に応じて実装
 }

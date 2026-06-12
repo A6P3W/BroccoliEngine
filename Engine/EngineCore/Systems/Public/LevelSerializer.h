@@ -22,8 +22,7 @@ class World;
 class LevelSerializer
 {
 public:
-	// 現在ObjectManagerにいる全アクタを保存
-	// （ActorRegistryに登録されているクラスのみ対象）
+	// 現在ObjectManagerにいるActorRegistryに登録されている全アクタを保存
 	static bool Save(World* world, const std::string& filePath);
 
 	// JSONからアクタをスポーン（現シーンはクリアしない）

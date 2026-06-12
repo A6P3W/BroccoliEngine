@@ -1,4 +1,4 @@
-﻿#include "Components/Public/SceneComponent.h"
+﻿#include "SceneComponent.h"
 #include "Actor.h"
 #include "TimerManager.h"
 #include "Log.h"

@@ -35,7 +35,11 @@ struct EditorInputAction {
 	static constexpr auto Paste = "EditorPaste";
 	static constexpr auto Cut = "EditorCut";
 };
-
+struct UIAction {
+	static constexpr auto Submit = "Submit";
+	static constexpr auto Cancel = "Cancel";
+	static constexpr auto Move = "Move";
+};
 class InputMapper {
 public:
 	InputMapper() = default;

@@ -2,7 +2,6 @@
 
 #include "Actor.h"
 
-// Default: Line collision component only.
 class ADefaultLineCollisionActor : public AActor
 {
 public:

@@ -44,6 +44,10 @@ void APlayerController::OnUpdate(float DeltaTime)
 void APlayerController::SetPlayerId(int id)
 {
     m_PlayerId = id;
+}
+
+void APlayerController::SetupInputMappings()
+{
     m_InputMapper->RemoveMapping(InputActionLower::MoveX);
     m_InputMapper->RemoveMapping(InputActionLower::MoveY);
     m_InputMapper->RemoveMapping(InputActionMouse::Wheel);
@@ -52,17 +56,16 @@ void APlayerController::SetPlayerId(int id)
     auto& IM = InputManager::GetInstance();
     auto* kb = IM.GetDevice<KeyboardDevice>();
     auto* mouse = IM.GetDevice<MouseDevice>();
-    //uto* pad = IM.GetDevice<GamepadDevice>(); 
 
-    if (id == 0 && kb) {
+    if (kb) {
         // キーボード
-        m_InputMapper->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_A,"", 1.0f);
+        m_InputMapper->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_A, "", 1.0f);
         m_InputMapper->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_D, "", -1.0f);
         m_InputMapper->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_W, "", 1.0f);
         m_InputMapper->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_S, "", -1.0f);
         m_InputMapper->AddMapping(InputAction::Interact, kb, KEY_INPUT_F);
     }
-    if (id == 0 && mouse) {
+    if (mouse) {
         m_InputMapper->AddMapping(InputActionMouse::MouseLeft, mouse, MOUSE_INPUT_LEFT);
         m_InputMapper->AddMapping(InputActionMouse::MouseRight, mouse, MOUSE_INPUT_RIGHT);
 
@@ -71,11 +74,4 @@ void APlayerController::SetPlayerId(int id)
         m_InputMapper->AddAxisMapping(InputActionLower::LookX, mouse, MouseDevice::AxisID::MouseX);
         m_InputMapper->AddAxisMapping(InputActionLower::LookY, mouse, MouseDevice::AxisID::MouseY);
     }
-    //if (pad) {
-    //    // ゲームパッド軸
-    //    m_InputMapper->AddAxisMapping(InputAction::MoveX, pad, 0);
-    //    m_InputMapper->AddAxisMapping(InputAction::MoveY, pad, 1);
-    //    m_InputMapper->AddMapping(InputAction::Interact, pad, PAD_INPUT_A);
-    //}
-
 }

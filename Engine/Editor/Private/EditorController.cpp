@@ -14,6 +14,8 @@ EditorController::EditorController()
 
 void EditorController::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent)
 {
+	EditorModePtr = dynamic_cast<EditorMode*>(GetWorld()->GetGameMode());
+
 	PlayerInputComponent->BindAction(EditorInputAction::SelectMode, ETriggerEvent::Started, this, &EditorController::OnSelectModePressed);
 	PlayerInputComponent->BindAction(EditorInputAction::MoveMode, ETriggerEvent::Started, this, &EditorController::OnMoveModePressed);
 	PlayerInputComponent->BindAction(EditorInputAction::RotateMode, ETriggerEvent::Started, this, &EditorController::OnRotateModePressed);
@@ -25,17 +27,17 @@ void EditorController::SetupPlayerInputComponent(MEnhancedInputComponent* Player
 	PlayerInputComponent->BindAction("Save", ETriggerEvent::Started, this, &EditorController::OnSavePressed);
 }
 
-void EditorController::SetPlayerId(int id)
-{
-	EditorModePtr = dynamic_cast<EditorMode*>(GetWorld()->GetGameMode());
 
-	APlayerController::SetPlayerId(id);
+void EditorController::SetupInputMappings()
+{
+	APlayerController::SetupInputMappings();
+
 	auto& IM = InputManager::GetInstance();
 	auto* kb = IM.GetDevice<KeyboardDevice>();
 
-	auto*Mapper = GetInputMapper();
+	auto* Mapper = GetInputMapper();
 
-	if (id == 0 && kb) {
+	if (kb) {
 		Mapper->AddMapping(EditorInputAction::SelectMode, kb, KEY_INPUT_Q);
 		Mapper->AddMapping(EditorInputAction::MoveMode, kb, KEY_INPUT_W);
 		Mapper->AddMapping(EditorInputAction::RotateMode, kb, KEY_INPUT_E);
@@ -48,7 +50,6 @@ void EditorController::SetPlayerId(int id)
 		Mapper->AddMapping("Save", kb, KEY_INPUT_S, EditorInputAction::ModifierCtrl);
 		Mapper->AddMapping("Delete", kb, KEY_INPUT_DELETE);
 	}
-
 }
 
 void EditorController::OnSelectModePressed() {
