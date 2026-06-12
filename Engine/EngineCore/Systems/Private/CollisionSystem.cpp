@@ -9,8 +9,7 @@
 #include <algorithm>
 
 CollisionSystem::CollisionSystem()
-{
-}
+{}
 
 CollisionSystem::~CollisionSystem()
 {}
@@ -294,8 +293,8 @@ void CollisionSystem::CircleAndRectangle(MCircleCollisionComponent* circle, MRec
 			localNormal.X * cosA - localNormal.Y * sinA,
 			localNormal.X * sinA + localNormal.Y * cosA
 		};
-
-		CollisionResolution(circleActor, rectActor, worldNormal, overlapDepth);
+		// worldNormal は四角から円への向きになっているため反転させて渡す
+		CollisionResolution(circleActor, rectActor, { -worldNormal.X, -worldNormal.Y }, overlapDepth);
 	}
 }
 
@@ -514,7 +513,7 @@ void CollisionSystem::CancelNormalVelocity(MMovementComponent* move, const FVect
 {
 	FVector2D v = move->GetVelocity();
 	float dot = v.X * normal.X + v.Y * normal.Y;
-	if (dot < 0.0f) { // 衝突方向に向かっている成分のみキャンセル
+	if (dot > 0.0f) { // 衝突方向に向かっている成分のみキャンセル
 		move->SetWorldForce({ v.X - normal.X * dot, v.Y - normal.Y * dot });
 	}
 }
@@ -525,7 +524,6 @@ void CollisionSystem::CollisionResolution(AActor* ActorA, AActor* ActorB, const 
 	auto moveComponentB = ActorB->GetComponents<MMovementComponent>();
 	auto* moveA = moveComponentA.empty() ? nullptr : moveComponentA.front();
 	auto* moveB = moveComponentB.empty() ? nullptr : moveComponentB.front();
-
 	if (moveA && moveB) {
 		ActorA->AddActorWorldOffset(normal * (-overlapDepth * 0.5f));
 		ActorB->AddActorWorldOffset(normal * (overlapDepth * 0.5f));
@@ -533,14 +531,13 @@ void CollisionSystem::CollisionResolution(AActor* ActorA, AActor* ActorB, const 
 		CancelNormalVelocity(moveB, { -normal.X, -normal.Y });
 	}
 	else if (moveA) {
-		ActorA->AddActorWorldOffset(normal * (overlapDepth));
+		ActorA->AddActorWorldOffset(normal * (-overlapDepth));
 		CancelNormalVelocity(moveA, normal);
 	}
 	else if (moveB) {
-		ActorB->AddActorWorldOffset(normal * (-overlapDepth));
+		ActorB->AddActorWorldOffset(normal * (overlapDepth));
 		CancelNormalVelocity(moveB, { -normal.X, -normal.Y });
 	}
-
 }
 
 
