@@ -36,9 +36,8 @@ struct EditorInputAction {
 	static constexpr auto Cut = "EditorCut";
 };
 struct UIAction {
-	static constexpr auto Submit = "Submit";
-	static constexpr auto Cancel = "Cancel";
-	static constexpr auto Move = "Move";
+	static constexpr auto Submit = "UI_Submit";
+	static constexpr auto Cancel = "UI_Cancel";
 };
 class InputMapper {
 public:

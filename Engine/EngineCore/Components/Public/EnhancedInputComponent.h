@@ -20,6 +20,7 @@ private:
 		std::string  ActionName;
 		ETriggerEvent Event;
 		std::function<void(const FInputActionValue&)> Callback;
+		bool IsUIAction = false;
 	};
 	std::vector<FInputBinding> m_bindings;
 
@@ -27,16 +28,16 @@ public:
 	void ClearBindings() { m_bindings.clear(); }
 	template<class T>
 	void BindAction(const std::string& actionName, ETriggerEvent event,
-		T* obj, void (T::* func)(const FInputActionValue&)) {
+		T* obj, void (T::* func)(const FInputActionValue&), bool isUIAction = false) {
 		m_bindings.push_back({ actionName, event,
-			[obj, func](const FInputActionValue& v) { (obj->*func)(v); } });
+			[obj, func](const FInputActionValue& v) { (obj->*func)(v); }, isUIAction });
 	}
 	template<class T>
 	void BindAction(const std::string& actionName, ETriggerEvent event,
-		T* obj, void (T::* func)()) {
+		T* obj, void (T::* func)(), bool isUIAction = false) {
 		m_bindings.push_back({ actionName, event,
-			[obj, func](const FInputActionValue&) { (obj->*func)(); } });
+			[obj, func](const FInputActionValue&) { (obj->*func)(); }, isUIAction });
 	}
 
-	void ProcessInputBindings(const InputMapper& mapper);
+	void ProcessInputBindings(const InputMapper& mapper, bool AllowUI, bool AllowGame);
 };

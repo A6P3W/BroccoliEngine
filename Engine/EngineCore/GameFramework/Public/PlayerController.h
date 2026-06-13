@@ -4,24 +4,35 @@
 #include <InputMapper.h>
 #include <memory>
 
-class MEnhancedInputComponent;
-class APlayerController:public AActor
+enum class EInputMode
 {
-public :
+	GameOnly,
+	UIOnly,
+	GameAndUI
+};
+class MEnhancedInputComponent;
+class APlayerController :public AActor
+{
+public:
 	DEFINE_ACTOR_CLASS(APlayerController)
-	APlayerController();
+		APlayerController();
 	virtual void Possess(APawn* NewPawn);
 
 	void OnUpdate(float DeltaTime) override;
 	void SetPlayerId(int id);
-	virtual void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) {}
+	virtual void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent);
 	virtual void SetupInputMappings();
 	InputMapper* GetInputMapper() { return m_InputMapper.get(); }
 	MEnhancedInputComponent* GetInputComponent() { return m_InputCompPtr; }
+
+	void SetInputMode(EInputMode NewInputMode);
+	EInputMode GetInputMode() const { return InputMode; }
+
 private:
 	APawn* m_TargetPawn = nullptr;
 	MEnhancedInputComponent* m_InputCompPtr;
 	std::unique_ptr<InputMapper> m_InputMapper;
 	int m_PlayerId = 0;
+	EInputMode InputMode = EInputMode::GameAndUI;
 };
 
