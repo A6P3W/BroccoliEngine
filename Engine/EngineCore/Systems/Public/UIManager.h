@@ -2,7 +2,7 @@
 #include "UMath.h"
 #include <vector>
 struct FInputActionValue;
-class UIBase;
+class AWidgetBase;
 class UIManager
 {
 public :
@@ -11,18 +11,18 @@ public :
 		return &instance;
 	}
 
-	void PushWidget(UIBase* Widget);
+	void PushWidget(AWidgetBase* Widget);
 	void PopWidget();
-	UIBase* GetPeekWidget();
+	AWidgetBase* GetPeekWidget();
 
 	void Navigate(const FInputActionValue& Value);
 	void Submit();
 	void Cancel();
 
-	void SetFocusedWidget(UIBase* Widget) { CurrentFocusedWidget = Widget; }
+	void SetFocusedWidget(AWidgetBase* Widget) { CurrentFocusedWidget = Widget; }
 
 private:
-	UIBase* CurrentFocusedWidget = nullptr;
-	std::vector<UIBase*> WidgetStack;
+	AWidgetBase* CurrentFocusedWidget = nullptr;
+	std::vector<AWidgetBase*> WidgetStack;
 };
 

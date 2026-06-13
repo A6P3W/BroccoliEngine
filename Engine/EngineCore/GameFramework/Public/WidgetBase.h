@@ -2,14 +2,13 @@
 #include "Actor.h"
 
 struct FInputActionValue;
-
 class MUIButtonComponent;
-class AUIBase : public AActor
+
+class AWidgetBase : public AActor
 {
 public:
 	virtual void OnOpened() {}
 	virtual void OnClosed() {}
-
 	virtual void OnObscured() {}
 	virtual void OnRevealed() {}
 
@@ -17,7 +16,9 @@ public:
 	void Submit();
 	void Cancel();
 
+	void SetZOrderOffset(int offset);
+
 private:
 	MUIButtonComponent* FocusedButtonComponent = nullptr;
+	int m_ZOrderOffset = 0;
 };
-
