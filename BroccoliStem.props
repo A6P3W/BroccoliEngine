@@ -18,8 +18,15 @@
 	  </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>BroccoliEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(SolutionDir)BroccoliEngine\$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+		<AdditionalDependencies>
+			BroccoliEngine.lib;ws2_32.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;
+			%(AdditionalDependencies)
+		</AdditionalDependencies>
+		<AdditionalLibraryDirectories>
+			$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\;
+			$(MSBuildThisFileDirectory)BroccoliEngine\$(Platform)\$(Configuration)\;
+			%(AdditionalLibraryDirectories)
+		</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
 </Project>
