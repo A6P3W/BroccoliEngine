@@ -7,11 +7,14 @@ class MUIButtonComponent;
 class AWidgetBase : public AActor
 {
 public:
+	void OnUpdate(float DeltaTime) override;
+
 	virtual void OnOpened() {}
 	virtual void OnClosed() {}
 	virtual void OnObscured() {}
 	virtual void OnRevealed() {}
 
+	void SetFocusedButton(MUIButtonComponent* Button);
 	void Navigate(const FInputActionValue& Value);
 	void Submit();
 	void Cancel();
@@ -21,4 +24,5 @@ public:
 private:
 	MUIButtonComponent* FocusedButtonComponent = nullptr;
 	int m_ZOrderOffset = 0;
+	float NavigationCooldown = 0.0f;
 };

@@ -12,6 +12,7 @@ class ASamplePawn01 : public APawn
 public:
 	DEFINE_ACTOR_CLASS(ASamplePawn01)
 	ASamplePawn01();
+	void BeginPlay() override;
 	void OnPossesed() override;
     void OnUpdate(float DeltaTime) override;
 	void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;

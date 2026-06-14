@@ -52,8 +52,7 @@ void APlayerController::SetPlayerId(int id)
 void APlayerController::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent)
 {
 	auto* manager=UIManager::GetInstance();
-    PlayerInputComponent->BindAction(InputActionLower::MoveX, ETriggerEvent::Triggered, manager, &UIManager::Navigate, true);
-    PlayerInputComponent->BindAction(InputActionLower::MoveY, ETriggerEvent::Triggered, manager, &UIManager::Navigate, true);
+    PlayerInputComponent->BindAction(InputAction::Move, ETriggerEvent::Triggered, manager, &UIManager::Navigate, true);
 
     PlayerInputComponent->BindAction(UIAction::Submit, ETriggerEvent::Started, manager, &UIManager::Submit, true);
 	PlayerInputComponent->BindAction(UIAction::Cancel, ETriggerEvent::Started, manager,&UIManager::Cancel,true );
