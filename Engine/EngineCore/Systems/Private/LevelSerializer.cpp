@@ -25,8 +25,8 @@ bool LevelSerializer::Save(World* world, const std::string& filePath)
 		FActorSaveData data;
 		data.ClassName = name;
 		data.Location = actor->GetActorLocation();
-		data.Rotation = actor->GetActorRotation().Rotation;
-		data.Scale = actor->GetActorScale().Scale;
+		data.Rotation = actor->GetActorRotation();
+		data.Scale = actor->GetActorScale();
 
 		// ASpriteActorの場合は画像パスを保存
 		if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor))
@@ -95,8 +95,8 @@ bool LevelSerializer::SaveData(const std::string& filePath,
 		obj["instance_name"] = d.InstanceName;
 		obj["transform"] = {
 			{"location", {{"x", d.Location.X}, {"y", d.Location.Y}}},
-			{"rotation", d.Rotation},
-			{"scale",    d.Scale}
+			{"rotation", d.Rotation.Rotation},
+			{"scale",    d.Scale.Scale}
 		};
 
 		// プロパティが存在する場合はJSONに出力
@@ -136,8 +136,8 @@ bool LevelSerializer::LoadData(const std::string& filePath,
 				data.Location.X = t["location"].value("x", 0.0f);
 				data.Location.Y = t["location"].value("y", 0.0f);
 			}
-			data.Rotation = t.value("rotation", 0.0f);
-			data.Scale = t.value("scale", 1.0f);
+			data.Rotation = FRotator(t.value("rotation", 0.0f));
+			data.Scale = FScale(t.value("scale", 1.0f));
 		}
 
 		// プロパティが含まれている場合は読み取る

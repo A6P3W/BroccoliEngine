@@ -30,23 +30,22 @@ void AActor::Spawned()
 {
 	M_LOG("Actor spawned: {}", GetActorClassName());
 	BeginPlay();
-	for (auto& comp : m_components) {
-		if (comp && !comp->IsPendingDestroy()) {
-			comp->BeginPlay();
+
+	for (size_t i = 0; i < m_components.size(); ++i) {
+		if (m_components[i] && !m_components[i]->IsPendingDestroy()) {
+			m_components[i]->BeginPlay();
 		}
 	}
-
 }
 
 void AActor::SetWorld(World* world)
 {
 	if (m_world == world) return;
-
 	m_world = world;
 
-	for (auto& comp : m_components) {
-		if (comp) {
-			comp->RegisterComponent();
+	for (size_t i = 0; i < m_components.size(); ++i) {
+		if (m_components[i]) {
+			m_components[i]->RegisterComponent();
 		}
 	}
 #ifdef _EDITOR
@@ -86,13 +85,13 @@ void AActor::AddComponent(std::unique_ptr<MActorComponent> NewComponent)
 }
 void AActor::Update(float DeltaTime)
 {
-	for (auto& comp : m_components) {
-		if (comp && !comp->IsPendingDestroy()) {
-			comp->Update(DeltaTime);
+	for (size_t i = 0; i < m_components.size(); ++i) {
+		if (m_components[i] && !m_components[i]->IsPendingDestroy()) {
+			m_components[i]->Update(DeltaTime);
 		}
 	}
-	this->OnUpdate(DeltaTime);
 
+	this->OnUpdate(DeltaTime);
 	std::erase_if(m_components, [](const std::unique_ptr<MActorComponent>& comp) {
 		return !comp || comp->IsPendingDestroy();
 		});
@@ -100,9 +99,9 @@ void AActor::Update(float DeltaTime)
 
 void AActor::Draw()
 {
-	for (auto& comp : GetComponents()) {
-		if (comp && !comp->IsPendingDestroy()) {
-			comp->Draw();
+	for (size_t i = 0; i < m_components.size(); ++i) {
+		if (m_components[i] && !m_components[i]->IsPendingDestroy()) {
+			m_components[i]->Draw();
 		}
 	}
 }
@@ -135,13 +134,13 @@ FRotator AActor::GetActorRotation() const
 
 bool AActor::SetActorRotation(const FRotator& NewRotation)
 {
-	m_rootComponent->SetWorldRotation(NewRotation.Rotation);
+	m_rootComponent->SetWorldRotation(NewRotation);
 	return true;
 }
 
 void AActor::AddActorRotation(const FRotator& DeltaRotation)
 {
-	m_rootComponent->AddWorldRotation(DeltaRotation.Rotation);
+	m_rootComponent->AddWorldRotation(DeltaRotation);
 }
 
 void AActor::Destroy()
@@ -162,7 +161,7 @@ FScale AActor::GetActorScale() const
 	return m_rootComponent->GetWorldScale();
 }
 
-bool AActor::SetActorScale(float NewScale)
+bool AActor::SetActorScale(FScale NewScale)
 {
 	m_rootComponent->SetWorldScale(NewScale);
 	return true;

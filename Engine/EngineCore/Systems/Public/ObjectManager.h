@@ -22,7 +22,7 @@ public:
 	const std::vector<std::unique_ptr<AActor>>& GetAllActors() const { return m_Actors; }
 
 	template<class T, std::enable_if_t<std::is_base_of_v<AActor, T>, int> = 0>
-	T* SpawnObject(const FVector2D& location = FVector2D::ZeroVector, FRotator rotation = 0.0f,bool DeferBeginPlay = false) {
+	T* SpawnObject(const FVector2D& location = FVector2D::ZeroVector, FRotator rotation = FRotator(0), bool DeferBeginPlay = false) {
 		std::unique_ptr<T> obj;
 		
 		if constexpr (std::is_constructible_v<T, const FVector2D&, FRotator>) {

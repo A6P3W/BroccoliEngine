@@ -33,7 +33,7 @@ public:
 		World* world,
 		const std::string& className,
 		const FVector2D& loc = FVector2D::ZeroVector,
-		FRotator rot = 0.0f
+		FRotator rot = FRotator(0)
 	)
 	{
 		auto it = m_factories.find(className);

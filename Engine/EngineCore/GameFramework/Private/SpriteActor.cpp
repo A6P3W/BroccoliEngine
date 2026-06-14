@@ -22,7 +22,7 @@ void ASpriteActor::SetImagePath(const std::string& path)
 		int handle = ResourceManager::GetInstance().LoadResourceGraph(ImagePath);
 		if (handle != -1)
 		{
-			SpriteComponent->SubmitGraph(handle, 1.0f, 255);
+			SpriteComponent->SubmitGraph(handle, FScale(1.0f), 255);
 		}
 	}
 }

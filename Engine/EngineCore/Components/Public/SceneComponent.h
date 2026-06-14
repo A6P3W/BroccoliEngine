@@ -24,16 +24,16 @@ public:
 	FVector2D GetWorldLocation() const;
 	FVector2D GetRelativeLocation() const;
 
-	bool SetWorldRotation(float nAngle);
-	bool AddWorldRotation(float nAngleDeg);
+	bool SetWorldRotation(FRotator NewRotation);
+	bool AddWorldRotation(FRotator DeltaRotation);
 	FRotator GetWorldRotation() const;
 	FRotator GetRelativeRotation() const;
 
-	bool SetRelativeScale(float nScale); 
-	float GetRelativeScale() const;
+	bool SetRelativeScale(FScale NewScale);
+	FScale GetRelativeScale() const;
 
-	bool SetWorldScale(float nScale);
-	float GetWorldScale() const;
+	bool SetWorldScale(FScale NewScale);
+	FScale GetWorldScale() const;
 
 	void SetVisibility(bool bNewVisibility);
 	bool IsVisible() const { return bVisible; }

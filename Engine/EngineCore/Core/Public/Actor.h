@@ -63,7 +63,7 @@ public:
 	bool SetActorRotation(const FRotator& NewRotation);
 
 	FScale GetActorScale() const;
-	bool SetActorScale(float NewScale);
+	bool SetActorScale(FScale NewScale);
 
 
 	void AddActorWorldOffset(const FVector2D& Offset);
