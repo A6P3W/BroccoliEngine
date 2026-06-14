@@ -21,7 +21,7 @@ public:
 	APlayerController* GetPlayerController() const { return m_PlayerController; }
 
 	template<class T>
-	T* SpawnActor(const FVector2D& Loc = { 0,0 }, FRotator Rot = 0) {
+	T* SpawnActor(const FVector2D& Loc = { 0,0 }, FRotator Rot = FRotator(0.0f)) {
 		return GetWorld()->SpawnActor<T>(Loc, Rot);
 	}
 protected:
