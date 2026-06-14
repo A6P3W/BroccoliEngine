@@ -22,13 +22,13 @@ public:
 
 	void OnUpdate(float DeltaTime) override;
 	std::function<void()> OnPressed;
-	void SetState(EButtonState NewState) { ButtonState = NewState; }
+
+	virtual void OnStateChanged(EButtonState NewState) {}
+	void SetState(EButtonState NewState);
 
 	FNavigationLinks Navigation;
 
 private:
-	int Width = 100;
-	int Height = 50;
 	EButtonState ButtonState = EButtonState::Normal;
 };
 

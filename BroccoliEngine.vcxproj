@@ -268,6 +268,7 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\UIManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UISpriteComponent.cpp" />
     <ClCompile Include="Engine\EngineSide\SampleScene01\MainMenu.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\UIBoxButton.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Editor\Public\EditorController.h" />
@@ -334,6 +335,7 @@
     <ClInclude Include="Engine\EngineCore\Systems\Public\UIManager.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UISpriteComponent.h" />
     <ClInclude Include="Engine\EngineSide\SampleScene01\MainMenu.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\UIBoxButton.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="AGENTS.md">
