@@ -2,7 +2,8 @@
 #include "UIBoxButton.h"
 #include "Log.h"
 #include <DxLib.h>
-
+#include "UITextComponent.h"
+#include "Application.h"
 MainMenu::MainMenu()
 {
     float btnWidth = 200.0f;
@@ -31,6 +32,9 @@ MainMenu::MainMenu()
 
     // --- ナビゲーションの手動リンク設定 ---
     StartBtnPtr->Navigation.Down = ConfigBtnPtr;
+    auto startText = std::make_unique<UITextComponent>("Start", GetColor(255, 255, 255), 24);
+    startText->SetParentComponent(StartBtnPtr); // ボタンの子要素にするだけで中央に配置される
+    AddComponent(std::move(startText));
 
     ConfigBtnPtr->Navigation.Up = StartBtnPtr;
     ConfigBtnPtr->Navigation.Down = ExitBtnPtr;
@@ -41,7 +45,11 @@ MainMenu::MainMenu()
     StartBtnPtr->OnPressed = []() {
         M_LOG("Start Game!");
         };
+	ExitBtnPtr->OnPressed = []() {
+		M_LOG("Exit Game!");
+		Application::QuitGame();
 
+		};
     // 最初にフォーカスを当てるボタンを設定
     SetFocusedButton(StartBtnPtr);
 }

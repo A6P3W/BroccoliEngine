@@ -10,6 +10,7 @@ public:
     bool Run();
 
     static void SetWindowResolution(int width, int height);
+    static void QuitGame();
 
 private:
     bool Update(float DeltaTime);

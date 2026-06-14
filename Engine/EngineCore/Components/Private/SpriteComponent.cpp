@@ -26,7 +26,7 @@ void MSpriteComponent::SubmitBox(float width, float height, int color, bool fill
 
 void MSpriteComponent::SubmitText(const std::string& text, int color, int handle, int alpha)
 {
-    int fontHandle = (handle != -1) ? handle : ResourceManager::GetInstance().GetFont(12, 5);
+    int fontHandle = (handle != -1) ? handle : ResourceManager::GetInstance().GetFont(120, 5);
     m_data = TextData{ {0,0}, text, color, fontHandle };
     m_common.alpha = alpha;
 }

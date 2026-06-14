@@ -104,5 +104,4 @@ private:
 	std::vector<std::unique_ptr<MActorComponent>> m_components;
 	World* m_world=nullptr;
 
-	
 };

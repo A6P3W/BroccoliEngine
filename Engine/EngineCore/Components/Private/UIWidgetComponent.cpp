@@ -54,8 +54,11 @@ void MUIWidgetComponent::OnUpdate(float DeltaTime)
 void MUIWidgetComponent::UpdateAnchoredLocation()
 {
 	FVector2D parentSize = { static_cast<float>(VirtualWidth), static_cast<float>(VirtualHeight) };
+	FVector2D parentTopLeft = FVector2D::ZeroVector;
+
 	if (auto parentWidget = dynamic_cast<MUIWidgetComponent*>(GetParentComponent())) {
 		parentSize = parentWidget->GetWidgetSize();
+		parentTopLeft = { -parentSize.X * 0.5f, -parentSize.Y * 0.5f };
 	}
 
 	FVector2D anchorOffset = FVector2D::ZeroVector;
@@ -73,7 +76,7 @@ void MUIWidgetComponent::UpdateAnchoredLocation()
 
 	FVector2D pivotOffset = { m_widgetSize.X * m_pivot.X, m_widgetSize.Y * m_pivot.Y };
 
-	FVector2D topLeft = anchorOffset + m_anchoredPosition - pivotOffset;
+	FVector2D topLeft = parentTopLeft + anchorOffset + m_anchoredPosition - pivotOffset;
 
 	FVector2D newRelativeLoc = { topLeft.X + m_widgetSize.X * 0.5f, topLeft.Y + m_widgetSize.Y * 0.5f };
 
