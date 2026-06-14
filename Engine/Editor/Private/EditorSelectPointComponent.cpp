@@ -10,7 +10,7 @@ EditorSelectPointComponent::EditorSelectPointComponent()
 
 void EditorSelectPointComponent::Draw()
 {
-	SelectPointSprite->SetWorldScale(1);
+	SelectPointSprite->SetWorldScale(FScale(1.0f));
 }
 
 void EditorSelectPointComponent::Selected(bool bSelected)

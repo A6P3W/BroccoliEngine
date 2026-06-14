@@ -6,7 +6,7 @@ void MCircleCollisionComponent::Draw()
 	if (!IsDebug)return;
 	RenderSystem::GetInstance().SubmitCircle(
 		GetWorldLocation(),
-		m_radius * GetWorldScale(),
+		m_radius * GetWorldScale().Scale,
 		0x00FF00,
 		0,
 		RenderSpace::World,
@@ -15,7 +15,7 @@ void MCircleCollisionComponent::Draw()
 	);
 	RenderSystem::GetInstance().SubmitCircle(
 		GetWorldLocation(),
-		m_radius * GetWorldScale(),
+		m_radius * GetWorldScale().Scale,
 		11111111,
 		1,
 		RenderSpace::World,
@@ -27,7 +27,7 @@ void MCircleCollisionComponent::Draw()
 FAABB MCircleCollisionComponent::GetAABB() const
 {
 	FVector2D center = GetWorldLocation();
-	float radius = m_radius * GetWorldScale();
+	float radius = m_radius * GetWorldScale().Scale;
 
 	FAABB aabb;
 	aabb.MinX = center.X - radius;

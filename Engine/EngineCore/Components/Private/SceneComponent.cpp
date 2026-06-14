@@ -99,23 +99,22 @@ bool MSceneComponent::AddLocalOffset(const FVector2D& Offset)
 
 
 
-bool MSceneComponent::SetWorldRotation(float nAngle)
+bool MSceneComponent::SetWorldRotation(FRotator NewRotation)
 {
 	if (!m_parentComponent) {
-		RelativeRotation.Rotation = nAngle;
-
+		RelativeRotation = NewRotation;
 	}
 	else {
-		float parentWorldRot = m_parentComponent->GetWorldRotation().Rotation;
-		RelativeRotation.Rotation = nAngle - parentWorldRot;
+		FRotator parentWorldRot = m_parentComponent->GetWorldRotation();
+		RelativeRotation = NewRotation - parentWorldRot;
 	}
 	MakeTransformDirty();
 	return true;
 }
 
-bool MSceneComponent::AddWorldRotation(float nAngleDeg)
+bool MSceneComponent::AddWorldRotation(FRotator DeltaRotation)
 {
-	RelativeRotation.Rotation += nAngleDeg;
+	RelativeRotation += DeltaRotation;
 	MakeTransformDirty();
 	return true;
 }
@@ -143,36 +142,36 @@ FRotator MSceneComponent::GetRelativeRotation() const
 	return RelativeRotation;
 }
 
-bool MSceneComponent::SetRelativeScale(float nScale)
+bool MSceneComponent::SetRelativeScale(FScale NewScale)
 {
-	RelativeScale.Scale = nScale;
+	RelativeScale = NewScale;
 	MakeTransformDirty();
 	return true;
 }
 
-float MSceneComponent::GetRelativeScale() const
+FScale MSceneComponent::GetRelativeScale() const
 {
-	return RelativeScale.Scale;
+	return RelativeScale;
 }
 
-bool MSceneComponent::SetWorldScale(float nScale)
+bool MSceneComponent::SetWorldScale(FScale NewScale)
 {
 	if (!m_parentComponent) {
 		// 親がいなければワールドスケール = 相対スケール
-		return SetRelativeScale(nScale);
+		return SetRelativeScale(NewScale);
 	}
 
 	// 親がいる場合： 自分の相対 = 目標ワールド / 親のワールド
-	float parentWorldScale = m_parentComponent->GetWorldScale();
-	if (std::abs(parentWorldScale) < 1e-6f) return false;
+	FScale parentWorldScale = m_parentComponent->GetWorldScale();
+	if (std::abs(parentWorldScale.Scale) < 1e-6f) return false;
 
-	return SetRelativeScale(nScale / parentWorldScale);
+	return SetRelativeScale(NewScale / parentWorldScale);
 }
 
-float MSceneComponent::GetWorldScale() const
+FScale MSceneComponent::GetWorldScale() const
 {
 	UpdateTransform();
-	return WorldScale.Scale;
+	return WorldScale;
 }
 
 void MSceneComponent::SetVisibility(bool bNewVisibility)
@@ -201,19 +200,19 @@ void MSceneComponent::UpdateTransform() const
 		// 親がいない場合は相対値がそのままワールド値
 		WorldLocation = RelativeLocation;
 		WorldRotation = RelativeRotation;
-		WorldScale = RelativeScale.Scale;
+		WorldScale = RelativeScale;
 	}
 	else {
 		// 親の最新トランスフォームを先に確定させる（再帰）
-		float pScale = m_parentComponent->GetWorldScale();
+		FScale pScale = m_parentComponent->GetWorldScale();
 		FRotator pRot = m_parentComponent->GetWorldRotation();
 		FVector2D pLoc = m_parentComponent->GetWorldLocation();
 
 		// 1. スケールの計算
-		WorldScale = RelativeScale.Scale * pScale;
+		WorldScale = RelativeScale * pScale;
 
 		// 2. 回転の計算
-		WorldRotation.Rotation = pRot.Rotation + RelativeRotation.Rotation;
+		WorldRotation = pRot + RelativeRotation;
 
 		// 3. 座標の計算（親の回転とスケールを考慮）
 		float parentRad = UMath::DegToRad(pRot.Rotation);
@@ -221,12 +220,11 @@ void MSceneComponent::UpdateTransform() const
 		float c = std::cos(parentRad);
 
 		// 自分の相対座標に親のスケールを適用
-		float scaledX = RelativeLocation.X * pScale;
-		float scaledY = RelativeLocation.Y * pScale;
+		FVector2D scaledLocation = RelativeLocation * pScale;
 
 		// 親の回転に合わせて回転させる
-		float rotatedX = scaledX * c - scaledY * s;
-		float rotatedY = scaledX * s + scaledY * c;
+		float rotatedX = scaledLocation.X * c - scaledLocation.Y * s;
+		float rotatedY = scaledLocation.X * s + scaledLocation.Y * c;
 
 		WorldLocation.X = pLoc.X + rotatedX;
 		WorldLocation.Y = pLoc.Y + rotatedY;

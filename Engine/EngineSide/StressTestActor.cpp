@@ -27,7 +27,7 @@ AStressTestActor::AStressTestActor()
 			auto sprite = std::make_unique<MSpriteComponent>();
 			sprite->SubmitGraph(texHandle);
 			sprite->SetRelativeLocation({ posX, posY });
-			sprite->SetWorldScale(0.9f);
+			sprite->SetWorldScale(FScale(0.9f));
 			AddComponent(std::move(sprite));
 
 			auto collision = std::make_unique<MRectangleCollisionComponent>(size, size);

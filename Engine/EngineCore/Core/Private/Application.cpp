@@ -51,6 +51,11 @@ void Application::SetWindowResolution(int width, int height)
 {
 	SetWindowSize(width, height);
 }
+static bool ShouldQuitGame = false;
+void Application::QuitGame()
+{
+	ShouldQuitGame = true;
+}
 
 bool Application::Run()
 {
@@ -104,7 +109,7 @@ bool Application::Run()
 	IM.AddDevice(std::make_unique<KeyboardDevice>());
 	IM.AddDevice(std::make_unique<MouseDevice>());
 
-	while (ProcessMessage() == 0) {
+	while (ProcessMessage() == 0 && !ShouldQuitGame) {
 		LONGLONG CurrentTime = GetNowHiPerformanceCount();
 		LONGLONG ElapsedTime = CurrentTime - LastTime;
 

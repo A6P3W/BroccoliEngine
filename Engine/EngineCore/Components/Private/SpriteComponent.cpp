@@ -12,21 +12,21 @@ MSpriteComponent::MSpriteComponent(int priority, RenderSpace space)
     m_data = GraphData{};
 }
 
-void MSpriteComponent::SubmitGraph(int handle, float scale, int alpha)
+void MSpriteComponent::SubmitGraph(int handle, FScale scale, int alpha)
 {
-    m_data = GraphData{ {0,0}, 0.0f, scale, handle };
+    m_data = GraphData{ {0,0}, FRotator(0), scale, handle};
     m_common.alpha = alpha;
 }
 
 void MSpriteComponent::SubmitBox(float width, float height, int color, bool fill, int alpha)
 {
-    m_data = BoxData{ {0,0}, {width, height}, 0.0f, color, fill };
+    m_data = BoxData{ {0,0}, {width, height}, FRotator(0), color, fill };
     m_common.alpha = alpha;
 }
 
 void MSpriteComponent::SubmitText(const std::string& text, int color, int handle, int alpha)
 {
-    int fontHandle = (handle != -1) ? handle : ResourceManager::GetInstance().GetFont(12, 5);
+    int fontHandle = (handle != -1) ? handle : ResourceManager::GetInstance().GetFont(120, 5);
     m_data = TextData{ {0,0}, text, color, fontHandle };
     m_common.alpha = alpha;
 }
@@ -56,7 +56,7 @@ void MSpriteComponent::Draw()
     // 現在のワールドトランスフォームを取得
     FVector2D worldPos = GetWorldLocation();
     FRotator worldRot = GetWorldRotation();
-    float worldScale = GetWorldScale();
+    FScale worldScale = GetWorldScale();
 
     auto& rs = RenderSystem::GetInstance();
 
@@ -65,7 +65,7 @@ void MSpriteComponent::Draw()
 
         if constexpr (std::is_same_v<T, GraphData>) {
             // アクタのスケールと回転を合成して送信
-            rs.SubmitGraph(worldPos, d.Handle, d.Scale.Scale * worldScale, worldRot.Rotation + d.Rotation.Rotation,
+            rs.SubmitGraph(worldPos, d.Handle, d.Scale * worldScale, worldRot + d.Rotation,
                 m_common.space, m_common.priority, m_common.alpha);
         }
         else if constexpr (std::is_same_v<T, BoxData>) {
@@ -74,7 +74,7 @@ void MSpriteComponent::Draw()
                 m_common.space, m_common.priority, m_common.alpha);
         }
         else if constexpr (std::is_same_v<T, CircleData>) {
-            rs.SubmitCircle(worldPos, d.Radius * worldScale, d.Color, d.Fill,
+            rs.SubmitCircle(worldPos, d.Radius * worldScale.Scale, d.Color, d.Fill,
                 m_common.space, m_common.priority, m_common.alpha);
         }
         else if constexpr (std::is_same_v<T, TextData>) {

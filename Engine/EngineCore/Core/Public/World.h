@@ -25,14 +25,14 @@ public:
 	AGameModeBase* GetGameMode() const { return m_GameMode; }
 	template<class T>
 	T* SpawnGameMode() {
-		T* mode = SpawnActor<T>({0,0},0,true);
+		T* mode = SpawnActor<T>({0,0},FRotator(0),true);
 		SetGameMode(mode);
 		mode->Spawned();
 		return mode;
 	}
 
 	template<class T>
-	T* SpawnActor(const FVector2D& Loc = { 0,0 }, FRotator Rot = 0, bool DeferBeginPlay = false) {
+	T* SpawnActor(const FVector2D& Loc = { 0,0 }, FRotator Rot = FRotator(0), bool DeferBeginPlay = false) {
 		return m_ObjectManager->SpawnObject<T>(Loc, Rot, DeferBeginPlay);
 	}
 

@@ -6,6 +6,11 @@
 #include <PlayerController.h>
 #include "SamplePawn01.h"
 ASampleScene01::ASampleScene01() {
+
+}
+
+void ASampleScene01::BeginPlay()
+{
 	SpawnPlayer<ASamplePawn01, APlayerController>({ 0,0 }, 0);
 
 }

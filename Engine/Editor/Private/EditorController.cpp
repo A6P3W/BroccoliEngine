@@ -14,6 +14,8 @@ EditorController::EditorController()
 
 void EditorController::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent)
 {
+	APlayerController::SetupPlayerInputComponent(PlayerInputComponent);
+
 	EditorModePtr = dynamic_cast<EditorMode*>(GetWorld()->GetGameMode());
 
 	PlayerInputComponent->BindAction(EditorInputAction::SelectMode, ETriggerEvent::Started, this, &EditorController::OnSelectModePressed);

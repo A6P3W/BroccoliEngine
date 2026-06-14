@@ -102,10 +102,10 @@ void EditorMode::OnMouseMove(const FVector2D& Delta)
 		SelectingActor->SetActorLocation(GetMouseWorldPosition());
 		break;
 	case EActorAction::Rotate:
-		SelectingActor->AddActorRotation(Delta.X*0.25f);
+		SelectingActor->AddActorRotation(FRotator(Delta.X * 0.25f));
 		break;
 	case EActorAction::Scale:
-		float NewScale = SelectingActor->GetActorScale().Scale * (1 + Delta.X * 0.001f);
+		FScale NewScale = SelectingActor->GetActorScale() * (1 + Delta.X * 0.001f);
 		SelectingActor->SetActorScale(NewScale);
 		break;
 	}
@@ -173,8 +173,8 @@ void EditorMode::CopySelectedActor()
 
 	m_ClipboardData.ClassName = m_selectedActor->GetActorClassName();
 	m_ClipboardData.Location = m_selectedActor->GetActorLocation();
-	m_ClipboardData.Rotation = m_selectedActor->GetActorRotation().Rotation;
-	m_ClipboardData.Scale = m_selectedActor->GetActorScale().Scale;
+	m_ClipboardData.Rotation = m_selectedActor->GetActorRotation();
+	m_ClipboardData.Scale = m_selectedActor->GetActorScale();
 	m_ClipboardData.CustomProperties.clear();
 
 	if (auto spriteActor = dynamic_cast<ASpriteActor*>(m_selectedActor))

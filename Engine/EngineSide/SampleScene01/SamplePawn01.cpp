@@ -9,8 +9,9 @@
 #include "Log.h"
 #include <CircleCollisionComponent.h>
 #include <MovementComponent.h>
-
-
+#include "MainMenu.h"
+#include "UIManager.h"
+#include "World.h"
 ASamplePawn01::ASamplePawn01()
 {
 	auto col = std::make_unique<MCircleCollisionComponent>(32.0f);
@@ -21,6 +22,13 @@ ASamplePawn01::ASamplePawn01()
 	auto movement = std::make_unique<MMovementComponent>();
 	m_movement = movement.get();
 	AddComponent(std::move(movement));
+}
+void ASamplePawn01::BeginPlay()
+{
+	auto* mainMenuWidget = GetWorld()->GetObjectManager()->SpawnObject<MainMenu>();
+
+	// 3. UIManagerにPushして画面の最前面で開く
+	UIManager::GetInstance()->PushWidget(mainMenuWidget);
 }
 void ASamplePawn01::OnPossesed()
 {
@@ -34,8 +42,7 @@ void ASamplePawn01::OnUpdate(float DeltaTime)
 void ASamplePawn01::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent)
 {	
 	PlayerInputComponent->BindAction(InputAction::Interact, ETriggerEvent::Started, this, &ASamplePawn01::OnInteractPressed);
-	PlayerInputComponent->BindAction(InputActionLower::MoveX, ETriggerEvent::Triggered, this, &ASamplePawn01::OnMove);
-	PlayerInputComponent->BindAction(InputActionLower::MoveY, ETriggerEvent::Triggered, this, &ASamplePawn01::OnMove);
+	PlayerInputComponent->BindAction(InputAction::Move, ETriggerEvent::Triggered, this, &ASamplePawn01::OnMove);
 
 }
 

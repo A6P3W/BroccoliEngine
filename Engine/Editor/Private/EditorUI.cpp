@@ -119,7 +119,7 @@ void EditorUI::DrawInspector(EditorMode* editorMode)
 			float scaleVal = scale.Scale;
 			if (ImGui::DragFloat("Scale", &scaleVal, 0.01f))
 			{
-				selectedActor->SetActorScale(scaleVal);
+				selectedActor->SetActorScale(scale);
 			}
 		}
 
