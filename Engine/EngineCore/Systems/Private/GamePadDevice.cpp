@@ -1,8 +1,18 @@
-﻿#include "GamePadDevice.h"
+﻿#include "GamepadDevice.h"
 #include <DxLib.h>
 #include <cmath>
 
-GamePadDevice::GamePadDevice(int padIndex)
+struct DxLibXInputStateWrapper {
+	unsigned char Buttons[16];
+	unsigned char bLeftTrigger;
+	unsigned char bRightTrigger;
+	short sThumbLX;
+	short sThumbLY;
+	short sThumbRX;
+	short sThumbRY;
+};
+
+GamepadDevice::GamepadDevice(int padIndex)
 {
 	switch (padIndex) {
 	case 1:  m_padInputType = DX_INPUT_PAD1;  break;
@@ -13,27 +23,24 @@ GamePadDevice::GamePadDevice(int padIndex)
 	}
 }
 
-void GamePadDevice::Update()
+void GamepadDevice::Update()
 {
 	m_prevButtons = m_buttons;
 	m_buttons = GetJoypadInputState(m_padInputType);
 
-	XINPUT_STATE xinputState;
-	if (GetJoypadXInputState(m_padInputType, &xinputState) == 0) {
-		// XInput対応ゲームパッドの場合
-		m_axes[(int)AxisID::LeftX]  = ApplyDeadzone(xinputState.ThumbLX, 0.2f);
-		m_axes[(int)AxisID::LeftY]  = ApplyDeadzone(xinputState.ThumbLY, 0.2f);
-		m_axes[(int)AxisID::RightX] = ApplyDeadzone(xinputState.ThumbRX, 0.2f);
-		m_axes[(int)AxisID::RightY] = ApplyDeadzone(xinputState.ThumbRY, 0.2f);
+	DxLibXInputStateWrapper xinputState;
 
-		m_axes[(int)AxisID::LeftTrigger]  = (float)xinputState.LeftTrigger / 255.0f;
-		m_axes[(int)AxisID::RightTrigger] = (float)xinputState.RightTrigger / 255.0f;
-	} else {
-		// DirectInput対応ゲームパッドの場合
+	if (GetJoypadXInputState(m_padInputType, reinterpret_cast<DxLib::XINPUT_STATE*>(&xinputState)) == 0) {
+		m_axes[(int)AxisID::LeftX] = ApplyDeadzone(xinputState.sThumbLX, 0.2f);
+		m_axes[(int)AxisID::LeftY] = ApplyDeadzone(xinputState.sThumbLY, 0.2f);
+		m_axes[(int)AxisID::RightX] = ApplyDeadzone(xinputState.sThumbRX, 0.2f);
+		m_axes[(int)AxisID::RightY] = ApplyDeadzone(xinputState.sThumbRY, 0.2f);
+		m_axes[(int)AxisID::LeftTrigger] = (float)xinputState.bLeftTrigger / 255.0f;
+		m_axes[(int)AxisID::RightTrigger] = (float)xinputState.bRightTrigger / 255.0f;
+	}
+	else {
 		int lx = 0, ly = 0;
 		GetJoypadAnalogInput(&lx, &ly, m_padInputType);
-		
-		// DirectInputの生値 -1000 ～ 1000 を、XInput相当の -32768 ～ 32767 の範囲にスケーリング
 		m_axes[(int)AxisID::LeftX] = ApplyDeadzone((int)(lx * 32.768f), 0.2f);
 		m_axes[(int)AxisID::LeftY] = ApplyDeadzone((int)(ly * 32.768f), 0.2f);
 		m_axes[(int)AxisID::RightX] = 0.0f;
@@ -43,22 +50,22 @@ void GamePadDevice::Update()
 	}
 }
 
-bool GamePadDevice::GetPressStart(int code) const
+bool GamepadDevice::GetPressStart(int code) const
 {
 	return !(m_prevButtons & code) && (m_buttons & code);
 }
 
-bool GamePadDevice::GetPressing(int code) const
+bool GamepadDevice::GetPressing(int code) const
 {
 	return (m_buttons & code);
 }
 
-bool GamePadDevice::GetRelease(int code) const
+bool GamepadDevice::GetRelease(int code) const
 {
 	return (m_prevButtons & code) && !(m_buttons & code);
 }
 
-float GamePadDevice::GetAxis(int axisID) const
+float GamepadDevice::GetAxis(int axisID) const
 {
 	if (axisID >= 0 && axisID < 6) {
 		return m_axes[axisID];
@@ -66,21 +73,18 @@ float GamePadDevice::GetAxis(int axisID) const
 	return 0.0f;
 }
 
-float GamePadDevice::ApplyDeadzone(int val, float deadzone)
+float GamepadDevice::ApplyDeadzone(int val, float deadzone)
 {
-	// スティックの最大値を 32767.0f として -1.0f ～ 1.0f に正規化
 	float floatVal = (float)val / 32767.0f;
 	if (floatVal > 1.0f)  floatVal = 1.0f;
 	if (floatVal < -1.0f) floatVal = -1.0f;
-
 	if (std::abs(floatVal) < deadzone) {
 		return 0.0f;
 	}
-
-	// デッドゾーンの外側の値を補間してスムーズなアナログ入力にする
 	if (floatVal > 0.0f) {
 		return (floatVal - deadzone) / (1.0f - deadzone);
-	} else {
+	}
+	else {
 		return (floatVal + deadzone) / (1.0f - deadzone);
 	}
 }

@@ -11,9 +11,9 @@ enum class AxisID {
 	RightTrigger
 };
 
-class GamePadDevice : public InputDevice {
+class GamepadDevice : public InputDevice {
 public:
-	GamePadDevice(int padIndex);
+	GamepadDevice(int padIndex);
 
 	void Update() override;
 	bool GetPressStart(int code) const override;

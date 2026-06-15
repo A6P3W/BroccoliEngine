@@ -109,7 +109,7 @@ bool Application::Run()
 	auto& IM = InputManager::GetInstance();
 	IM.AddDevice(std::make_unique<KeyboardDevice>());
 	IM.AddDevice(std::make_unique<MouseDevice>());
-	IM.AddDevice(std::make_unique<GamePadDevice>(1));
+	IM.AddDevice(std::make_unique<GamepadDevice>(1));
 
 	while (ProcessMessage() == 0 && !ShouldQuitGame) {
 		LONGLONG CurrentTime = GetNowHiPerformanceCount();
