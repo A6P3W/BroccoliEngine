@@ -8,6 +8,7 @@
 #include "InputMapper.h"
 #include "KeyboardDevice.h"
 #include "MouseDevice.h"
+#include "GamePadDevice.h"
 #include "ObjectManager.h"
 #include "SceneManager.h"
 #include "GameModeBase.h"
@@ -108,6 +109,7 @@ bool Application::Run()
 	auto& IM = InputManager::GetInstance();
 	IM.AddDevice(std::make_unique<KeyboardDevice>());
 	IM.AddDevice(std::make_unique<MouseDevice>());
+	IM.AddDevice(std::make_unique<GamePadDevice>(1));
 
 	while (ProcessMessage() == 0 && !ShouldQuitGame) {
 		LONGLONG CurrentTime = GetNowHiPerformanceCount();

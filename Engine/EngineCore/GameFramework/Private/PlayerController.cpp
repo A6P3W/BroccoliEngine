@@ -6,6 +6,7 @@
 #include <InputDevice.h>
 #include <KeyboardDevice.h>
 #include <MouseDevice.h>
+#include <GamePadDevice.h>
 #include <UIManager.h>
 APlayerController::APlayerController()
 {
@@ -68,6 +69,7 @@ void APlayerController::SetupInputMappings()
     auto& IM = InputManager::GetInstance();
     auto* kb = IM.GetDevice<KeyboardDevice>();
     auto* mouse = IM.GetDevice<MouseDevice>();
+    auto* pad = IM.GetDevice<GamePadDevice>();
 
     if (kb) {
         // キーボード
@@ -88,5 +90,13 @@ void APlayerController::SetupInputMappings()
 
         m_InputMapper->AddAxisMapping(InputActionLower::LookX, mouse, MouseDevice::AxisID::MouseX);
         m_InputMapper->AddAxisMapping(InputActionLower::LookY, mouse, MouseDevice::AxisID::MouseY);
+    }
+    if (pad) {
+        m_InputMapper->AddAxisMapping(InputActionLower::MoveX, pad, static_cast<int>(AxisID::LeftX));
+        m_InputMapper->AddAxisMapping(InputActionLower::MoveY, pad, static_cast<int>(AxisID::LeftY), -1.0f);
+
+        m_InputMapper->AddMapping(InputAction::Interact, pad, PAD_INPUT_1);
+        m_InputMapper->AddMapping(UIAction::Submit, pad, PAD_INPUT_1);
+        m_InputMapper->AddMapping(UIAction::Cancel, pad, PAD_INPUT_2);
     }
 }

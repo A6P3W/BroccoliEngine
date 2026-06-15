@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -248,6 +248,7 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\SoundManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\TimerManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\KeyboardDevice.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\GamePadDevice.cpp" />
     <ClCompile Include="Engine\EngineSide\Default\Private\DefaultCircleCollisionActor.cpp" />
     <ClCompile Include="Engine\EngineSide\Default\Private\DefaultLineCollisionActor.cpp" />
     <ClCompile Include="Engine\EngineSide\Default\Private\DefaultRectangleCollisionActor.cpp" />
@@ -304,6 +305,7 @@
     <ClInclude Include="Engine\EngineCore\Systems\Public\InputManager.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\InputMapper.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\KeyboardDevice.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\GamePadDevice.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\MouseDevice.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\ObjectManager.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\RenderSystem.h" />
