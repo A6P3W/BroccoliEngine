@@ -21,8 +21,8 @@ struct HttpManager::Impl {
 };
 
 HttpManager& HttpManager::GetInstance() {
-    static HttpManager instance;
-    return instance;
+    static HttpManager* instance = new HttpManager();
+    return *instance;
 }
 
 HttpManager::HttpManager() {
