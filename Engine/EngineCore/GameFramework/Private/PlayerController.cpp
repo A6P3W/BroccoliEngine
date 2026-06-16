@@ -59,6 +59,11 @@ void APlayerController::SetupPlayerInputComponent(MEnhancedInputComponent* Playe
 	PlayerInputComponent->BindAction(UIAction::Cancel, ETriggerEvent::Started, manager,&UIManager::Cancel,true );
 }
 
+void APlayerController::SetInputMode(EInputMode NewInputMode)
+{
+	InputMode = NewInputMode;
+}
+
 void APlayerController::SetupInputMappings()
 {
     m_InputMapper->RemoveMapping(InputActionLower::MoveX);
