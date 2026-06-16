@@ -27,6 +27,7 @@ public:
 
 private:
     std::unordered_map<std::string, int> m_MasterSounds; 
+    std::vector<int> m_PlayHandles;  // 複製した再生用ハンドルの管理リスト
     int m_BGMHandle = -1;
     float m_MasterVolume = 1.0f;
 };
