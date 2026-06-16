@@ -3,8 +3,10 @@
 #include <thread>
 #include <mutex>
 #include <vector>
+#include <unordered_map>
 
 struct HttpResult {
+    uint64_t RequestId;
     HttpResponse response;
     HttpCallback callback;
 };
@@ -12,6 +14,10 @@ struct HttpResult {
 struct HttpManager::Impl {
     std::mutex queueMutex;
     std::vector<HttpResult> resultQueue;
+
+    std::mutex activeMutex;
+    std::unordered_map<uint64_t, const void*> activeRequests;
+    uint64_t nextRequestId = 1;
 };
 
 HttpManager& HttpManager::GetInstance() {
@@ -20,17 +26,13 @@ HttpManager& HttpManager::GetInstance() {
 }
 
 HttpManager::HttpManager() {
-    m_Impl = new Impl();
+    m_Impl = std::make_shared<Impl>();
 }
 
-HttpManager::~HttpManager() {
-    delete m_Impl;
-}
+HttpManager::~HttpManager() {}
 
 void HttpManager::Update() {
     std::vector<HttpResult> resultsToProcess;
-
-    // ロックを掛けて、現在のキューをすべて取り出す
     {
         std::lock_guard<std::mutex> lock(m_Impl->queueMutex);
         if (!m_Impl->resultQueue.empty()) {
@@ -39,48 +41,85 @@ void HttpManager::Update() {
         }
     }
 
-    // メインスレッドでコールバックを実行
     for (auto& res : resultsToProcess) {
-        if (res.callback) {
+        bool bShouldExecute = false;
+        {
+            // 有効なリクエストかどうかを確認し、実行する場合はリストから消す
+            std::lock_guard<std::mutex> lock(m_Impl->activeMutex);
+            auto it = m_Impl->activeRequests.find(res.RequestId);
+            if (it != m_Impl->activeRequests.end()) {
+                bShouldExecute = true;
+                m_Impl->activeRequests.erase(it);
+            }
+        }
+
+        // キャンセルされていなければコールバックを実行
+        if (bShouldExecute && res.callback) {
             res.callback(res.response);
         }
     }
 }
 
-void HttpManager::Get(const std::string& url, HttpCallback callback) {
-    // スレッドを分離して裏で通信を実行
-    std::thread([this, url, callback]() {
-        cpr::Response r = cpr::Get(cpr::Url{ url });
+void HttpManager::Get(const void* OwnerObject, const std::string& url, HttpCallback callback) {
+    auto impl = m_Impl;
+    uint64_t reqId = 0;
 
+    {
+        std::lock_guard<std::mutex> lock(impl->activeMutex);
+        reqId = impl->nextRequestId++;
+        impl->activeRequests[reqId] = OwnerObject;
+    }
+
+    std::thread([impl, reqId, url, callback]() {
+        cpr::Response r = cpr::Get(cpr::Url{ url });
         HttpResponse response;
         response.StatusCode = r.status_code;
         response.Body = r.text;
         response.ErrorMessage = r.error.message;
         response.bSuccess = (r.status_code >= 200 && r.status_code < 300);
 
-        // 結果をスレッドセーフにキューに追加
-        std::lock_guard<std::mutex> lock(m_Impl->queueMutex);
-        m_Impl->resultQueue.push_back({ std::move(response), std::move(callback) });
-
+        std::lock_guard<std::mutex> lock(impl->queueMutex);
+        impl->resultQueue.push_back({ reqId, std::move(response), std::move(callback) });
         }).detach();
 }
 
-void HttpManager::PostJson(const std::string& url, const std::string& jsonBody, HttpCallback callback) {
-    std::thread([this, url, jsonBody, callback]() {
+void HttpManager::PostJson(const void* OwnerObject, const std::string& url, const std::string& jsonBody, HttpCallback callback) {
+    auto impl = m_Impl;
+    uint64_t reqId = 0;
+
+    {
+        std::lock_guard<std::mutex> lock(impl->activeMutex);
+        reqId = impl->nextRequestId++;
+        impl->activeRequests[reqId] = OwnerObject;
+    }
+
+    std::thread([impl, reqId, url, jsonBody, callback]() {
         cpr::Response r = cpr::Post(
             cpr::Url{ url },
             cpr::Body{ jsonBody },
             cpr::Header{ {"Content-Type", "application/json"} }
         );
-
         HttpResponse response;
         response.StatusCode = r.status_code;
         response.Body = r.text;
         response.ErrorMessage = r.error.message;
         response.bSuccess = (r.status_code >= 200 && r.status_code < 300);
 
-        std::lock_guard<std::mutex> lock(m_Impl->queueMutex);
-        m_Impl->resultQueue.push_back({ std::move(response), std::move(callback) });
-
+        std::lock_guard<std::mutex> lock(impl->queueMutex);
+        impl->resultQueue.push_back({ reqId, std::move(response), std::move(callback) });
         }).detach();
+}
+
+void HttpManager::CancelAllRequestsForObject(const void* OwnerObject) {
+    if (OwnerObject == nullptr) return; // nullptr（グローバル通信）はキャンセルしない
+
+    std::lock_guard<std::mutex> lock(m_Impl->activeMutex);
+    for (auto it = m_Impl->activeRequests.begin(); it != m_Impl->activeRequests.end(); ) {
+        if (it->second == OwnerObject) {
+            it = m_Impl->activeRequests.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
 }

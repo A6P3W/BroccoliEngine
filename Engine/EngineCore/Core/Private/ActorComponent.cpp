@@ -3,11 +3,14 @@
 #include "TimerManager.h"
 #include "Log.h"
 #include "World.h"
+
+#include "HttpManager.h"
 MActorComponent::~MActorComponent()
 {
 	if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetTimerManager()) {
 		GetOwner()->GetWorld()->GetTimerManager()->ClearAllTimersForObject(this);
 	}
+	HttpManager::GetInstance().CancelAllRequestsForObject(this);
 }
 
 bool MActorComponent::Update(float DeltaTime)
@@ -39,6 +42,7 @@ void MActorComponent::DestroyComponent()
 		GetOwner()->GetWorld()->GetTimerManager()->ClearAllTimersForObject(this);
 	}
 
+	HttpManager::GetInstance().CancelAllRequestsForObject(this);
 	UnRegisterComponent();
 
 	OnComponentDestroy();

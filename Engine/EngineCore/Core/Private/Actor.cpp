@@ -11,6 +11,8 @@
 #include <DxLib.h>
 #endif
 #include "Log.h"
+
+#include "HttpManager.h"
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();
@@ -24,6 +26,7 @@ AActor::~AActor()
 	if (m_world && m_world->GetTimerManager()) {
 		m_world->GetTimerManager()->ClearAllTimersForObject(this);
 	}
+	HttpManager::GetInstance().CancelAllRequestsForObject(this);
 }
 
 void AActor::Spawned()
@@ -149,6 +152,7 @@ void AActor::Destroy()
 	if (m_world && m_world->GetTimerManager()) {
 		m_world->GetTimerManager()->ClearAllTimersForObject(this);
 	}
+	HttpManager::GetInstance().CancelAllRequestsForObject(this);
 }
 
 bool AActor::IsPendingDestroy() const
