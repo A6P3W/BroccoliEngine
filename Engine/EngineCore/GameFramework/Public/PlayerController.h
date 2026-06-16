@@ -25,7 +25,7 @@ public:
 	InputMapper* GetInputMapper() { return m_InputMapper.get(); }
 	MEnhancedInputComponent* GetInputComponent() { return m_InputCompPtr; }
 
-	void SetInputMode(EInputMode NewInputMode);
+	void SetInputMode(EInputMode NewInputMode) { InputMode = NewInputMode; }
 	EInputMode GetInputMode() const { return InputMode; }
 
 private:
