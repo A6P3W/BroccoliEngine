@@ -7,6 +7,8 @@ class MUIButtonComponent;
 class AWidgetBase : public AActor
 {
 public:
+	virtual ~AWidgetBase() override;
+
 	void OnUpdate(float DeltaTime) override;
 
 	virtual void OnOpened() {}

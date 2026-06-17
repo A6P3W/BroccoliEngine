@@ -1,28 +1,31 @@
 ﻿#pragma once
 #include "UMath.h"
 #include <vector>
+
 struct FInputActionValue;
 class AWidgetBase;
+
 class UIManager
 {
-public :
+public:
 	static UIManager* GetInstance() {
 		static UIManager instance;
 		return &instance;
 	}
 
-	void PushWidget(AWidgetBase* Widget);
-	void PopWidget();
-	AWidgetBase* GetPeekWidget();
+	void AddWidget(AWidgetBase* Widget);
+	void RemoveWidget(AWidgetBase* Widget);
 
 	void Navigate(const FInputActionValue& Value);
 	void Submit();
 	void Cancel();
 
 	void SetFocusedWidget(AWidgetBase* Widget) { CurrentFocusedWidget = Widget; }
+	AWidgetBase* GetFocusedWidget() const { return CurrentFocusedWidget; }
 
 private:
-	AWidgetBase* CurrentFocusedWidget = nullptr;
-	std::vector<AWidgetBase*> WidgetStack;
-};
+	void RefreshZOrder();
 
+	AWidgetBase* CurrentFocusedWidget = nullptr;
+	std::vector<AWidgetBase*> ActiveWidgets;
+};
