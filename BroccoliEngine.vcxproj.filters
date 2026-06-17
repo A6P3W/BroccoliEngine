@@ -60,6 +60,7 @@
     <ClCompile Include="Engine\EngineSide\SampleScene01\MainMenu.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UIBoxButton.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UITextComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\HttpManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
@@ -129,10 +130,12 @@
     <ClInclude Include="Engine\EngineSide\SampleScene01\MainMenu.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UIBoxButton.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UITextComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\HttpManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />
     <None Include="Game\Objects\DefaultScene.json" />
     <None Include="AGENTS.md" />
+    <None Include="vcpkg.json" />
   </ItemGroup>
 </Project>

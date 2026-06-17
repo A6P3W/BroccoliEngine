@@ -488,3 +488,5 @@ $RECYCLE.BIN/
 /.antigravitycli
 /Launcher/imgui.ini
 /Launcher/Log.txt
+/vcpkg_installed/
+*..repoignore

@@ -108,6 +108,24 @@
     <PublicIncludeDirectories>$(DXLIB_DIR)</PublicIncludeDirectories>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <VcpkgHostTriplet>
+    </VcpkgHostTriplet>
+    <VcpkgTriplet>x64-windows-static-md</VcpkgTriplet>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Editor|x64'">
+    <VcpkgHostTriplet>
+    </VcpkgHostTriplet>
+    <VcpkgTriplet>x64-windows-static-md</VcpkgTriplet>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <VcpkgHostTriplet>
+    </VcpkgHostTriplet>
+    <VcpkgTriplet>x64-windows-static-md</VcpkgTriplet>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -271,6 +289,7 @@
     <ClCompile Include="Engine\EngineSide\SampleScene01\MainMenu.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UIBoxButton.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UITextComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\HttpManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Editor\Public\EditorController.h" />
@@ -340,6 +359,7 @@
     <ClInclude Include="Engine\EngineSide\SampleScene01\MainMenu.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UIBoxButton.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UITextComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\HttpManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="AGENTS.md">
@@ -351,6 +371,10 @@
       </SubType>
     </None>
     <None Include="Game\Objects\DefaultScene.json" />
+    <None Include="vcpkg.json">
+      <SubType>
+      </SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

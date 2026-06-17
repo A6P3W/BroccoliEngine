@@ -16,7 +16,7 @@
 #include "TimerManager.h"
 #include "EngineDefine.h"
 #include "EditorMode.h"
-
+#include "HttpManager.h"
 extern void SetupGame();
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -148,6 +148,7 @@ bool Application::Update(float DeltaTime)
 
 	ImGui::NewFrame();
 	InputManager::GetInstance().Update();
+	HttpManager::GetInstance().Update();
 
 	if (m_posed) return true;
 
