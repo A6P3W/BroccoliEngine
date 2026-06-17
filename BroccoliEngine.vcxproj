@@ -296,6 +296,7 @@
     <ClInclude Include="Engine\Editor\Public\EditorSelectPointComponent.h" />
     <ClInclude Include="Engine\Editor\Public\EditorUI.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\EngineDefine.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameInstance.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
     <ClInclude Include="Engine\Editor\Public\EditorMode.h" />
     <ClInclude Include="Engine\Editor\Public\EditorPawn.h" />

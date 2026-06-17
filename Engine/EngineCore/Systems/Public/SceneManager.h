@@ -3,6 +3,7 @@
 #include <functional>
 #include "GameModeBase.h"
 #include "World.h"
+#include "GameInstance.h"
 class SceneManager
 {
 public:
@@ -24,9 +25,13 @@ public:
 	World* GetCurrentScene() { return m_CurrentScene.get(); }
 
 	void ProcessSceneChanges();
+
+	template<class T>
+	void SetGameInstance() { m_GameInstance = std::make_unique<T>(); }
+	GameInstance* GetGameInstance() { return m_GameInstance.get(); }
 private:
 	std::unique_ptr<World> m_CurrentScene;
 	std::function<std::unique_ptr<World>()> m_PendingSceneFactory;
-
+	std::unique_ptr<GameInstance> m_GameInstance = nullptr;
 };
 
