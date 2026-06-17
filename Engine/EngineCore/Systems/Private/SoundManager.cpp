@@ -5,9 +5,12 @@
 
 SoundManager::~SoundManager()
 {
-	if (m_BGMHandle != -1) {
-		StopSoundMem(m_BGMHandle);
+	// 複製再生用ハンドルを全て強制終了・解放
+	for (int handle : m_PlayHandles) {
+		StopSoundMem(handle);
+		DeleteSoundMem(handle);
 	}
+	m_PlayHandles.clear();
 
 	for (const auto& sound : m_MasterSounds) {
 		DeleteSoundMem(sound.second);
@@ -36,6 +39,8 @@ int SoundManager::PlaySE(const std::string& path, bool loop)
 	SetVolume(playHandle, 1.0f);
 
 	PlaySoundMem(playHandle, loop ? DX_PLAYTYPE_LOOP : DX_PLAYTYPE_BACK, TRUE);
+
+	m_PlayHandles.push_back(playHandle);  // 再生用ハンドルを管理リストに登録
 
 	return playHandle;
 }
