@@ -28,7 +28,7 @@ void ASamplePawn01::BeginPlay()
 	auto* mainMenuWidget = GetWorld()->GetObjectManager()->SpawnObject<MainMenu>();
 
 	// 3. UIManagerにPushして画面の最前面で開く
-	UIManager::GetInstance()->PushWidget(mainMenuWidget);
+	UIManager::GetInstance()->AddWidget(mainMenuWidget);
 }
 void ASamplePawn01::OnPossesed()
 {

@@ -3,6 +3,17 @@
 #include "EnhancedInputComponent.h"
 #include "UIButtonComponent.h"
 #include "Log.h"
+AWidgetBase::~AWidgetBase()
+{
+	if (auto* uiManager = UIManager::GetInstance())
+	{
+		if (uiManager->GetFocusedWidget() == this)
+		{
+			uiManager->SetFocusedWidget(nullptr);
+		}
+		uiManager->RemoveWidget(this);
+	}
+}
 void AWidgetBase::OnUpdate(float DeltaTime)
 {
 	if (NavigationCooldown > 0.0f) {
@@ -57,7 +68,6 @@ void AWidgetBase::Submit()
 
 void AWidgetBase::Cancel()
 {
-	UIManager::GetInstance()->PopWidget();
 }
 
 void AWidgetBase::SetZOrderOffset(int offset)

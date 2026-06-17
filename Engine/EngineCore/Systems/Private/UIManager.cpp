@@ -1,58 +1,69 @@
 ﻿#include "UIManager.h"
 #include "EnhancedInputComponent.h"
-
 #include "Log.h"
 #include "Actor.h"
 #include "WidgetBase.h"
-void UIManager::PushWidget(AWidgetBase* Widget)
-{
-	if (!WidgetStack.empty()) {
-		WidgetStack.back()->OnObscured();
-	}
+#include <algorithm>
 
-	WidgetStack.push_back(Widget);
-
-	Widget->OnOpened();
-}
-void UIManager::PopWidget()
+void UIManager::RefreshZOrder()
 {
-	if (!WidgetStack.empty())
+	int currentOffset = 0;
+	for (AWidgetBase* widget : ActiveWidgets)
 	{
-		auto Widget = WidgetStack.back();
-		Widget->OnClosed();
-		Widget->Destroy();
-		WidgetStack.pop_back();
-
-		if (!WidgetStack.empty()) {
-			WidgetStack.back()->OnRevealed();
+		if (widget)
+		{
+			widget->SetZOrderOffset(currentOffset);
+			currentOffset += 100;
 		}
 	}
 }
-AWidgetBase* UIManager::GetPeekWidget()
+
+void UIManager::AddWidget(AWidgetBase* Widget)
 {
-	if (!WidgetStack.empty())
-	{
-		return WidgetStack.back();
-	}
-	return nullptr;
+	if (!Widget) return;
+
+	ActiveWidgets.push_back(Widget);
+	Widget->OnOpened();
+
+	RefreshZOrder();
 }
+
+void UIManager::RemoveWidget(AWidgetBase* Widget)
+{
+	if (!Widget) return;
+
+	if (CurrentFocusedWidget == Widget) {
+		CurrentFocusedWidget = nullptr;
+	}
+
+	auto it = std::find(ActiveWidgets.begin(), ActiveWidgets.end(), Widget);
+	if (it != ActiveWidgets.end())
+	{
+		(*it)->OnClosed();
+		(*it)->Destroy();
+		ActiveWidgets.erase(it);
+
+		RefreshZOrder();
+	}
+}
+
 void UIManager::Navigate(const FInputActionValue& Value)
 {
-	if (AWidgetBase* TopWidget = GetPeekWidget()) {
-		TopWidget->Navigate(Value);
+	if (CurrentFocusedWidget) {
+		CurrentFocusedWidget->Navigate(Value);
 	}
 }
 
 void UIManager::Submit()
 {
-	if (AWidgetBase* TopWidget = GetPeekWidget()) {
-		TopWidget->Submit();
+	if (CurrentFocusedWidget) {
+		CurrentFocusedWidget->Submit();
 	}
 }
 
 void UIManager::Cancel()
 {
-	if (AWidgetBase* TopWidget = GetPeekWidget()) {
-		TopWidget->Cancel();
+	if (CurrentFocusedWidget) {
+		CurrentFocusedWidget->Cancel();
 	}
 }
