@@ -489,3 +489,4 @@ $RECYCLE.BIN/
 /Launcher/imgui.ini
 /Launcher/Log.txt
 /vcpkg_installed/
+*..repoignore
