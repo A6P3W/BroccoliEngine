@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Actor.h"
 
 struct FInputActionValue;
@@ -19,7 +19,7 @@ public:
 	void SetFocusedButton(MUIButtonComponent* Button);
 	void Navigate(const FInputActionValue& Value);
 	void Submit();
-	void Cancel();
+	virtual void Cancel();
 
 	void SetZOrderOffset(int offset);
 

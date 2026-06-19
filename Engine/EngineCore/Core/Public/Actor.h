@@ -90,6 +90,8 @@ public:
 	void SetWorld(World* world);
 
 	bool IsEditorActor() const { return bEditorActor; }
+	bool CanUpdateAnytime() const { return bUpdateableAnytime; }
+	void SetUpdateableAnytime(bool bTick) { bUpdateableAnytime = bTick; }
 protected:
 	virtual void BeginPlay() {}
 	virtual void OnUpdate(float DeltaTime);
@@ -97,6 +99,7 @@ protected:
 	void SetRootComponent(MSceneComponent* Component);
 
 	bool bEditorActor = false;
+	bool bUpdateableAnytime = false;
 
 private:
 	std::vector<AActor*> m_childObjects;
