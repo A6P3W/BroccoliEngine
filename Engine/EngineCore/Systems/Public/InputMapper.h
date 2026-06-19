@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "InputDevice.h"
 #include <string>
 #include <vector>
@@ -11,6 +11,7 @@ struct InputAction {
 
 	static constexpr auto Interact = "Interact";
 	static constexpr auto Cancel = "Cancel";
+	static constexpr auto Pause = "Pause";
 
 };
 struct InputActionLower {

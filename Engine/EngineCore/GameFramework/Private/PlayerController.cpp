@@ -15,7 +15,7 @@ APlayerController::APlayerController()
 	AddComponent(std::move(InputComp));
 	m_InputMapper = std::make_unique<InputMapper>();
 
-
+	SetUpdateableAnytime(true);
 	SetPlayerId(0);
 }
 
@@ -82,6 +82,7 @@ void APlayerController::SetupInputMappings()
 
 		m_InputMapper->AddMapping(UIAction::Submit, kb, KEY_INPUT_SPACE);
 		m_InputMapper->AddMapping(UIAction::Cancel, kb, KEY_INPUT_ESCAPE);
+		m_InputMapper->AddMapping(InputAction::Pause, kb, KEY_INPUT_ESCAPE);
 	}
 	if (mouse) {
 		m_InputMapper->AddMapping(InputActionMouse::MouseLeft, mouse, MOUSE_INPUT_LEFT);
@@ -99,5 +100,6 @@ void APlayerController::SetupInputMappings()
         m_InputMapper->AddMapping(InputAction::Interact, pad, PAD_INPUT_1);
         m_InputMapper->AddMapping(UIAction::Submit, pad, PAD_INPUT_1);
         m_InputMapper->AddMapping(UIAction::Cancel, pad, PAD_INPUT_2);
+        m_InputMapper->AddMapping(InputAction::Pause, pad, PAD_INPUT_8);
     }
 }

@@ -18,7 +18,7 @@ void ObjectManager::Update(float DeltaTime)
 	}
 	for (auto* object : tempActors) {
 		if (object && !object->IsPendingDestroy()) {
-			if (m_World->IsSimulating() || object->IsEditorActor()) {
+			if (m_World->IsSimulating() || object->IsEditorActor() || object->CanUpdateAnytime()) {
 				object->Update(DeltaTime);
 			}
 		}
