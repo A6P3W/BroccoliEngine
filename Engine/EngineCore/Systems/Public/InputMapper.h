@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "InputDevice.h"
 #include <string>
 #include <vector>
@@ -37,9 +37,15 @@ struct EditorInputAction {
 	static constexpr auto Cut = "EditorCut";
 };
 struct UIAction {
+	static constexpr auto Move = "UI_Move";
 	static constexpr auto Submit = "UI_Submit";
 	static constexpr auto Cancel = "UI_Cancel";
 };
+struct UIActionLower {
+	static constexpr auto MoveX = "UI_MoveX";
+	static constexpr auto MoveY = "UI_MoveY";
+};
+
 class InputMapper {
 public:
 	InputMapper() = default;
