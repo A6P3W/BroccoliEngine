@@ -8,6 +8,7 @@
 #include "World.h"
 #include "EditorSelectPointComponent.h"
 #include "SpriteActor.h"
+#include "SimpleCrypto.h"
 using json = nlohmann::json;
 
 bool LevelSerializer::Save(World* world, const std::string& filePath)
@@ -107,20 +108,32 @@ bool LevelSerializer::SaveData(const std::string& filePath,
 		arr.push_back(obj);
 	}
 	root["actors"] = arr;
-	std::ofstream ofs(filePath);
+	const std::string encryptedData = SimpleCrypto::Process(root.dump());
+
+	std::ofstream ofs(filePath, std::ios::binary);
 	if (!ofs.is_open()) return false;
-	ofs << root.dump(4);
+	ofs.write(encryptedData.data(), static_cast<std::streamsize>(encryptedData.size()));
 	return true;
 }
 
 bool LevelSerializer::LoadData(const std::string& filePath,
 	std::vector<FActorSaveData>& outActors)
 {
-	std::ifstream ifs(filePath);
+	std::ifstream ifs(filePath, std::ios::binary);
 	if (!ifs.is_open()) return false;
+	const std::string encryptedData((std::istreambuf_iterator<char>(ifs)),
+		std::istreambuf_iterator<char>());
+	const std::string decryptedData = SimpleCrypto::Process(encryptedData);
 	json root;
-	try { ifs >> root; }
-	catch (...) { return false; }
+	try
+	{
+		root = json::parse(decryptedData);
+	}
+	catch (const json::exception& e)
+	{
+		M_LOG("Level data load failed: tampered or corrupted data. {}", e.what());
+		return false;
+	}
 	if (!root.contains("actors")) return false;
 	for (const auto& obj : root["actors"])
 	{
