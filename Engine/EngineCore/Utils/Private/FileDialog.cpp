@@ -28,7 +28,7 @@ std::string FileDialog::OpenFile(const char* filter)
     return std::string();
 }
 
-std::string FileDialog::SaveFile(const char* filter)
+std::string FileDialog::SaveFile(const char* filter, const char* defaultExt)
 {
     std::string currentDir = std::filesystem::current_path().string();
 
@@ -44,7 +44,7 @@ std::string FileDialog::SaveFile(const char* filter)
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = currentDir.c_str();
-    ofn.lpstrDefExt = "json";
+    ofn.lpstrDefExt = defaultExt;
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
 
     if (GetSaveFileNameA(&ofn) == TRUE) {

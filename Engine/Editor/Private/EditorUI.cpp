@@ -26,14 +26,14 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode)
 		{
 			if (ImGui::MenuItem("Save Level")) {
 				// 保存ダイアログを開く
-				std::string filepath = FileDialog::SaveFile("JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0");
+				std::string filepath = FileDialog::SaveFile("Broccoli Level Files (*.BLevel)\0*.BLevel\0All Files (*.*)\0*.*\0", "BLevel");
 				if (!filepath.empty()) {
 					editorMode->SaveLevel(filepath);
 				}
 			}
 			if (ImGui::MenuItem("Load Level")) {
 				// 開くダイアログを開く
-				std::string filepath = FileDialog::OpenFile("JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0");
+				std::string filepath = FileDialog::OpenFile("Broccoli Level Files (*.BLevel)\0*.BLevel\0All Files (*.*)\0*.*\0");
 				if (!filepath.empty()) {
 					editorMode->LoadLevel(filepath);
 				}
