@@ -3,31 +3,31 @@
 #include <unordered_map>
 #include <vector>
 
-class SoundManager {
+class MSoundManager {
 public:
-    SoundManager() = default;
-    ~SoundManager();
+	MSoundManager() = default;
+	~MSoundManager();
 
-    SoundManager(const SoundManager&) = delete;
-    SoundManager& operator=(const SoundManager&) = delete;
+	MSoundManager(const MSoundManager&) = delete;
+	MSoundManager& operator=(const MSoundManager&) = delete;
 
-    // マスター音源をロード（内部用）
-    int GetMasterHandle(const std::string& path);
+	// マスター音源をロード（内部用）
+	int GetMasterHandle(const std::string& path);
 
-    // 再生して「操作用ハンドル」を返す
-    int PlaySE(const std::string& path, bool loop = false);
-    int PlayBGM(const std::string& path, bool loop = true);
+	// 再生して「操作用ハンドル」を返す
+	int PlaySE(const std::string& path, bool loop = false);
+	int PlayBGM(const std::string& path, bool loop = true);
 
-    // ハンドルに対して操作
-    void SetVolume(int handle, float volume); // volume: 0.0f ~ 1.0f
-    void Stop(int handle);
+	// ハンドルに対して操作
+	void SetVolume(int handle, float volume); // volume: 0.0f ~ 1.0f
+	void Stop(int handle);
 
-    // 全体の音量
-    void SetMasterVolume(float vol) { m_MasterVolume = vol; }
+	// 全体の音量
+	void SetMasterVolume(float vol) { MasterVolume = vol; }
 
 private:
-    std::unordered_map<std::string, int> m_MasterSounds; 
-    std::vector<int> m_PlayHandles;  // 複製した再生用ハンドルの管理リスト
-    int m_BGMHandle = -1;
-    float m_MasterVolume = 1.0f;
+	std::unordered_map<std::string, int> MasterSounds;
+	std::vector<int> PlayHandles;  // 複製した再生用ハンドルの管理リスト
+	int BGMHandle = -1;
+	float MasterVolume = 1.0f;
 };

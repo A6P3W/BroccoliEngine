@@ -64,6 +64,6 @@ public:
 private:
 	struct FButtonBinding { InputDevice* Device; int Code; float Scale; std::string ModifierAction; };
 	struct FAxisBinding { InputDevice* Device; int AxisId; float Scale; };
-	std::unordered_map<std::string, std::vector<FButtonBinding>> m_buttonBindings;
-	std::unordered_map<std::string, std::vector<FAxisBinding>>   m_axisBindings;
+	std::unordered_map<std::string, std::vector<FButtonBinding>> ButtonBindings;
+	std::unordered_map<std::string, std::vector<FAxisBinding>>   AxisBindings;
 };

@@ -22,10 +22,10 @@ public:
 	void Register()
 	{
 		std::string className = T::StaticClassName();
-		m_factories[className] = [](World* world, const FVector2D& loc, FRotator rot) -> AActor* {
+		Factories[className] = [](World* world, const FVector2D& loc, FRotator rot) -> AActor* {
 			return world->SpawnActor<T>(loc, rot, true);
-		};
-		m_classNames.push_back(className);
+			};
+		ClassNames.push_back(className);
 	}
 
 	// クラス名からスポーン
@@ -36,20 +36,20 @@ public:
 		FRotator rot = FRotator(0)
 	)
 	{
-		auto it = m_factories.find(className);
-		if (it == m_factories.end()) return nullptr;
+		auto it = Factories.find(className);
+		if (it == Factories.end()) return nullptr;
 		return it->second(world, loc, rot);
 	}
 
-	const std::vector<std::string>& GetClassNames() const { return m_classNames; }
+	const std::vector<std::string>& GetClassNames() const { return ClassNames; }
 
 	bool Contains(const std::string& className) const
 	{
-		return m_factories.count(className) > 0;
+		return Factories.count(className) > 0;
 	}
 
 private:
 	ActorRegistry() = default;
-	std::unordered_map<std::string, FactoryFn> m_factories;
-	std::vector<std::string> m_classNames;
+	std::unordered_map<std::string, FactoryFn> Factories;
+	std::vector<std::string> ClassNames;
 };

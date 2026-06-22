@@ -15,12 +15,12 @@ AGridLine::AGridLine()
 
 void AGridLine::BeginPlay()
 {
-    m_CollisionCellSize = GetWorld()->GetCollisionSystem()->GetCollisionCellSize();
+    CollisionCellSize = GetWorld()->GetCollisionSystem()->GetCollisionCellSize();
 }
 
 void AGridLine::OnUpdate(float DeltaTime)
 {
-    SimpleDraw(m_CollisionCellSize, GetColor(255, 255, 255));
+    SimpleDraw(CollisionCellSize, GetColor(255, 255, 255));
 
 }
 

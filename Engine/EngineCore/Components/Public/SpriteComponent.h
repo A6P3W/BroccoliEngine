@@ -17,6 +17,6 @@ public:
 
 private:
     // 描画設定（共通設定とデータ本体）
-    RenderCommon m_common;
-    RenderCommandData m_data;
+    RenderCommon CommonData;
+    RenderCommandData FeatureData;
 };

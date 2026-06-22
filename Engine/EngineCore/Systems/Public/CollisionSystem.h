@@ -18,12 +18,12 @@ struct pair_hash {
 		return v.first * 31 + v.second;
 	}
 };
-class CollisionSystem
+class MCollisionSystem
 {
 
 public:
-	CollisionSystem();
-	~CollisionSystem();
+	MCollisionSystem();
+	~MCollisionSystem();
 
 	void RegisterCollision(MCollisionComponent* component);
 	void UnRegisterCollision(MCollisionComponent* component);
@@ -35,7 +35,7 @@ public:
 
 	void CheckCollisions();
 
-	float GetCollisionCellSize() { return m_CollisionCellSize; }
+	float GetCollisionCellSize() { return CollisionCellSize; }
 private:
 	void CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b);
 	void CircleAndRectangle(MCircleCollisionComponent* circle, MRectangleCollisionComponent* rect);
@@ -50,17 +50,17 @@ private:
 
 	void CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B);
 
-	static std::unique_ptr<CollisionSystem> s_Instance;
+	static std::unique_ptr<MCollisionSystem> s_Instance;
 
-	std::vector<MCollisionComponent*> m_CollisionComponents;
-	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> m_StaticCollisionMap;
-	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> m_DynamicCollisionMap;
-	float m_CollisionCellSize = 100;
-	std::uint64_t m_FrameId = 0;
-	bool m_DeferStaticRebuild = false;
-	bool m_PendingStaticRebuild = false;
+	std::vector<MCollisionComponent*> CollisionComponents;
+	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> StaticCollisionMap;
+	std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash> DynamicCollisionMap;
+	float CollisionCellSize = 100;
+	std::uint64_t FrameId = 0;
+	bool bDeferStaticRebuild = false;
+	bool bPendingStaticRebuild = false;
 
-	std::vector<MCollisionComponent*> m_PendingStaticRegistrations;
+	std::vector<MCollisionComponent*> PendingStaticRegistrations;
 	void RegisterToStaticMap(MCollisionComponent* component);
 };
 

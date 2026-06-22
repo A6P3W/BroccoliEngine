@@ -28,7 +28,7 @@ public: \
 
 
 class MSceneComponent;
-class TimerManager;
+class MTimerManager;
 class World;
 class AActor :
 	public MBaseObject
@@ -49,8 +49,8 @@ public:
 
 	virtual void Update(float DeltaTime) final;
 	virtual void Draw();
-	MSceneComponent* GetRootComponent() const { return m_rootComponent; };
-	TimerManager& GetWorldTimerManager();
+	MSceneComponent* GetRootComponent() const { return RootComponent; };
+	MTimerManager& GetWorldTimerManager();
 
 	const std::vector<std::unique_ptr<MActorComponent>>& GetComponents() const;
 
@@ -79,14 +79,14 @@ public:
 	template<class T>
 	std::vector <T*> GetComponents() const {
 		std::vector<T*> results;
-		for (const auto& comp : m_components) {
+		for (const auto& comp : Components) {
 			if (auto casted = dynamic_cast<T*>(comp.get())) {
 				results.push_back(casted);
 			}
 		}
 		return results;
 	}
-	World* GetWorld() { return m_world; }
+	World* GetWorld() { return OwnerWorld; }
 	void SetWorld(World* world);
 
 	bool IsEditorActor() const { return bEditorActor; }
@@ -95,16 +95,16 @@ public:
 protected:
 	virtual void BeginPlay() {}
 	virtual void OnUpdate(float DeltaTime);
-	MSceneComponent* m_rootComponent = nullptr;
+	MSceneComponent* RootComponent = nullptr;
 	void SetRootComponent(MSceneComponent* Component);
 
 	bool bEditorActor = false;
 	bool bUpdateableAnytime = false;
 
 private:
-	std::vector<AActor*> m_childObjects;
-	bool m_PendingDestroy = false;
-	std::vector<std::unique_ptr<MActorComponent>> m_components;
-	World* m_world=nullptr;
+	std::vector<AActor*> ChildObjects;
+	bool bPendingDestroy = false;
+	std::vector<std::unique_ptr<MActorComponent>> Components;
+	World* OwnerWorld=nullptr;
 
 };

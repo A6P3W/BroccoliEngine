@@ -24,8 +24,8 @@ public:
 private:
 	float ApplyDeadzone(int val, float deadzone);
 
-	int m_padInputType;
-	int m_buttons = 0;
-	int m_prevButtons = 0;
-	float m_axes[6] = {};
+	int PadInputType;
+	int Buttons = 0;
+	int PrevButtons = 0;
+	float Axes[6] = {};
 };

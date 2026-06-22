@@ -17,8 +17,8 @@ public:
 	virtual void OnUpdate(float DeltaTime) override;
 	virtual void Draw() override;
 
-	APawn* GetPlayerPawn() const { return m_PlayerPawn; }
-	APlayerController* GetPlayerController() const { return m_PlayerController; }
+	APawn* GetPlayerPawn() const { return PlayerPawn; }
+	APlayerController* GetPlayerController() const { return PlayerController; }
 
 	template<class T>
 	T* SpawnActor(const FVector2D& Loc = { 0,0 }, FRotator Rot = FRotator(0.0f)) {
@@ -30,19 +30,19 @@ protected:
 	TController* SpawnPlayer(const FVector2D& Location = FVector2D::ZeroVector, int PlayerId = 0)
 	{
 		auto* Controller = GetWorld()->SpawnActor<TController>(Location);
-		m_PlayerController = Controller;
+		PlayerController = Controller;
 		Controller->SetPlayerId(PlayerId);
 		Controller->SetupInputMappings();
 
 		auto* Pawn = GetWorld()->SpawnActor<TPawn>(Location);
-		m_PlayerPawn = Pawn;
+		PlayerPawn = Pawn;
 		Controller->Possess(Pawn);
 		M_LOG("Spawned Player Pawn: {} at ({}, {})", Pawn->GetActorClassName(), Location.X, Location.Y);
 		return Controller;
 	}
 
 private:
-	APawn* m_PlayerPawn;
-	APlayerController* m_PlayerController;
+	APawn* PlayerPawn;
+	APlayerController* PlayerController;
 };
 

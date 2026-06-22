@@ -26,7 +26,7 @@ HttpManager& HttpManager::GetInstance() {
 }
 
 HttpManager::HttpManager() {
-    m_Impl = std::make_shared<Impl>();
+    ImplPtr = std::make_shared<Impl>();
 }
 
 HttpManager::~HttpManager() {}
@@ -34,10 +34,10 @@ HttpManager::~HttpManager() {}
 void HttpManager::Update() {
     std::vector<HttpResult> resultsToProcess;
     {
-        std::lock_guard<std::mutex> lock(m_Impl->queueMutex);
-        if (!m_Impl->resultQueue.empty()) {
-            resultsToProcess = std::move(m_Impl->resultQueue);
-            m_Impl->resultQueue.clear();
+        std::lock_guard<std::mutex> lock(ImplPtr->queueMutex);
+        if (!ImplPtr->resultQueue.empty()) {
+            resultsToProcess = std::move(ImplPtr->resultQueue);
+            ImplPtr->resultQueue.clear();
         }
     }
 
@@ -45,11 +45,11 @@ void HttpManager::Update() {
         bool bShouldExecute = false;
         {
             // 有効なリクエストかどうかを確認し、実行する場合はリストから消す
-            std::lock_guard<std::mutex> lock(m_Impl->activeMutex);
-            auto it = m_Impl->activeRequests.find(res.RequestId);
-            if (it != m_Impl->activeRequests.end()) {
+            std::lock_guard<std::mutex> lock(ImplPtr->activeMutex);
+            auto it = ImplPtr->activeRequests.find(res.RequestId);
+            if (it != ImplPtr->activeRequests.end()) {
                 bShouldExecute = true;
-                m_Impl->activeRequests.erase(it);
+                ImplPtr->activeRequests.erase(it);
             }
         }
 
@@ -61,7 +61,7 @@ void HttpManager::Update() {
 }
 
 void HttpManager::Get(const void* OwnerObject, const std::string& url, HttpCallback callback) {
-    auto impl = m_Impl;
+    auto impl = ImplPtr;
     uint64_t reqId = 0;
 
     {
@@ -84,7 +84,7 @@ void HttpManager::Get(const void* OwnerObject, const std::string& url, HttpCallb
 }
 
 void HttpManager::PostJson(const void* OwnerObject, const std::string& url, const std::string& jsonBody, HttpCallback callback) {
-    auto impl = m_Impl;
+    auto impl = ImplPtr;
     uint64_t reqId = 0;
 
     {
@@ -113,10 +113,10 @@ void HttpManager::PostJson(const void* OwnerObject, const std::string& url, cons
 void HttpManager::CancelAllRequestsForObject(const void* OwnerObject) {
     if (OwnerObject == nullptr) return; // nullptr（グローバル通信）はキャンセルしない
 
-    std::lock_guard<std::mutex> lock(m_Impl->activeMutex);
-    for (auto it = m_Impl->activeRequests.begin(); it != m_Impl->activeRequests.end(); ) {
+    std::lock_guard<std::mutex> lock(ImplPtr->activeMutex);
+    for (auto it = ImplPtr->activeRequests.begin(); it != ImplPtr->activeRequests.end(); ) {
         if (it->second == OwnerObject) {
-            it = m_Impl->activeRequests.erase(it);
+            it = ImplPtr->activeRequests.erase(it);
         }
         else {
             ++it;

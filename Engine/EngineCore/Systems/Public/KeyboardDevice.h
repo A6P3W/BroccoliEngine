@@ -9,6 +9,6 @@ public:
 	bool GetRelease(int code)    const override;
 
 private:
-	bool m_key[256] = {};
-	bool m_prevKey[256] = {};
+	bool Key[256] = {};
+	bool PrevKey[256] = {};
 };

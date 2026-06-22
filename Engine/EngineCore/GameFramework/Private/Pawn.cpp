@@ -10,13 +10,13 @@
 APawn::APawn()
 {
 	auto camera = std::make_unique<MCameraComponent>();
-	m_camera = camera.get();
+	Camera = camera.get();
 	AddComponent(std::move(camera));
-	m_camera->SetFOV(1);
+	Camera->SetFOV(1);
 }
 void APawn::OnPossesed()
 {
-	m_camera->SetActiveCamera();
+	Camera->SetActiveCamera();
 }
 void APawn::OnUpdate(float DeltaTime)
 {

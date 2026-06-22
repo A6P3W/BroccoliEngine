@@ -9,7 +9,7 @@ MUIWidgetComponent::MUIWidgetComponent(int basePriority)
 void MUIWidgetComponent::SetZOrderOffset(int offset)
 {
 	m_zOrderOffset = offset;
-	for (auto* child : m_childComponents) {
+	for (auto* child : ChildComponents) {
 		if (auto* childWidget = dynamic_cast<MUIWidgetComponent*>(child)) {
 			childWidget->SetZOrderOffset(offset);
 		}

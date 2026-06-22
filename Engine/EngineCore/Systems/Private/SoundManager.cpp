@@ -3,32 +3,32 @@
 #include <DxLib.h>
 #include <algorithm>
 
-SoundManager::~SoundManager()
+MSoundManager::~MSoundManager()
 {
 	// 複製再生用ハンドルを全て強制終了・解放
-	for (int handle : m_PlayHandles) {
+	for (int handle : PlayHandles) {
 		StopSoundMem(handle);
 		DeleteSoundMem(handle);
 	}
-	m_PlayHandles.clear();
+	PlayHandles.clear();
 
-	for (const auto& sound : m_MasterSounds) {
+	for (const auto& sound : MasterSounds) {
 		DeleteSoundMem(sound.second);
 	}
 }
 
-int SoundManager::GetMasterHandle(const std::string& path)
+int MSoundManager::GetMasterHandle(const std::string& path)
 {
-	if (m_MasterSounds.count(path)) return m_MasterSounds[path];
+	if (MasterSounds.count(path)) return MasterSounds[path];
 
 	int handle = LoadSoundMem(path.c_str());
 	if (handle == -1) return -1;
 
-	m_MasterSounds[path] = handle;
+	MasterSounds[path] = handle;
 	return handle;
 }
 
-int SoundManager::PlaySE(const std::string& path, bool loop)
+int MSoundManager::PlaySE(const std::string& path, bool loop)
 {
 	int master = GetMasterHandle(path);
 	if (master == -1) return -1;
@@ -40,33 +40,33 @@ int SoundManager::PlaySE(const std::string& path, bool loop)
 
 	PlaySoundMem(playHandle, loop ? DX_PLAYTYPE_LOOP : DX_PLAYTYPE_BACK, TRUE);
 
-	m_PlayHandles.push_back(playHandle);  // 再生用ハンドルを管理リストに登録
+	PlayHandles.push_back(playHandle);  // 再生用ハンドルを管理リストに登録
 
 	return playHandle;
 }
 
-int SoundManager::PlayBGM(const std::string& path, bool loop)
+int MSoundManager::PlayBGM(const std::string& path, bool loop)
 {
-	if (m_BGMHandle != -1) {
-		Stop(m_BGMHandle);
-		m_BGMHandle = -1;
+	if (BGMHandle != -1) {
+		Stop(BGMHandle);
+		BGMHandle = -1;
 	}
 
-	m_BGMHandle = PlaySE(path, loop);
-	return m_BGMHandle;
+	BGMHandle = PlaySE(path, loop);
+	return BGMHandle;
 }
 
-void SoundManager::SetVolume(int handle, float volume)
+void MSoundManager::SetVolume(int handle, float volume)
 {
 	if (handle == -1) return;
 
 	float clampedVolume = std::clamp(volume, 0.0f, 1.0f);
-	float clampedMasterVolume = std::clamp(m_MasterVolume, 0.0f, 1.0f);
+	float clampedMasterVolume = std::clamp(MasterVolume, 0.0f, 1.0f);
 	int vol = static_cast<int>(clampedVolume * clampedMasterVolume * 255.0f);
 	ChangeVolumeSoundMem(vol, handle);
 }
 
-void SoundManager::Stop(int handle)
+void MSoundManager::Stop(int handle)
 {
 	if (handle == -1) return;
 

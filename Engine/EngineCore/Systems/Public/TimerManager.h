@@ -8,18 +8,18 @@
 #include <unordered_set>
 #include <vector>
 
-class TimerManager
+class MTimerManager
 {
 public:
 
-	TimerManager();
-	~TimerManager();
+	MTimerManager();
+	~MTimerManager();
 
 	template<class UserClass>
 	void SetTimer(
 		FTimerHandle& Handle,
 		UserClass* Object,
-		void (UserClass::*MemberFunc)(),
+		void (UserClass::* MemberFunc)(),
 		float Rate,
 		bool bLoop,
 		float FirstDelay = -1.0f)
@@ -45,8 +45,8 @@ public:
 	void Update(float DeltaTime);
 
 private:
-	TimerManager(const TimerManager&) = delete;
-	TimerManager& operator=(const TimerManager&) = delete;
+	MTimerManager(const MTimerManager&) = delete;
+	MTimerManager& operator=(const MTimerManager&) = delete;
 
 	struct FTimerData
 	{
@@ -72,10 +72,10 @@ private:
 	void FlushPendingChanges();
 	uint64_t AllocateTimerId();
 
-	std::unordered_map<uint64_t, FTimerData> m_timers;
-	std::unordered_map<const void*, std::unordered_set<uint64_t>> m_ownerToTimerIds;
-	std::unordered_map<uint64_t, FTimerData> m_pendingAddTimers;
-	std::unordered_set<uint64_t> m_pendingRemoveTimerIds;
-	uint64_t m_nextTimerId = 1;
-	bool m_isUpdating = false;
+	std::unordered_map<uint64_t, FTimerData> Timers;
+	std::unordered_map<const void*, std::unordered_set<uint64_t>> OwnerToTimerIds;
+	std::unordered_map<uint64_t, FTimerData> PendingAddTimers;
+	std::unordered_set<uint64_t> PendingRemoveTimerIds;
+	uint64_t NextTimerId = 1;
+	bool bUpdating = false;
 };

@@ -24,19 +24,19 @@ bool MActorComponent::Update(float DeltaTime)
 
 void MActorComponent::DestroyComponent()
 {
-	if (m_bPendingDestroy) {
+	if (bPendingDestroy) {
 		return;
 	}
 
-	if (m_owner != nullptr) {
-		const auto* rootComponent = m_owner->GetRootComponent();
+	if (Owner != nullptr) {
+		const auto* rootComponent = Owner->GetRootComponent();
 		if (rootComponent != nullptr && static_cast<const MActorComponent*>(rootComponent) == this) {
 			M_LOG("DestroyComponent ignored: attempted to destroy RootComponent");
 			return;
 		}
 	}
 
-	m_bPendingDestroy = true;
+	bPendingDestroy = true;
 
 	if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetTimerManager()) {
 		GetOwner()->GetWorld()->GetTimerManager()->ClearAllTimersForObject(this);

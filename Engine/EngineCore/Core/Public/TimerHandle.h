@@ -7,28 +7,27 @@ class FTimerHandle
 public:
 	FTimerHandle() = default;
 	explicit FTimerHandle(uint64_t InId)
-		: m_Id(InId)
-	{
-	}
+		: Id(InId)
+	{}
 
 	bool IsValid() const
 	{
-		return m_Id != 0;
+		return Id != 0;
 	}
 
 	void Invalidate()
 	{
-		m_Id = 0;
+		Id = 0;
 	}
 
 	uint64_t GetId() const
 	{
-		return m_Id;
+		return Id;
 	}
 
 	bool operator==(const FTimerHandle& Other) const
 	{
-		return m_Id == Other.m_Id;
+		return Id == Other.Id;
 	}
 
 	bool operator!=(const FTimerHandle& Other) const
@@ -37,5 +36,5 @@ public:
 	}
 
 private:
-	uint64_t m_Id = 0;
+	uint64_t Id = 0;
 };
