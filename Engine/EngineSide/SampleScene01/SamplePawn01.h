@@ -20,6 +20,6 @@ public:
 private:
 	void OnInteractPressed();
 	void OnMove(const FInputActionValue& Value);
-	MMovementComponent* m_movement = nullptr;
+	MMovementComponent* Movement = nullptr;
 };
 

@@ -9,12 +9,12 @@
 #include "World.h"
 World::World()
 {
-    m_ObjectManager = std::make_unique<ObjectManager>();
-    m_CollisionSystem = std::make_unique<CollisionSystem>();
-    m_SoundManager = std::make_unique<SoundManager>();
-    m_TimerManager = std::make_unique<TimerManager>();
+    ObjectManager = std::make_unique<MObjectManager>();
+    CollisionSystem = std::make_unique<MCollisionSystem>();
+    SoundManager = std::make_unique<MSoundManager>();
+    TimerManager = std::make_unique<MTimerManager>();
     
-	m_ObjectManager->SetWorld(this);
+	ObjectManager->SetWorld(this);
 }
 
 World::~World()
@@ -25,19 +25,19 @@ World::~World()
 void World::Update(float DeltaTime)
 {
 
-    if (m_ObjectManager)m_ObjectManager->Update(DeltaTime);
+    if (ObjectManager)ObjectManager->Update(DeltaTime);
     if (bSimulating) {
-        if (m_TimerManager)m_TimerManager->Update(DeltaTime);
-        if (m_CollisionSystem)m_CollisionSystem->CheckCollisions();
+        if (TimerManager)TimerManager->Update(DeltaTime);
+        if (CollisionSystem)CollisionSystem->CheckCollisions();
     }
 }
 
 void World::Draw()
 {
-    if (m_ObjectManager) m_ObjectManager->Draw();
+    if (ObjectManager) ObjectManager->Draw();
 }
 
 void World::SetGameMode(AGameModeBase* mode)
 {
-    m_GameMode = mode;
+    GameMode = mode;
 }

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-class SoundManager;
+class MSoundManager;
 
 class MSoundComponent : public MActorComponent
 {
@@ -21,7 +21,7 @@ protected:
 	void OnComponentDestroy() override;
 
 private:
-	SoundManager* GetSoundManager() const;
+	MSoundManager* GetSoundManager() const;
 
 	std::vector<int> m_PlayingHandles;
 };

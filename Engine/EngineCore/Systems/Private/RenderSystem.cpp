@@ -16,42 +16,42 @@ void RenderSystem::SubmitGraph(FVector2D Location, int Handle, FScale Scale, FRo
 	RenderCommand cmd;
 	cmd.common = { Priority, Alpha, Space };
 	cmd.data = GraphData{ Location, Rotation, Scale, Handle };
-	m_priorityCommands[Priority].push_back(std::move(cmd));
+	PriorityCommands[Priority].push_back(std::move(cmd));
 }
 
 void RenderSystem::SubmitCircle(FVector2D Location, float Radius, int Color, bool Fill, RenderSpace Space, int Priority, int Alpha) {
 	RenderCommand cmd;
 	cmd.common = { Priority, Alpha, Space };
 	cmd.data = CircleData{ Location, Radius, Color, Fill };
-	m_priorityCommands[Priority].push_back(std::move(cmd));
+	PriorityCommands[Priority].push_back(std::move(cmd));
 }
 
 void RenderSystem::SubmitBox(FVector2D Location, FVector2D WidthHeight, FRotator Rotation, int Color, bool Fill, RenderSpace Space, int Priority, int Alpha) {
 	RenderCommand cmd;
 	cmd.common = { Priority, Alpha, Space };
 	cmd.data = BoxData{ Location, WidthHeight, Rotation, Color, Fill };
-	m_priorityCommands[Priority].push_back(std::move(cmd));
+	PriorityCommands[Priority].push_back(std::move(cmd));
 }
 
 void RenderSystem::SubmitText(FVector2D Location, const std::string& Text, int Handle, int Color, RenderSpace Space, int Priority, int Alpha) {
 	RenderCommand cmd;
 	cmd.common = { Priority, Alpha, Space };
 	cmd.data = TextData{ Location, Text, Color, Handle };
-	m_priorityCommands[Priority].push_back(std::move(cmd));
+	PriorityCommands[Priority].push_back(std::move(cmd));
 }
 
 void RenderSystem::SubmitLine(FVector2D Start, FVector2D End, int Color, RenderSpace Space, int Priority, int Alpha) {
 	RenderCommand cmd;
 	cmd.common = { Priority, Alpha, Space };
 	cmd.data = LineData{ Start, End, Color };
-	m_priorityCommands[Priority].push_back(std::move(cmd));
+	PriorityCommands[Priority].push_back(std::move(cmd));
 }
 
 void RenderSystem::SubmitRectGraph(FVector2D Dest, FVector2D SrcLoc, FVector2D SrcSize, int Handle, RenderSpace Space, int Priority, int Alpha) {
 	RenderCommand cmd;
 	cmd.common = { Priority, Alpha, Space };
 	cmd.data = RectGraphData{ Dest, SrcLoc, SrcSize, Handle };
-	m_priorityCommands[Priority].push_back(std::move(cmd));
+	PriorityCommands[Priority].push_back(std::move(cmd));
 }
 
 // --- 座標変換 ---
@@ -60,10 +60,10 @@ FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
 	FVector2D camPos = FVector2D::ZeroVector;
 	float camRot = 0.0f;
 	float camFOV = 1.0f;
-	if (m_MainCamera) {
-		camPos = m_MainCamera->GetWorldLocation();
-		camRot = m_MainCamera->GetWorldRotation().Rotation;
-		camFOV = m_MainCamera->GetFOV();
+	if (MainCamera) {
+		camPos = MainCamera->GetWorldLocation();
+		camRot = MainCamera->GetWorldRotation().Rotation;
+		camFOV = MainCamera->GetFOV();
 	}
 	const float centerX = VirtualWidth * 0.5f;
 	const float centerY = VirtualHeight * 0.5f;
@@ -81,10 +81,10 @@ FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPos) const {
 	FVector2D camPos = FVector2D::ZeroVector;
 	float camRot = 0.0f;
 	float camFOV = 1.0f;
-	if (m_MainCamera) {
-		camPos = m_MainCamera->GetWorldLocation();
-		camRot = m_MainCamera->GetWorldRotation().Rotation;
-		camFOV = m_MainCamera->GetFOV();
+	if (MainCamera) {
+		camPos = MainCamera->GetWorldLocation();
+		camRot = MainCamera->GetWorldRotation().Rotation;
+		camFOV = MainCamera->GetFOV();
 	}
 	const float centerX = VirtualWidth * 0.5f;
 	const float centerY = VirtualHeight * 0.5f;
@@ -100,13 +100,13 @@ FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPos) const {
 }
 
 void RenderSystem::Draw() {
-	float camRot = m_MainCamera ? m_MainCamera->GetWorldRotation().Rotation : 0.0f;
-	float camFOV = m_MainCamera ? m_MainCamera->GetFOV() : 1.0f;
+	float camRot = MainCamera ? MainCamera->GetWorldRotation().Rotation : 0.0f;
+	float camFOV = MainCamera ? MainCamera->GetFOV() : 1.0f;
 
 	int curBlend, curAlpha;
 	GetDrawBlendMode(&curBlend, &curAlpha);
 
-	for (auto& [priority, commands] : m_priorityCommands) {
+	for (auto& [priority, commands] : PriorityCommands) {
 		for (const auto& cmd : commands) {
 			// アルファ値更新
 			if (cmd.common.alpha != curAlpha) {
@@ -176,8 +176,8 @@ void RenderSystem::Draw() {
 				}, cmd.data);
 		}
 	}
-	m_priorityCommands.clear();
+	PriorityCommands.clear();
 }
 
-void RenderSystem::SetCameraView(MCameraComponent* m) { m_MainCamera = m; }
-MCameraComponent* RenderSystem::GetCamera() { return m_MainCamera; }
+void RenderSystem::SetCameraView(MCameraComponent* m) { MainCamera = m; }
+MCameraComponent* RenderSystem::GetCamera() { return MainCamera; }

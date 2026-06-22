@@ -15,60 +15,60 @@ struct DxLibXInputStateWrapper {
 GamepadDevice::GamepadDevice(int padIndex)
 {
 	switch (padIndex) {
-	case 1:  m_padInputType = DX_INPUT_PAD1;  break;
-	case 2:  m_padInputType = DX_INPUT_PAD2;  break;
-	case 3:  m_padInputType = DX_INPUT_PAD3;  break;
-	case 4:  m_padInputType = DX_INPUT_PAD4;  break;
-	default: m_padInputType = DX_INPUT_PAD1;  break;
+	case 1:  PadInputType = DX_INPUT_PAD1;  break;
+	case 2:  PadInputType = DX_INPUT_PAD2;  break;
+	case 3:  PadInputType = DX_INPUT_PAD3;  break;
+	case 4:  PadInputType = DX_INPUT_PAD4;  break;
+	default: PadInputType = DX_INPUT_PAD1;  break;
 	}
 }
 
 void GamepadDevice::Update()
 {
-	m_prevButtons = m_buttons;
-	m_buttons = GetJoypadInputState(m_padInputType);
+	PrevButtons = Buttons;
+	Buttons = GetJoypadInputState(PadInputType);
 
 	DxLibXInputStateWrapper xinputState;
 
-	if (GetJoypadXInputState(m_padInputType, reinterpret_cast<DxLib::XINPUT_STATE*>(&xinputState)) == 0) {
-		m_axes[(int)AxisID::LeftX] = ApplyDeadzone(xinputState.sThumbLX, 0.2f);
-		m_axes[(int)AxisID::LeftY] = ApplyDeadzone(xinputState.sThumbLY, 0.2f);
-		m_axes[(int)AxisID::RightX] = ApplyDeadzone(xinputState.sThumbRX, 0.2f);
-		m_axes[(int)AxisID::RightY] = ApplyDeadzone(xinputState.sThumbRY, 0.2f);
-		m_axes[(int)AxisID::LeftTrigger] = (float)xinputState.bLeftTrigger / 255.0f;
-		m_axes[(int)AxisID::RightTrigger] = (float)xinputState.bRightTrigger / 255.0f;
+	if (GetJoypadXInputState(PadInputType, reinterpret_cast<DxLib::XINPUT_STATE*>(&xinputState)) == 0) {
+		Axes[(int)AxisID::LeftX] = ApplyDeadzone(xinputState.sThumbLX, 0.2f);
+		Axes[(int)AxisID::LeftY] = ApplyDeadzone(xinputState.sThumbLY, 0.2f);
+		Axes[(int)AxisID::RightX] = ApplyDeadzone(xinputState.sThumbRX, 0.2f);
+		Axes[(int)AxisID::RightY] = ApplyDeadzone(xinputState.sThumbRY, 0.2f);
+		Axes[(int)AxisID::LeftTrigger] = (float)xinputState.bLeftTrigger / 255.0f;
+		Axes[(int)AxisID::RightTrigger] = (float)xinputState.bRightTrigger / 255.0f;
 	}
 	else {
 		int lx = 0, ly = 0;
-		GetJoypadAnalogInput(&lx, &ly, m_padInputType);
-		m_axes[(int)AxisID::LeftX] = ApplyDeadzone((int)(lx * 32.768f), 0.2f);
-		m_axes[(int)AxisID::LeftY] = ApplyDeadzone((int)(ly * 32.768f), 0.2f);
-		m_axes[(int)AxisID::RightX] = 0.0f;
-		m_axes[(int)AxisID::RightY] = 0.0f;
-		m_axes[(int)AxisID::LeftTrigger] = 0.0f;
-		m_axes[(int)AxisID::RightTrigger] = 0.0f;
+		GetJoypadAnalogInput(&lx, &ly, PadInputType);
+		Axes[(int)AxisID::LeftX] = ApplyDeadzone((int)(lx * 32.768f), 0.2f);
+		Axes[(int)AxisID::LeftY] = ApplyDeadzone((int)(ly * 32.768f), 0.2f);
+		Axes[(int)AxisID::RightX] = 0.0f;
+		Axes[(int)AxisID::RightY] = 0.0f;
+		Axes[(int)AxisID::LeftTrigger] = 0.0f;
+		Axes[(int)AxisID::RightTrigger] = 0.0f;
 	}
 }
 
 bool GamepadDevice::GetPressStart(int code) const
 {
-	return !(m_prevButtons & code) && (m_buttons & code);
+	return !(PrevButtons & code) && (Buttons & code);
 }
 
 bool GamepadDevice::GetPressing(int code) const
 {
-	return (m_buttons & code);
+	return (Buttons & code);
 }
 
 bool GamepadDevice::GetRelease(int code) const
 {
-	return (m_prevButtons & code) && !(m_buttons & code);
+	return (PrevButtons & code) && !(Buttons & code);
 }
 
 float GamepadDevice::GetAxis(int axisID) const
 {
 	if (axisID >= 0 && axisID < 6) {
-		return m_axes[axisID];
+		return Axes[axisID];
 	}
 	return 0.0f;
 }

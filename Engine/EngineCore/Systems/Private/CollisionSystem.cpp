@@ -8,36 +8,36 @@
 #include <atomic>
 #include <algorithm>
 
-CollisionSystem::CollisionSystem()
+MCollisionSystem::MCollisionSystem()
 {}
 
-CollisionSystem::~CollisionSystem()
+MCollisionSystem::~MCollisionSystem()
 {}
 
 
-void CollisionSystem::RegisterCollision(MCollisionComponent* component)
+void MCollisionSystem::RegisterCollision(MCollisionComponent* component)
 {
-	m_CollisionComponents.push_back(component);
+	CollisionComponents.push_back(component);
 	if (component->IsStatic()) {
-		if (std::find(m_PendingStaticRegistrations.begin(), m_PendingStaticRegistrations.end(), component) == m_PendingStaticRegistrations.end()) {
-			m_PendingStaticRegistrations.push_back(component);
+		if (std::find(PendingStaticRegistrations.begin(), PendingStaticRegistrations.end(), component) == PendingStaticRegistrations.end()) {
+			PendingStaticRegistrations.push_back(component);
 		}
 	}
 }
 
-void CollisionSystem::UnRegisterCollision(MCollisionComponent* component)
+void MCollisionSystem::UnRegisterCollision(MCollisionComponent* component)
 {
-	auto it = std::find(m_CollisionComponents.begin(), m_CollisionComponents.end(), component);
-	if (it != m_CollisionComponents.end()) {
-		*it = m_CollisionComponents.back();
-		m_CollisionComponents.pop_back();
+	auto it = std::find(CollisionComponents.begin(), CollisionComponents.end(), component);
+	if (it != CollisionComponents.end()) {
+		*it = CollisionComponents.back();
+		CollisionComponents.pop_back();
 	}
-	m_PendingStaticRegistrations.erase(
-		std::remove(m_PendingStaticRegistrations.begin(), m_PendingStaticRegistrations.end(), component),
-		m_PendingStaticRegistrations.end());
+	PendingStaticRegistrations.erase(
+		std::remove(PendingStaticRegistrations.begin(), PendingStaticRegistrations.end(), component),
+		PendingStaticRegistrations.end());
 	if (component->IsStatic()) {
-		if (m_DeferStaticRebuild) {
-			m_PendingStaticRebuild = true;
+		if (bDeferStaticRebuild) {
+			bPendingStaticRebuild = true;
 		}
 		else {
 			RebuildStaticCollisionMap();
@@ -45,24 +45,24 @@ void CollisionSystem::UnRegisterCollision(MCollisionComponent* component)
 	}
 }
 
-void CollisionSystem::BeginSceneTransition()
+void MCollisionSystem::BeginSceneTransition()
 {
-	m_DeferStaticRebuild = true;
+	bDeferStaticRebuild = true;
 }
 
-void CollisionSystem::EndSceneTransition()
+void MCollisionSystem::EndSceneTransition()
 {
-	m_DeferStaticRebuild = false;
-	if (m_PendingStaticRebuild) {
+	bDeferStaticRebuild = false;
+	if (bPendingStaticRebuild) {
 		RebuildStaticCollisionMap();
-		m_PendingStaticRebuild = false;
+		bPendingStaticRebuild = false;
 	}
 }
 
-void CollisionSystem::RebuildStaticCollisionMap()
+void MCollisionSystem::RebuildStaticCollisionMap()
 {
-	m_StaticCollisionMap.clear();
-	for (auto* comp : m_CollisionComponents)
+	StaticCollisionMap.clear();
+	for (auto* comp : CollisionComponents)
 	{
 		if (!comp->IsStatic()) continue;
 		RegisterToStaticMap(comp);
@@ -70,41 +70,41 @@ void CollisionSystem::RebuildStaticCollisionMap()
 	}
 }
 
-void CollisionSystem::UpdateCollisionMap()
+void MCollisionSystem::UpdateCollisionMap()
 {
-	m_DynamicCollisionMap.clear();
-	for (auto collision : m_CollisionComponents) {
+	DynamicCollisionMap.clear();
+	for (auto collision : CollisionComponents) {
 		if (collision->IsStatic()) {
 			continue;
 		}
 		FAABB box = collision->GetAABB();
 
-		int minX = static_cast<int>(std::floor(box.MinX / m_CollisionCellSize));
-		int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionCellSize));
-		int minY = static_cast<int>(std::floor(box.MinY / m_CollisionCellSize));
-		int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionCellSize));
+		int minX = static_cast<int>(std::floor(box.MinX / CollisionCellSize));
+		int maxX = static_cast<int>(std::floor(box.MaxX / CollisionCellSize));
+		int minY = static_cast<int>(std::floor(box.MinY / CollisionCellSize));
+		int maxY = static_cast<int>(std::floor(box.MaxY / CollisionCellSize));
 
 		for (int x = minX; x <= maxX; ++x) {
 			for (int y = minY; y <= maxY; ++y) {
-				m_DynamicCollisionMap[{x, y}].push_back(collision);
+				DynamicCollisionMap[{x, y}].push_back(collision);
 			}
 		}
 		collision->SetGridClean();
 	}
 }
 
-void CollisionSystem::CheckCollisions()
+void MCollisionSystem::CheckCollisions()
 {
-	for (auto* comp : m_PendingStaticRegistrations)
+	for (auto* comp : PendingStaticRegistrations)
 		RegisterToStaticMap(comp);
-	m_PendingStaticRegistrations.clear();
+	PendingStaticRegistrations.clear();
 
 	UpdateCollisionMap();
-	++m_FrameId;
+	++FrameId;
 
-	for (auto& [loc, vec] : m_DynamicCollisionMap) {
-		auto staticIter = m_StaticCollisionMap.find(loc);
-		const auto* staticVec = staticIter != m_StaticCollisionMap.end() ? &staticIter->second : nullptr;
+	for (auto& [loc, vec] : DynamicCollisionMap) {
+		auto staticIter = StaticCollisionMap.find(loc);
+		const auto* staticVec = staticIter != StaticCollisionMap.end() ? &staticIter->second : nullptr;
 
 		for (size_t i = 0; i < vec.size(); ++i) {
 			auto* A = vec[i];
@@ -114,12 +114,12 @@ void CollisionSystem::CheckCollisions()
 						continue;
 					}
 					if (A > B) {
-						if (!B->ShouldProcessPair(A, m_FrameId)) {
+						if (!B->ShouldProcessPair(A, FrameId)) {
 							continue;
 						}
 					}
 					else {
-						if (!A->ShouldProcessPair(B, m_FrameId)) {
+						if (!A->ShouldProcessPair(B, FrameId)) {
 							continue;
 						}
 					}
@@ -130,12 +130,12 @@ void CollisionSystem::CheckCollisions()
 			for (size_t j = i + 1; j < vec.size(); ++j) {
 				auto* B = vec[j];
 				if (A > B) {
-					if (!B->ShouldProcessPair(A, m_FrameId)) {
+					if (!B->ShouldProcessPair(A, FrameId)) {
 						continue;
 					}
 				}
 				else {
-					if (!A->ShouldProcessPair(B, m_FrameId)) {
+					if (!A->ShouldProcessPair(B, FrameId)) {
 						continue;
 					}
 				}
@@ -143,12 +143,12 @@ void CollisionSystem::CheckCollisions()
 			}
 		}
 	}
-	for (auto* comp : m_CollisionComponents) {
+	for (auto* comp : CollisionComponents) {
 		comp->FlushOverlapState();
 	}
 }
 
-void CollisionSystem::CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b)
+void MCollisionSystem::CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b)
 {
 	FVector2D locA = a->GetWorldLocation(), locB = b->GetWorldLocation();
 	float radA = a->GetRadius() * a->GetWorldScale().Scale, radB = b->GetRadius() * b->GetWorldScale().Scale;
@@ -228,7 +228,7 @@ static bool LineSegmentsIntersect(const FVector2D& a1, const FVector2D& a2, cons
 	return t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f;
 }
 
-void CollisionSystem::CircleAndRectangle(MCircleCollisionComponent* circle, MRectangleCollisionComponent* rect)
+void MCollisionSystem::CircleAndRectangle(MCircleCollisionComponent* circle, MRectangleCollisionComponent* rect)
 {
 	FVector2D circleCenter = circle->GetWorldLocation();
 	FVector2D rectCenter = rect->GetWorldLocation();
@@ -306,7 +306,7 @@ struct OBB {
 	float HalfH;
 };
 
-void CollisionSystem::RectangleAndRectangle(MRectangleCollisionComponent* a, MRectangleCollisionComponent* b)
+void MCollisionSystem::RectangleAndRectangle(MRectangleCollisionComponent* a, MRectangleCollisionComponent* b)
 {
 	auto GetOBB = [](MRectangleCollisionComponent* rect) -> OBB {
 		OBB obb;
@@ -373,7 +373,7 @@ void CollisionSystem::RectangleAndRectangle(MRectangleCollisionComponent* a, MRe
 	}
 }
 
-void CollisionSystem::LineAndCircle(MLineCollisionComponent* line, MCircleCollisionComponent* circle)
+void MCollisionSystem::LineAndCircle(MLineCollisionComponent* line, MCircleCollisionComponent* circle)
 {
 	FVector2D start = line->GetWorldStart();
 	FVector2D end = line->GetWorldEnd();
@@ -411,7 +411,7 @@ void CollisionSystem::LineAndCircle(MLineCollisionComponent* line, MCircleCollis
 	}
 }
 
-void CollisionSystem::LineAndRectangle(MLineCollisionComponent* line, MRectangleCollisionComponent* rect)
+void MCollisionSystem::LineAndRectangle(MLineCollisionComponent* line, MRectangleCollisionComponent* rect)
 {
 	FVector2D start = line->GetWorldStart();
 	FVector2D end = line->GetWorldEnd();
@@ -495,7 +495,7 @@ void CollisionSystem::LineAndRectangle(MLineCollisionComponent* line, MRectangle
 	}
 }
 
-void CollisionSystem::LineAndLine(MLineCollisionComponent* a, MLineCollisionComponent* b)
+void MCollisionSystem::LineAndLine(MLineCollisionComponent* a, MLineCollisionComponent* b)
 {
 	FVector2D aStart = a->GetWorldStart();
 	FVector2D aEnd = a->GetWorldEnd();
@@ -509,7 +509,7 @@ void CollisionSystem::LineAndLine(MLineCollisionComponent* a, MLineCollisionComp
 	b->UpdateOverlapState(aActor, isOverlapping);
 }
 
-void CollisionSystem::CancelNormalVelocity(MMovementComponent* move, const FVector2D& normal)
+void MCollisionSystem::CancelNormalVelocity(MMovementComponent* move, const FVector2D& normal)
 {
 	FVector2D v = move->GetVelocity();
 	float dot = v.X * normal.X + v.Y * normal.Y;
@@ -518,7 +518,7 @@ void CollisionSystem::CancelNormalVelocity(MMovementComponent* move, const FVect
 	}
 }
 
-void CollisionSystem::CollisionResolution(AActor* ActorA, AActor* ActorB, const FVector2D& normal, float overlapDepth)
+void MCollisionSystem::CollisionResolution(AActor* ActorA, AActor* ActorB, const FVector2D& normal, float overlapDepth)
 {
 	auto moveComponentA = ActorA->GetComponents<MMovementComponent>();
 	auto moveComponentB = ActorB->GetComponents<MMovementComponent>();
@@ -541,7 +541,7 @@ void CollisionSystem::CollisionResolution(AActor* ActorA, AActor* ActorB, const 
 }
 
 
-void CollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B)
+void MCollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B)
 {
 	if (A->GetOwner() == B->GetOwner()) return;
 	if (A->IsStatic() && B->IsStatic())return;
@@ -582,17 +582,17 @@ void CollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionCompo
 	}
 }
 
-void CollisionSystem::RegisterToStaticMap(MCollisionComponent* component)
+void MCollisionSystem::RegisterToStaticMap(MCollisionComponent* component)
 {
 	FAABB box = component->GetAABB();
-	int minX = static_cast<int>(std::floor(box.MinX / m_CollisionCellSize));
-	int maxX = static_cast<int>(std::floor(box.MaxX / m_CollisionCellSize));
-	int minY = static_cast<int>(std::floor(box.MinY / m_CollisionCellSize));
-	int maxY = static_cast<int>(std::floor(box.MaxY / m_CollisionCellSize));
+	int minX = static_cast<int>(std::floor(box.MinX / CollisionCellSize));
+	int maxX = static_cast<int>(std::floor(box.MaxX / CollisionCellSize));
+	int minY = static_cast<int>(std::floor(box.MinY / CollisionCellSize));
+	int maxY = static_cast<int>(std::floor(box.MaxY / CollisionCellSize));
 
 	for (int x = minX; x <= maxX; ++x) {
 		for (int y = minY; y <= maxY; ++y) {
-			m_StaticCollisionMap[{x, y}].push_back(component);
+			StaticCollisionMap[{x, y}].push_back(component);
 		}
 	}
 

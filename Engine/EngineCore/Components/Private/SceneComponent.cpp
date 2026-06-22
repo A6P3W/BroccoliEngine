@@ -18,38 +18,38 @@ void MSceneComponent::OnMessage(const std::string& message)
 
 void MSceneComponent::OnComponentDestroy()
 {
-	const auto children = m_childComponents;
+	const auto children = ChildComponents;
 	for (auto* child : children) {
 		if (child != nullptr) {
 			child->DestroyComponent();
 		}
 	}
-	m_childComponents.clear();
+	ChildComponents.clear();
 
-	if (m_parentComponent != nullptr) {
-		std::erase(m_parentComponent->m_childComponents, this);
-		m_parentComponent = nullptr;
+	if (ParentComponent != nullptr) {
+		std::erase(ParentComponent->ChildComponents, this);
+		ParentComponent = nullptr;
 	}
 }
 
 void MSceneComponent::SetParentComponent(MSceneComponent* parent)
 {
 	if (!parent) { return; }
-	m_parentComponent = parent;
-	parent->m_childComponents.push_back(this);
+	ParentComponent = parent;
+	parent->ChildComponents.push_back(this);
 }
 
 bool MSceneComponent::SetWorldLocation(const FVector2D& NewWorldLocation)
 {
-	if (!m_parentComponent) {
+	if (!ParentComponent) {
 		// 親がいない（RootComponentである）場合、
 		// ワールド座標はそのまま相対座標（RelativeLocation）になる
 		RelativeLocation = NewWorldLocation;
 	}
 	else {
 		// 親がいる場合、ワールド座標を親のローカル座標系に変換する必要がある
-		FVector2D ParentWorldLoc = m_parentComponent->GetWorldLocation();
-		float ParentWorldRotRad = UMath::DegToRad(m_parentComponent->GetWorldRotation().Rotation);
+		FVector2D ParentWorldLoc = ParentComponent->GetWorldLocation();
+		float ParentWorldRotRad = UMath::DegToRad(ParentComponent->GetWorldRotation().Rotation);
 
 		// 1. 親との差分を取る
 		float diffX = NewWorldLocation.X - ParentWorldLoc.X;
@@ -101,11 +101,11 @@ bool MSceneComponent::AddLocalOffset(const FVector2D& Offset)
 
 bool MSceneComponent::SetWorldRotation(FRotator NewRotation)
 {
-	if (!m_parentComponent) {
+	if (!ParentComponent) {
 		RelativeRotation = NewRotation;
 	}
 	else {
-		FRotator parentWorldRot = m_parentComponent->GetWorldRotation();
+		FRotator parentWorldRot = ParentComponent->GetWorldRotation();
 		RelativeRotation = NewRotation - parentWorldRot;
 	}
 	MakeTransformDirty();
@@ -156,13 +156,13 @@ FScale MSceneComponent::GetRelativeScale() const
 
 bool MSceneComponent::SetWorldScale(FScale NewScale)
 {
-	if (!m_parentComponent) {
+	if (!ParentComponent) {
 		// 親がいなければワールドスケール = 相対スケール
 		return SetRelativeScale(NewScale);
 	}
 
 	// 親がいる場合： 自分の相対 = 目標ワールド / 親のワールド
-	FScale parentWorldScale = m_parentComponent->GetWorldScale();
+	FScale parentWorldScale = ParentComponent->GetWorldScale();
 	if (std::abs(parentWorldScale.Scale) < 1e-6f) return false;
 
 	return SetRelativeScale(NewScale / parentWorldScale);
@@ -177,26 +177,26 @@ FScale MSceneComponent::GetWorldScale() const
 void MSceneComponent::SetVisibility(bool bNewVisibility)
 {
 	bVisible = bNewVisibility;
-	for (MSceneComponent* child : m_childComponents) {
+	for (MSceneComponent* child : ChildComponents) {
 		child->SetVisibility(bNewVisibility);
 	}
 }
 
 void MSceneComponent::MakeTransformDirty()
 {
-	if (IsTransformDirty) { return; }
-	IsTransformDirty = true;
-	IsGridDirty = true;
-	for (MSceneComponent* child : m_childComponents) {
+	if (bIsTransformDirty) { return; }
+	bIsTransformDirty = true;
+	bIsGridDirty = true;
+	for (MSceneComponent* child : ChildComponents) {
 		child->MakeTransformDirty();
 	}
 }
 
 void MSceneComponent::UpdateTransform() const
 {
-	if (!IsTransformDirty) return;
+	if (!bIsTransformDirty) return;
 
-	if (!m_parentComponent) {
+	if (!ParentComponent) {
 		// 親がいない場合は相対値がそのままワールド値
 		WorldLocation = RelativeLocation;
 		WorldRotation = RelativeRotation;
@@ -204,9 +204,9 @@ void MSceneComponent::UpdateTransform() const
 	}
 	else {
 		// 親の最新トランスフォームを先に確定させる（再帰）
-		FScale pScale = m_parentComponent->GetWorldScale();
-		FRotator pRot = m_parentComponent->GetWorldRotation();
-		FVector2D pLoc = m_parentComponent->GetWorldLocation();
+		FScale pScale = ParentComponent->GetWorldScale();
+		FRotator pRot = ParentComponent->GetWorldRotation();
+		FVector2D pLoc = ParentComponent->GetWorldLocation();
 
 		// 1. スケールの計算
 		WorldScale = RelativeScale * pScale;
@@ -230,5 +230,5 @@ void MSceneComponent::UpdateTransform() const
 		WorldLocation.Y = pLoc.Y + rotatedY;
 	}
 
-	IsTransformDirty = false;
+	bIsTransformDirty = false;
 }

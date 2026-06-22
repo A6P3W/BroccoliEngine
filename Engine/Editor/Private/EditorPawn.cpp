@@ -48,48 +48,48 @@ void EditorPawn::OnUpdate(float DeltaTime)
 }
 void EditorPawn::BeginPlay()
 {
-	m_editorMode = dynamic_cast<EditorMode*>(GetWorld()->GetGameMode());
+	EditorModePtr = dynamic_cast<EditorMode*>(GetWorld()->GetGameMode());
 }
 void EditorPawn::OnMove(const FInputActionValue& Value)
 {
-	if (!m_RightMousePressed)return;
+	if (!bRightMousePressed)return;
 
 }
 void EditorPawn::OnMouseLeftPress(const FInputActionValue&)
 {
 	if (ImGui::GetIO().WantCaptureMouse) return;
-	m_editorMode->OnMousePress(GetMouseWorldPosition());
+	EditorModePtr->OnMousePress(GetMouseWorldPosition());
 }
 
 void EditorPawn::OnMouseLeftRelease(const FInputActionValue&)
 {
-	m_editorMode->OnMouseRelease(GetMouseWorldPosition());
+	EditorModePtr->OnMouseRelease(GetMouseWorldPosition());
 }
 
 void EditorPawn::OnMouseRightPress(const FInputActionValue& Value)
 {
-	m_RightMousePressed = true;
+	bRightMousePressed = true;
 	int mx, my;
 	GetMousePoint(&mx, &my);
-	m_dragStartMousePos = { static_cast<float>(mx), static_cast<float>(my) };
-	m_dragStartCameraPos = GetActorLocation();
+	DragStartMousePos = { static_cast<float>(mx), static_cast<float>(my) };
+	DragStartCameraPos = GetActorLocation();
 	SetMouseDispFlag(FALSE);
 	GetMousePoint(&MousePointX, &MousePointY);
 }
 
 void EditorPawn::OnMouseRightRelease(const FInputActionValue & Value)
 {
-	m_RightMousePressed = false;
+	bRightMousePressed = false;
 	SetMouseDispFlag(true);
 	SetMousePoint(MousePointX, MousePointY);
 }
 
 void EditorPawn::OnMouseMove(const FInputActionValue& Value) {
-	if (m_editorMode->GetState() == EEditorState::Dragging)
+	if (EditorModePtr->GetState() == EEditorState::Dragging)
 	{
-		m_editorMode->OnMouseMove(Value.Axis2D);
+		EditorModePtr->OnMouseMove(Value.Axis2D);
 	}
-	if (m_RightMousePressed) {
+	if (bRightMousePressed) {
 		int mx, my;
 		GetMousePoint(&mx, &my);
 
@@ -98,7 +98,7 @@ void EditorPawn::OnMouseMove(const FInputActionValue& Value) {
 								  currentMousePos.Y - static_cast<float>(MousePointY) };
 
 		if (screenDelta.SizeSquared() > 0.0001f) {
-			float fov = m_camera ? m_camera->GetFOV() : 1.0f;
+			float fov = Camera ? Camera->GetFOV() : 1.0f;
 			if (std::abs(fov) < 1e-6f) fov = 1e-6f;
 
 			FVector2D worldDelta = screenDelta * (1.0f / fov);
@@ -113,11 +113,11 @@ void EditorPawn::OnMouseMove(const FInputActionValue& Value) {
 
 void EditorPawn::OnWheel(const FInputActionValue& Value)
 {
-	if (m_RightMousePressed)
+	if (bRightMousePressed)
 	{
 		float zoomAmount = Value.Axis1D * -0.1f;
-		if (m_camera) {
-			m_camera->SetFOV(m_camera->GetFOV() * (1.0f - zoomAmount));
+		if (Camera) {
+			Camera->SetFOV(Camera->GetFOV() * (1.0f - zoomAmount));
 		}
 	}
 }

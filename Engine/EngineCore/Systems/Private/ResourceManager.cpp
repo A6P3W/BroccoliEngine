@@ -4,7 +4,7 @@
 
 ResourceManager::ResourceManager()
 {
-    default_graph = LoadResourceGraph("Engine/EngineSide/Files/texture_Checker_64px.png");
+    DefaultGraph = LoadResourceGraph("Engine/EngineSide/Files/texture_Checker_64px.png");
 }
 
 ResourceManager& ResourceManager::GetInstance()
@@ -16,30 +16,30 @@ ResourceManager& ResourceManager::GetInstance()
 
 int ResourceManager::LoadResourceGraph(const std::string& path)
 {
-    auto it = graphMap.find(path);
-    if (it != graphMap.end()) {
+    auto it = GraphMap.find(path);
+    if (it != GraphMap.end()) {
         return it->second;
     }
     int handle = LoadGraph(path.c_str());
     if (handle == -1) {
-        handle = default_graph;
+        handle = DefaultGraph;
     }
-    graphMap[path] = handle;
+    GraphMap[path] = handle;
     return handle;
 }
 
 int ResourceManager::GetFont(int size, int thickness)
 {
     std::string key = std::to_string(size) + "_" + std::to_string(thickness);
-    if(fontMap.count(key)) return fontMap[key];
+    if(FontMap.count(key)) return FontMap[key];
 
     int handle = CreateFontToHandle(NULL, size, thickness);
-    fontMap[key] = handle;
+    FontMap[key] = handle;
     return handle;
 }
 
 void ResourceManager::ReleaseResourceGraph()
 {
-    for (auto& pair : graphMap) DeleteGraph(pair.second);
-    for (auto& pair : fontMap) DeleteFontToHandle(pair.second);
+    for (auto& pair : GraphMap) DeleteGraph(pair.second);
+    for (auto& pair : FontMap) DeleteFontToHandle(pair.second);
 }

@@ -12,9 +12,9 @@
 APlayerController::APlayerController()
 {
 	auto InputComp = std::make_unique<MEnhancedInputComponent>();
-	m_InputCompPtr = InputComp.get();
+	InputComponent = InputComp.get();
 	AddComponent(std::move(InputComp));
-	m_InputMapper = std::make_unique<InputMapper>();
+	InputMapperPtr = std::make_unique<InputMapper>();
 	SetUpdateableAnytime(true);
 	SetPlayerId(0);
 }
@@ -24,27 +24,27 @@ void APlayerController::Possess(APawn* NewPawn)
 	if (GetInputComponent()) {
 		GetInputComponent()->ClearBindings();
 	}
-	m_TargetPawn = NewPawn;
-	m_TargetPawn->OnPossesed();
+	TargetPawn = NewPawn;
+	TargetPawn->OnPossesed();
 	SetupPlayerInputComponent(GetInputComponent());
 	if (GetInputComponent()) {
-		m_TargetPawn->SetupPlayerInputComponent(GetInputComponent());
+		TargetPawn->SetupPlayerInputComponent(GetInputComponent());
 	}
 }
 
 void APlayerController::OnUpdate(float DeltaTime)
 {
-	if (!m_TargetPawn)return;
+	if (!TargetPawn)return;
 	if (MEnhancedInputComponent* InputComp = GetInputComponent()) {
 		bool bAllowUI = (InputMode == EInputMode::UIOnly || InputMode == EInputMode::GameAndUI);
 		bool bAllowGame = (InputMode == EInputMode::GameOnly || InputMode == EInputMode::GameAndUI);
-		InputComp->ProcessInputBindings(*m_InputMapper, bAllowUI, bAllowGame);
+		InputComp->ProcessInputBindings(*InputMapperPtr, bAllowUI, bAllowGame);
 	}
 }
 
 void APlayerController::SetPlayerId(int id)
 {
-	m_PlayerId = id;
+	PlayerId = id;
 }
 
 void APlayerController::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent)
@@ -57,12 +57,12 @@ void APlayerController::SetupPlayerInputComponent(MEnhancedInputComponent* Playe
 
 void APlayerController::SetupInputMappings()
 {
-	m_InputMapper->RemoveMapping(InputActionLower::MoveX);
-	m_InputMapper->RemoveMapping(InputActionLower::MoveY);
-	m_InputMapper->RemoveMapping(UIActionLower::MoveX);
-	m_InputMapper->RemoveMapping(UIActionLower::MoveY);
-	m_InputMapper->RemoveMapping(InputActionMouse::Wheel);
-	m_InputMapper->RemoveMapping(InputAction::Interact);
+	InputMapperPtr->RemoveMapping(InputActionLower::MoveX);
+	InputMapperPtr->RemoveMapping(InputActionLower::MoveY);
+	InputMapperPtr->RemoveMapping(UIActionLower::MoveX);
+	InputMapperPtr->RemoveMapping(UIActionLower::MoveY);
+	InputMapperPtr->RemoveMapping(InputActionMouse::Wheel);
+	InputMapperPtr->RemoveMapping(InputAction::Interact);
 
 	auto& IM = InputManager::GetInstance();
 	auto* kb = IM.GetDevice<KeyboardDevice>();
@@ -71,49 +71,49 @@ void APlayerController::SetupInputMappings()
 
 	if (kb) {
 		// ゲーム移動
-		m_InputMapper->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_A, "", 1.0f);
-		m_InputMapper->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_D, "", -1.0f);
-		m_InputMapper->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_W, "", 1.0f);
-		m_InputMapper->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_S, "", -1.0f);
+		InputMapperPtr->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_A, "", 1.0f);
+		InputMapperPtr->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_D, "", -1.0f);
+		InputMapperPtr->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_W, "", 1.0f);
+		InputMapperPtr->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_S, "", -1.0f);
 
 		// UI操作
-		m_InputMapper->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_A, "", 1.0f);
-		m_InputMapper->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_D, "", -1.0f);
-		m_InputMapper->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_W, "", 1.0f);
-		m_InputMapper->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_S, "", -1.0f);
-		m_InputMapper->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_UP, "", 1.0f);
-		m_InputMapper->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_DOWN, "", -1.0f);
-		m_InputMapper->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_LEFT, "", 1.0f);
-		m_InputMapper->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_RIGHT, "", -1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_A, "", 1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_D, "", -1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_W, "", 1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_S, "", -1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_UP, "", 1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_DOWN, "", -1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_LEFT, "", 1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_RIGHT, "", -1.0f);
 
-		m_InputMapper->AddMapping(InputAction::Interact, kb, KEY_INPUT_F);
-		m_InputMapper->AddMapping(UIAction::Submit, kb, KEY_INPUT_SPACE);
-		m_InputMapper->AddMapping(UIAction::Cancel, kb, KEY_INPUT_ESCAPE);
-		m_InputMapper->AddMapping(InputAction::Pause, kb, KEY_INPUT_ESCAPE);
+		InputMapperPtr->AddMapping(InputAction::Interact, kb, KEY_INPUT_F);
+		InputMapperPtr->AddMapping(UIAction::Submit, kb, KEY_INPUT_SPACE);
+		InputMapperPtr->AddMapping(UIAction::Cancel, kb, KEY_INPUT_ESCAPE);
+		InputMapperPtr->AddMapping(InputAction::Pause, kb, KEY_INPUT_ESCAPE);
 	}
 	if (mouse) {
-		m_InputMapper->AddMapping(InputActionMouse::MouseLeft, mouse, MOUSE_INPUT_LEFT);
-		m_InputMapper->AddMapping(InputActionMouse::MouseRight, mouse, MOUSE_INPUT_RIGHT);
-		m_InputMapper->AddAxisMapping(InputActionMouse::Wheel, mouse, MouseDevice::AxisID::Wheel);
-		m_InputMapper->AddAxisMapping(InputActionLower::LookX, mouse, MouseDevice::AxisID::MouseX);
-		m_InputMapper->AddAxisMapping(InputActionLower::LookY, mouse, MouseDevice::AxisID::MouseY);
+		InputMapperPtr->AddMapping(InputActionMouse::MouseLeft, mouse, MOUSE_INPUT_LEFT);
+		InputMapperPtr->AddMapping(InputActionMouse::MouseRight, mouse, MOUSE_INPUT_RIGHT);
+		InputMapperPtr->AddAxisMapping(InputActionMouse::Wheel, mouse, MouseDevice::AxisID::Wheel);
+		InputMapperPtr->AddAxisMapping(InputActionLower::LookX, mouse, MouseDevice::AxisID::MouseX);
+		InputMapperPtr->AddAxisMapping(InputActionLower::LookY, mouse, MouseDevice::AxisID::MouseY);
 	}
 	if (pad) {
 		// ゲーム移動
-		m_InputMapper->AddAxisMapping(InputActionLower::MoveX, pad, static_cast<int>(AxisID::LeftX), -1.0f);
-		m_InputMapper->AddAxisMapping(InputActionLower::MoveY, pad, static_cast<int>(AxisID::LeftY), 1.0f);
+		InputMapperPtr->AddAxisMapping(InputActionLower::MoveX, pad, static_cast<int>(AxisID::LeftX), -1.0f);
+		InputMapperPtr->AddAxisMapping(InputActionLower::MoveY, pad, static_cast<int>(AxisID::LeftY), 1.0f);
 
 		// UI操作
-		m_InputMapper->AddAxisMapping(UIActionLower::MoveX, pad, static_cast<int>(AxisID::LeftX), -1.0f);
-		m_InputMapper->AddAxisMapping(UIActionLower::MoveY, pad, static_cast<int>(AxisID::LeftY), 1.0f);
-		m_InputMapper->AddMapping(UIActionLower::MoveY, pad, PAD_INPUT_UP, "", 1.0f);
-		m_InputMapper->AddMapping(UIActionLower::MoveY, pad, PAD_INPUT_DOWN, "", -1.0f);
-		m_InputMapper->AddMapping(UIActionLower::MoveX, pad, PAD_INPUT_LEFT, "", 1.0f);
-		m_InputMapper->AddMapping(UIActionLower::MoveX, pad, PAD_INPUT_RIGHT, "", -1.0f);
+		InputMapperPtr->AddAxisMapping(UIActionLower::MoveX, pad, static_cast<int>(AxisID::LeftX), -1.0f);
+		InputMapperPtr->AddAxisMapping(UIActionLower::MoveY, pad, static_cast<int>(AxisID::LeftY), 1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveY, pad, PAD_INPUT_UP, "", 1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveY, pad, PAD_INPUT_DOWN, "", -1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveX, pad, PAD_INPUT_LEFT, "", 1.0f);
+		InputMapperPtr->AddMapping(UIActionLower::MoveX, pad, PAD_INPUT_RIGHT, "", -1.0f);
 
-		m_InputMapper->AddMapping(InputAction::Interact, pad, PAD_INPUT_1);
-		m_InputMapper->AddMapping(UIAction::Submit, pad, PAD_INPUT_1);
-		m_InputMapper->AddMapping(UIAction::Cancel, pad, PAD_INPUT_2);
-		m_InputMapper->AddMapping(InputAction::Pause, pad, PAD_INPUT_8);
+		InputMapperPtr->AddMapping(InputAction::Interact, pad, PAD_INPUT_1);
+		InputMapperPtr->AddMapping(UIAction::Submit, pad, PAD_INPUT_1);
+		InputMapperPtr->AddMapping(UIAction::Cancel, pad, PAD_INPUT_2);
+		InputMapperPtr->AddMapping(InputAction::Pause, pad, PAD_INPUT_8);
 	}
 }

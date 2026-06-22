@@ -15,7 +15,7 @@ public:
 	virtual void OnMessage(const std::string& message);
 
 	void SetParentComponent(MSceneComponent* parent);
-	auto GetParentComponent() const { return m_parentComponent; }
+	auto GetParentComponent() const { return ParentComponent; }
 
 	bool SetWorldLocation(const FVector2D& NewWorldLocation);
 	bool SetRelativeLocation(const FVector2D& NewRelativeLocation);
@@ -39,14 +39,14 @@ public:
 	bool IsVisible() const { return bVisible; }
 	bool bVisible = true;
 
-	bool bGridDirty() { return IsGridDirty; }
-	void SetGridClean() { IsGridDirty = true; }
+	bool bGridDirty() { return bIsGridDirty; }
+	void SetGridClean() { bIsGridDirty = true; }
 
 protected:
 	void OnComponentDestroy() override;
 	
-	MSceneComponent* m_parentComponent = nullptr;
-	std::vector<MSceneComponent*> m_childComponents;
+	MSceneComponent* ParentComponent = nullptr;
+	std::vector<MSceneComponent*> ChildComponents;
 	
 	FVector2D RelativeLocation;
 	FRotator RelativeRotation;
@@ -59,8 +59,8 @@ protected:
 	void MakeTransformDirty();
 	void UpdateTransform() const;
 
-	mutable bool IsTransformDirty = true;
+	mutable bool bIsTransformDirty = true;
 
-	mutable bool IsGridDirty = true;
+	mutable bool bIsGridDirty = true;
 
 };

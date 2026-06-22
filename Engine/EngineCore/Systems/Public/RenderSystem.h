@@ -14,12 +14,12 @@ enum class RenderType {
 };
 enum class RenderSpace { World, Screen };
 
-struct GraphData { FVector2D Location; FRotator Rotation; FScale Scale; int Handle=0; };
+struct GraphData { FVector2D Location; FRotator Rotation; FScale Scale; int Handle = 0; };
 struct BoxData { FVector2D Location; FVector2D WidthHeight; FRotator Rotation; int Color; bool Fill; };
-struct TextData { FVector2D Location; std::string Text; int Color; int Handle=0; };
+struct TextData { FVector2D Location; std::string Text; int Color; int Handle = 0; };
 struct LineData { FVector2D StartLocation; FVector2D EndLocation; int Color; };
 struct CircleData { FVector2D Location; float Radius; int Color; bool Fill; };
-struct RectGraphData { FVector2D DestLocation; FVector2D SrcLocation; FVector2D SrcSize; int Handle=0; };
+struct RectGraphData { FVector2D DestLocation; FVector2D SrcLocation; FVector2D SrcSize; int Handle = 0; };
 
 // Variant でまとめる
 using RenderCommandData = std::variant<GraphData, BoxData, TextData, LineData, CircleData, RectGraphData>;
@@ -56,6 +56,6 @@ public:
 	MCameraComponent* GetCamera();
 
 private:
-	std::map<int, std::vector<RenderCommand>> m_priorityCommands;
-	MCameraComponent* m_MainCamera = nullptr;
+	std::map<int, std::vector<RenderCommand>> PriorityCommands;
+	MCameraComponent* MainCamera = nullptr;
 };

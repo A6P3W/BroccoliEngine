@@ -30,11 +30,11 @@ private:
 	void OnWheel(const FInputActionValue& Value);
 	FVector2D GetMouseWorldPosition() const;
 
-	EditorMode* m_editorMode = nullptr;
+	EditorMode* EditorModePtr = nullptr;
 
-	bool m_RightMousePressed = false;
-	FVector2D m_dragStartMousePos;
-	FVector2D m_dragStartCameraPos;
+	bool bRightMousePressed = false;
+	FVector2D DragStartMousePos;
+	FVector2D DragStartCameraPos;
 
 	int MousePointX = 0;
 	int MousePointY = 0;

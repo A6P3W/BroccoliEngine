@@ -32,8 +32,8 @@ Application::Application()
 {}
 
 Application::~Application() {
-	if (m_offscreenBuffer != -1) {
-		DeleteGraph(m_offscreenBuffer);
+	if (OffscreenBuffer != -1) {
+		DeleteGraph(OffscreenBuffer);
 	}
 	ImGui_ImplDX11_Shutdown();
 	ImGui_ImplWin32_Shutdown();
@@ -42,10 +42,10 @@ Application::~Application() {
 
 void Application::InitOffscreenBuffer()
 {
-	if (m_offscreenBuffer != -1) {
-		DeleteGraph(m_offscreenBuffer);
+	if (OffscreenBuffer != -1) {
+		DeleteGraph(OffscreenBuffer);
 	}
-	m_offscreenBuffer = MakeScreen(VirtualWidth, VirtualHeight, true);
+	OffscreenBuffer = MakeScreen(VirtualWidth, VirtualHeight, true);
 }
 
 void Application::SetWindowResolution(int width, int height)
@@ -122,11 +122,11 @@ bool Application::Run()
 			ElapsedTime = CurrentTime - LastTime;
 		}
 
-		m_DeltaTime = static_cast<float>(ElapsedTime) / 1000000.0f;
+		DeltaTime = static_cast<float>(ElapsedTime) / 1000000.0f;
 		LastTime = CurrentTime;
-		if (m_DeltaTime > 0.1f) m_DeltaTime = 0.1f;
+		if (DeltaTime > 0.1f) DeltaTime = 0.1f;
 
-		Update(m_DeltaTime);
+		Update(DeltaTime);
 		Draw();
 	}
 	return true;
@@ -150,7 +150,7 @@ bool Application::Update(float DeltaTime)
 	InputManager::GetInstance().Update();
 	HttpManager::GetInstance().Update();
 
-	if (m_posed) return true;
+	if (bPosed) return true;
 
 	SceneManager::GetInstance().ProcessSceneChanges();
 	if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
@@ -160,7 +160,7 @@ bool Application::Update(float DeltaTime)
 }
 bool Application::Draw()
 {
-	SetDrawScreen(m_offscreenBuffer);
+	SetDrawScreen(OffscreenBuffer);
 	ClearDrawScreen();
 	if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
 		currentScene->Draw();
@@ -184,7 +184,7 @@ bool Application::Draw()
 	int drawY = (screenH - drawH) / 2;
 
 	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 255);
-	DrawExtendGraph(drawX, drawY, drawX + drawW, drawY + drawH, m_offscreenBuffer, false);
+	DrawExtendGraph(drawX, drawY, drawX + drawW, drawY + drawH, OffscreenBuffer, false);
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
 
 

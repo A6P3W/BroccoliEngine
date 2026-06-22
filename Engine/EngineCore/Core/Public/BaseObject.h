@@ -2,7 +2,7 @@
 class MBaseObject
 {
 public:
-   MBaseObject();
+	MBaseObject();
 	virtual ~MBaseObject();
 private:
 };

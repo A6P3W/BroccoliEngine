@@ -26,31 +26,31 @@ public:
 
 	virtual FAABB GetAABB() const = 0;
 
-	ECollisionType GetCollisionType() { return m_CollisionType; }
-	void SetCollisionType(ECollisionType NewType) { m_CollisionType = NewType; }
+	ECollisionType GetCollisionType() { return CollisionType; }
+	void SetCollisionType(ECollisionType NewType) { CollisionType = NewType; }
 
 	bool IsOverlappingActor(AActor* OtherActor) const {
-		return m_OverlappingActors.contains(OtherActor);
+		return OverlappingActors.contains(OtherActor);
 	}
 	bool ShouldProcessPair(MCollisionComponent* OtherComponent, std::uint64_t FrameId) {
-		auto it = m_LastCheckedFrame.find(OtherComponent);
-		if (it != m_LastCheckedFrame.end() && it->second == FrameId) {
-			m_CheckedThisFrame.insert(OtherComponent->GetOwner());
+		auto it = LastCheckedFrame.find(OtherComponent);
+		if (it != LastCheckedFrame.end() && it->second == FrameId) {
+			CheckedThisFrame.insert(OtherComponent->GetOwner());
 			return false;
 		}
 
-		m_LastCheckedFrame[OtherComponent] = FrameId;
+		LastCheckedFrame[OtherComponent] = FrameId;
 
-		auto& otherFrame = OtherComponent->m_LastCheckedFrame;
+		auto& otherFrame = OtherComponent->LastCheckedFrame;
 		otherFrame[this] = FrameId;
 
 		return true;
 	}
 	void UpdateOverlapState(AActor* OtherActor, bool bIsIntersecting) {
-		m_CheckedThisFrame.insert(OtherActor);
+		CheckedThisFrame.insert(OtherActor);
 		if (bIsIntersecting) {
-			m_IntersectingThisFrame.insert(OtherActor);
-			if (m_OverlappingActors.insert(OtherActor).second) {
+			IntersectingThisFrame.insert(OtherActor);
+			if (OverlappingActors.insert(OtherActor).second) {
 				GetOwner()->BeginOverlap(OtherActor);
 			}
 		}
@@ -65,10 +65,10 @@ public:
 protected:
 	void OnComponentDestroy() override;
 private:
-	std::unordered_set<AActor*> m_CheckedThisFrame;
-	std::unordered_set<AActor*> m_OverlappingActors;
-	std::unordered_map<MCollisionComponent*, std::uint64_t> m_LastCheckedFrame;
-	std::unordered_set<AActor*> m_IntersectingThisFrame;
-	ECollisionType m_CollisionType = ECollisionType::Block;
+	std::unordered_set<AActor*> CheckedThisFrame;
+	std::unordered_set<AActor*> OverlappingActors;
+	std::unordered_map<MCollisionComponent*, std::uint64_t> LastCheckedFrame;
+	std::unordered_set<AActor*> IntersectingThisFrame;
+	ECollisionType CollisionType = ECollisionType::Block;
 	bool bIsStatic = true;
 };

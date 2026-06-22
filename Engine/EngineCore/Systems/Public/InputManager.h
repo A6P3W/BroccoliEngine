@@ -19,7 +19,7 @@ public:
 
 	template<class T>
 	T* GetDevice() const {
-		for (const auto& d : m_devices) {
+		for (const auto& d : Devices) {
 			if (auto* p = dynamic_cast<T*>(d.get())) return p;
 		}
 		return nullptr;
@@ -29,5 +29,5 @@ public:
 
 
 private:
-	std::vector<std::unique_ptr<InputDevice>> m_devices;
+	std::vector<std::unique_ptr<InputDevice>> Devices;
 };

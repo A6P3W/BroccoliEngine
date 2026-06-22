@@ -10,6 +10,6 @@ public:
 	void OnUpdate(float DeltaTime) override;
 	void SimpleDraw(float cellSize, int color);
 private:
-	float m_CollisionCellSize;
+	float CollisionCellSize;
 };
 

@@ -16,15 +16,15 @@
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();
-	m_rootComponent = root.get();
+	RootComponent = root.get();
 	AddComponent(std::move(root));
 
 }
 
 AActor::~AActor()
 {
-	if (m_world && m_world->GetTimerManager()) {
-		m_world->GetTimerManager()->ClearAllTimersForObject(this);
+	if (OwnerWorld && OwnerWorld->GetTimerManager()) {
+		OwnerWorld->GetTimerManager()->ClearAllTimersForObject(this);
 	}
 	HttpManager::GetInstance().CancelAllRequestsForObject(this);
 }
@@ -34,21 +34,21 @@ void AActor::Spawned()
 	M_LOG("Actor spawned: {}", GetActorClassName());
 	BeginPlay();
 
-	for (size_t i = 0; i < m_components.size(); ++i) {
-		if (m_components[i] && !m_components[i]->IsPendingDestroy()) {
-			m_components[i]->BeginPlay();
+	for (size_t i = 0; i < Components.size(); ++i) {
+		if (Components[i] && !Components[i]->IsPendingDestroy()) {
+			Components[i]->BeginPlay();
 		}
 	}
 }
 
 void AActor::SetWorld(World* world)
 {
-	if (m_world == world) return;
-	m_world = world;
+	if (OwnerWorld == world) return;
+	OwnerWorld = world;
 
-	for (size_t i = 0; i < m_components.size(); ++i) {
-		if (m_components[i]) {
-			m_components[i]->RegisterComponent();
+	for (size_t i = 0; i < Components.size(); ++i) {
+		if (Components[i]) {
+			Components[i]->RegisterComponent();
 		}
 	}
 #ifdef _EDITOR
@@ -63,7 +63,7 @@ void AActor::OnUpdate(float DeltaTime)
 
 const std::vector<std::unique_ptr<MActorComponent>>& AActor::GetComponents() const
 {
-	return m_components;
+	return Components;
 }
 
 void AActor::AddComponent(std::unique_ptr<MActorComponent> NewComponent)
@@ -79,95 +79,95 @@ void AActor::AddComponent(std::unique_ptr<MActorComponent> NewComponent)
 		}
 	}
 
-	m_components.push_back(std::move(NewComponent));
+	Components.push_back(std::move(NewComponent));
 
-	if (m_world) {
+	if (OwnerWorld) {
 		NewComponentPtr->RegisterComponent();
 	}
 	
 }
 void AActor::Update(float DeltaTime)
 {
-	for (size_t i = 0; i < m_components.size(); ++i) {
-		if (m_components[i] && !m_components[i]->IsPendingDestroy()) {
-			m_components[i]->Update(DeltaTime);
+	for (size_t i = 0; i < Components.size(); ++i) {
+		if (Components[i] && !Components[i]->IsPendingDestroy()) {
+			Components[i]->Update(DeltaTime);
 		}
 	}
 
 	this->OnUpdate(DeltaTime);
-	std::erase_if(m_components, [](const std::unique_ptr<MActorComponent>& comp) {
+	std::erase_if(Components, [](const std::unique_ptr<MActorComponent>& comp) {
 		return !comp || comp->IsPendingDestroy();
 		});
 }
 
 void AActor::Draw()
 {
-	for (size_t i = 0; i < m_components.size(); ++i) {
-		if (m_components[i] && !m_components[i]->IsPendingDestroy()) {
-			m_components[i]->Draw();
+	for (size_t i = 0; i < Components.size(); ++i) {
+		if (Components[i] && !Components[i]->IsPendingDestroy()) {
+			Components[i]->Draw();
 		}
 	}
 }
 
 FVector2D AActor::GetActorLocation() const
 {
-	return m_rootComponent->GetWorldLocation();
+	return RootComponent->GetWorldLocation();
 }
 
 bool AActor::SetActorLocation(const FVector2D& NewLocation)
 {
-	m_rootComponent->SetWorldLocation(NewLocation);
+	RootComponent->SetWorldLocation(NewLocation);
 	return true;
 }
 
 void AActor::AddActorWorldOffset(const FVector2D& Offset)
 {
-	m_rootComponent->AddWorldOffset(Offset);
+	RootComponent->AddWorldOffset(Offset);
 }
 
 void AActor::AddActorLocalOffset(const FVector2D& Offset)
 {
-	m_rootComponent->AddLocalOffset(Offset);
+	RootComponent->AddLocalOffset(Offset);
 }
 
 FRotator AActor::GetActorRotation() const
 {
-	return FRotator(m_rootComponent->GetWorldRotation());
+	return FRotator(RootComponent->GetWorldRotation());
 }
 
 bool AActor::SetActorRotation(const FRotator& NewRotation)
 {
-	m_rootComponent->SetWorldRotation(NewRotation);
+	RootComponent->SetWorldRotation(NewRotation);
 	return true;
 }
 
 void AActor::AddActorRotation(const FRotator& DeltaRotation)
 {
-	m_rootComponent->AddWorldRotation(DeltaRotation);
+	RootComponent->AddWorldRotation(DeltaRotation);
 }
 
 void AActor::Destroy()
 {
-	m_PendingDestroy = true;
-	if (m_world && m_world->GetTimerManager()) {
-		m_world->GetTimerManager()->ClearAllTimersForObject(this);
+	bPendingDestroy = true;
+	if (OwnerWorld && OwnerWorld->GetTimerManager()) {
+		OwnerWorld->GetTimerManager()->ClearAllTimersForObject(this);
 	}
 	HttpManager::GetInstance().CancelAllRequestsForObject(this);
 }
 
 bool AActor::IsPendingDestroy() const
 {
-	return m_PendingDestroy;
+	return bPendingDestroy;
 }
 
 FScale AActor::GetActorScale() const
 {
-	return m_rootComponent->GetWorldScale();
+	return RootComponent->GetWorldScale();
 }
 
 bool AActor::SetActorScale(FScale NewScale)
 {
-	m_rootComponent->SetWorldScale(NewScale);
+	RootComponent->SetWorldScale(NewScale);
 	return true;
 }
 
@@ -177,16 +177,16 @@ void AActor::SetRootComponent(MSceneComponent* Component)
 
 	Component->SetOwner(this);
 
-	if (m_rootComponent && m_rootComponent != Component) {
-		m_rootComponent->SetParentComponent(Component);
+	if (RootComponent && RootComponent != Component) {
+		RootComponent->SetParentComponent(Component);
 	}
 
-	m_rootComponent = Component;
+	RootComponent = Component;
 }
 
-TimerManager& AActor::GetWorldTimerManager()
+MTimerManager& AActor::GetWorldTimerManager()
 {
-	return *(m_world->GetTimerManager());
+	return *(OwnerWorld->GetTimerManager());
 }
 
 bool AActor::HasTag(std::string_view Tag) const

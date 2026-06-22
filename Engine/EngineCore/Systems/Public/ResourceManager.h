@@ -10,8 +10,8 @@ public:
 	int GetFont(int size, int thickness);
 	void ReleaseResourceGraph();
 private:
-	std::map<std::string, int> graphMap;
-	std::map<std::string, int> fontMap;
-	int default_graph;
+	std::map<std::string, int> GraphMap;
+	std::map<std::string, int> FontMap;
+	int DefaultGraph;
 };
 

@@ -28,13 +28,13 @@ public:
 	DEFINE_ACTOR_CLASS(EditorMode);
 
 	// --- アクタ選択 (クラスブラウザ用) ---
-	void SelectClass(const std::string& className) { m_selectedClass = className; }
-	const std::string& GetSelectedClass() const { return m_selectedClass; }
+	void SelectClass(const std::string& className) { SelectedClass = className; }
+	const std::string& GetSelectedClass() const { return SelectedClass; }
 	const std::vector<std::string>& GetClassList() const;
 
 	// --- アクタ選択 (インスペクタ・アウトライナ用) ---
 	void SetSelectedActor(AActor* actor);
-	AActor* GetSelectedActor() const { return m_selectedActor; }
+	AActor* GetSelectedActor() const { return SelectedActor; }
 
 	// --- マウス入力（EditorPawnから呼ぶ） ---
 	void OnMousePress(const FVector2D& worldPos);   // ドラッグ開始
@@ -48,7 +48,7 @@ public:
 
 	void SetCurrentLevelPath(const std::string& path) { CurrentLevelPath = path; }
 
-	EEditorState GetState() const { return m_state; }
+	EEditorState GetState() const { return State; }
 
 	EActorAction GetActorAction() const { return ActorAction; }
 	void SetActorAction(EActorAction action) { ActorAction = action; }
@@ -72,10 +72,10 @@ private:
 	EditorMode& operator=(EditorMode&&) = delete;
 
 	void BeginPlay() override;
-	EEditorState             m_state = EEditorState::Idle;
-	std::string              m_selectedClass;
+	EEditorState             State = EEditorState::Idle;
+	std::string              SelectedClass;
 	AActor* SelectingActor = nullptr; // ドラッグ中のゴースト
-	AActor* m_selectedActor = nullptr; // 選択中のアクタ
+	AActor* SelectedActor = nullptr; // 選択中のアクタ
 	EditorSelectPointComponent* SelectedPointComponent = nullptr;
 	EActorAction ActorAction = EActorAction::Select;
 
@@ -86,6 +86,6 @@ private:
 	FVector2D GetMouseWorldPosition() const;
 
 	// --- クリップボード ---
-	FActorSaveData m_ClipboardData;
-	bool m_bHasClipboard = false;
+	FActorSaveData ClipboardData;
+	bool bHasClipboard = false;
 };

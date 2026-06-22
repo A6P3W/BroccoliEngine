@@ -13,20 +13,20 @@ public:
 	bool Update(float DeltaTime);
 	virtual void Draw() {}
 
-	void SetOwner(AActor* owner) { m_owner = owner; }
-	AActor* GetOwner() const { return m_owner; }
+	void SetOwner(AActor* owner) { Owner = owner; }
+	AActor* GetOwner() const { return Owner; }
 
 	void DestroyComponent();
-	bool IsPendingDestroy() const { return m_bPendingDestroy; }
+	bool IsPendingDestroy() const { return bPendingDestroy; }
 
 	virtual void RegisterComponent(){}
 	virtual void UnRegisterComponent() {}
 protected:
 	virtual void OnComponentDestroy() {}
 
-	AActor* m_owner = nullptr;
+	AActor* Owner = nullptr;
 	virtual void OnUpdate(float DeltaTime) {}
 
 private:
-	bool m_bPendingDestroy = false;
+	bool bPendingDestroy = false;
 };

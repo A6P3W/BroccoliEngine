@@ -2,42 +2,42 @@
 #include <algorithm>
 #include "Actor.h"
 
-ObjectManager::ObjectManager()
+MObjectManager::MObjectManager()
 {
 }
 
-ObjectManager::~ObjectManager() = default;
+MObjectManager::~MObjectManager() = default;
 
-void ObjectManager::Update(float DeltaTime)
+void MObjectManager::Update(float DeltaTime)
 {
 	// 更新対象のポインタをコピーしてループを回す
 	std::vector<AActor*> tempActors;
-	tempActors.reserve(m_Actors.size());
-	for (auto& object : m_Actors) {
+	tempActors.reserve(Actors.size());
+	for (auto& object : Actors) {
 		tempActors.push_back(object.get());
 	}
 	for (auto* object : tempActors) {
 		if (object && !object->IsPendingDestroy()) {
-			if (m_World->IsSimulating() || object->IsEditorActor() || object->CanUpdateAnytime()) {
+			if (World->IsSimulating() || object->IsEditorActor() || object->CanUpdateAnytime()) {
 				object->Update(DeltaTime);
 			}
 		}
 	}
 
-	std::erase_if(m_Actors, [](const std::unique_ptr<AActor>& obj) {
+	std::erase_if(Actors, [](const std::unique_ptr<AActor>& obj) {
 		return !obj || obj->IsPendingDestroy();
 		});
 }
 
-void ObjectManager::Draw()
+void MObjectManager::Draw()
 {
-	for (auto& object : m_Actors) {
+	for (auto& object : Actors) {
 		object->Draw();
 	}
 }
 
-void ObjectManager::ClearAllObjects()
+void MObjectManager::ClearAllObjects()
 {
-	m_Actors.clear();
+	Actors.clear();
 
 }

@@ -15,22 +15,22 @@ MCollisionComponent::~MCollisionComponent()
 	
 }
 void MCollisionComponent::MarkCheckedThisFrame(AActor* OtherActor) {
-	m_CheckedThisFrame.insert(OtherActor);
+	CheckedThisFrame.insert(OtherActor);
 }
 
 void MCollisionComponent::FlushOverlapState() {
 	std::vector<AActor*> toRemove;
-	for (AActor* actor : m_OverlappingActors) {
-		if (m_IntersectingThisFrame.find(actor) == m_IntersectingThisFrame.end()) {
+	for (AActor* actor : OverlappingActors) {
+		if (IntersectingThisFrame.find(actor) == IntersectingThisFrame.end()) {
 			toRemove.push_back(actor);
 		}
 	}
 	for (AActor* actor : toRemove) {
-		m_OverlappingActors.erase(actor);
+		OverlappingActors.erase(actor);
 		GetOwner()->EndOverlap(actor);
 	}
-	m_CheckedThisFrame.clear();
-	m_IntersectingThisFrame.clear();
+	CheckedThisFrame.clear();
+	IntersectingThisFrame.clear();
 }
 void MCollisionComponent::RegisterComponent()
 {

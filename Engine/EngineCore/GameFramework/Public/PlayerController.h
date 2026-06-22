@@ -22,17 +22,17 @@ public:
 	void SetPlayerId(int id);
 	virtual void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent);
 	virtual void SetupInputMappings();
-	InputMapper* GetInputMapper() { return m_InputMapper.get(); }
-	MEnhancedInputComponent* GetInputComponent() { return m_InputCompPtr; }
+	InputMapper* GetInputMapper() { return InputMapperPtr.get(); }
+	MEnhancedInputComponent* GetInputComponent() { return InputComponent; }
 
 	void SetInputMode(EInputMode NewInputMode) { InputMode = NewInputMode; }
 	EInputMode GetInputMode() const { return InputMode; }
 
 private:
-	APawn* m_TargetPawn = nullptr;
-	MEnhancedInputComponent* m_InputCompPtr;
-	std::unique_ptr<InputMapper> m_InputMapper;
-	int m_PlayerId = 0;
+	APawn* TargetPawn = nullptr;
+	MEnhancedInputComponent* InputComponent;
+	std::unique_ptr<InputMapper> InputMapperPtr;
+	int PlayerId = 0;
 	EInputMode InputMode = EInputMode::GameAndUI;
 };
 

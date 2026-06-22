@@ -9,15 +9,15 @@
 #include"GameModeBase.h"
 void SceneManager::ProcessSceneChanges()
 {
-	if (m_PendingSceneFactory) {
+	if (PendingSceneFactory) {
 		RenderSystem::GetInstance().SetCameraView(nullptr);
 
-		m_CurrentScene = m_PendingSceneFactory();
+		CurrentScene = PendingSceneFactory();
 
-		m_PendingSceneFactory = nullptr;
+		PendingSceneFactory = nullptr;
 
 		if (IsDebug) {
-			auto Grid = m_CurrentScene->SpawnActor<AGridLine>();
+			auto Grid = CurrentScene->SpawnActor<AGridLine>();
 		}
 	}
 }

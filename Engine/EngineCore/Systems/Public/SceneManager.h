@@ -15,23 +15,23 @@ public:
 	template<class T>
 	void OpenScene()
 	{
-		m_PendingSceneFactory = []()->std::unique_ptr<World> {
+		PendingSceneFactory = []()->std::unique_ptr<World> {
 			auto newWorld = std::make_unique<World>();
 			newWorld->SpawnGameMode<T>();
 			return newWorld;
 			};
 	}
 
-	World* GetCurrentScene() { return m_CurrentScene.get(); }
+	World* GetCurrentScene() { return CurrentScene.get(); }
 
 	void ProcessSceneChanges();
 
 	template<class T>
-	void SetGameInstance() { m_GameInstance = std::make_unique<T>(); }
-	GameInstance* GetGameInstance() { return m_GameInstance.get(); }
+	void SetGameInstance() { GameInstance = std::make_unique<T>(); }
+	GameInstance* GetGameInstance() { return GameInstance.get(); }
 private:
-	std::unique_ptr<World> m_CurrentScene;
-	std::function<std::unique_ptr<World>()> m_PendingSceneFactory;
-	std::unique_ptr<GameInstance> m_GameInstance = nullptr;
+	std::unique_ptr<World> CurrentScene;
+	std::function<std::unique_ptr<World>()> PendingSceneFactory;
+	std::unique_ptr<GameInstance> GameInstance = nullptr;
 };
 

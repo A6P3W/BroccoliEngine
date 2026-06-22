@@ -72,7 +72,7 @@ void AWidgetBase::Cancel()
 
 void AWidgetBase::SetZOrderOffset(int offset)
 {
-	m_ZOrderOffset = offset;
+	ZOrderOffset = offset;
 
 	auto widgets = GetComponents<MUIWidgetComponent>();
 	for (auto* widget : widgets)

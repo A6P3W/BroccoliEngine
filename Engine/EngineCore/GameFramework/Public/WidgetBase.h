@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Actor.h"
 
 struct FInputActionValue;
@@ -25,6 +25,6 @@ public:
 
 private:
 	MUIButtonComponent* FocusedButtonComponent = nullptr;
-	int m_ZOrderOffset = 0;
+	int ZOrderOffset = 0;
 	float NavigationCooldown = 0.0f;
 };

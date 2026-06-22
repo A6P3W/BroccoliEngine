@@ -18,11 +18,11 @@ public:
 	void Update(float DeltaTime);
 	void Draw();
 
-	ObjectManager* GetObjectManager() { return m_ObjectManager.get(); }
-	CollisionSystem* GetCollisionSystem() { return m_CollisionSystem.get(); }
-	SoundManager* GetSoundManager() { return m_SoundManager.get(); }
-	TimerManager* GetTimerManager() { return m_TimerManager.get(); }
-	AGameModeBase* GetGameMode() const { return m_GameMode; }
+	MObjectManager* GetObjectManager() { return ObjectManager.get(); }
+	MCollisionSystem* GetCollisionSystem() { return CollisionSystem.get(); }
+	MSoundManager* GetSoundManager() { return SoundManager.get(); }
+	MTimerManager* GetTimerManager() { return TimerManager.get(); }
+	AGameModeBase* GetGameMode() const { return GameMode; }
 	template<class T>
 	T* SpawnGameMode() {
 		T* mode = SpawnActor<T>({0,0},FRotator(0),true);
@@ -33,7 +33,7 @@ public:
 
 	template<class T>
 	T* SpawnActor(const FVector2D& Loc = { 0,0 }, FRotator Rot = FRotator(0), bool DeferBeginPlay = false) {
-		return m_ObjectManager->SpawnObject<T>(Loc, Rot, DeferBeginPlay);
+		return ObjectManager->SpawnObject<T>(Loc, Rot, DeferBeginPlay);
 	}
 
 	void SetSimulating(bool bRunning) { bSimulating = bRunning; }
@@ -42,11 +42,11 @@ public:
 	bool IsTrendingDown() const { return bTrendingDown; }
 private:
 	void SetGameMode(AGameModeBase* mode);
-	std::unique_ptr<CollisionSystem> m_CollisionSystem = nullptr;
-	std::unique_ptr<SoundManager> m_SoundManager = nullptr;
-	std::unique_ptr<TimerManager> m_TimerManager = nullptr;
-	std::unique_ptr<ObjectManager> m_ObjectManager = nullptr;
-	AGameModeBase* m_GameMode = nullptr;
+	std::unique_ptr<MCollisionSystem> CollisionSystem = nullptr;
+	std::unique_ptr<MSoundManager> SoundManager = nullptr;
+	std::unique_ptr<MTimerManager> TimerManager = nullptr;
+	std::unique_ptr<MObjectManager> ObjectManager = nullptr;
+	AGameModeBase* GameMode = nullptr;
 
 	bool bSimulating = true;
 
