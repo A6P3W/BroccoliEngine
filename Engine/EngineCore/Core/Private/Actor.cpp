@@ -171,6 +171,51 @@ bool AActor::SetActorScale(FScale NewScale)
 	return true;
 }
 
+void AActor::SerializeNetworkState(FNetBuffer& OutBuffer)
+{
+	const FVector2D location = GetActorLocation();
+	const FRotator rotation = GetActorRotation();
+	const FScale scale = GetActorScale();
+
+	OutBuffer.Write(location.X);
+	OutBuffer.Write(location.Y);
+	OutBuffer.Write(rotation.Rotation);
+	OutBuffer.Write(scale.Scale);
+}
+
+bool AActor::DeserializeNetworkState(FNetBuffer& InBuffer)
+{
+	float locationX = 0.0f;
+	float locationY = 0.0f;
+	float rotation = 0.0f;
+	float scale = 1.0f;
+
+	if (!InBuffer.Read(locationX)) return false;
+	if (!InBuffer.Read(locationY)) return false;
+	if (!InBuffer.Read(rotation)) return false;
+	if (!InBuffer.Read(scale)) return false;
+
+	SetActorLocation({ locationX, locationY });
+	SetActorRotation(FRotator(rotation));
+	SetActorScale(FScale(scale));
+	return true;
+}
+
+void AActor::SerializeNetworkSpawn(FNetBuffer& OutBuffer)
+{
+	OutBuffer.WriteString(GetActorClassName());
+	SerializeNetworkState(OutBuffer);
+}
+
+bool AActor::DeserializeNetworkSpawn(FNetBuffer& InBuffer)
+{
+	std::string className;
+	if (!InBuffer.ReadString(className)) {
+		return false;
+	}
+
+	return DeserializeNetworkState(InBuffer);
+}
 void AActor::SetRootComponent(MSceneComponent* Component)
 {
 	if (!Component) return;

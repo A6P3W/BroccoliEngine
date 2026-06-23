@@ -6,6 +6,8 @@
 #include "TimerManager.h"
 #include "Log.h"
 #include "UMath.h"
+#include "NetMode.h"
+#include "NetworkTypes.h"
 #include <memory>
 class AActor;
 class AGameModeBase;
@@ -40,6 +42,16 @@ public:
 	bool IsSimulating() const { return bSimulating; }
 
 	bool IsTrendingDown() const { return bTrendingDown; }
+
+	ENetMode GetNetMode() const;
+	void SetNetMode(ENetMode NewNetMode);
+
+	bool IsStandalone() const;
+	bool IsListenServer() const;
+	bool IsClient() const;
+	bool IsServer() const;
+
+	FNetworkActorId AllocateNetworkActorId();
 private:
 	void SetGameMode(AGameModeBase* mode);
 	std::unique_ptr<MCollisionSystem> CollisionSystem = nullptr;
@@ -51,5 +63,7 @@ private:
 	bool bSimulating = true;
 
 	bool bTrendingDown = false;
+	ENetMode NetMode = ENetMode::Standalone;
+	FNetworkActorId NextNetworkActorId = 1;
 };
 

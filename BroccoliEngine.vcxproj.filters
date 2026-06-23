@@ -62,6 +62,7 @@
     <ClCompile Include="Engine\EngineCore\Components\Private\UITextComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\HttpManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Utils\Private\SimpleCrypto.cpp" />
+    <ClCompile Include="Engine\EngineCore\Network\Private\NetBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
@@ -133,6 +134,10 @@
     <ClInclude Include="Engine\EngineCore\Components\Public\UITextComponent.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\HttpManager.h" />
     <ClInclude Include="Engine\EngineCore\Utils\Public\SimpleCrypto.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetMode.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetworkTypes.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetPacketType.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />

@@ -180,7 +180,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor/Public;$(ProjectDir)Engine/EngineCore/Utils/Public</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineCore/Network/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor/Public;$(ProjectDir)Engine/EngineCore/Utils/Public</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -198,7 +198,7 @@
       <PreprocessorDefinitions>_EDITOR;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor/Public;$(ProjectDir)Engine/EngineCore/Utils/Public</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineCore/Network/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor/Public;$(ProjectDir)Engine/EngineCore/Utils/Public</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -218,7 +218,7 @@
       <PreprocessorDefinitions>_RELEASE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor/Public;$(ProjectDir)Engine/EngineCore/Utils/Public</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineCore/Network/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor/Public;$(ProjectDir)Engine/EngineCore/Utils/Public</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
@@ -291,6 +291,7 @@
     <ClCompile Include="Engine\EngineCore\Components\Private\UITextComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\HttpManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Utils\Private\SimpleCrypto.cpp" />
+    <ClCompile Include="Engine\EngineCore\Network\Private\NetBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Editor\Public\EditorController.h" />
@@ -363,6 +364,10 @@
     <ClInclude Include="Engine\EngineCore\Components\Public\UITextComponent.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\HttpManager.h" />
     <ClInclude Include="Engine\EngineCore\Utils\Public\SimpleCrypto.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetMode.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetworkTypes.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetPacketType.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="AGENTS.md">

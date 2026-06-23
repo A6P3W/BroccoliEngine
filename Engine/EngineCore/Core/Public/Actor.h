@@ -7,6 +7,8 @@
 #include "UMath.h"
 #include "ActorComponent.h"
 #include "ActorRegistry.h"
+#include "NetBuffer.h"
+#include "NetworkTypes.h"
 
 template<class T>
 struct TActorAutoRegister
@@ -45,6 +47,12 @@ public:
 	virtual std::string GetActorClassName() const = 0;
 
 	std::vector<std::string> Tags;
+	FNetworkActorId NetworkId = 0;
+	bool bReplicates = false;
+
+	bool bHasAuthority = true;
+	bool bIsLocallyControlled = false;
+	FNetworkConnectionId OwnerConnectionId = 0;
 	bool HasTag(std::string_view Tag) const;
 
 	virtual void Update(float DeltaTime) final;
@@ -75,6 +83,12 @@ public:
 
 	virtual void BeginOverlap(AActor* OtherActor) {}
 	virtual void EndOverlap(AActor* OtherActor) {}
+
+	virtual void SerializeNetworkState(FNetBuffer& OutBuffer);
+	virtual bool DeserializeNetworkState(FNetBuffer& InBuffer);
+
+	virtual void SerializeNetworkSpawn(FNetBuffer& OutBuffer);
+	virtual bool DeserializeNetworkSpawn(FNetBuffer& InBuffer);
 
 	template<class T>
 	std::vector <T*> GetComponents() const {

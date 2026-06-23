@@ -41,3 +41,42 @@ void World::SetGameMode(AGameModeBase* mode)
 {
     GameMode = mode;
 }
+
+ENetMode World::GetNetMode() const
+{
+    return NetMode;
+}
+
+void World::SetNetMode(ENetMode NewNetMode)
+{
+    NetMode = NewNetMode;
+}
+
+bool World::IsStandalone() const
+{
+    return NetMode == ENetMode::Standalone;
+}
+
+bool World::IsListenServer() const
+{
+    return NetMode == ENetMode::ListenServer;
+}
+
+bool World::IsClient() const
+{
+    return NetMode == ENetMode::Client;
+}
+
+bool World::IsServer() const
+{
+    return IsStandalone() || IsListenServer();
+}
+
+FNetworkActorId World::AllocateNetworkActorId()
+{
+    if (!IsServer()) {
+        return 0;
+    }
+
+    return NextNetworkActorId++;
+}
