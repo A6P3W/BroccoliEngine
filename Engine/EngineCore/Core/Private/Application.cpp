@@ -17,6 +17,7 @@
 #include "EngineDefine.h"
 #include "EditorMode.h"
 #include "HttpManager.h"
+#include "NetworkManager.h"
 extern void SetupGame();
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -147,6 +148,7 @@ bool Application::Update(float DeltaTime)
 	io.MousePos = ImVec2((float)mx, (float)my);
 
 	ImGui::NewFrame();
+	NetworkManager::GetInstance().Service();
 	InputManager::GetInstance().Update();
 	HttpManager::GetInstance().Update();
 
