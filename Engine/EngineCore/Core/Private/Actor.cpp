@@ -3,6 +3,7 @@
 #include "ActorComponent.h"
 #include "TimerManager.h"
 #include <algorithm>
+#include <cmath>
 #include "World.h"
 #include "EngineDefine.h"
 
@@ -13,6 +14,14 @@
 #include "Log.h"
 
 #include "HttpManager.h"
+namespace
+{
+	bool IsNearlyEqual(float A, float B, float Tolerance)
+	{
+		return std::abs(A - B) <= Tolerance;
+	}
+}
+
 AActor::AActor()
 {
 	auto root = std::make_unique<MSceneComponent>();
@@ -216,6 +225,42 @@ bool AActor::DeserializeNetworkSpawn(FNetBuffer& InBuffer)
 
 	return DeserializeNetworkState(InBuffer);
 }
+
+bool AActor::HasReplicatedStateChanged(float Tolerance) const
+{
+	if (!bHasReplicatedStateCache) {
+		return true;
+	}
+
+	const FVector2D location = GetActorLocation();
+	const FRotator rotation = GetActorRotation();
+	const FScale scale = GetActorScale();
+
+	return
+		!location.Equals(LastReplicatedLocation, Tolerance) ||
+		!IsNearlyEqual(rotation.Rotation, LastReplicatedRotation.Rotation, Tolerance) ||
+		!IsNearlyEqual(scale.Scale, LastReplicatedScale.Scale, Tolerance);
+}
+
+void AActor::UpdateReplicatedStateCache()
+{
+	LastReplicatedLocation = GetActorLocation();
+	LastReplicatedRotation = GetActorRotation();
+	LastReplicatedScale = GetActorScale();
+	bHasReplicatedStateCache = true;
+}
+
+uint32_t AActor::IncrementReplicationSequence()
+{
+	++ReplicationSequence;
+	return ReplicationSequence;
+}
+
+void AActor::SetLastReceivedReplicationSequence(uint32_t Sequence)
+{
+	LastReceivedReplicationSequence = Sequence;
+}
+
 void AActor::SetRootComponent(MSceneComponent* Component)
 {
 	if (!Component) return;

@@ -11,6 +11,15 @@
 #include "World.h"
 
 #include <string>
+#include <cstdint>
+
+namespace
+{
+	bool IsReplicationSequenceNewer(uint32_t IncomingSequence, uint32_t CurrentSequence)
+	{
+		return static_cast<int32_t>(IncomingSequence - CurrentSequence) > 0;
+	}
+}
 
 MReplicationSystem::MReplicationSystem(World* InWorld)
 	: OwnerWorld(InWorld)
@@ -61,12 +70,15 @@ void MReplicationSystem::Update()
 		if (actor->NetworkId == 0) {
 			if (EnsureServerActorRegistered(actor)) {
 				SendActorSpawn(actor);
+				actor->UpdateReplicatedStateCache();
 			}
 			continue;
 		}
 
 		RegisterActor(actor);
-		SendActorState(actor);
+		if (actor->HasReplicatedStateChanged()) {
+			SendActorState(actor);
+		}
 	}
 }
 
@@ -201,12 +213,23 @@ void MReplicationSystem::HandleActorState(FNetBuffer& Buffer)
 		return;
 	}
 
+	uint32_t sequence = 0;
+	if (!Buffer.Read(sequence)) {
+		return;
+	}
+
 	AActor* actor = FindActor(networkId);
 	if (!actor) {
 		return;
 	}
 
-	actor->DeserializeNetworkState(Buffer);
+	if (!IsReplicationSequenceNewer(sequence, actor->GetLastReceivedReplicationSequence())) {
+		return;
+	}
+
+	if (actor->DeserializeNetworkState(Buffer)) {
+		actor->SetLastReceivedReplicationSequence(sequence);
+	}
 }
 
 void MReplicationSystem::HandleActorDestroy(FNetBuffer& Buffer)
@@ -269,12 +292,16 @@ void MReplicationSystem::SendActorState(AActor* Actor)
 		return;
 	}
 
+	const uint32_t sequence = Actor->IncrementReplicationSequence();
+
 	FNetBuffer buffer;
 	buffer.Write(ENetPacketType::ActorState);
 	buffer.Write(Actor->NetworkId);
+	buffer.Write(sequence);
 	Actor->SerializeNetworkState(buffer);
 
 	NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Unreliable);
+	Actor->UpdateReplicatedStateCache();
 }
 
 void MReplicationSystem::SendActorDestroy(FNetworkActorId NetworkId)

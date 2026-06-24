@@ -9,6 +9,7 @@
 #include "ActorRegistry.h"
 #include "NetBuffer.h"
 #include "NetworkTypes.h"
+#include <cstdint>
 
 template<class T>
 struct TActorAutoRegister
@@ -90,6 +91,13 @@ public:
 	virtual void SerializeNetworkSpawn(FNetBuffer& OutBuffer);
 	virtual bool DeserializeNetworkSpawn(FNetBuffer& InBuffer);
 
+	bool HasReplicatedStateChanged(float Tolerance = 0.001f) const;
+	void UpdateReplicatedStateCache();
+	uint32_t IncrementReplicationSequence();
+	uint32_t GetReplicationSequence() const { return ReplicationSequence; }
+	uint32_t GetLastReceivedReplicationSequence() const { return LastReceivedReplicationSequence; }
+	void SetLastReceivedReplicationSequence(uint32_t Sequence);
+
 	template<class T>
 	std::vector <T*> GetComponents() const {
 		std::vector<T*> results;
@@ -120,5 +128,11 @@ private:
 	bool bPendingDestroy = false;
 	std::vector<std::unique_ptr<MActorComponent>> Components;
 	World* OwnerWorld=nullptr;
+	FVector2D LastReplicatedLocation = FVector2D::ZeroVector;
+	FRotator LastReplicatedRotation;
+	FScale LastReplicatedScale;
+	bool bHasReplicatedStateCache = false;
+	uint32_t ReplicationSequence = 0;
+	uint32_t LastReceivedReplicationSequence = 0;
 
 };
