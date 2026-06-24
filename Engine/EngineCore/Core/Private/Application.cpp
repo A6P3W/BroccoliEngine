@@ -72,8 +72,13 @@ bool Application::Run()
 
 	SetWindowSizeChangeEnableFlag(true, bFitScreen);
 	ChangeWindowMode(bFullScreen);
+	SetDoubleStartValidFlag(TRUE);
+	SetOutApplicationLogValidFlag(FALSE); 
+	SetAlwaysRunFlag(TRUE); 
 
 	DxLib_Init();
+
+	SetWaitVSyncFlag(false);
 
 
 	SetWaitVSyncFlag(false);

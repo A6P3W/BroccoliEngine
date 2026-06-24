@@ -7,6 +7,7 @@
 #include "Log.h"
 #include "UMath.h"
 #include "World.h"
+#include "NetworkTypes.h"
 class APlayerController;
 class AGameModeBase : public AActor
 {
@@ -19,6 +20,9 @@ public:
 
 	APawn* GetPlayerPawn() const { return PlayerPawn; }
 	APlayerController* GetPlayerController() const { return PlayerController; }
+	virtual APlayerController* OnClientConnected(FNetworkConnectionId ConnectionId);
+	APlayerController* GetOrCreateLocalPlayerController();
+	void PossessLocalPawn(APawn* Pawn);
 
 	template<class T>
 	T* SpawnActor(const FVector2D& Loc = { 0,0 }, FRotator Rot = FRotator(0.0f)) {
@@ -42,7 +46,7 @@ protected:
 	}
 
 private:
-	APawn* PlayerPawn;
-	APlayerController* PlayerController;
+	APawn* PlayerPawn = nullptr;
+	APlayerController* PlayerController = nullptr;
 };
 

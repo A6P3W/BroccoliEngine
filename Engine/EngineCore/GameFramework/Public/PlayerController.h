@@ -24,6 +24,7 @@ public:
 	virtual void SetupInputMappings();
 	InputMapper* GetInputMapper() { return InputMapperPtr.get(); }
 	MEnhancedInputComponent* GetInputComponent() { return InputComponent; }
+	APawn* GetPawn() const { return TargetPawn; }
 
 	void SetInputMode(EInputMode NewInputMode) { InputMode = NewInputMode; }
 	EInputMode GetInputMode() const { return InputMode; }

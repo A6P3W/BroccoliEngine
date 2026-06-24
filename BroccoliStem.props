@@ -13,6 +13,7 @@
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/;
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/Core/Public;
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/Systems/Public;
+		  $(MSBuildThisFileDirectory)Engine/EngineCore/Network/Public;
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/Components/Public;
 		  $(MSBuildThisFileDirectory)Engine/EngineSide/;
 		  $(MSBuildThisFileDirectory)Engine/EngineSide/Default/Public;

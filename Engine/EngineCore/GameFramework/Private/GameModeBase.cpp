@@ -13,6 +13,44 @@ AGameModeBase::AGameModeBase()
     camPtr->SetActiveCamera();
 }
 
+APlayerController* AGameModeBase::OnClientConnected(FNetworkConnectionId ConnectionId)
+{
+    APlayerController* controller = SpawnPlayer<APawn, APlayerController>(FVector2D::ZeroVector, static_cast<int>(ConnectionId));
+    if (controller && controller->GetPawn()) {
+        APawn* pawn = controller->GetPawn();
+        pawn->OwnerConnectionId = ConnectionId;
+        pawn->bReplicates = true;
+        pawn->bHasAuthority = true;
+        pawn->bIsLocallyControlled = false;
+    }
+    return controller;
+}
+
+APlayerController* AGameModeBase::GetOrCreateLocalPlayerController()
+{
+    if (PlayerController) {
+        return PlayerController;
+    }
+
+    PlayerController = GetWorld()->SpawnActor<APlayerController>(FVector2D::ZeroVector);
+    PlayerController->SetPlayerId(0);
+    PlayerController->SetupInputMappings();
+    return PlayerController;
+}
+
+void AGameModeBase::PossessLocalPawn(APawn* Pawn)
+{
+    if (!Pawn) {
+        return;
+    }
+
+    APlayerController* controller = GetOrCreateLocalPlayerController();
+    if (controller) {
+        PlayerPawn = Pawn;
+        controller->Possess(Pawn);
+    }
+}
+
 void AGameModeBase::OnUpdate(float DeltaTime)
 {
 }

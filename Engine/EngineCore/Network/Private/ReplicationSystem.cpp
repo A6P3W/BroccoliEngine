@@ -2,10 +2,12 @@
 
 #include "Actor.h"
 #include "ActorRegistry.h"
+#include "GameModeBase.h"
 #include "NetBuffer.h"
 #include "NetPacketType.h"
 #include "NetworkManager.h"
 #include "ObjectManager.h"
+#include "Pawn.h"
 #include "World.h"
 
 #include <string>
@@ -107,6 +109,10 @@ void MReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId)
 		return;
 	}
 
+	if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
+		gameMode->OnClientConnected(ConnectionId);
+	}
+
 	SendInitialStateToClient(ConnectionId);
 }
 
@@ -176,6 +182,13 @@ void MReplicationSystem::HandleActorSpawn(FNetBuffer& Buffer)
 	}
 
 	RegisterActor(actor);
+	if (actor->bIsLocallyControlled) {
+		if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
+			if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
+				gameMode->PossessLocalPawn(pawn);
+			}
+		}
+	}
 	if (!bAlreadyExists) {
 		actor->Spawned();
 	}

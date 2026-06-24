@@ -1,1 +1,1 @@
-﻿ファイルはUTF-8 with BOMで保存すること。
+﻿.h,.cppファイルはUTF-8 with BOMで保存すること。

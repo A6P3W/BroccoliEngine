@@ -1,5 +1,6 @@
 ﻿#include "SceneManager.h"
-#include "SampleScene01/SampleScene01.h"
+#include "NetworkTest/NetworkTestGameMode.h"
+
 void SetupGame() {
-	SceneManager::GetInstance().OpenScene<ASampleScene01>();
+	SceneManager::GetInstance().OpenScene<ANetworkTestGameMode>();
 }
