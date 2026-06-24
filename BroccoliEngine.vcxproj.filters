@@ -64,6 +64,7 @@
     <ClCompile Include="Engine\EngineCore\Utils\Private\SimpleCrypto.cpp" />
     <ClCompile Include="Engine\EngineCore\Network\Private\NetBuffer.cpp" />
     <ClCompile Include="Engine\EngineCore\Network\Private\NetworkManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Network\Private\ReplicationSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
@@ -140,6 +141,7 @@
     <ClInclude Include="Engine\EngineCore\Network\Public\NetPacketType.h" />
     <ClInclude Include="Engine\EngineCore\Network\Public\NetBuffer.h" />
     <ClInclude Include="Engine\EngineCore\Network\Public\NetworkManager.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\ReplicationSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />

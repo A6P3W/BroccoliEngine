@@ -11,6 +11,7 @@
 #include <memory>
 class AActor;
 class AGameModeBase;
+class MReplicationSystem;
 
 class World
 {
@@ -24,6 +25,7 @@ public:
 	MCollisionSystem* GetCollisionSystem() { return CollisionSystem.get(); }
 	MSoundManager* GetSoundManager() { return SoundManager.get(); }
 	MTimerManager* GetTimerManager() { return TimerManager.get(); }
+	MReplicationSystem* GetReplicationSystem() { return ReplicationSystem.get(); }
 	AGameModeBase* GetGameMode() const { return GameMode; }
 	template<class T>
 	T* SpawnGameMode() {
@@ -57,6 +59,7 @@ private:
 	std::unique_ptr<MCollisionSystem> CollisionSystem = nullptr;
 	std::unique_ptr<MSoundManager> SoundManager = nullptr;
 	std::unique_ptr<MTimerManager> TimerManager = nullptr;
+	std::unique_ptr<MReplicationSystem> ReplicationSystem = nullptr;
 	std::unique_ptr<MObjectManager> ObjectManager = nullptr;
 	AGameModeBase* GameMode = nullptr;
 

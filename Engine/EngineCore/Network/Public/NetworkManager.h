@@ -43,6 +43,7 @@ public:
 	bool IsRunning() const { return Host != nullptr; }
 	bool IsServer() const { return bIsServer; }
 	bool IsClient() const { return bIsClient; }
+	FNetworkConnectionId GetLocalConnectionId() const { return LocalConnectionId; }
 
 	void SetOnConnected(ConnectedCallback Callback) { OnConnected = std::move(Callback); }
 	void SetOnDisconnected(DisconnectedCallback Callback) { OnDisconnected = std::move(Callback); }
@@ -67,6 +68,7 @@ private:
 	bool bIsClient = false;
 	FNetworkConnectionId NextConnectionId = 1;
 	FNetworkConnectionId ServerConnectionId = 1;
+	FNetworkConnectionId LocalConnectionId = 0;
 
 	struct Impl;
 	Impl* ImplPtr = nullptr;

@@ -6,6 +6,7 @@
 #include "SoundManager.h"
 #include "TimerManager.h"
 #include "CameraComponent.h"
+#include "ReplicationSystem.h"
 #include "World.h"
 World::World()
 {
@@ -15,6 +16,7 @@ World::World()
     TimerManager = std::make_unique<MTimerManager>();
     
 	ObjectManager->SetWorld(this);
+	ReplicationSystem = std::make_unique<MReplicationSystem>(this);
 }
 
 World::~World()
@@ -26,6 +28,8 @@ void World::Update(float DeltaTime)
 {
 
     if (ObjectManager)ObjectManager->Update(DeltaTime);
+    if (ReplicationSystem)ReplicationSystem->Update();
+    if (ObjectManager)ObjectManager->RemovePendingDestroy();
     if (bSimulating) {
         if (TimerManager)TimerManager->Update(DeltaTime);
         if (CollisionSystem)CollisionSystem->CheckCollisions();

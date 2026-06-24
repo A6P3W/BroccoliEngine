@@ -60,6 +60,7 @@ bool NetworkManager::StartServer(uint16_t Port, size_t MaxConnections, size_t Ch
 	bIsServer = true;
 	bIsClient = false;
 	NextConnectionId = 1;
+	LocalConnectionId = 0;
 	return true;
 }
 
@@ -96,6 +97,7 @@ bool NetworkManager::ConnectToServer(const std::string& HostName, uint16_t Port,
 
 	bIsServer = false;
 	bIsClient = true;
+	LocalConnectionId = 0;
 	return true;
 }
 
@@ -196,6 +198,7 @@ void NetworkManager::Stop()
 	bIsServer = false;
 	bIsClient = false;
 	NextConnectionId = 1;
+	LocalConnectionId = 0;
 	ClearPeers();
 }
 
@@ -276,6 +279,7 @@ FNetworkConnectionId NetworkManager::RegisterPeer(ENetPeer* Peer)
 	ImplPtr->ConnectionIdsByPeer[Peer] = connectionId;
 	if (bIsClient) {
 		ServerPeer = Peer;
+		LocalConnectionId = connectionId;
 	}
 
 	return connectionId;

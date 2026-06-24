@@ -42,6 +42,7 @@ public:
 		M_LOG(ptr->GetActorClassName());
 		return ptr;
 	}
+	void RemovePendingDestroy();
 	void ClearAllObjects();
 private:
 	std::vector<std::unique_ptr<AActor>> Actors;

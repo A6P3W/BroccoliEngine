@@ -23,10 +23,6 @@ void MObjectManager::Update(float DeltaTime)
 			}
 		}
 	}
-
-	std::erase_if(Actors, [](const std::unique_ptr<AActor>& obj) {
-		return !obj || obj->IsPendingDestroy();
-		});
 }
 
 void MObjectManager::Draw()
@@ -34,6 +30,13 @@ void MObjectManager::Draw()
 	for (auto& object : Actors) {
 		object->Draw();
 	}
+}
+
+void MObjectManager::RemovePendingDestroy()
+{
+	std::erase_if(Actors, [](const std::unique_ptr<AActor>& obj) {
+		return !obj || obj->IsPendingDestroy();
+	});
 }
 
 void MObjectManager::ClearAllObjects()
