@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "NetworkTypes.h"
+#include "NetworkManager.h"
 
 #include <unordered_map>
 
@@ -20,6 +21,7 @@ public:
 	void RegisterActor(AActor* Actor);
 	void UnregisterActor(FNetworkActorId NetworkId);
 	void Clear();
+	bool SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload);
 
 private:
 	void HandleConnected(FNetworkConnectionId ConnectionId);
@@ -29,6 +31,7 @@ private:
 	void HandleActorSpawn(FNetBuffer& Buffer);
 	void HandleActorState(FNetBuffer& Buffer);
 	void HandleActorDestroy(FNetBuffer& Buffer);
+	void HandleActorRPC(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer);
 
 	void SendInitialStateToClient(FNetworkConnectionId ConnectionId);
 	void SendActorSpawn(AActor* Actor, FNetworkConnectionId TargetConnectionId = 0);

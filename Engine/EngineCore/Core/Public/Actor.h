@@ -8,8 +8,14 @@
 #include "ActorComponent.h"
 #include "ActorRegistry.h"
 #include "NetBuffer.h"
+#include "NetworkManager.h"
 #include "NetworkTypes.h"
 #include <cstdint>
+#include <functional>
+#include <tuple>
+#include <type_traits>
+#include <unordered_map>
+#include <utility>
 
 template<class T>
 struct TActorAutoRegister
@@ -98,6 +104,49 @@ public:
 	uint32_t GetLastReceivedReplicationSequence() const { return LastReceivedReplicationSequence; }
 	void SetLastReceivedReplicationSequence(uint32_t Sequence);
 
+	using FRPCHandler = std::function<void(FNetBuffer&)>;
+	void RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FRPCHandler Handler);
+	bool DispatchRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FNetBuffer& Payload);
+	bool InvokeRPCWithPayload(FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload);
+
+	template<class TObject, class... TArgs>
+	void RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, TObject* Object, void (TObject::* Method)(TArgs...))
+	{
+		RegisterRPC(RPCId, RPCType, [Object, Method](FNetBuffer& Payload) {
+			std::tuple<std::decay_t<TArgs>...> args;
+			if (!ReadRPCTuple(Payload, args)) {
+				return;
+			}
+
+			std::apply([Object, Method](auto&&... Values) {
+				(Object->*Method)(std::forward<decltype(Values)>(Values)...);
+			}, args);
+		});
+	}
+
+	template<class TObject, class... TArgs>
+	void RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, TObject* Object, void (TObject::* Method)(TArgs...) const)
+	{
+		RegisterRPC(RPCId, RPCType, [Object, Method](FNetBuffer& Payload) {
+			std::tuple<std::decay_t<TArgs>...> args;
+			if (!ReadRPCTuple(Payload, args)) {
+				return;
+			}
+
+			std::apply([Object, Method](auto&&... Values) {
+				(Object->*Method)(std::forward<decltype(Values)>(Values)...);
+			}, args);
+		});
+	}
+
+	template<class... TArgs>
+	bool InvokeRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const TArgs&... Args)
+	{
+		FNetBuffer payload;
+		(WriteRPCArgument(payload, Args), ...);
+		return InvokeRPCWithPayload(RPCId, RPCType, Reliability, payload);
+	}
+
 	template<class T>
 	std::vector <T*> GetComponents() const {
 		std::vector<T*> results;
@@ -134,5 +183,32 @@ private:
 	bool bHasReplicatedStateCache = false;
 	uint32_t ReplicationSequence = 0;
 	uint32_t LastReceivedReplicationSequence = 0;
+	struct FRPCEntry
+	{
+		ENetRPCType Type = ENetRPCType::Server;
+		FRPCHandler Handler;
+	};
+	std::unordered_map<FNetworkRPCId, FRPCEntry> RPCHandlers;
+
+	template<class T>
+	static void WriteRPCArgument(FNetBuffer& Payload, const T& Value)
+	{
+		static_assert(std::is_trivially_copyable_v<T>, "AActor::InvokeRPC supports trivially copyable RPC arguments.");
+		Payload.Write(Value);
+	}
+
+	template<size_t Index = 0, class... TArgs>
+	static bool ReadRPCTuple(FNetBuffer& Payload, std::tuple<TArgs...>& Args)
+	{
+		if constexpr (Index == sizeof...(TArgs)) {
+			return true;
+		}
+		else {
+			if (!Payload.Read(std::get<Index>(Args))) {
+				return false;
+			}
+			return ReadRPCTuple<Index + 1>(Payload, Args);
+		}
+	}
 
 };

@@ -12,6 +12,8 @@
 
 #include <string>
 #include <cstdint>
+#include <limits>
+#include <vector>
 
 namespace
 {
@@ -115,6 +117,62 @@ void MReplicationSystem::Clear()
 	ActorsByNetworkId.clear();
 }
 
+bool MReplicationSystem::SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload)
+{
+	if (!OwnerWorld || !Actor || Actor->NetworkId == 0 || RPCId == 0) {
+		return false;
+	}
+
+	if (Payload.Size() > static_cast<size_t>((std::numeric_limits<uint32_t>::max)())) {
+		return false;
+	}
+
+	FNetBuffer buffer;
+	buffer.Write(ENetPacketType::ActorRPC);
+	buffer.Write(Actor->NetworkId);
+	buffer.Write(RPCId);
+	buffer.Write(RPCType);
+
+	const uint32_t payloadSize = static_cast<uint32_t>(Payload.Size());
+	buffer.Write(payloadSize);
+	for (uint8_t byte : Payload.GetData()) {
+		buffer.Write(byte);
+	}
+
+	NetworkManager& network = NetworkManager::GetInstance();
+	switch (RPCType) {
+	case ENetRPCType::Server:
+		if (OwnerWorld->IsServer() && Actor->bHasAuthority) {
+			FNetBuffer localPayload(Payload.GetData());
+			return Actor->DispatchRPC(RPCId, RPCType, localPayload);
+		}
+		if (!OwnerWorld->IsClient() || !Actor->bIsLocallyControlled) {
+			return false;
+		}
+		return network.SendToServer(buffer, Reliability);
+	case ENetRPCType::Client:
+		if (!OwnerWorld->IsServer() || !Actor->bHasAuthority) {
+			return false;
+		}
+		if (Actor->OwnerConnectionId == 0) {
+			FNetBuffer localPayload(Payload.GetData());
+			return Actor->DispatchRPC(RPCId, RPCType, localPayload);
+		}
+		return network.SendToClient(Actor->OwnerConnectionId, buffer, Reliability);
+	case ENetRPCType::Multicast:
+		if (!OwnerWorld->IsServer() || !Actor->bHasAuthority) {
+			return false;
+		}
+		{
+			FNetBuffer localPayload(Payload.GetData());
+			Actor->DispatchRPC(RPCId, RPCType, localPayload);
+		}
+		return network.Broadcast(buffer, Reliability);
+	default:
+		return false;
+	}
+}
+
 void MReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId)
 {
 	if (!OwnerWorld || !OwnerWorld->IsServer()) {
@@ -135,9 +193,7 @@ void MReplicationSystem::HandleDisconnected(FNetworkConnectionId ConnectionId)
 
 void MReplicationSystem::HandlePacketReceived(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer)
 {
-	(void)ConnectionId;
-
-	if (!OwnerWorld || !OwnerWorld->IsClient()) {
+	if (!OwnerWorld) {
 		return;
 	}
 
@@ -148,13 +204,25 @@ void MReplicationSystem::HandlePacketReceived(FNetworkConnectionId ConnectionId,
 
 	switch (packetType) {
 	case ENetPacketType::ActorSpawn:
+		if (!OwnerWorld->IsClient()) {
+			break;
+		}
 		HandleActorSpawn(Buffer);
 		break;
 	case ENetPacketType::ActorState:
+		if (!OwnerWorld->IsClient()) {
+			break;
+		}
 		HandleActorState(Buffer);
 		break;
 	case ENetPacketType::ActorDestroy:
+		if (!OwnerWorld->IsClient()) {
+			break;
+		}
 		HandleActorDestroy(Buffer);
+		break;
+	case ENetPacketType::ActorRPC:
+		HandleActorRPC(ConnectionId, Buffer);
 		break;
 	default:
 		break;
@@ -244,6 +312,47 @@ void MReplicationSystem::HandleActorDestroy(FNetBuffer& Buffer)
 		actor->Destroy();
 	}
 	UnregisterActor(networkId);
+}
+
+void MReplicationSystem::HandleActorRPC(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer)
+{
+	FNetworkActorId networkId = 0;
+	FNetworkRPCId rpcId = 0;
+	ENetRPCType rpcType = ENetRPCType::Server;
+	uint32_t payloadSize = 0;
+
+	if (!Buffer.Read(networkId)) return;
+	if (!Buffer.Read(rpcId)) return;
+	if (!Buffer.Read(rpcType)) return;
+	if (!Buffer.Read(payloadSize)) return;
+	if (Buffer.GetRemainingSize() < payloadSize) return;
+
+	std::vector<uint8_t> payloadBytes;
+	payloadBytes.reserve(payloadSize);
+	for (uint32_t i = 0; i < payloadSize; ++i) {
+		uint8_t byte = 0;
+		if (!Buffer.Read(byte)) {
+			return;
+		}
+		payloadBytes.push_back(byte);
+	}
+
+	AActor* actor = FindActor(networkId);
+	if (!actor) {
+		return;
+	}
+
+	if (OwnerWorld->IsServer()) {
+		if (rpcType != ENetRPCType::Server || !actor->bHasAuthority || actor->OwnerConnectionId == 0 || actor->OwnerConnectionId != ConnectionId) {
+			return;
+		}
+	}
+	else if (!OwnerWorld->IsClient() || rpcType == ENetRPCType::Server) {
+		return;
+	}
+
+	FNetBuffer payload(std::move(payloadBytes));
+	actor->DispatchRPC(rpcId, rpcType, payload);
 }
 
 void MReplicationSystem::SendInitialStateToClient(FNetworkConnectionId ConnectionId)

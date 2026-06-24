@@ -8,5 +8,6 @@ enum class ENetPacketType : uint8_t
 	ActorSpawn,
 	ActorDestroy,
 	ActorState,
+	ActorRPC,
 	PlayerInput
 };

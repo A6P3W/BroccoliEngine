@@ -6,6 +6,7 @@
 #include <cmath>
 #include "World.h"
 #include "EngineDefine.h"
+#include "ReplicationSystem.h"
 
 #ifdef _EDITOR
 #include "EditorSelectPointComponent.h"
@@ -259,6 +260,49 @@ uint32_t AActor::IncrementReplicationSequence()
 void AActor::SetLastReceivedReplicationSequence(uint32_t Sequence)
 {
 	LastReceivedReplicationSequence = Sequence;
+}
+
+void AActor::RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FRPCHandler Handler)
+{
+	if (RPCId == 0 || !Handler) {
+		return;
+	}
+
+	RPCHandlers[RPCId] = { RPCType, std::move(Handler) };
+}
+
+bool AActor::DispatchRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FNetBuffer& Payload)
+{
+	auto it = RPCHandlers.find(RPCId);
+	if (it == RPCHandlers.end() || it->second.Type != RPCType || !it->second.Handler) {
+		return false;
+	}
+
+	it->second.Handler(Payload);
+	return true;
+}
+
+bool AActor::InvokeRPCWithPayload(FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload)
+{
+	if (RPCId == 0 || NetworkId == 0) {
+		return false;
+	}
+
+	if (!OwnerWorld) {
+		return false;
+	}
+
+	if (OwnerWorld->IsStandalone()) {
+		FNetBuffer localPayload(Payload.GetData());
+		return DispatchRPC(RPCId, RPCType, localPayload);
+	}
+
+	MReplicationSystem* replication = OwnerWorld->GetReplicationSystem();
+	if (!replication) {
+		return false;
+	}
+
+	return replication->SendActorRPC(this, RPCId, RPCType, Reliability, Payload);
 }
 
 void AActor::SetRootComponent(MSceneComponent* Component)
