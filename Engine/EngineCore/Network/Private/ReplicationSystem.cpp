@@ -179,11 +179,12 @@ void MReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId)
 		return;
 	}
 
+	SendAssignedConnectionId(ConnectionId);
+	SendInitialStateToClient(ConnectionId);
+
 	if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
 		gameMode->OnClientConnected(ConnectionId);
 	}
-
-	SendInitialStateToClient(ConnectionId);
 }
 
 void MReplicationSystem::HandleDisconnected(FNetworkConnectionId ConnectionId)
@@ -203,6 +204,12 @@ void MReplicationSystem::HandlePacketReceived(FNetworkConnectionId ConnectionId,
 	}
 
 	switch (packetType) {
+	case ENetPacketType::AssignNetId:
+		if (!OwnerWorld->IsClient()) {
+			break;
+		}
+		HandleAssignNetId(Buffer);
+		break;
 	case ENetPacketType::ActorSpawn:
 		if (!OwnerWorld->IsClient()) {
 			break;
@@ -355,6 +362,30 @@ void MReplicationSystem::HandleActorRPC(FNetworkConnectionId ConnectionId, FNetB
 	actor->DispatchRPC(rpcId, rpcType, payload);
 }
 
+void MReplicationSystem::HandleAssignNetId(FNetBuffer& Buffer)
+{
+	FNetworkConnectionId assignedConnectionId = 0;
+	if (!Buffer.Read(assignedConnectionId)) {
+		return;
+	}
+
+	NetworkManager::GetInstance().SetLocalConnectionId(assignedConnectionId);
+	RefreshLocalControl();
+}
+
+void MReplicationSystem::SendAssignedConnectionId(FNetworkConnectionId ConnectionId)
+{
+	if (!OwnerWorld || !OwnerWorld->IsServer() || ConnectionId == 0) {
+		return;
+	}
+
+	FNetBuffer buffer;
+	buffer.Write(ENetPacketType::AssignNetId);
+	buffer.Write(ConnectionId);
+
+	NetworkManager::GetInstance().SendToClient(ConnectionId, buffer, ENetPacketReliability::Reliable);
+}
+
 void MReplicationSystem::SendInitialStateToClient(FNetworkConnectionId ConnectionId)
 {
 	if (!OwnerWorld || !OwnerWorld->GetObjectManager()) {
@@ -364,13 +395,11 @@ void MReplicationSystem::SendInitialStateToClient(FNetworkConnectionId Connectio
 	const auto& actors = OwnerWorld->GetObjectManager()->GetAllActors();
 	for (const auto& actorPtr : actors) {
 		AActor* actor = actorPtr.get();
-		if (!actor || !actor->bReplicates || actor->IsPendingDestroy()) {
+		if (!actor || !actor->bReplicates || actor->IsPendingDestroy() || actor->NetworkId == 0) {
 			continue;
 		}
 
-		if (EnsureServerActorRegistered(actor)) {
-			SendActorSpawn(actor, ConnectionId);
-		}
+		SendActorSpawn(actor, ConnectionId);
 	}
 }
 
@@ -443,4 +472,37 @@ bool MReplicationSystem::EnsureServerActorRegistered(AActor* Actor)
 
 	RegisterActor(Actor);
 	return true;
+}
+
+void MReplicationSystem::RefreshLocalControl()
+{
+	if (!OwnerWorld || !OwnerWorld->IsClient()) {
+		return;
+	}
+
+	const FNetworkConnectionId localConnectionId = NetworkManager::GetInstance().GetLocalConnectionId();
+	if (localConnectionId == 0) {
+		return;
+	}
+
+	for (const auto& pair : ActorsByNetworkId) {
+		AActor* actor = pair.second;
+		if (!actor) {
+			continue;
+		}
+
+		const bool bShouldBeLocallyControlled = actor->OwnerConnectionId == localConnectionId;
+		if (actor->bIsLocallyControlled == bShouldBeLocallyControlled) {
+			continue;
+		}
+
+		actor->bIsLocallyControlled = bShouldBeLocallyControlled;
+		if (bShouldBeLocallyControlled) {
+			if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
+				if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
+					gameMode->PossessLocalPawn(pawn);
+				}
+			}
+		}
+	}
 }

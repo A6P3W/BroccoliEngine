@@ -45,6 +45,8 @@ public:
 	bool IsClient() const { return bIsClient; }
 	FNetworkConnectionId GetLocalConnectionId() const { return LocalConnectionId; }
 
+	void SetLocalConnectionId(FNetworkConnectionId ConnectionId) { LocalConnectionId = ConnectionId; }
+
 	void SetOnConnected(ConnectedCallback Callback) { OnConnected = std::move(Callback); }
 	void SetOnDisconnected(DisconnectedCallback Callback) { OnDisconnected = std::move(Callback); }
 	void SetOnPacketReceived(PacketReceivedCallback Callback) { OnPacketReceived = std::move(Callback); }

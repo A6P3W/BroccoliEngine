@@ -32,6 +32,9 @@ private:
 	void HandleActorState(FNetBuffer& Buffer);
 	void HandleActorDestroy(FNetBuffer& Buffer);
 	void HandleActorRPC(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer);
+	void HandleAssignNetId(FNetBuffer& Buffer);
+
+	void SendAssignedConnectionId(FNetworkConnectionId ConnectionId);
 
 	void SendInitialStateToClient(FNetworkConnectionId ConnectionId);
 	void SendActorSpawn(AActor* Actor, FNetworkConnectionId TargetConnectionId = 0);
@@ -39,6 +42,8 @@ private:
 	void SendActorDestroy(FNetworkActorId NetworkId);
 
 	bool EnsureServerActorRegistered(AActor* Actor);
+
+	void RefreshLocalControl();
 
 	World* OwnerWorld = nullptr;
 	std::unordered_map<FNetworkActorId, AActor*> ActorsByNetworkId;

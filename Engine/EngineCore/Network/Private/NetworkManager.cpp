@@ -279,7 +279,6 @@ FNetworkConnectionId NetworkManager::RegisterPeer(ENetPeer* Peer)
 	ImplPtr->ConnectionIdsByPeer[Peer] = connectionId;
 	if (bIsClient) {
 		ServerPeer = Peer;
-		LocalConnectionId = connectionId;
 	}
 
 	return connectionId;
