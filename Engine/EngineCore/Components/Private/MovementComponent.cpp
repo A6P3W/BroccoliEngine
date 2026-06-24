@@ -1,4 +1,4 @@
-﻿#include "MovementComponent.h"
+#include "MovementComponent.h"
 #include <SceneComponent.h>
 #include <Actor.h>
 #include "UMath.h"
@@ -37,7 +37,7 @@ void MMovementComponent::SetVelocityRotation(const FRotator& Rotation)
 
 void MMovementComponent::OnUpdate(float DeltaTime)
 {
-	if (Velocity.SizeSquared() < 0.1f) {
+	if (Velocity.SizeSquared() < 0.001f) {
 		Velocity = FVector2D::ZeroVector;
 		return;
 	}

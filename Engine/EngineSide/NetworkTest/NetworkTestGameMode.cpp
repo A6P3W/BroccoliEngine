@@ -4,6 +4,7 @@
 #include "NetworkTest/NetworkTestPawn.h"
 #include "PlayerController.h"
 #include "World.h"
+#include "LevelSerializer.h"
 
 #include <imgui.h>
 
@@ -15,6 +16,7 @@ ANetworkTestGameMode::ANetworkTestGameMode()
 void ANetworkTestGameMode::BeginPlay()
 {
 	SetUpdateableAnytime(true);
+	LevelSerializer::Load(GetWorld(), "../Engine/EngineSide/NetworkTest/NetworkTestLevel.BLevel");
 }
 
 void ANetworkTestGameMode::OnUpdate(float DeltaTime)

@@ -1,8 +1,10 @@
-﻿#include "NetworkTest/NetworkTestPawn.h"
+#include "NetworkTest/NetworkTestPawn.h"
 
 #include "EnhancedInputComponent.h"
 #include "Log.h"
 #include "SpriteComponent.h"
+#include <MovementComponent.h>
+#include <RectangleCollisionComponent.h>
 
 #include <DxLib.h>
 
@@ -11,7 +13,8 @@ namespace
 	enum : FNetworkRPCId
 	{
 		RPC_ServerTest = 1,
-		RPC_MulticastTest = 2
+		RPC_MulticastTest = 2,
+		RPC_ServerMove = 3
 	};
 }
 
@@ -23,12 +26,22 @@ ANetworkTestPawn::ANetworkTestPawn()
 
 	RegisterRPC(RPC_ServerTest, ENetRPCType::Server, this, &ANetworkTestPawn::Server_TestRPC);
 	RegisterRPC(RPC_MulticastTest, ENetRPCType::Multicast, this, &ANetworkTestPawn::Multicast_TestRPC);
+	RegisterRPC(RPC_ServerMove, ENetRPCType::Server, this, &ANetworkTestPawn::Server_Move);
 
 	auto sprite = std::make_unique<MSpriteComponent>(10, RenderSpace::World);
 	BodySprite = sprite.get();
 	BodySprite->SubmitBox(48.0f, 48.0f, GetDisplayColor(), true);
 	BodySprite->SetRelativeLocation({ -24.0f, -24.0f });
 	AddComponent(std::move(sprite));
+
+	auto col = std::make_unique<MRectangleCollisionComponent>(48.0f, 48.0f);
+	col->SetParentComponent(GetRootComponent());
+	col->SetStatic(false);
+	AddComponent(std::move(col));
+
+	auto movement = std::make_unique<MMovementComponent>();
+	Movement = movement.get();
+	AddComponent(std::move(movement));
 }
 
 void ANetworkTestPawn::OnPossesed()
@@ -62,11 +75,28 @@ void ANetworkTestPawn::SetupPlayerInputComponent(MEnhancedInputComponent* Player
 
 void ANetworkTestPawn::OnMove(const FInputActionValue& Value)
 {
-	if (!CanProcessMovementInput()) {
+	if (!bIsLocallyControlled) {
 		return;
 	}
 
-	AddActorWorldOffset(Value.Axis2D * (-MoveSpeed / 60.0f));
+	if (bHasAuthority) {
+		ApplyMovementInput(Value.Axis2D);
+	}
+	else {
+		InvokeRPC(RPC_ServerMove, ENetRPCType::Server, ENetPacketReliability::Unreliable, Value.Axis2D);
+	}
+}
+
+void ANetworkTestPawn::Server_Move(const FVector2D& MoveInput)
+{
+	ApplyMovementInput(MoveInput);
+}
+
+void ANetworkTestPawn::ApplyMovementInput(const FVector2D& MoveInput)
+{
+	if (Movement) {
+		Movement->AddWorldForce(MoveInput * (-MoveSpeed / 60.0f) * 0.05f);
+	}
 }
 
 void ANetworkTestPawn::OnInteract(const FInputActionValue& Value)
@@ -94,11 +124,6 @@ void ANetworkTestPawn::Multicast_TestRPC(int PlayerId)
 	FlashTimer = 0.5f;
 }
 
-bool ANetworkTestPawn::CanProcessMovementInput() const
-{
-	return bHasAuthority && bIsLocallyControlled;
-}
-
 int ANetworkTestPawn::GetDisplayColor() const
 {
 	if (FlashTimer > 0.0f) {
@@ -108,4 +133,13 @@ int ANetworkTestPawn::GetDisplayColor() const
 	return (bIsLocallyControlled || (bHasAuthority && OwnerConnectionId == 0))
 		? GetColor(0, 220, 80)
 		: GetColor(220, 60, 60);
+}
+
+void ANetworkTestPawn::BeginOverlap(AActor* OtherActor)
+{
+	AActor::BeginOverlap(OtherActor);
+
+	if (auto otherPawn = dynamic_cast<ANetworkTestPawn*>(OtherActor)) {
+		M_LOG("Player overlap detected! My NetworkId: {}, Other NetworkId: {}", NetworkId, otherPawn->NetworkId);
+	}
 }
