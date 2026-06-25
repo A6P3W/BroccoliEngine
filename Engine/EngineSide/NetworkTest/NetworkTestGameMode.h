@@ -5,6 +5,12 @@
 
 class APlayerController;
 
+namespace NetworkTestSceneIds
+{
+	constexpr FNetworkSceneId Level1 = 1;
+	constexpr FNetworkSceneId Level2 = 2;
+}
+
 class ANetworkTestGameMode : public AGameModeBase
 {
 public:
@@ -15,6 +21,12 @@ public:
 	void OnUpdate(float DeltaTime) override;
 	void Draw() override;
 	APlayerController* OnClientConnected(FNetworkConnectionId ConnectionId) override;
+
+protected:
+	virtual const char* GetLevelPath() const;
+	virtual const char* GetSceneName() const;
+	virtual const char* GetTravelButtonText() const;
+	virtual FNetworkSceneId GetTravelTargetSceneId() const;
 
 private:
 	void DrawConnectionWindow();
@@ -28,4 +40,16 @@ private:
 	bool bSessionStarted = false;
 	bool bHostPlayerSpawned = false;
 	std::string StatusMessage;
+};
+
+class ANetworkTestLevel2GameMode : public ANetworkTestGameMode
+{
+public:
+	DEFINE_ACTOR_CLASS(ANetworkTestLevel2GameMode)
+
+protected:
+	const char* GetLevelPath() const override;
+	const char* GetSceneName() const override;
+	const char* GetTravelButtonText() const override;
+	FNetworkSceneId GetTravelTargetSceneId() const override;
 };

@@ -5,6 +5,7 @@
 using FNetworkActorId = uint32_t;
 using FNetworkConnectionId = uint32_t;
 using FNetworkRPCId = uint32_t;
+using FNetworkSceneId = uint32_t;
 
 enum class ENetRPCType : uint8_t
 {

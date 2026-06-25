@@ -157,13 +157,13 @@ bool Application::Update(float DeltaTime)
 
 	ImGui::NewFrame();
 
+	SceneManager::GetInstance().ProcessSceneChanges();
 	NetworkManager::GetInstance().Service();
 	InputManager::GetInstance().Update();
 	HttpManager::GetInstance().Update();
 
 	if (bPosed) return true;
 
-	SceneManager::GetInstance().ProcessSceneChanges();
 	if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
 		currentScene->Update(DeltaTime);
 	}

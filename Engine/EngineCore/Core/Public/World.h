@@ -54,6 +54,7 @@ public:
 	bool IsServer() const;
 
 	FNetworkActorId AllocateNetworkActorId();
+	bool ServerTravel(FNetworkSceneId SceneId);
 private:
 	void SetGameMode(AGameModeBase* mode);
 	std::unique_ptr<MCollisionSystem> CollisionSystem = nullptr;

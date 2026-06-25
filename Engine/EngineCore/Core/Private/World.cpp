@@ -7,6 +7,7 @@
 #include "TimerManager.h"
 #include "CameraComponent.h"
 #include "ReplicationSystem.h"
+#include "SceneManager.h"
 #include "World.h"
 World::World()
 {
@@ -83,4 +84,17 @@ FNetworkActorId World::AllocateNetworkActorId()
     }
 
     return NextNetworkActorId++;
+}
+
+bool World::ServerTravel(FNetworkSceneId SceneId)
+{
+    if (!IsServer() || !SceneManager::GetInstance().IsSceneRegistered(SceneId)) {
+        return false;
+    }
+
+    if (IsListenServer() && ReplicationSystem) {
+        ReplicationSystem->BroadcastServerTravel(SceneId);
+    }
+
+    return SceneManager::GetInstance().OpenSceneById(SceneId, GetNetMode());
 }

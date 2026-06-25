@@ -16,7 +16,8 @@ ANetworkTestGameMode::ANetworkTestGameMode()
 void ANetworkTestGameMode::BeginPlay()
 {
 	SetUpdateableAnytime(true);
-	LevelSerializer::Load(GetWorld(), "../Engine/EngineSide/NetworkTest/NetworkTestLevel.BLevel");
+	LevelSerializer::Load(GetWorld(), GetLevelPath());
+	StatusMessage = std::string(GetSceneName()) + " loaded.";
 }
 
 void ANetworkTestGameMode::OnUpdate(float DeltaTime)
@@ -75,6 +76,16 @@ void ANetworkTestGameMode::DrawConnectionWindow()
 		ConnectAsClient();
 	}
 
+	ImGui::Separator();
+	ImGui::Text("Current Scene: %s", GetSceneName());
+	if (GetWorld()->IsServer() && ImGui::Button(GetTravelButtonText())) {
+		if (GetWorld()->ServerTravel(GetTravelTargetSceneId())) {
+			StatusMessage = "Server travel requested.";
+		}
+		else {
+			StatusMessage = "Server travel failed. Scene is not registered or local role is not server.";
+		}
+	}
 	ImGui::Separator();
 	ImGui::TextWrapped("%s", StatusMessage.c_str());
 	ImGui::End();
@@ -140,4 +151,44 @@ void ANetworkTestGameMode::SpawnHostPlayer()
 	}
 
 	bHostPlayerSpawned = true;
+}
+
+const char* ANetworkTestGameMode::GetLevelPath() const
+{
+	return "../Engine/EngineSide/NetworkTest/NetworkTestLevel.BLevel";
+}
+
+const char* ANetworkTestGameMode::GetSceneName() const
+{
+	return "NetworkTest Level 1";
+}
+
+const char* ANetworkTestGameMode::GetTravelButtonText() const
+{
+	return "Server Travel to Level 2";
+}
+
+FNetworkSceneId ANetworkTestGameMode::GetTravelTargetSceneId() const
+{
+	return NetworkTestSceneIds::Level2;
+}
+
+const char* ANetworkTestLevel2GameMode::GetLevelPath() const
+{
+	return "../Engine/EngineSide/NetworkTest/NetworkTestLevel2.BLevel";
+}
+
+const char* ANetworkTestLevel2GameMode::GetSceneName() const
+{
+	return "NetworkTest Level 2";
+}
+
+const char* ANetworkTestLevel2GameMode::GetTravelButtonText() const
+{
+	return "Server Travel to Level 1";
+}
+
+FNetworkSceneId ANetworkTestLevel2GameMode::GetTravelTargetSceneId() const
+{
+	return NetworkTestSceneIds::Level1;
 }

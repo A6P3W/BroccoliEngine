@@ -22,6 +22,8 @@ public:
 	void UnregisterActor(FNetworkActorId NetworkId);
 	void Clear();
 	bool SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload);
+	bool BroadcastServerTravel(FNetworkSceneId SceneId);
+	void NotifySceneLoaded();
 
 private:
 	void HandleConnected(FNetworkConnectionId ConnectionId);
@@ -33,8 +35,12 @@ private:
 	void HandleActorDestroy(FNetBuffer& Buffer);
 	void HandleActorRPC(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer);
 	void HandleAssignNetId(FNetBuffer& Buffer);
+	void HandleServerTravel(FNetBuffer& Buffer);
+	void HandleClientTravelReady(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer);
 
 	void SendAssignedConnectionId(FNetworkConnectionId ConnectionId);
+	bool SendServerTravelToClient(FNetworkConnectionId ConnectionId, FNetworkSceneId SceneId);
+	bool SendClientTravelReady(FNetworkSceneId SceneId);
 
 	void SendInitialStateToClient(FNetworkConnectionId ConnectionId);
 	void SendActorSpawn(AActor* Actor, FNetworkConnectionId TargetConnectionId = 0);
@@ -47,4 +53,5 @@ private:
 
 	World* OwnerWorld = nullptr;
 	std::unordered_map<FNetworkActorId, AActor*> ActorsByNetworkId;
+	std::unordered_map<FNetworkConnectionId, FNetworkSceneId> LastReadySceneByConnection;
 };

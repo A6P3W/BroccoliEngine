@@ -8,6 +8,7 @@
 #include "NetworkManager.h"
 #include "ObjectManager.h"
 #include "Pawn.h"
+#include "SceneManager.h"
 #include "World.h"
 
 #include <string>
@@ -173,6 +174,28 @@ bool MReplicationSystem::SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRP
 	}
 }
 
+bool MReplicationSystem::BroadcastServerTravel(FNetworkSceneId SceneId)
+{
+	if (!OwnerWorld || !OwnerWorld->IsListenServer() || SceneId == 0) {
+		return false;
+	}
+
+	FNetBuffer buffer;
+	buffer.Write(ENetPacketType::ServerTravel);
+	buffer.Write(SceneId);
+
+	return NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Reliable);
+}
+
+void MReplicationSystem::NotifySceneLoaded()
+{
+	if (!OwnerWorld || !OwnerWorld->IsClient()) {
+		return;
+	}
+
+	SendClientTravelReady(SceneManager::GetInstance().GetCurrentSceneId());
+}
+
 void MReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId)
 {
 	if (!OwnerWorld || !OwnerWorld->IsServer()) {
@@ -180,6 +203,11 @@ void MReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId)
 	}
 
 	SendAssignedConnectionId(ConnectionId);
+	const FNetworkSceneId currentSceneId = SceneManager::GetInstance().GetCurrentSceneId();
+	if (currentSceneId != 0 && SendServerTravelToClient(ConnectionId, currentSceneId)) {
+		return;
+	}
+
 	SendInitialStateToClient(ConnectionId);
 
 	if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
@@ -230,6 +258,18 @@ void MReplicationSystem::HandlePacketReceived(FNetworkConnectionId ConnectionId,
 		break;
 	case ENetPacketType::ActorRPC:
 		HandleActorRPC(ConnectionId, Buffer);
+		break;
+	case ENetPacketType::ServerTravel:
+		if (!OwnerWorld->IsClient()) {
+			break;
+		}
+		HandleServerTravel(Buffer);
+		break;
+	case ENetPacketType::ClientTravelReady:
+		if (!OwnerWorld->IsServer()) {
+			break;
+		}
+		HandleClientTravelReady(ConnectionId, Buffer);
 		break;
 	default:
 		break;
@@ -373,6 +413,41 @@ void MReplicationSystem::HandleAssignNetId(FNetBuffer& Buffer)
 	RefreshLocalControl();
 }
 
+void MReplicationSystem::HandleServerTravel(FNetBuffer& Buffer)
+{
+	FNetworkSceneId sceneId = 0;
+	if (!Buffer.Read(sceneId)) {
+		return;
+	}
+
+	SceneManager::GetInstance().OpenSceneById(sceneId, ENetMode::Client);
+}
+
+void MReplicationSystem::HandleClientTravelReady(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer)
+{
+	FNetworkSceneId sceneId = 0;
+	if (!Buffer.Read(sceneId)) {
+		return;
+	}
+
+	if (sceneId == 0 || sceneId != SceneManager::GetInstance().GetCurrentSceneId()) {
+		return;
+	}
+
+	auto readyIt = LastReadySceneByConnection.find(ConnectionId);
+	if (readyIt != LastReadySceneByConnection.end() && readyIt->second == sceneId) {
+		return;
+	}
+	LastReadySceneByConnection[ConnectionId] = sceneId;
+
+	SendAssignedConnectionId(ConnectionId);
+	SendInitialStateToClient(ConnectionId);
+
+	if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
+		gameMode->OnClientConnected(ConnectionId);
+	}
+}
+
 void MReplicationSystem::SendAssignedConnectionId(FNetworkConnectionId ConnectionId)
 {
 	if (!OwnerWorld || !OwnerWorld->IsServer() || ConnectionId == 0) {
@@ -384,6 +459,32 @@ void MReplicationSystem::SendAssignedConnectionId(FNetworkConnectionId Connectio
 	buffer.Write(ConnectionId);
 
 	NetworkManager::GetInstance().SendToClient(ConnectionId, buffer, ENetPacketReliability::Reliable);
+}
+
+bool MReplicationSystem::SendServerTravelToClient(FNetworkConnectionId ConnectionId, FNetworkSceneId SceneId)
+{
+	if (!OwnerWorld || !OwnerWorld->IsServer() || ConnectionId == 0 || SceneId == 0) {
+		return false;
+	}
+
+	FNetBuffer buffer;
+	buffer.Write(ENetPacketType::ServerTravel);
+	buffer.Write(SceneId);
+
+	return NetworkManager::GetInstance().SendToClient(ConnectionId, buffer, ENetPacketReliability::Reliable);
+}
+
+bool MReplicationSystem::SendClientTravelReady(FNetworkSceneId SceneId)
+{
+	if (!OwnerWorld || !OwnerWorld->IsClient() || SceneId == 0) {
+		return false;
+	}
+
+	FNetBuffer buffer;
+	buffer.Write(ENetPacketType::ClientTravelReady);
+	buffer.Write(SceneId);
+
+	return NetworkManager::GetInstance().SendToServer(buffer, ENetPacketReliability::Reliable);
 }
 
 void MReplicationSystem::SendInitialStateToClient(FNetworkConnectionId ConnectionId)
