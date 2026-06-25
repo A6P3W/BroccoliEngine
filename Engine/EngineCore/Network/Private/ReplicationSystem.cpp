@@ -1,4 +1,4 @@
-﻿#include "ReplicationSystem.h"
+#include "ReplicationSystem.h"
 
 #include "Actor.h"
 #include "ActorRegistry.h"
@@ -217,9 +217,13 @@ void MReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId)
 
 void MReplicationSystem::HandleDisconnected(FNetworkConnectionId ConnectionId)
 {
-	(void)ConnectionId;
+	LastReadySceneByConnection.erase(ConnectionId);
+	if (OwnerWorld && OwnerWorld->IsServer()) {
+		if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
+			gameMode->OnClientDisconnected(ConnectionId);
+		}
+	}
 }
-
 void MReplicationSystem::HandlePacketReceived(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer)
 {
 	if (!OwnerWorld) {

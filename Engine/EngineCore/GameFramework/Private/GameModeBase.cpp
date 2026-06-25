@@ -1,4 +1,4 @@
-﻿#include "GameModeBase.h"
+#include "GameModeBase.h"
 #include "Pawn.h"
 #include "ObjectManager.h"
 #include "CollisionSystem.h"
@@ -26,13 +26,21 @@ APlayerController* AGameModeBase::OnClientConnected(FNetworkConnectionId Connect
     return controller;
 }
 
+void AGameModeBase::OnClientDisconnected(FNetworkConnectionId ConnectionId)
+{
+    (void)ConnectionId;
+}
+APlayerController* AGameModeBase::CreateLocalPlayerController()
+{
+    return GetWorld()->SpawnActor<APlayerController>(FVector2D::ZeroVector);
+}
 APlayerController* AGameModeBase::GetOrCreateLocalPlayerController()
 {
     if (PlayerController) {
         return PlayerController;
     }
 
-    PlayerController = GetWorld()->SpawnActor<APlayerController>(FVector2D::ZeroVector);
+    PlayerController = CreateLocalPlayerController();
     PlayerController->SetPlayerId(0);
     PlayerController->SetupInputMappings();
     return PlayerController;

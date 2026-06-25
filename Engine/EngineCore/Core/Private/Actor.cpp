@@ -1,4 +1,4 @@
-﻿#include "Actor.h"
+#include "Actor.h"
 #include "SceneComponent.h"
 #include "ActorComponent.h"
 #include "TimerManager.h"
@@ -238,6 +238,7 @@ bool AActor::HasReplicatedStateChanged(float Tolerance) const
 	const FScale scale = GetActorScale();
 
 	return
+		 bReplicatedStateDirty ||
 		!location.Equals(LastReplicatedLocation, Tolerance) ||
 		!IsNearlyEqual(rotation.Rotation, LastReplicatedRotation.Rotation, Tolerance) ||
 		!IsNearlyEqual(scale.Scale, LastReplicatedScale.Scale, Tolerance);
@@ -249,6 +250,12 @@ void AActor::UpdateReplicatedStateCache()
 	LastReplicatedRotation = GetActorRotation();
 	LastReplicatedScale = GetActorScale();
 	bHasReplicatedStateCache = true;
+	bReplicatedStateDirty = false;
+}
+
+void AActor::MarkReplicatedStateDirty()
+{
+	bReplicatedStateDirty = true;
 }
 
 uint32_t AActor::IncrementReplicationSequence()

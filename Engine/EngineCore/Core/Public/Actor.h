@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "BaseObject.h"
 #include <string>
 #include <string_view>
@@ -99,6 +99,7 @@ public:
 
 	bool HasReplicatedStateChanged(float Tolerance = 0.001f) const;
 	void UpdateReplicatedStateCache();
+	void MarkReplicatedStateDirty();
 	uint32_t IncrementReplicationSequence();
 	uint32_t GetReplicationSequence() const { return ReplicationSequence; }
 	uint32_t GetLastReceivedReplicationSequence() const { return LastReceivedReplicationSequence; }
@@ -181,6 +182,7 @@ private:
 	FRotator LastReplicatedRotation;
 	FScale LastReplicatedScale;
 	bool bHasReplicatedStateCache = false;
+	bool bReplicatedStateDirty = false;
 	uint32_t ReplicationSequence = 0;
 	uint32_t LastReceivedReplicationSequence = 0;
 	struct FRPCEntry

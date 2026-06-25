@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Actor.h"
 #include "PlayerController.h"
 #include "ObjectManager.h"
@@ -21,6 +21,7 @@ public:
 	APawn* GetPlayerPawn() const { return PlayerPawn; }
 	APlayerController* GetPlayerController() const { return PlayerController; }
 	virtual APlayerController* OnClientConnected(FNetworkConnectionId ConnectionId);
+	virtual void OnClientDisconnected(FNetworkConnectionId ConnectionId);
 	APlayerController* GetOrCreateLocalPlayerController();
 	void PossessLocalPawn(APawn* Pawn);
 
@@ -29,6 +30,7 @@ public:
 		return GetWorld()->SpawnActor<T>(Loc, Rot);
 	}
 protected:
+	virtual APlayerController* CreateLocalPlayerController();
 
 	template<class TPawn, class TController = APlayerController>
 	TController* SpawnPlayer(const FVector2D& Location = FVector2D::ZeroVector, int PlayerId = 0)
