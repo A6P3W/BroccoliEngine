@@ -1,4 +1,5 @@
 ﻿#include "Application.h"
+#include <Windows.h>
 #include "DxLib.h"
 #include <imgui.h>
 #include <imgui_impl/imgui_impl_win32.h>
@@ -18,11 +19,21 @@
 #include "EditorMode.h"
 #include "HttpManager.h"
 #include "NetworkManager.h"
-extern void SetupGame();
 
+extern void SetupGame();
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 LRESULT CALLBACK ImGuiHookProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	if (msg == WM_MOUSEMOVE ||
+		msg == WM_LBUTTONDOWN || msg == WM_LBUTTONUP || msg == WM_LBUTTONDBLCLK ||
+		msg == WM_RBUTTONDOWN || msg == WM_RBUTTONUP || msg == WM_RBUTTONDBLCLK ||
+		msg == WM_MBUTTONDOWN || msg == WM_MBUTTONUP || msg == WM_MBUTTONDBLCLK) {
+
+		int mx = 0, my = 0;
+		GetMousePoint(&mx, &my);
+		lParam = MAKELPARAM(static_cast<WORD>(mx), static_cast<WORD>(my));
+	}
+
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
 		return 1;
 	}
@@ -61,27 +72,20 @@ void Application::QuitGame()
 
 bool Application::Run()
 {
+	SetProcessDPIAware();
 	SetGraphMode(1920, 1080, 32);
-
 	SetUseDirect3D11(true);
-
 	ChangeWindowMode(true);
-
 	bool bFitScreen = !IsEditor;
 	bool bFullScreen = !IsRelease;
-
 	SetWindowSizeChangeEnableFlag(true, bFitScreen);
 	ChangeWindowMode(bFullScreen);
 	SetDoubleStartValidFlag(TRUE);
-	SetOutApplicationLogValidFlag(FALSE); 
-	SetAlwaysRunFlag(TRUE); 
-
+	SetOutApplicationLogValidFlag(FALSE);
+	SetAlwaysRunFlag(TRUE);
 	DxLib_Init();
-
 	SetWaitVSyncFlag(false);
 
-
-	SetWaitVSyncFlag(false);
 	const LONGLONG TargetFrameTime = 1000000 / 60;
 	LONGLONG LastTime = GetNowHiPerformanceCount();
 
@@ -95,7 +99,6 @@ bool Application::Run()
 		reinterpret_cast<ID3D11Device*>(const_cast<void*>(GetUseDirect3D11Device())),
 		reinterpret_cast<ID3D11DeviceContext*>(const_cast<void*>(GetUseDirect3D11DeviceContext()))
 	);
-
 	SetHookWinProc(ImGuiHookProc);
 
 	InitOffscreenBuffer();
@@ -106,6 +109,7 @@ bool Application::Run()
 	else {
 		SetupGame();
 	}
+
 	if (!IsRelease) {
 		HWND hwnd = GetMainWindowHandle();
 		SetWindowPos(hwnd, NULL, 0, 0, 960, 540, SWP_NOZORDER | SWP_SHOWWINDOW);
@@ -120,28 +124,27 @@ bool Application::Run()
 	while (ProcessMessage() == 0 && !ShouldQuitGame) {
 		LONGLONG CurrentTime = GetNowHiPerformanceCount();
 		LONGLONG ElapsedTime = CurrentTime - LastTime;
-
 		if (ElapsedTime < TargetFrameTime) {
 			LONGLONG SleepTime = (TargetFrameTime - ElapsedTime) / 1000;
 			if (SleepTime > 0) Sleep((DWORD)SleepTime);
 			CurrentTime = GetNowHiPerformanceCount();
 			ElapsedTime = CurrentTime - LastTime;
 		}
-
 		DeltaTime = static_cast<float>(ElapsedTime) / 1000000.0f;
 		LastTime = CurrentTime;
-		if (DeltaTime > 0.1f) DeltaTime = 0.1f;
 
+		if (DeltaTime > 0.1f) DeltaTime = 0.1f;
 		Update(DeltaTime);
 		Draw();
 	}
+
 	return true;
 }
+
 bool Application::Update(float DeltaTime)
 {
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
-
 	ImGuiIO& io = ImGui::GetIO();
 
 	int screenW, screenH;
@@ -150,9 +153,10 @@ bool Application::Update(float DeltaTime)
 
 	int mx, my;
 	GetMousePoint(&mx, &my);
-	io.MousePos = ImVec2((float)mx, (float)my);
+	io.AddMousePosEvent((float)mx, (float)my);
 
 	ImGui::NewFrame();
+
 	NetworkManager::GetInstance().Service();
 	InputManager::GetInstance().Update();
 	HttpManager::GetInstance().Update();
@@ -163,12 +167,15 @@ bool Application::Update(float DeltaTime)
 	if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
 		currentScene->Update(DeltaTime);
 	}
+
 	return true;
 }
+
 bool Application::Draw()
 {
 	SetDrawScreen(OffscreenBuffer);
 	ClearDrawScreen();
+
 	if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
 		currentScene->Draw();
 	}
@@ -177,10 +184,8 @@ bool Application::Draw()
 	SetDrawScreen(DX_SCREEN_BACK);
 	ClearDrawScreen();
 
-
 	int screenW, screenH;
 	GetDrawScreenSize(&screenW, &screenH);
-
 	float scaleX = (float)screenW / VirtualWidth;
 	float scaleY = (float)screenH / VirtualHeight;
 	float scale = (scaleX < scaleY) ? scaleX : scaleY;
@@ -194,11 +199,10 @@ bool Application::Draw()
 	DrawExtendGraph(drawX, drawY, drawX + drawW, drawY + drawH, OffscreenBuffer, false);
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
 
-
 	SetDrawScreen(DX_SCREEN_BACK);
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
 	ScreenFlip();
+
 	return true;
 }
