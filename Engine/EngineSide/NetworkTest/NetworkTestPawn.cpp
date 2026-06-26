@@ -1,4 +1,4 @@
-#include "NetworkTest/NetworkTestPawn.h"
+﻿#include "NetworkTest/NetworkTestPawn.h"
 
 #include "EnhancedInputComponent.h"
 #include "Log.h"
@@ -14,8 +14,90 @@ namespace
 	{
 		RPC_ServerTest = 1,
 		RPC_MulticastTest = 2,
-		RPC_ServerMove = 3
+		RPC_ServerMove = 3,
+		RPC_ComponentServerTest = 101,
+		RPC_ComponentMulticastTest = 102
 	};
+}
+
+MNetworkTestRepComponent::MNetworkTestRepComponent()
+{
+	bReplicates = true;
+	SetNetComponentName("NetworkTestRepComponent");
+
+	RegisterReplicatedProperty(&ReplicatedCounter, this, &MNetworkTestRepComponent::OnRepReplicatedCounter);
+	RegisterRPC(RPC_ComponentServerTest, ENetRPCType::Server, this, &MNetworkTestRepComponent::Server_ComponentTest);
+	RegisterRPC(RPC_ComponentMulticastTest, ENetRPCType::Multicast, this, &MNetworkTestRepComponent::Multicast_ComponentTest);
+}
+
+void MNetworkTestRepComponent::RequestTest(int PlayerId)
+{
+	M_LOG("Component RPC test input: actor={} component={} player={}", GetOwner() ? GetOwner()->NetworkId : 0, ComponentNetworkId, PlayerId);
+	InvokeRPC(RPC_ComponentServerTest, ENetRPCType::Server, ENetPacketReliability::Reliable, PlayerId);
+}
+
+void MNetworkTestRepComponent::OnUpdate(float DeltaTime)
+{
+	if (OnRepFlashTimer > 0.0f) {
+		OnRepFlashTimer -= DeltaTime;
+		if (OnRepFlashTimer < 0.0f) {
+			OnRepFlashTimer = 0.0f;
+		}
+	}
+
+	if (RPCFlashTimer > 0.0f) {
+		RPCFlashTimer -= DeltaTime;
+		if (RPCFlashTimer < 0.0f) {
+			RPCFlashTimer = 0.0f;
+		}
+	}
+
+	if (RPCFlashTimer <= 0.0f && PendingOnRepFlashTimer > 0.0f) {
+		OnRepFlashTimer = PendingOnRepFlashTimer;
+		PendingOnRepFlashTimer = 0.0f;
+	}
+}
+
+void MNetworkTestRepComponent::Server_ComponentTest(int PlayerId)
+{
+	++ReplicatedCounter;
+	MarkReplicatedStateDirty();
+
+	M_LOG(
+		"Server_ComponentTest received: actor={} component={} player={} counter={}",
+		GetOwner() ? GetOwner()->NetworkId : 0,
+		ComponentNetworkId,
+		PlayerId,
+		ReplicatedCounter);
+
+	InvokeRPC(RPC_ComponentMulticastTest, ENetRPCType::Multicast, ENetPacketReliability::Reliable, PlayerId, ReplicatedCounter);
+}
+
+void MNetworkTestRepComponent::Multicast_ComponentTest(int PlayerId, int CounterValue)
+{
+	M_LOG(
+		"Multicast_ComponentTest received: actor={} component={} player={} counter={}",
+		GetOwner() ? GetOwner()->NetworkId : 0,
+		ComponentNetworkId,
+		PlayerId,
+		CounterValue);
+	RPCFlashTimer = 0.8f;
+}
+
+void MNetworkTestRepComponent::OnRepReplicatedCounter(int OldValue)
+{
+	M_LOG(
+		"OnRep component counter: actor={} component={} old={} new={}",
+		GetOwner() ? GetOwner()->NetworkId : 0,
+		ComponentNetworkId,
+		OldValue,
+		ReplicatedCounter);
+	if (RPCFlashTimer > 0.0f) {
+		PendingOnRepFlashTimer = 0.75f;
+	}
+	else {
+		OnRepFlashTimer = 0.75f;
+	}
 }
 
 REGISTER_ACTOR(ANetworkTestPawn)
@@ -42,6 +124,10 @@ ANetworkTestPawn::ANetworkTestPawn()
 	auto movement = std::make_unique<MMovementComponent>();
 	Movement = movement.get();
 	AddComponent(std::move(movement));
+
+	auto replicationTest = std::make_unique<MNetworkTestRepComponent>();
+	ReplicationTest = replicationTest.get();
+	AddComponent(std::move(replicationTest));
 }
 
 void ANetworkTestPawn::OnPossesed()
@@ -110,6 +196,10 @@ void ANetworkTestPawn::OnInteract(const FInputActionValue& Value)
 	const int playerId = static_cast<int>(OwnerConnectionId);
 	M_LOG("RPC test input: actor={} player={}", NetworkId, playerId);
 	InvokeRPC(RPC_ServerTest, ENetRPCType::Server, ENetPacketReliability::Reliable, playerId);
+
+	if (ReplicationTest) {
+		ReplicationTest->RequestTest(playerId);
+	}
 }
 
 void ANetworkTestPawn::Server_TestRPC(int PlayerId)
@@ -126,6 +216,14 @@ void ANetworkTestPawn::Multicast_TestRPC(int PlayerId)
 
 int ANetworkTestPawn::GetDisplayColor() const
 {
+	if (ReplicationTest && ReplicationTest->IsRPCFlashActive()) {
+		return GetColor(255, 120, 255);
+	}
+
+	if (ReplicationTest && ReplicationTest->IsOnRepFlashActive()) {
+		return GetColor(80, 170, 255);
+	}
+
 	if (FlashTimer > 0.0f) {
 		return GetColor(255, 255, 80);
 	}

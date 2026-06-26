@@ -1,4 +1,4 @@
-#include "ReplicationSystem.h"
+﻿#include "ReplicationSystem.h"
 
 #include "Actor.h"
 #include "ActorRegistry.h"
@@ -118,7 +118,7 @@ void MReplicationSystem::Clear()
 	ActorsByNetworkId.clear();
 }
 
-bool MReplicationSystem::SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload)
+bool MReplicationSystem::SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload, FNetworkComponentId ComponentNetworkId)
 {
 	if (!OwnerWorld || !Actor || Actor->NetworkId == 0 || RPCId == 0) {
 		return false;
@@ -131,6 +131,7 @@ bool MReplicationSystem::SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRP
 	FNetBuffer buffer;
 	buffer.Write(ENetPacketType::ActorRPC);
 	buffer.Write(Actor->NetworkId);
+	buffer.Write(ComponentNetworkId);
 	buffer.Write(RPCId);
 	buffer.Write(RPCType);
 
@@ -145,7 +146,7 @@ bool MReplicationSystem::SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRP
 	case ENetRPCType::Server:
 		if (OwnerWorld->IsServer() && Actor->bHasAuthority) {
 			FNetBuffer localPayload(Payload.GetData());
-			return Actor->DispatchRPC(RPCId, RPCType, localPayload);
+			return Actor->DispatchRPC(ComponentNetworkId, RPCId, RPCType, localPayload);
 		}
 		if (!OwnerWorld->IsClient() || !Actor->bIsLocallyControlled) {
 			return false;
@@ -157,7 +158,7 @@ bool MReplicationSystem::SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRP
 		}
 		if (Actor->OwnerConnectionId == 0) {
 			FNetBuffer localPayload(Payload.GetData());
-			return Actor->DispatchRPC(RPCId, RPCType, localPayload);
+			return Actor->DispatchRPC(ComponentNetworkId, RPCId, RPCType, localPayload);
 		}
 		return network.SendToClient(Actor->OwnerConnectionId, buffer, Reliability);
 	case ENetRPCType::Multicast:
@@ -166,7 +167,7 @@ bool MReplicationSystem::SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRP
 		}
 		{
 			FNetBuffer localPayload(Payload.GetData());
-			Actor->DispatchRPC(RPCId, RPCType, localPayload);
+			Actor->DispatchRPC(ComponentNetworkId, RPCId, RPCType, localPayload);
 		}
 		return network.Broadcast(buffer, Reliability);
 	default:
@@ -305,7 +306,7 @@ void MReplicationSystem::HandleActorSpawn(FNetBuffer& Buffer)
 	actor->bHasAuthority = false;
 	actor->bIsLocallyControlled = ownerConnectionId != 0 && ownerConnectionId == NetworkManager::GetInstance().GetLocalConnectionId();
 
-	if (!actor->DeserializeNetworkState(Buffer)) {
+	if (!actor->DeserializeNetworkSpawn(Buffer)) {
 		if (!bAlreadyExists) {
 			actor->Destroy();
 		}
@@ -368,11 +369,13 @@ void MReplicationSystem::HandleActorDestroy(FNetBuffer& Buffer)
 void MReplicationSystem::HandleActorRPC(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer)
 {
 	FNetworkActorId networkId = 0;
+	FNetworkComponentId componentNetworkId = 0;
 	FNetworkRPCId rpcId = 0;
 	ENetRPCType rpcType = ENetRPCType::Server;
 	uint32_t payloadSize = 0;
 
 	if (!Buffer.Read(networkId)) return;
+	if (!Buffer.Read(componentNetworkId)) return;
 	if (!Buffer.Read(rpcId)) return;
 	if (!Buffer.Read(rpcType)) return;
 	if (!Buffer.Read(payloadSize)) return;
@@ -403,7 +406,7 @@ void MReplicationSystem::HandleActorRPC(FNetworkConnectionId ConnectionId, FNetB
 	}
 
 	FNetBuffer payload(std::move(payloadBytes));
-	actor->DispatchRPC(rpcId, rpcType, payload);
+	actor->DispatchRPC(componentNetworkId, rpcId, rpcType, payload);
 }
 
 void MReplicationSystem::HandleAssignNetId(FNetBuffer& Buffer)
@@ -575,6 +578,7 @@ bool MReplicationSystem::EnsureServerActorRegistered(AActor* Actor)
 		return false;
 	}
 
+	Actor->AssignNetworkComponentIds();
 	RegisterActor(Actor);
 	return true;
 }

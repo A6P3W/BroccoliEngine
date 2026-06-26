@@ -21,7 +21,7 @@ public:
 	void RegisterActor(AActor* Actor);
 	void UnregisterActor(FNetworkActorId NetworkId);
 	void Clear();
-	bool SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload);
+	bool SendActorRPC(AActor* Actor, FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload, FNetworkComponentId ComponentNetworkId = 0);
 	bool BroadcastServerTravel(FNetworkSceneId SceneId);
 	void NotifySceneLoaded();
 

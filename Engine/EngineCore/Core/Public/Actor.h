@@ -73,6 +73,10 @@ public:
 
 	void AddComponent(std::unique_ptr<MActorComponent> comp);
 
+	MActorComponent* FindReplicatedComponent(FNetworkComponentId ComponentNetworkId) const;
+	MActorComponent* FindReplicatedComponentByName(std::string_view NetComponentName) const;
+	void AssignNetworkComponentIds();
+
 	FVector2D GetActorLocation() const;
 	bool SetActorLocation(const FVector2D& NewLocation);
 
@@ -132,7 +136,9 @@ public:
 	using FRPCHandler = std::function<void(FNetBuffer&)>;
 	void RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FRPCHandler Handler);
 	bool DispatchRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FNetBuffer& Payload);
+	bool DispatchRPC(FNetworkComponentId ComponentNetworkId, FNetworkRPCId RPCId, ENetRPCType RPCType, FNetBuffer& Payload);
 	bool InvokeRPCWithPayload(FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload);
+	bool InvokeComponentRPCWithPayload(MActorComponent* Component, FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload);
 
 	template<class TObject, class... TArgs>
 	void RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, TObject* Object, void (TObject::* Method)(TArgs...))
@@ -210,12 +216,25 @@ private:
 	std::vector<std::unique_ptr<IReplicatedProperty>> ReplicatedProperties;
 	uint32_t ReplicationSequence = 0;
 	uint32_t LastReceivedReplicationSequence = 0;
+	FNetworkComponentId NextNetworkComponentId = 1;
+	std::unordered_map<FNetworkComponentId, MActorComponent*> ComponentsByNetworkId;
 	struct FRPCEntry
 	{
 		ENetRPCType Type = ENetRPCType::Server;
 		FRPCHandler Handler;
 	};
 	std::unordered_map<FNetworkRPCId, FRPCEntry> RPCHandlers;
+
+	void EnsureNetComponentName(MActorComponent* Component);
+	std::vector<MActorComponent*> GetReplicatedNetworkComponents() const;
+	void SerializeActorNetworkState(FNetBuffer& OutBuffer);
+	bool DeserializeActorNetworkState(FNetBuffer& InBuffer);
+	void SerializeReplicatedComponentStates(FNetBuffer& OutBuffer);
+	bool DeserializeReplicatedComponentStates(FNetBuffer& InBuffer);
+	void SerializeReplicatedComponentSpawns(FNetBuffer& OutBuffer);
+	bool DeserializeReplicatedComponentSpawns(FNetBuffer& InBuffer);
+	static bool WritePayloadBytes(FNetBuffer& OutBuffer, const FNetBuffer& Payload);
+	static bool ReadPayloadBytes(FNetBuffer& InBuffer, uint32_t PayloadSize, std::vector<uint8_t>& OutBytes);
 
 	template<class T>
 	static void WriteRPCArgument(FNetBuffer& Payload, const T& Value)

@@ -12,12 +12,18 @@ namespace
 		if (!AllocConsole()) {
 			return;
 		}
-
 		FILE* stream = nullptr;
 		freopen_s(&stream, "CONOUT$", "w", stdout);
 		freopen_s(&stream, "CONOUT$", "w", stderr);
 		freopen_s(&stream, "CONIN$", "r", stdin);
 		SetConsoleTitleA("BroccoliEngine Debug Console");
+
+		HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+		DWORD mode = 0;
+		if (GetConsoleMode(hStdin, &mode)) {
+			mode &= ~ENABLE_QUICK_EDIT_MODE;
+			SetConsoleMode(hStdin, mode);
+		}
 	}
 }
 #endif
