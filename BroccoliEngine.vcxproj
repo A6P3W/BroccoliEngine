@@ -375,6 +375,7 @@
     <ClInclude Include="Engine\EngineCore\Network\Public\NetPacketType.h" />
     <ClInclude Include="Engine\EngineCore\Network\Public\NetBuffer.h" />
     <ClInclude Include="Engine\EngineCore\Network\Public\NetworkManager.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\ReplicatedProperty.h" />
     <ClInclude Include="Engine\EngineCore\Network\Public\ReplicationSystem.h" />
   </ItemGroup>
   <ItemGroup>

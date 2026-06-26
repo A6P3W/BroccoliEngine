@@ -1,4 +1,4 @@
-#include "Actor.h"
+﻿#include "Actor.h"
 #include "SceneComponent.h"
 #include "ActorComponent.h"
 #include "TimerManager.h"
@@ -191,6 +191,12 @@ void AActor::SerializeNetworkState(FNetBuffer& OutBuffer)
 	OutBuffer.Write(location.Y);
 	OutBuffer.Write(rotation.Rotation);
 	OutBuffer.Write(scale.Scale);
+
+	for (const auto& replicatedProperty : ReplicatedProperties) {
+		if (replicatedProperty) {
+			replicatedProperty->Serialize(OutBuffer);
+		}
+	}
 }
 
 bool AActor::DeserializeNetworkState(FNetBuffer& InBuffer)
@@ -208,6 +214,13 @@ bool AActor::DeserializeNetworkState(FNetBuffer& InBuffer)
 	SetActorLocation({ locationX, locationY });
 	SetActorRotation(FRotator(rotation));
 	SetActorScale(FScale(scale));
+
+	for (const auto& replicatedProperty : ReplicatedProperties) {
+		if (replicatedProperty && !replicatedProperty->DeserializeAndTriggerOnRep(InBuffer)) {
+			return false;
+		}
+	}
+
 	return true;
 }
 
@@ -237,11 +250,19 @@ bool AActor::HasReplicatedStateChanged(float Tolerance) const
 	const FRotator rotation = GetActorRotation();
 	const FScale scale = GetActorScale();
 
-	return
-		 bReplicatedStateDirty ||
+	if (bReplicatedStateDirty ||
 		!location.Equals(LastReplicatedLocation, Tolerance) ||
 		!IsNearlyEqual(rotation.Rotation, LastReplicatedRotation.Rotation, Tolerance) ||
-		!IsNearlyEqual(scale.Scale, LastReplicatedScale.Scale, Tolerance);
+		!IsNearlyEqual(scale.Scale, LastReplicatedScale.Scale, Tolerance)) {
+		return true;
+	}
+
+	return std::any_of(
+		ReplicatedProperties.begin(),
+		ReplicatedProperties.end(),
+		[](const std::unique_ptr<IReplicatedProperty>& replicatedProperty) {
+			return replicatedProperty && replicatedProperty->HasChanged();
+		});
 }
 
 void AActor::UpdateReplicatedStateCache()
@@ -249,6 +270,11 @@ void AActor::UpdateReplicatedStateCache()
 	LastReplicatedLocation = GetActorLocation();
 	LastReplicatedRotation = GetActorRotation();
 	LastReplicatedScale = GetActorScale();
+	for (const auto& replicatedProperty : ReplicatedProperties) {
+		if (replicatedProperty) {
+			replicatedProperty->UpdateCache();
+		}
+	}
 	bHasReplicatedStateCache = true;
 	bReplicatedStateDirty = false;
 }

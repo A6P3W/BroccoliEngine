@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "BaseObject.h"
 #include <string>
 #include <string_view>
@@ -10,8 +10,10 @@
 #include "NetBuffer.h"
 #include "NetworkManager.h"
 #include "NetworkTypes.h"
+#include "ReplicatedProperty.h"
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
@@ -105,6 +107,28 @@ public:
 	uint32_t GetLastReceivedReplicationSequence() const { return LastReceivedReplicationSequence; }
 	void SetLastReceivedReplicationSequence(uint32_t Sequence);
 
+	template<class T>
+	void RegisterReplicatedProperty(T* Property)
+	{
+		if (!Property) {
+			return;
+		}
+
+		ReplicatedProperties.push_back(std::make_unique<TReplicatedProperty<T>>(Property));
+		MarkReplicatedStateDirty();
+	}
+
+	template<class T, class TObject>
+	void RegisterReplicatedProperty(T* Property, TObject* Object, void (TObject::* OnRep)(T))
+	{
+		if (!Property || !Object || !OnRep) {
+			return;
+		}
+
+		ReplicatedProperties.push_back(std::make_unique<TReplicatedProperty<T, TObject>>(Property, Object, OnRep));
+		MarkReplicatedStateDirty();
+	}
+
 	using FRPCHandler = std::function<void(FNetBuffer&)>;
 	void RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FRPCHandler Handler);
 	bool DispatchRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FNetBuffer& Payload);
@@ -183,6 +207,7 @@ private:
 	FScale LastReplicatedScale;
 	bool bHasReplicatedStateCache = false;
 	bool bReplicatedStateDirty = false;
+	std::vector<std::unique_ptr<IReplicatedProperty>> ReplicatedProperties;
 	uint32_t ReplicationSequence = 0;
 	uint32_t LastReceivedReplicationSequence = 0;
 	struct FRPCEntry
