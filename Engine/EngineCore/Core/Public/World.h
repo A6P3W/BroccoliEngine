@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "ObjectManager.h"
 #include "CollisionSystem.h"
@@ -9,6 +9,7 @@
 #include "NetMode.h"
 #include "NetworkTypes.h"
 #include <memory>
+#include <string>
 class AActor;
 class AGameModeBase;
 class MReplicationSystem;
@@ -60,7 +61,8 @@ public:
 	void SetGameMode(AGameModeBase* mode);
 
 	APlayerController* GetOrCreateLocalPlayerController();
-    void PossessLocalPawn(APawn* Pawn);
+	void PossessLocalPawn(APawn* Pawn);
+	void SetLocalPlayerControllerClass(const std::string& ClassName);
 private:
 	std::unique_ptr<MCollisionSystem> CollisionSystem = nullptr;
 	std::unique_ptr<MSoundManager> SoundManager = nullptr;
@@ -75,4 +77,5 @@ private:
 	ENetMode NetMode = ENetMode::Standalone;
 	FNetworkActorId NextNetworkActorId = 1;
 	APlayerController* LocalPlayerController = nullptr;
+	std::string LocalPlayerControllerClass;
 };

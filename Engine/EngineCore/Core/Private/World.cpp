@@ -1,4 +1,6 @@
-﻿#include "World.h"
+#include "World.h"
+
+#include "ActorRegistry.h"
 
 #include "Pawn.h"
 #include "ObjectManager.h"
@@ -102,13 +104,30 @@ bool World::ServerTravel(FNetworkSceneId SceneId)
 
 APlayerController* World::GetOrCreateLocalPlayerController()
 {
-    if (LocalPlayerController) {
+    if (LocalPlayerController && !LocalPlayerController->IsPendingDestroy()) {
         return LocalPlayerController;
     }
 
-    LocalPlayerController = SpawnActor<APlayerController>();
+    AActor* controllerActor = nullptr;
+    if (!LocalPlayerControllerClass.empty()) {
+        controllerActor = ActorRegistry::GetInstance().Spawn(this, LocalPlayerControllerClass);
+    }
+    if (!controllerActor) {
+        controllerActor = SpawnActor<APlayerController>();
+    }
+
+    LocalPlayerController = dynamic_cast<APlayerController*>(controllerActor);
+    if (!LocalPlayerController) {
+        if (controllerActor) {
+            controllerActor->Destroy();
+        }
+        LocalPlayerController = SpawnActor<APlayerController>();
+    }
+
     LocalPlayerController->SetPlayerId(0);
+    LocalPlayerController->bIsLocallyControlled = true;
     LocalPlayerController->SetupInputMappings();
+    LocalPlayerController->Spawned();
     return LocalPlayerController;
 }
 
@@ -121,4 +140,9 @@ void World::PossessLocalPawn(APawn* Pawn)
     if (APlayerController* controller = GetOrCreateLocalPlayerController()) {
         controller->Possess(Pawn);
     }
+}
+
+void World::SetLocalPlayerControllerClass(const std::string& ClassName)
+{
+    LocalPlayerControllerClass = ClassName;
 }

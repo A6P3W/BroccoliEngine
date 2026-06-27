@@ -1,4 +1,4 @@
-﻿#include "SceneManager.h"
+#include "SceneManager.h"
 #include "ObjectManager.h"
 #include "GridLine.h"
 #include "RenderSystem.h"
@@ -17,6 +17,14 @@ void SceneManager::RegisterLevelPath(FNetworkSceneId SceneId, const std::string&
 	}
 
 	RegisteredLevelPaths[SceneId] = LevelPath;
+}
+void SceneManager::RegisterLocalPlayerControllerClass(FNetworkSceneId SceneId, const std::string& ClassName)
+{
+	if (SceneId == 0 || ClassName.empty()) {
+		return;
+	}
+
+	RegisteredLocalPlayerControllerClasses[SceneId] = ClassName;
 }
 
 bool SceneManager::OpenSceneById(FNetworkSceneId SceneId)
@@ -112,6 +120,14 @@ void SceneManager::ProcessSceneChanges()
 
 		if (CurrentScene && IsDebug) {
 			auto Grid = CurrentScene->SpawnActor<AGridLine>();
+		}
+
+		if (CurrentScene) {
+			auto controllerIt = RegisteredLocalPlayerControllerClasses.find(CurrentSceneId);
+			if (controllerIt != RegisteredLocalPlayerControllerClasses.end()) {
+				CurrentScene->SetLocalPlayerControllerClass(controllerIt->second);
+				CurrentScene->GetOrCreateLocalPlayerController();
+			}
 		}
 
 		if (CurrentScene && CurrentScene->GetReplicationSystem()) {

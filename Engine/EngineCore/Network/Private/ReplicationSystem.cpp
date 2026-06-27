@@ -1,4 +1,4 @@
-﻿#include "ReplicationSystem.h"
+#include "ReplicationSystem.h"
 
 #include "Actor.h"
 #include "ActorRegistry.h"
@@ -476,7 +476,7 @@ void MReplicationSystem::SendInitialStateToClient(FNetworkConnectionId Connectio
 			continue;
 		}
 
-		if (actor->NetworkId == 0 && !EnsureServerActorRegistered(actor)) {
+		if (actor->NetworkId == 0) {
 			continue;
 		}
 

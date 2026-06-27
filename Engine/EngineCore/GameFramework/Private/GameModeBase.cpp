@@ -1,4 +1,4 @@
-﻿#include "GameModeBase.h"
+#include "GameModeBase.h"
 #include "Pawn.h"
 #include "ObjectManager.h"
 #include "CollisionSystem.h"
@@ -82,14 +82,19 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
     const FRotator spawnRotation = playerStart ? playerStart->GetActorRotation() : FRotator(0.0f);
 
     ActorRegistry& registry = ActorRegistry::GetInstance();
-    AActor* controllerActor = registry.Spawn(GetWorld(), DefaultPlayerControllerClass, spawnLocation, spawnRotation);
-    auto* controller = dynamic_cast<APlayerController*>(controllerActor);
-    if (!controller) {
-        M_LOG("SpawnDefaultPlayer failed: {} is not APlayerController", DefaultPlayerControllerClass);
-        if (controllerActor) {
-            controllerActor->Destroy();
+    APlayerController* controller = nullptr;
+    if (ConnectionId == 0) {
+        controller = GetWorld()->GetOrCreateLocalPlayerController();
+    } else {
+        AActor* controllerActor = registry.Spawn(GetWorld(), DefaultPlayerControllerClass, spawnLocation, spawnRotation);
+        controller = dynamic_cast<APlayerController*>(controllerActor);
+        if (!controller) {
+            M_LOG("SpawnDefaultPlayer failed: {} is not APlayerController", DefaultPlayerControllerClass);
+            if (controllerActor) {
+                controllerActor->Destroy();
+            }
+            return nullptr;
         }
-        return nullptr;
     }
 
     AActor* pawnActor = registry.Spawn(GetWorld(), DefaultPawnClass, spawnLocation, spawnRotation);
