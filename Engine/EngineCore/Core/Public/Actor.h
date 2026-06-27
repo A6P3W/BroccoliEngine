@@ -237,8 +237,25 @@ private:
 	template<class T>
 	static void WriteRPCArgument(FNetBuffer& Payload, const T& Value)
 	{
-		static_assert(std::is_trivially_copyable_v<T>, "AActor::InvokeRPC supports trivially copyable RPC arguments.");
-		Payload.Write(Value);
+		if constexpr (std::is_same_v<std::decay_t<T>, std::string>) {
+			Payload.WriteString(Value);
+		}
+		else {
+			static_assert(std::is_trivially_copyable_v<T>, "AActor::InvokeRPC supports trivially copyable RPC arguments.");
+			Payload.Write(Value);
+		}
+	}
+
+	template<class T>
+	static bool ReadRPCArgument(FNetBuffer& Payload, T& OutValue)
+	{
+		if constexpr (std::is_same_v<std::decay_t<T>, std::string>) {
+			return Payload.ReadString(OutValue);
+		}
+		else {
+			static_assert(std::is_trivially_copyable_v<T>, "AActor::RegisterRPC supports trivially copyable RPC arguments.");
+			return Payload.Read(OutValue);
+		}
 	}
 
 	template<size_t Index = 0, class... TArgs>
@@ -248,7 +265,7 @@ private:
 			return true;
 		}
 		else {
-			if (!Payload.Read(std::get<Index>(Args))) {
+			if (!ReadRPCArgument(Payload, std::get<Index>(Args))) {
 				return false;
 			}
 			return ReadRPCTuple<Index + 1>(Payload, Args);
