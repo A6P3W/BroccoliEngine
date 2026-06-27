@@ -43,13 +43,15 @@ private:
 	bool SendClientTravelReady(FNetworkSceneId SceneId);
 
 	void SendInitialStateToClient(FNetworkConnectionId ConnectionId);
-	void SendActorSpawn(AActor* Actor, FNetworkConnectionId TargetConnectionId = 0);
-	void SendActorState(AActor* Actor);
+	bool SendActorSpawn(AActor* Actor, FNetworkConnectionId TargetConnectionId = 0);
+	bool SendActorState(AActor* Actor);
 	void SendActorDestroy(FNetworkActorId NetworkId);
 
 	bool EnsureServerActorRegistered(AActor* Actor);
 
 	void RefreshLocalControl();
+
+	void InitializeClientForCurrentScene(FNetworkConnectionId ConnectionId);
 
 	World* OwnerWorld = nullptr;
 	std::unordered_map<FNetworkActorId, AActor*> ActorsByNetworkId;

@@ -97,10 +97,10 @@ public:
 	virtual void BeginOverlap(AActor* OtherActor) {}
 	virtual void EndOverlap(AActor* OtherActor) {}
 
-	virtual void SerializeNetworkState(FNetBuffer& OutBuffer);
+	virtual bool SerializeNetworkState(FNetBuffer& OutBuffer);
 	virtual bool DeserializeNetworkState(FNetBuffer& InBuffer);
 
-	virtual void SerializeNetworkSpawn(FNetBuffer& OutBuffer);
+	virtual bool SerializeNetworkSpawn(FNetBuffer& OutBuffer);
 	virtual bool DeserializeNetworkSpawn(FNetBuffer& InBuffer);
 
 	bool HasReplicatedStateChanged(float Tolerance = 0.001f) const;
@@ -229,12 +229,10 @@ private:
 	std::vector<MActorComponent*> GetReplicatedNetworkComponents() const;
 	void SerializeActorNetworkState(FNetBuffer& OutBuffer);
 	bool DeserializeActorNetworkState(FNetBuffer& InBuffer);
-	void SerializeReplicatedComponentStates(FNetBuffer& OutBuffer);
+	bool SerializeReplicatedComponentStates(FNetBuffer& OutBuffer);
 	bool DeserializeReplicatedComponentStates(FNetBuffer& InBuffer);
-	void SerializeReplicatedComponentSpawns(FNetBuffer& OutBuffer);
+	bool SerializeReplicatedComponentSpawns(FNetBuffer& OutBuffer);
 	bool DeserializeReplicatedComponentSpawns(FNetBuffer& InBuffer);
-	static bool WritePayloadBytes(FNetBuffer& OutBuffer, const FNetBuffer& Payload);
-	static bool ReadPayloadBytes(FNetBuffer& InBuffer, uint32_t PayloadSize, std::vector<uint8_t>& OutBytes);
 
 	template<class T>
 	static void WriteRPCArgument(FNetBuffer& Payload, const T& Value)

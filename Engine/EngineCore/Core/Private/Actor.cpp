@@ -4,7 +4,6 @@
 #include "TimerManager.h"
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <string>
 #include <typeinfo>
 #include <vector>
@@ -252,10 +251,10 @@ bool AActor::SetActorScale(FScale NewScale)
 	return true;
 }
 
-void AActor::SerializeNetworkState(FNetBuffer& OutBuffer)
+bool AActor::SerializeNetworkState(FNetBuffer& OutBuffer)
 {
 	SerializeActorNetworkState(OutBuffer);
-	SerializeReplicatedComponentStates(OutBuffer);
+	return SerializeReplicatedComponentStates(OutBuffer);
 }
 
 bool AActor::DeserializeNetworkState(FNetBuffer& InBuffer)
@@ -267,11 +266,11 @@ bool AActor::DeserializeNetworkState(FNetBuffer& InBuffer)
 	return DeserializeReplicatedComponentStates(InBuffer);
 }
 
-void AActor::SerializeNetworkSpawn(FNetBuffer& OutBuffer)
+bool AActor::SerializeNetworkSpawn(FNetBuffer& OutBuffer)
 {
 	OutBuffer.WriteString(GetActorClassName());
 	SerializeActorNetworkState(OutBuffer);
-	SerializeReplicatedComponentSpawns(OutBuffer);
+	return SerializeReplicatedComponentSpawns(OutBuffer);
 }
 
 bool AActor::DeserializeNetworkSpawn(FNetBuffer& InBuffer)
@@ -547,7 +546,7 @@ bool AActor::DeserializeActorNetworkState(FNetBuffer& InBuffer)
 	return true;
 }
 
-void AActor::SerializeReplicatedComponentStates(FNetBuffer& OutBuffer)
+bool AActor::SerializeReplicatedComponentStates(FNetBuffer& OutBuffer)
 {
 	AssignNetworkComponentIds();
 	const std::vector<MActorComponent*> replicatedComponents = GetReplicatedNetworkComponents();
@@ -560,8 +559,12 @@ void AActor::SerializeReplicatedComponentStates(FNetBuffer& OutBuffer)
 
 		OutBuffer.Write(component->ComponentNetworkId);
 		OutBuffer.Write(component->IncrementReplicationSequence());
-		WritePayloadBytes(OutBuffer, componentPayload);
+		if (!OutBuffer.WriteBufferWithSize(componentPayload)) {
+			return false;
+		}
 	}
+
+	return true;
 }
 
 bool AActor::DeserializeReplicatedComponentStates(FNetBuffer& InBuffer)
@@ -578,13 +581,11 @@ bool AActor::DeserializeReplicatedComponentStates(FNetBuffer& InBuffer)
 	for (uint32_t i = 0; i < componentCount; ++i) {
 		FNetworkComponentId componentNetworkId = 0;
 		uint32_t sequence = 0;
-		uint32_t payloadSize = 0;
 		if (!InBuffer.Read(componentNetworkId)) return false;
 		if (!InBuffer.Read(sequence)) return false;
-		if (!InBuffer.Read(payloadSize)) return false;
 
-		std::vector<uint8_t> payloadBytes;
-		if (!ReadPayloadBytes(InBuffer, payloadSize, payloadBytes)) {
+		FNetBuffer payload;
+		if (!InBuffer.ReadBufferWithSize(payload)) {
 			return false;
 		}
 
@@ -597,7 +598,6 @@ bool AActor::DeserializeReplicatedComponentStates(FNetBuffer& InBuffer)
 			continue;
 		}
 
-		FNetBuffer payload(std::move(payloadBytes));
 		if (!component->DeserializeNetworkState(payload)) {
 			return false;
 		}
@@ -609,7 +609,7 @@ bool AActor::DeserializeReplicatedComponentStates(FNetBuffer& InBuffer)
 	return true;
 }
 
-void AActor::SerializeReplicatedComponentSpawns(FNetBuffer& OutBuffer)
+bool AActor::SerializeReplicatedComponentSpawns(FNetBuffer& OutBuffer)
 {
 	AssignNetworkComponentIds();
 	const std::vector<MActorComponent*> replicatedComponents = GetReplicatedNetworkComponents();
@@ -623,8 +623,12 @@ void AActor::SerializeReplicatedComponentSpawns(FNetBuffer& OutBuffer)
 		OutBuffer.Write(component->ComponentNetworkId);
 		OutBuffer.WriteString(component->GetNetComponentName());
 		OutBuffer.Write(component->GetReplicationSequence());
-		WritePayloadBytes(OutBuffer, componentPayload);
+		if (!OutBuffer.WriteBufferWithSize(componentPayload)) {
+			return false;
+		}
 	}
+
+	return true;
 }
 
 bool AActor::DeserializeReplicatedComponentSpawns(FNetBuffer& InBuffer)
@@ -643,14 +647,12 @@ bool AActor::DeserializeReplicatedComponentSpawns(FNetBuffer& InBuffer)
 		FNetworkComponentId componentNetworkId = 0;
 		std::string netComponentName;
 		uint32_t sequence = 0;
-		uint32_t payloadSize = 0;
 		if (!InBuffer.Read(componentNetworkId)) return false;
 		if (!InBuffer.ReadString(netComponentName)) return false;
 		if (!InBuffer.Read(sequence)) return false;
-		if (!InBuffer.Read(payloadSize)) return false;
 
-		std::vector<uint8_t> payloadBytes;
-		if (!ReadPayloadBytes(InBuffer, payloadSize, payloadBytes)) {
+		FNetBuffer payload;
+		if (!InBuffer.ReadBufferWithSize(payload)) {
 			return false;
 		}
 
@@ -663,47 +665,12 @@ bool AActor::DeserializeReplicatedComponentSpawns(FNetBuffer& InBuffer)
 		component->ComponentNetworkId = componentNetworkId;
 		ComponentsByNetworkId[componentNetworkId] = component;
 
-		FNetBuffer payload(std::move(payloadBytes));
 		if (!component->DeserializeNetworkSpawn(payload)) {
 			return false;
 		}
 
 		component->SetLastReceivedReplicationSequence(sequence);
 		component->UpdateReplicatedStateCache();
-	}
-
-	return true;
-}
-
-bool AActor::WritePayloadBytes(FNetBuffer& OutBuffer, const FNetBuffer& Payload)
-{
-	if (Payload.Size() > static_cast<size_t>((std::numeric_limits<uint32_t>::max)())) {
-		return false;
-	}
-
-	const uint32_t payloadSize = static_cast<uint32_t>(Payload.Size());
-	OutBuffer.Write(payloadSize);
-	for (uint8_t byte : Payload.GetData()) {
-		OutBuffer.Write(byte);
-	}
-
-	return true;
-}
-
-bool AActor::ReadPayloadBytes(FNetBuffer& InBuffer, uint32_t PayloadSize, std::vector<uint8_t>& OutBytes)
-{
-	if (InBuffer.GetRemainingSize() < PayloadSize) {
-		return false;
-	}
-
-	OutBytes.clear();
-	OutBytes.reserve(PayloadSize);
-	for (uint32_t i = 0; i < PayloadSize; ++i) {
-		uint8_t byte = 0;
-		if (!InBuffer.Read(byte)) {
-			return false;
-		}
-		OutBytes.push_back(byte);
 	}
 
 	return true;

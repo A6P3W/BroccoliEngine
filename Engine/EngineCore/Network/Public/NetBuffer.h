@@ -49,6 +49,9 @@ public:
 
 	void WriteString(const std::string& Value);
 	bool ReadString(std::string& OutValue);
+	bool WriteBufferWithSize(const FNetBuffer& Source);
+	bool ReadBufferWithSize(FNetBuffer& OutBuffer);
+	bool ReadBuffer(uint32_t PayloadSize, FNetBuffer& OutBuffer);
 
 private:
 	std::vector<uint8_t> Buffer;

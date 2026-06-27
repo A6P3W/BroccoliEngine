@@ -70,3 +70,59 @@ bool FNetBuffer::ReadString(std::string& OutValue)
 	ReadOffset = payloadOffset + length;
 	return true;
 }
+
+bool FNetBuffer::WriteBufferWithSize(const FNetBuffer& Source)
+{
+	if (Source.Size() > static_cast<size_t>((std::numeric_limits<uint32_t>::max)())) {
+		return false;
+	}
+
+	const uint32_t payloadSize = static_cast<uint32_t>(Source.Size());
+	Write(payloadSize);
+
+	if (payloadSize == 0) {
+		return true;
+	}
+
+	const size_t offset = Buffer.size();
+	Buffer.resize(offset + payloadSize);
+	std::memcpy(Buffer.data() + offset, Source.Data(), payloadSize);
+	return true;
+}
+
+bool FNetBuffer::ReadBufferWithSize(FNetBuffer& OutBuffer)
+{
+	const size_t originalReadOffset = ReadOffset;
+
+	uint32_t payloadSize = 0;
+	if (!Read(payloadSize)) {
+		ReadOffset = originalReadOffset;
+		return false;
+	}
+
+	if (!ReadBuffer(payloadSize, OutBuffer)) {
+		ReadOffset = originalReadOffset;
+		return false;
+	}
+
+	return true;
+}
+
+bool FNetBuffer::ReadBuffer(uint32_t PayloadSize, FNetBuffer& OutBuffer)
+{
+	if (GetRemainingSize() < PayloadSize) {
+		return false;
+	}
+
+	OutBuffer.Buffer.clear();
+	OutBuffer.ReadOffset = 0;
+
+	if (PayloadSize == 0) {
+		return true;
+	}
+
+	OutBuffer.Buffer.resize(PayloadSize);
+	std::memcpy(OutBuffer.Buffer.data(), Buffer.data() + ReadOffset, PayloadSize);
+	ReadOffset += PayloadSize;
+	return true;
+}
