@@ -1,9 +1,11 @@
-#include "GameModeBase.h"
+﻿#include "GameModeBase.h"
 #include "Pawn.h"
 #include "ObjectManager.h"
 #include "CollisionSystem.h"
 #include "TimerManager.h"
 #include "CameraComponent.h"
+
+REGISTER_GAME_MODE(AGameModeBase)
 
 AGameModeBase::AGameModeBase()
 {
@@ -30,35 +32,6 @@ void AGameModeBase::OnClientDisconnected(FNetworkConnectionId ConnectionId)
 {
     (void)ConnectionId;
 }
-APlayerController* AGameModeBase::CreateLocalPlayerController()
-{
-    return GetWorld()->SpawnActor<APlayerController>(FVector2D::ZeroVector);
-}
-APlayerController* AGameModeBase::GetOrCreateLocalPlayerController()
-{
-    if (PlayerController) {
-        return PlayerController;
-    }
-
-    PlayerController = CreateLocalPlayerController();
-    PlayerController->SetPlayerId(0);
-    PlayerController->SetupInputMappings();
-    return PlayerController;
-}
-
-void AGameModeBase::PossessLocalPawn(APawn* Pawn)
-{
-    if (!Pawn) {
-        return;
-    }
-
-    APlayerController* controller = GetOrCreateLocalPlayerController();
-    if (controller) {
-        PlayerPawn = Pawn;
-        controller->Possess(Pawn);
-    }
-}
-
 void AGameModeBase::OnUpdate(float DeltaTime)
 {
 }
@@ -67,4 +40,3 @@ void AGameModeBase::Draw()
 {
     AActor::Draw();
 }
-

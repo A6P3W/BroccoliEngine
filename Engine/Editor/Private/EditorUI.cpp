@@ -14,6 +14,7 @@ void EditorUI::UpdateAndDraw(EditorMode* editorMode)
 	DrawClassBrowser(editorMode);
 	DrawOutliner(editorMode);
 	DrawInspector(editorMode);
+	DrawWorldSettings(editorMode);
 
 	DrawSelectAction(editorMode);
 }
@@ -160,6 +161,35 @@ void EditorUI::DrawInspector(EditorMode* editorMode)
 	else
 	{
 		ImGui::Text("Select an actor in Outliner to view properties.");
+	}
+
+	ImGui::End();
+}
+
+
+void EditorUI::DrawWorldSettings(EditorMode* editorMode)
+{
+	ImGui::Begin("World Settings");
+
+	const auto& gameModeClasses = editorMode->GetGameModeClassList();
+	const std::string& selectedGameMode = editorMode->GetSelectedGameModeClass();
+	const char* preview = selectedGameMode.empty() ? "(None)" : selectedGameMode.c_str();
+
+	if (ImGui::BeginCombo("GameMode", preview))
+	{
+		for (const auto& className : gameModeClasses)
+		{
+			bool isSelected = (className == selectedGameMode);
+			if (ImGui::Selectable(className.c_str(), isSelected))
+			{
+				editorMode->SetSelectedGameModeClass(className);
+			}
+			if (isSelected)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
 	}
 
 	ImGui::End();

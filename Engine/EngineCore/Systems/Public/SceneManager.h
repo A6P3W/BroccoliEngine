@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <memory>
 #include <functional>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include "GameModeBase.h"
@@ -26,18 +27,11 @@ public:
 
 	void ProcessSceneChanges();
 
-	template<class T>
-	void RegisterScene(FNetworkSceneId SceneId)
-	{
-		if (SceneId == 0) {
-			return;
-		}
-
-		RegisteredSceneFactories[SceneId] = MakeSceneFactory<T>();
-	}
-
+	void RegisterLevelPath(FNetworkSceneId SceneId, const std::string& LevelPath);
 	bool OpenSceneById(FNetworkSceneId SceneId);
 	bool OpenSceneById(FNetworkSceneId SceneId, ENetMode NetMode);
+	bool OpenLevel(const std::string& LevelPath);
+	bool OpenLevel(const std::string& LevelPath, ENetMode NetMode);
 	bool IsSceneRegistered(FNetworkSceneId SceneId) const;
 	FNetworkSceneId GetCurrentSceneId() const { return CurrentSceneId; }
 	ENetMode GetCurrentNetMode() const;
@@ -54,18 +48,21 @@ private:
 		return [](ENetMode NetMode)->std::unique_ptr<World> {
 			auto newWorld = std::make_unique<World>();
 			newWorld->SetNetMode(NetMode);
-			newWorld->SpawnGameMode<T>();
+			if (newWorld->IsServer())
+			{
+				newWorld->SpawnGameMode<T>();
+			}
 			return newWorld;
 			};
 	}
 
 	void QueueSceneFactory(RegisteredSceneFactory Factory, ENetMode NetMode, FNetworkSceneId SceneId);
+	void QueueLevelPath(const std::string& LevelPath, ENetMode NetMode, FNetworkSceneId SceneId);
 
 	std::unique_ptr<World> CurrentScene;
 	std::function<std::unique_ptr<World>()> PendingSceneFactory;
-	std::unordered_map<FNetworkSceneId, RegisteredSceneFactory> RegisteredSceneFactories;
+	std::unordered_map<FNetworkSceneId, std::string> RegisteredLevelPaths;
 	std::unique_ptr<GameInstance> GameInstance = nullptr;
 	FNetworkSceneId CurrentSceneId = 0;
 	FNetworkSceneId PendingSceneId = 0;
 };
-

@@ -302,10 +302,8 @@ void MReplicationSystem::HandleActorSpawn(FNetBuffer& Buffer)
 
 	RegisterActor(actor);
 	if (actor->bIsLocallyControlled) {
-		if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
-			if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
-				gameMode->PossessLocalPawn(pawn);
-			}
+		if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
+			OwnerWorld->PossessLocalPawn(pawn);
 		}
 	}
 	if (!bAlreadyExists) {
@@ -474,7 +472,11 @@ void MReplicationSystem::SendInitialStateToClient(FNetworkConnectionId Connectio
 	const auto& actors = OwnerWorld->GetObjectManager()->GetAllActors();
 	for (const auto& actorPtr : actors) {
 		AActor* actor = actorPtr.get();
-		if (!actor || !actor->bReplicates || actor->IsPendingDestroy() || actor->NetworkId == 0) {
+		if (!actor || !actor->bReplicates || actor->IsPendingDestroy()) {
+			continue;
+		}
+
+		if (actor->NetworkId == 0 && !EnsureServerActorRegistered(actor)) {
 			continue;
 		}
 
@@ -583,10 +585,8 @@ void MReplicationSystem::RefreshLocalControl()
 
 		actor->bIsLocallyControlled = bShouldBeLocallyControlled;
 		if (bShouldBeLocallyControlled) {
-			if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
-				if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
-					gameMode->PossessLocalPawn(pawn);
-				}
+			if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
+				OwnerWorld->PossessLocalPawn(pawn);
 			}
 		}
 	}
@@ -595,8 +595,8 @@ void MReplicationSystem::RefreshLocalControl()
 void MReplicationSystem::InitializeClientForCurrentScene(FNetworkConnectionId ConnectionId)
 {
 	SendAssignedConnectionId(ConnectionId);
-	SendInitialStateToClient(ConnectionId);
 	if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
 		gameMode->OnClientConnected(ConnectionId);
 	}
+	SendInitialStateToClient(ConnectionId);
 }

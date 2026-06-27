@@ -12,6 +12,8 @@
 class AActor;
 class AGameModeBase;
 class MReplicationSystem;
+class APlayerController;
+class APawn;
 
 class World
 {
@@ -55,8 +57,11 @@ public:
 
 	FNetworkActorId AllocateNetworkActorId();
 	bool ServerTravel(FNetworkSceneId SceneId);
-private:
 	void SetGameMode(AGameModeBase* mode);
+
+	APlayerController* GetOrCreateLocalPlayerController();
+    void PossessLocalPawn(APawn* Pawn);
+private:
 	std::unique_ptr<MCollisionSystem> CollisionSystem = nullptr;
 	std::unique_ptr<MSoundManager> SoundManager = nullptr;
 	std::unique_ptr<MTimerManager> TimerManager = nullptr;
@@ -69,5 +74,5 @@ private:
 	bool bTrendingDown = false;
 	ENetMode NetMode = ENetMode::Standalone;
 	FNetworkActorId NextNetworkActorId = 1;
+	APlayerController* LocalPlayerController = nullptr;
 };
-

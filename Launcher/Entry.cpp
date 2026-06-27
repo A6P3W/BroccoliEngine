@@ -3,7 +3,7 @@
 
 void SetupGame() {
 	auto& sceneManager = SceneManager::GetInstance();
-	sceneManager.RegisterScene<ANetworkTestGameMode>(NetworkTestSceneIds::Level1);
-	sceneManager.RegisterScene<ANetworkTestLevel2GameMode>(NetworkTestSceneIds::Level2);
+	sceneManager.RegisterLevelPath(NetworkTestSceneIds::Level1, "../Engine/EngineSide/NetworkTest/NetworkTestLevel.BLevel");
+	sceneManager.RegisterLevelPath(NetworkTestSceneIds::Level2, "../Engine/EngineSide/NetworkTest/NetworkTestLevel2.BLevel");
 	sceneManager.OpenSceneById(NetworkTestSceneIds::Level1);
 }

@@ -4,9 +4,11 @@
 #include "NetworkTest/NetworkTestPawn.h"
 #include "PlayerController.h"
 #include "World.h"
-#include "LevelSerializer.h"
 
 #include <imgui.h>
+
+REGISTER_GAME_MODE(ANetworkTestGameMode)
+REGISTER_GAME_MODE(ANetworkTestLevel2GameMode)
 
 ANetworkTestGameMode::ANetworkTestGameMode()
 {
@@ -16,7 +18,6 @@ ANetworkTestGameMode::ANetworkTestGameMode()
 void ANetworkTestGameMode::BeginPlay()
 {
 	SetUpdateableAnytime(true);
-	LevelSerializer::Load(GetWorld(), GetLevelPath());
 	StatusMessage = std::string(GetSceneName()) + " loaded.";
 }
 
@@ -153,11 +154,6 @@ void ANetworkTestGameMode::SpawnHostPlayer()
 	bHostPlayerSpawned = true;
 }
 
-const char* ANetworkTestGameMode::GetLevelPath() const
-{
-	return "../Engine/EngineSide/NetworkTest/NetworkTestLevel.BLevel";
-}
-
 const char* ANetworkTestGameMode::GetSceneName() const
 {
 	return "NetworkTest Level 1";
@@ -171,11 +167,6 @@ const char* ANetworkTestGameMode::GetTravelButtonText() const
 FNetworkSceneId ANetworkTestGameMode::GetTravelTargetSceneId() const
 {
 	return NetworkTestSceneIds::Level2;
-}
-
-const char* ANetworkTestLevel2GameMode::GetLevelPath() const
-{
-	return "../Engine/EngineSide/NetworkTest/NetworkTestLevel2.BLevel";
 }
 
 const char* ANetworkTestLevel2GameMode::GetSceneName() const

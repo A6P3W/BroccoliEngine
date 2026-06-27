@@ -23,7 +23,6 @@ public:
 	APlayerController* OnClientConnected(FNetworkConnectionId ConnectionId) override;
 
 protected:
-	virtual const char* GetLevelPath() const;
 	virtual const char* GetSceneName() const;
 	virtual const char* GetTravelButtonText() const;
 	virtual FNetworkSceneId GetTravelTargetSceneId() const;
@@ -48,7 +47,6 @@ public:
 	DEFINE_ACTOR_CLASS(ANetworkTestLevel2GameMode)
 
 protected:
-	const char* GetLevelPath() const override;
 	const char* GetSceneName() const override;
 	const char* GetTravelButtonText() const override;
 	FNetworkSceneId GetTravelTargetSceneId() const override;

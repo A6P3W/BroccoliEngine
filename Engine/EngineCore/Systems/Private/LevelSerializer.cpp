@@ -2,8 +2,10 @@
 #include "ActorRegistry.h"
 #include "ObjectManager.h"
 #include "Actor.h"
+#include "GameModeBase.h"
 #include "nlohmann/json.hpp"
 #include <fstream>
+#include <algorithm>
 #include "Log.h"
 #include "World.h"
 #include "EditorSelectPointComponent.h"
@@ -11,17 +13,27 @@
 #include "SimpleCrypto.h"
 using json = nlohmann::json;
 
-bool LevelSerializer::Save(World* world, const std::string& filePath)
+bool LevelSerializer::Save(World* world, const std::string& filePath, const std::string& gameModeClassName)
 {
+	if (!world) {
+		return false;
+	}
+
 	std::vector<FActorSaveData> actors;
 	auto& registry = ActorRegistry::GetInstance();
+	AActor* gameModeActor = world->GetGameMode();
 
 	for (const auto& actorPtr : world->GetObjectManager()->GetAllActors())
 	{
 		AActor* actor = actorPtr.get();
 		if (!actor || actor->IsPendingDestroy()) continue;
+		if (actor == gameModeActor || actor->IsEditorActor()) continue;
+
 		const std::string name = actor->GetActorClassName();
 		if (!registry.Contains(name)) continue;
+
+		const auto& gameModeClassNames = registry.GetGameModeClassNames();
+		if (std::find(gameModeClassNames.begin(), gameModeClassNames.end(), name) != gameModeClassNames.end()) continue;
 
 		FActorSaveData data;
 		data.ClassName = name;
@@ -38,18 +50,51 @@ bool LevelSerializer::Save(World* world, const std::string& filePath)
 		actors.push_back(data);
 	}
 
-	return SaveData(filePath, actors);
+	FLevelMetaData meta;
+	meta.GameModeClassName = gameModeClassName;
+	return SaveData(filePath, meta, actors);
 }
 
 bool LevelSerializer::Load(World* world, const std::string& filePath)
 {
+	return Load(world, filePath, true, nullptr);
+}
+
+bool LevelSerializer::Load(World* world, const std::string& filePath, bool bLoadGameMode, FLevelMetaData* outMeta)
+{
+	if (!world) {
+		return false;
+	}
+
+	FLevelMetaData meta;
 	std::vector<FActorSaveData> actors;
-	if (!LoadData(filePath, actors)) return false;
+	if (!LoadData(filePath, meta, actors)) return false;
+
+	if (outMeta) {
+		*outMeta = meta;
+	}
 
 	M_LOG("Loaded actor count: {}", actors.size());
 
 	auto& registry = ActorRegistry::GetInstance();
 	std::vector<AActor*> spawnedActors;
+
+	if (bLoadGameMode && world->IsServer() && !meta.GameModeClassName.empty()) {
+		M_LOG("Spawning GameMode: {}", meta.GameModeClassName);
+		AActor* gameModeActor = registry.Spawn(world, meta.GameModeClassName);
+		AGameModeBase* gameMode = dynamic_cast<AGameModeBase*>(gameModeActor);
+		if (gameMode) {
+			world->SetGameMode(gameMode);
+			spawnedActors.push_back(gameMode);
+		}
+		else {
+			M_LOG("GameMode spawn failed or class is not AGameModeBase: {}", meta.GameModeClassName);
+			if (gameModeActor) {
+				gameModeActor->Destroy();
+			}
+		}
+	}
+
 	for (const auto& data : actors)
 	{
 		M_LOG("Spawning: {}", data.ClassName);
@@ -85,9 +130,13 @@ bool LevelSerializer::Load(World* world, const std::string& filePath)
 }
 
 bool LevelSerializer::SaveData(const std::string& filePath,
+	const FLevelMetaData& meta,
 	const std::vector<FActorSaveData>& actors)
 {
 	json root;
+	root["meta"] = json::object();
+	root["meta"]["game_mode"] = meta.GameModeClassName;
+
 	json arr = json::array();
 	for (const auto& d : actors)
 	{
@@ -119,6 +168,17 @@ bool LevelSerializer::SaveData(const std::string& filePath,
 bool LevelSerializer::LoadData(const std::string& filePath,
 	std::vector<FActorSaveData>& outActors)
 {
+	FLevelMetaData meta;
+	return LoadData(filePath, meta, outActors);
+}
+
+bool LevelSerializer::LoadData(const std::string& filePath,
+	FLevelMetaData& outMeta,
+	std::vector<FActorSaveData>& outActors)
+{
+	outMeta = FLevelMetaData{};
+	outActors.clear();
+
 	std::ifstream ifs(filePath, std::ios::binary);
 	if (!ifs.is_open()) return false;
 	const std::string encryptedData((std::istreambuf_iterator<char>(ifs)),
@@ -134,7 +194,12 @@ bool LevelSerializer::LoadData(const std::string& filePath,
 		M_LOG("Level data load failed: tampered or corrupted data. {}", e.what());
 		return false;
 	}
-	if (!root.contains("actors")) return false;
+
+	if (root.contains("meta") && root["meta"].is_object()) {
+		outMeta.GameModeClassName = root["meta"].value("game_mode", "");
+	}
+
+	if (!root.contains("actors") || !root["actors"].is_array()) return false;
 	for (const auto& obj : root["actors"])
 	{
 		FActorSaveData data;

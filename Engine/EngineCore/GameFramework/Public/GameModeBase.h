@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Actor.h"
 #include "PlayerController.h"
 #include "ObjectManager.h"
@@ -9,6 +9,10 @@
 #include "World.h"
 #include "NetworkTypes.h"
 class APlayerController;
+
+#define REGISTER_GAME_MODE(ClassName) \
+    static TActorAutoRegister<ClassName> AutoRegister_##ClassName(true);
+
 class AGameModeBase : public AActor
 {
 public:
@@ -19,24 +23,18 @@ public:
 	virtual void Draw() override;
 
 	APawn* GetPlayerPawn() const { return PlayerPawn; }
-	APlayerController* GetPlayerController() const { return PlayerController; }
 	virtual APlayerController* OnClientConnected(FNetworkConnectionId ConnectionId);
 	virtual void OnClientDisconnected(FNetworkConnectionId ConnectionId);
-	APlayerController* GetOrCreateLocalPlayerController();
-	void PossessLocalPawn(APawn* Pawn);
 
 	template<class T>
 	T* SpawnActor(const FVector2D& Loc = { 0,0 }, FRotator Rot = FRotator(0.0f)) {
 		return GetWorld()->SpawnActor<T>(Loc, Rot);
 	}
 protected:
-	virtual APlayerController* CreateLocalPlayerController();
-
 	template<class TPawn, class TController = APlayerController>
 	TController* SpawnPlayer(const FVector2D& Location = FVector2D::ZeroVector, int PlayerId = 0)
 	{
 		auto* Controller = GetWorld()->SpawnActor<TController>(Location);
-		PlayerController = Controller;
 		Controller->SetPlayerId(PlayerId);
 		Controller->SetupInputMappings();
 
@@ -49,6 +47,4 @@ protected:
 
 private:
 	APawn* PlayerPawn = nullptr;
-	APlayerController* PlayerController = nullptr;
 };
-

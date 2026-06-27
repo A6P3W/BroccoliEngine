@@ -6,9 +6,10 @@
 #include "SoundManager.h"
 #include "TimerManager.h"
 #include "CameraComponent.h"
+#include "PlayerController.h"
 #include "ReplicationSystem.h"
 #include "SceneManager.h"
-#include "World.h"
+
 World::World()
 {
     ObjectManager = std::make_unique<MObjectManager>();
@@ -97,4 +98,27 @@ bool World::ServerTravel(FNetworkSceneId SceneId)
     }
 
     return SceneManager::GetInstance().OpenSceneById(SceneId, GetNetMode());
+}
+
+APlayerController* World::GetOrCreateLocalPlayerController()
+{
+    if (LocalPlayerController) {
+        return LocalPlayerController;
+    }
+
+    LocalPlayerController = SpawnActor<APlayerController>();
+    LocalPlayerController->SetPlayerId(0);
+    LocalPlayerController->SetupInputMappings();
+    return LocalPlayerController;
+}
+
+void World::PossessLocalPawn(APawn* Pawn)
+{
+    if (!Pawn) {
+        return;
+    }
+
+    if (APlayerController* controller = GetOrCreateLocalPlayerController()) {
+        controller->Possess(Pawn);
+    }
 }

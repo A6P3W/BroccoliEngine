@@ -22,15 +22,14 @@
 template<class T>
 struct TActorAutoRegister
 {
-	TActorAutoRegister()
+	TActorAutoRegister(bool bIsGameMode = false)
 	{
-		ActorRegistry::GetInstance().Register<T>();
+		ActorRegistry::GetInstance().Register<T>(bIsGameMode);
 	}
 };
 
 #define REGISTER_ACTOR(ClassName) \
     static TActorAutoRegister<ClassName> AutoRegister_##ClassName;
-
 
 #define DEFINE_ACTOR_CLASS(ClassName) \
 public: \
