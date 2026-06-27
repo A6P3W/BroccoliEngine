@@ -12,6 +12,8 @@ REGISTER_GAME_MODE(ANetworkTestLevel2GameMode)
 
 ANetworkTestGameMode::ANetworkTestGameMode()
 {
+	DefaultPawnClass = ANetworkTestPawn::StaticClassName();
+	DefaultPlayerControllerClass = APlayerController::StaticClassName();
 	StatusMessage = "Select network role.";
 }
 
@@ -23,11 +25,7 @@ void ANetworkTestGameMode::BeginPlay()
 
 void ANetworkTestGameMode::OnUpdate(float DeltaTime)
 {
-	(void)DeltaTime;
-
-	if (GetWorld()->IsListenServer() && !bHostPlayerSpawned) {
-		SpawnHostPlayer();
-	}
+	AGameModeBase::OnUpdate(DeltaTime);
 }
 
 void ANetworkTestGameMode::Draw()
@@ -40,16 +38,7 @@ void ANetworkTestGameMode::Draw()
 
 APlayerController* ANetworkTestGameMode::OnClientConnected(FNetworkConnectionId ConnectionId)
 {
-	const float offset = static_cast<float>(ConnectionId) * 80.0f;
-	APlayerController* controller = SpawnPlayer<ANetworkTestPawn, APlayerController>({ offset, 120.0f }, static_cast<int>(ConnectionId));
-	if (controller && controller->GetPawn()) {
-		APawn* pawn = controller->GetPawn();
-		pawn->OwnerConnectionId = ConnectionId;
-		pawn->bReplicates = true;
-		pawn->bHasAuthority = true;
-		pawn->bIsLocallyControlled = false;
-	}
-
+	APlayerController* controller = AGameModeBase::OnClientConnected(ConnectionId);
 	StatusMessage = "Client connected: " + std::to_string(ConnectionId);
 	return controller;
 }
@@ -108,7 +97,7 @@ void ANetworkTestGameMode::DrawStatusWindow()
 	ImGui::Text("Mode: %s", modeText);
 	ImGui::Text("Network running: %s", network.IsRunning() ? "true" : "false");
 	ImGui::Text("Local ConnectionId: %u", network.GetLocalConnectionId());
-	ImGui::Text("Host player spawned: %s", bHostPlayerSpawned ? "true" : "false");
+	ImGui::Text("Host player spawned: %s", IsHostPlayerSpawned() ? "true" : "false");
 	ImGui::End();
 }
 
@@ -134,24 +123,6 @@ void ANetworkTestGameMode::ConnectAsClient()
 	else {
 		StatusMessage = "Failed to connect to server.";
 	}
-}
-
-void ANetworkTestGameMode::SpawnHostPlayer()
-{
-	if (bHostPlayerSpawned) {
-		return;
-	}
-
-	APlayerController* controller = SpawnPlayer<ANetworkTestPawn, APlayerController>({ 0.0f, 0.0f }, 0);
-	if (controller && controller->GetPawn()) {
-		APawn* pawn = controller->GetPawn();
-		pawn->OwnerConnectionId = 0;
-		pawn->bReplicates = true;
-		pawn->bHasAuthority = true;
-		pawn->bIsLocallyControlled = true;
-	}
-
-	bHostPlayerSpawned = true;
 }
 
 const char* ANetworkTestGameMode::GetSceneName() const

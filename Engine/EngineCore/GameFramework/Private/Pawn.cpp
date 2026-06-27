@@ -10,6 +10,9 @@
 #include "PlayerController.h"
 #include "World.h"
 #include "ObjectManager.h"
+
+REGISTER_ACTOR(APawn)
+
 APawn::APawn()
 {
 	auto camera = std::make_unique<MCameraComponent>();

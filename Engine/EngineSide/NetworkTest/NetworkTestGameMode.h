@@ -32,12 +32,10 @@ private:
 	void DrawStatusWindow();
 	void StartListenServer();
 	void ConnectAsClient();
-	void SpawnHostPlayer();
 
 	char ServerAddress[64] = "127.0.0.1";
 	int Port = 7777;
 	bool bSessionStarted = false;
-	bool bHostPlayerSpawned = false;
 	std::string StatusMessage;
 };
 

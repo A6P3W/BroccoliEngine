@@ -8,6 +8,10 @@
 #include "UMath.h"
 #include "World.h"
 #include "NetworkTypes.h"
+#include <string>
+
+class AActor;
+class APawn;
 class APlayerController;
 
 #define REGISTER_GAME_MODE(ClassName) \
@@ -17,20 +21,27 @@ class AGameModeBase : public AActor
 {
 public:
 	DEFINE_ACTOR_CLASS(AGameModeBase)
-		AGameModeBase();
+	AGameModeBase();
 
 	virtual void OnUpdate(float DeltaTime) override;
 	virtual void Draw() override;
 
 	APawn* GetPlayerPawn() const { return PlayerPawn; }
+	bool IsHostPlayerSpawned() const { return bHostPlayerSpawned; }
 	virtual APlayerController* OnClientConnected(FNetworkConnectionId ConnectionId);
 	virtual void OnClientDisconnected(FNetworkConnectionId ConnectionId);
+
+	AActor* FindPlayerStart(FNetworkConnectionId ConnectionId);
+	APlayerController* SpawnDefaultPlayer(FNetworkConnectionId ConnectionId);
 
 	template<class T>
 	T* SpawnActor(const FVector2D& Loc = { 0,0 }, FRotator Rot = FRotator(0.0f)) {
 		return GetWorld()->SpawnActor<T>(Loc, Rot);
 	}
 protected:
+	std::string DefaultPawnClass;
+	std::string DefaultPlayerControllerClass;
+
 	template<class TPawn, class TController = APlayerController>
 	TController* SpawnPlayer(const FVector2D& Location = FVector2D::ZeroVector, int PlayerId = 0)
 	{
@@ -47,4 +58,5 @@ protected:
 
 private:
 	APawn* PlayerPawn = nullptr;
+	bool bHostPlayerSpawned = false;
 };

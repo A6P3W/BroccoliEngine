@@ -12,6 +12,9 @@
 #include "MainMenu.h"
 #include "UIManager.h"
 #include "World.h"
+
+REGISTER_ACTOR(ASamplePawn01)
+
 ASamplePawn01::ASamplePawn01()
 {
 	auto col = std::make_unique<MCircleCollisionComponent>(32.0f);

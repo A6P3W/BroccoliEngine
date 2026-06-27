@@ -9,6 +9,9 @@
 #include <GamePadDevice.h>
 #include <UIManager.h>
 
+REGISTER_ACTOR(APlayerController)
+
+
 APlayerController::APlayerController()
 {
 	auto InputComp = std::make_unique<MEnhancedInputComponent>();
