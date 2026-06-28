@@ -20,6 +20,7 @@
     <ClCompile Include="Engine\EngineCore\Core\Private\BaseObject.cpp" />
     <ClCompile Include="Engine\EngineCore\Core\Private\EngineEntry.cpp" />
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\Pawn.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\PlayerStart.cpp" />
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\GameModeBase.cpp" />
     <ClCompile Include="Engine\EngineCore\GameFramework\Private\PlayerController.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\CollisionSystem.cpp" />
@@ -58,10 +59,15 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\UIManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UISpriteComponent.cpp" />
     <ClCompile Include="Engine\EngineSide\SampleScene01\MainMenu.cpp" />
+    <ClCompile Include="Engine\EngineSide\NetworkTest\NetworkTestGameMode.cpp" />
+    <ClCompile Include="Engine\EngineSide\NetworkTest\NetworkTestPawn.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UIBoxButton.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UITextComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\HttpManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Utils\Private\SimpleCrypto.cpp" />
+    <ClCompile Include="Engine\EngineCore\Network\Private\NetBuffer.cpp" />
+    <ClCompile Include="Engine\EngineCore\Network\Private\NetworkManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Network\Private\ReplicationSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
@@ -84,6 +90,7 @@
     <ClInclude Include="Engine\EngineCore\Core\Public\BaseObject.h" />
     <ClInclude Include="Engine\EngineCore\Core\Public\TimerHandle.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\Pawn.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\PlayerStart.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameModeBase.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\PlayerController.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\CollisionSystem.h" />
@@ -129,10 +136,19 @@
     <ClInclude Include="Engine\EngineCore\Systems\Public\UIManager.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UISpriteComponent.h" />
     <ClInclude Include="Engine\EngineSide\SampleScene01\MainMenu.h" />
+    <ClInclude Include="Engine\EngineSide\NetworkTest\NetworkTestGameMode.h" />
+    <ClInclude Include="Engine\EngineSide\NetworkTest\NetworkTestPawn.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UIBoxButton.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UITextComponent.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\HttpManager.h" />
     <ClInclude Include="Engine\EngineCore\Utils\Public\SimpleCrypto.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetMode.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetworkTypes.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetPacketType.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetBuffer.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetworkManager.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\ReplicatedProperty.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\ReplicationSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />

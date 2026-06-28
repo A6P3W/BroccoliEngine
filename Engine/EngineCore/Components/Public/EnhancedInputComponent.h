@@ -5,6 +5,7 @@
 #include <functional>
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 enum class ETriggerEvent { Started, Triggered, Completed };
 
@@ -23,9 +24,15 @@ private:
 		bool IsUIAction = false;
 	};
 	std::vector<FInputBinding> m_bindings;
+	std::unordered_map<std::string, FVector2D> m_lastAxis2DValues;
+	std::unordered_map<std::string, float> m_lastAxis1DValues;
 
 public:
-	void ClearBindings() { m_bindings.clear(); }
+	void ClearBindings() {
+		m_bindings.clear();
+		m_lastAxis2DValues.clear();
+		m_lastAxis1DValues.clear();
+	}
 	template<class T>
 	void BindAction(const std::string& actionName, ETriggerEvent event,
 		T* obj, void (T::* func)(const FInputActionValue&), bool isUIAction = false) {

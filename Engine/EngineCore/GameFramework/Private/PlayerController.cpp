@@ -9,6 +9,9 @@
 #include <GamePadDevice.h>
 #include <UIManager.h>
 
+REGISTER_ACTOR(APlayerController)
+
+
 APlayerController::APlayerController()
 {
 	auto InputComp = std::make_unique<MEnhancedInputComponent>();
@@ -24,11 +27,20 @@ void APlayerController::Possess(APawn* NewPawn)
 	if (GetInputComponent()) {
 		GetInputComponent()->ClearBindings();
 	}
+
+	if (TargetPawn && TargetPawn != NewPawn) {
+		TargetPawn->OnUnPossessed();
+	}
+
 	TargetPawn = NewPawn;
-	TargetPawn->OnPossesed();
-	SetupPlayerInputComponent(GetInputComponent());
-	if (GetInputComponent()) {
-		TargetPawn->SetupPlayerInputComponent(GetInputComponent());
+
+	if (TargetPawn) {
+		TargetPawn->OnPossessedBy(this);
+		
+		SetupPlayerInputComponent(GetInputComponent());
+		if (GetInputComponent()) {
+			TargetPawn->SetupPlayerInputComponent(GetInputComponent());
+		}
 	}
 }
 

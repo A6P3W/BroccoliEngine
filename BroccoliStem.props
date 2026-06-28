@@ -5,6 +5,8 @@
     <!-- ソリューションビルド時は SolutionDir、プロジェクト単体ビルド時は MSBuildThisFileDirectory をベースにする -->
     <BroccoliEngineTargetDir Condition="'$(SolutionDir)' != ''">$(SolutionDir)$(Platform)\$(Configuration)\</BroccoliEngineTargetDir>
     <BroccoliEngineTargetDir Condition="'$(SolutionDir)' == ''">$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\</BroccoliEngineTargetDir>
+    <BroccoliVcpkgLibDir Condition="'$(Configuration)' == 'Debug'">$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows-static-md\x64-windows-static-md\debug\lib\</BroccoliVcpkgLibDir>
+    <BroccoliVcpkgLibDir Condition="'$(Configuration)' != 'Debug'">$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows-static-md\x64-windows-static-md\lib\</BroccoliVcpkgLibDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -13,6 +15,7 @@
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/;
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/Core/Public;
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/Systems/Public;
+		  $(MSBuildThisFileDirectory)Engine/EngineCore/Network/Public;
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/Components/Public;
 		  $(MSBuildThisFileDirectory)Engine/EngineSide/;
 		  $(MSBuildThisFileDirectory)Engine/EngineSide/Default/Public;
@@ -24,11 +27,12 @@
     </ClCompile>
     <Link>
 		<AdditionalDependencies>
-			BroccoliEngine.lib;ws2_32.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;
+			BroccoliEngine.lib;enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;
 			%(AdditionalDependencies)
 		</AdditionalDependencies>
 		<AdditionalLibraryDirectories>
 			$(BroccoliEngineTargetDir);
+			$(BroccoliVcpkgLibDir);
 			$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\;
 			$(MSBuildThisFileDirectory)BroccoliEngine\$(Platform)\$(Configuration)\;
 			%(AdditionalLibraryDirectories)

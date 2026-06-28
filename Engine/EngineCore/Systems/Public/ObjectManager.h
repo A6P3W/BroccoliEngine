@@ -38,10 +38,9 @@ public:
 		ptr->SetActorRotation(rotation);
 
 		if (!DeferBeginPlay)ptr->Spawned();
-
-		M_LOG(ptr->GetActorClassName());
 		return ptr;
 	}
+	void RemovePendingDestroy();
 	void ClearAllObjects();
 private:
 	std::vector<std::unique_ptr<AActor>> Actors;

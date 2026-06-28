@@ -1,5 +1,9 @@
 ﻿#include "SceneManager.h"
-#include "SampleScene01/SampleScene01.h"
+#include "NetworkTest/NetworkTestGameMode.h"
+
 void SetupGame() {
-	SceneManager::GetInstance().OpenScene<ASampleScene01>();
+	auto& sceneManager = SceneManager::GetInstance();
+	sceneManager.RegisterLevelPath(NetworkTestSceneIds::Level1, "../Engine/EngineSide/NetworkTest/NetworkTestLevel.BLevel");
+	sceneManager.RegisterLevelPath(NetworkTestSceneIds::Level2, "../Engine/EngineSide/NetworkTest/NetworkTestLevel2.BLevel");
+	sceneManager.OpenSceneById(NetworkTestSceneIds::Level1);
 }

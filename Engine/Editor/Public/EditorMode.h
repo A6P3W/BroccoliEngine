@@ -31,6 +31,9 @@ public:
 	void SelectClass(const std::string& className) { SelectedClass = className; }
 	const std::string& GetSelectedClass() const { return SelectedClass; }
 	const std::vector<std::string>& GetClassList() const;
+	const std::vector<std::string>& GetGameModeClassList() const;
+	void SetSelectedGameModeClass(const std::string& className) { SelectedGameModeClass = className; }
+	const std::string& GetSelectedGameModeClass() const { return SelectedGameModeClass; }
 
 	// --- アクタ選択 (インスペクタ・アウトライナ用) ---
 	void SetSelectedActor(AActor* actor);
@@ -74,6 +77,7 @@ private:
 	void BeginPlay() override;
 	EEditorState             State = EEditorState::Idle;
 	std::string              SelectedClass;
+	std::string              SelectedGameModeClass;
 	AActor* SelectingActor = nullptr; // ドラッグ中のゴースト
 	AActor* SelectedActor = nullptr; // 選択中のアクタ
 	EditorSelectPointComponent* SelectedPointComponent = nullptr;

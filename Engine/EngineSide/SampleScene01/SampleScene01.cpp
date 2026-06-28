@@ -7,15 +7,18 @@
 #include <SpriteComponent.h>
 #include <PlayerController.h>
 #include "SamplePawn01.h"
-ASampleScene01::ASampleScene01() {
 
+ASampleScene01::ASampleScene01()
+{
+	DefaultPawnClass = ASamplePawn01::StaticClassName();
+	DefaultPlayerControllerClass = APlayerController::StaticClassName();
 }
 
 void ASampleScene01::BeginPlay()
 {
-	SpawnPlayer<ASamplePawn01, APlayerController>({ 0,0 }, 0);
 }
 
 void ASampleScene01::OnUpdate(float DeltaTime)
 {
+	AGameModeBase::OnUpdate(DeltaTime);
 }

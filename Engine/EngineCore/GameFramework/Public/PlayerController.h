@@ -20,10 +20,12 @@ public:
 
 	void OnUpdate(float DeltaTime) override;
 	void SetPlayerId(int id);
+	int GetPlayerId() const { return PlayerId; }
 	virtual void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent);
 	virtual void SetupInputMappings();
 	InputMapper* GetInputMapper() { return InputMapperPtr.get(); }
 	MEnhancedInputComponent* GetInputComponent() { return InputComponent; }
+	APawn* GetPawn() const { return TargetPawn; }
 
 	void SetInputMode(EInputMode NewInputMode) { InputMode = NewInputMode; }
 	EInputMode GetInputMode() const { return InputMode; }

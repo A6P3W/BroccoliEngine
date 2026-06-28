@@ -1,12 +1,17 @@
 ﻿#include "World.h"
 
+#include "ActorRegistry.h"
+
 #include "Pawn.h"
 #include "ObjectManager.h"
 #include "CollisionSystem.h"
 #include "SoundManager.h"
 #include "TimerManager.h"
 #include "CameraComponent.h"
-#include "World.h"
+#include "PlayerController.h"
+#include "ReplicationSystem.h"
+#include "SceneManager.h"
+
 World::World()
 {
     ObjectManager = std::make_unique<MObjectManager>();
@@ -15,6 +20,7 @@ World::World()
     TimerManager = std::make_unique<MTimerManager>();
     
 	ObjectManager->SetWorld(this);
+	ReplicationSystem = std::make_unique<MReplicationSystem>(this);
 }
 
 World::~World()
@@ -26,6 +32,8 @@ void World::Update(float DeltaTime)
 {
 
     if (ObjectManager)ObjectManager->Update(DeltaTime);
+    if (ReplicationSystem)ReplicationSystem->Update();
+    if (ObjectManager)ObjectManager->RemovePendingDestroy();
     if (bSimulating) {
         if (TimerManager)TimerManager->Update(DeltaTime);
         if (CollisionSystem)CollisionSystem->CheckCollisions();
@@ -40,4 +48,108 @@ void World::Draw()
 void World::SetGameMode(AGameModeBase* mode)
 {
     GameMode = mode;
+}
+
+ENetMode World::GetNetMode() const
+{
+    return NetMode;
+}
+
+void World::SetNetMode(ENetMode NewNetMode)
+{
+    NetMode = NewNetMode;
+}
+
+bool World::IsStandalone() const
+{
+    return NetMode == ENetMode::Standalone;
+}
+
+bool World::IsListenServer() const
+{
+    return NetMode == ENetMode::ListenServer;
+}
+
+bool World::IsClient() const
+{
+    return NetMode == ENetMode::Client;
+}
+
+bool World::IsServer() const
+{
+    return IsStandalone() || IsListenServer();
+}
+
+FNetworkActorId World::AllocateNetworkActorId()
+{
+    if (!IsServer()) {
+        return 0;
+    }
+
+    return NextNetworkActorId++;
+}
+
+bool World::ServerTravel(FNetworkSceneId SceneId)
+{
+    if (!IsServer() || !SceneManager::GetInstance().IsSceneRegistered(SceneId)) {
+        return false;
+    }
+
+    if (IsListenServer() && ReplicationSystem) {
+        ReplicationSystem->BroadcastServerTravel(SceneId);
+    }
+
+    return SceneManager::GetInstance().OpenSceneById(SceneId, GetNetMode());
+}
+
+APlayerController* World::GetOrCreateLocalPlayerController()
+{
+    if (LocalPlayerController && !LocalPlayerController->IsPendingDestroy()) {
+        return LocalPlayerController;
+    }
+    
+    AActor* controllerActor = nullptr;
+    std::string controllerClass = LocalPlayerControllerClass;
+
+    if (controllerClass.empty() && GameMode != nullptr) {
+        controllerClass = GameMode->GetDefaultPlayerControllerClass();
+    }
+
+    if (!controllerClass.empty()) {
+        controllerActor = ActorRegistry::GetInstance().Spawn(this, controllerClass);
+    }
+    
+    if (!controllerActor) {
+        controllerActor = SpawnActor<APlayerController>();
+    }
+    
+    LocalPlayerController = dynamic_cast<APlayerController*>(controllerActor);
+    if (!LocalPlayerController) {
+        if (controllerActor) {
+            controllerActor->Destroy();
+        }
+        LocalPlayerController = SpawnActor<APlayerController>();
+    }
+    
+    LocalPlayerController->SetPlayerId(0);
+    LocalPlayerController->bIsLocallyControlled = true;
+    LocalPlayerController->SetupInputMappings();
+    LocalPlayerController->Spawned();
+    return LocalPlayerController;
+}
+
+void World::PossessLocalPawn(APawn* Pawn)
+{
+    if (!Pawn) {
+        return;
+    }
+
+    if (APlayerController* controller = GetOrCreateLocalPlayerController()) {
+        controller->Possess(Pawn);
+    }
+}
+
+void World::SetLocalPlayerControllerClass(const std::string& ClassName)
+{
+    LocalPlayerControllerClass = ClassName;
 }

@@ -10,5 +10,6 @@ private:
 	void DrawClassBrowser(EditorMode* editorMode);
 	void DrawOutliner(EditorMode* editorMode);
 	void DrawInspector(EditorMode* editorMode);
+	void DrawWorldSettings(EditorMode* editorMode);
 	void DrawSelectAction(EditorMode* editorMode);
 };

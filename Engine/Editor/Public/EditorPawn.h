@@ -14,7 +14,7 @@ public:
 	EditorPawn();
 
 	void OnUpdate(float DeltaTime) override;
-	void OnPossesed() override;
+	void OnPossessedBy(APlayerController* NewController) override;
 	void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
 private:
 	void BeginPlay() override;

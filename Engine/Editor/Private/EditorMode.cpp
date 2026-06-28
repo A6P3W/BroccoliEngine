@@ -19,6 +19,11 @@ const std::vector<std::string>& EditorMode::GetClassList() const
 	return ActorRegistry::GetInstance().GetClassNames();
 }
 
+const std::vector<std::string>& EditorMode::GetGameModeClassList() const
+{
+	return ActorRegistry::GetInstance().GetGameModeClassNames();
+}
+
 void EditorMode::SetSelectedActor(AActor* actor)
 {
 	if (SelectedPointComponent != nullptr)
@@ -124,7 +129,7 @@ void EditorMode::OnMouseRelease(const FVector2D& worldPos)
 
 bool EditorMode::SaveLevel(const std::string& filePath)
 {
-	if (LevelSerializer::Save(GetWorld(), filePath)) {
+	if (LevelSerializer::Save(GetWorld(), filePath, SelectedGameModeClass)) {
 		CurrentLevelPath = filePath;
 		M_LOG("Level saved to '{}'", filePath);
 
@@ -158,8 +163,14 @@ void EditorMode::Simulate()
 }
 EditorMode::EditorMode()
 {
+	const auto& gameModes = ActorRegistry::GetInstance().GetGameModeClassNames();
+	if (!gameModes.empty()) {
+		SelectedGameModeClass = gameModes[0];
+	}
 	M_LOG("EditorMode initialized");
 	bEditorActor = true;
+	DefaultPawnClass = EditorPawn::StaticClassName();
+	DefaultPlayerControllerClass = EditorController::StaticClassName();
 }
 
 
@@ -252,11 +263,16 @@ void EditorMode::OnUpdate(float DeltaTime)
 void EditorMode::BeginPlay()
 {
 	GetWorld()->SetSimulating(false);
-	SpawnPlayer<EditorPawn, EditorController>({ 0,0 }, 0);
 
 	if (PendingLoadPath != "")
 	{
-		LevelSerializer::Load(GetWorld(), PendingLoadPath);
+		FLevelMetaData meta;
+		if (LevelSerializer::Load(GetWorld(), PendingLoadPath, false, &meta)) {
+			if (!meta.GameModeClassName.empty()) {
+				SelectedGameModeClass = meta.GameModeClassName;
+			}
+			CurrentLevelPath = PendingLoadPath;
+		}
 	}
 	PendingLoadPath.clear();
 }

@@ -1,52 +1,84 @@
 ﻿#include "EnhancedInputComponent.h"
 
 void MEnhancedInputComponent::ProcessInputBindings(const InputMapper& mapper, bool AllowUI, bool AllowGame) {
+	std::unordered_map<std::string, FVector2D> currentFrameAxis2D;
+	std::unordered_map<std::string, float> currentFrameAxis1D;
+	constexpr float EpsilonSq = 0.0001f;
+
 	for (const auto& b : m_bindings) {
 		bool bIsUIAction = b.IsUIAction;
 		if (bIsUIAction && !AllowUI) continue;
 		if (!bIsUIAction && !AllowGame) continue;
 
-		float axisVal = mapper.GetAxisValue(b.ActionName);
+		bool is2DAxis = false;
+		FVector2D currentAxis2D = FVector2D::ZeroVector;
+		float currentAxis1D = mapper.GetAxisValue(b.ActionName);
+
+		if (b.ActionName == InputAction::Move) {
+			currentAxis2D = mapper.GetAxis2DValue(InputActionLower::MoveX, InputActionLower::MoveY);
+			is2DAxis = true;
+		}
+		else if (b.ActionName == UIAction::Move) {
+			currentAxis2D = mapper.GetAxis2DValue(UIActionLower::MoveX, UIActionLower::MoveY);
+			is2DAxis = true;
+		}
+		else if (b.ActionName == InputAction::Look) {
+			currentAxis2D = mapper.GetAxis2DValue(InputActionLower::LookX, InputActionLower::LookY);
+			is2DAxis = true;
+		}
+
+		if (is2DAxis) {
+			currentFrameAxis2D[b.ActionName] = currentAxis2D;
+		}
+		else {
+			currentFrameAxis1D[b.ActionName] = currentAxis1D;
+		}
+
 		bool trigger = false;
 
 		switch (b.Event) {
-		case ETriggerEvent::Started:   trigger = mapper.GetPressStart(b.ActionName); break;
-		case ETriggerEvent::Triggered:
-			if (b.ActionName == InputAction::Move) {
-				FVector2D moveAxis2D = mapper.GetAxis2DValue(InputActionLower::MoveX, InputActionLower::MoveY);
-				trigger = (moveAxis2D.SizeSquared() > 0.0001f);
-			}
-			else if (b.ActionName == UIAction::Move) {
-				FVector2D moveAxis2D = mapper.GetAxis2DValue(UIActionLower::MoveX, UIActionLower::MoveY);
-				trigger = (moveAxis2D.SizeSquared() > 0.0001f);
-			}
-			else if (b.ActionName == InputAction::Look) {
-				FVector2D lookAxis2D = mapper.GetAxis2DValue(InputActionLower::LookX, InputActionLower::LookY);
-				trigger = (lookAxis2D.SizeSquared() > 0.0001f);
+		case ETriggerEvent::Started:
+			if (is2DAxis) {
+				const float lastSq = m_lastAxis2DValues[b.ActionName].SizeSquared();
+				trigger = (lastSq <= EpsilonSq) && (currentAxis2D.SizeSquared() > EpsilonSq);
 			}
 			else {
-				trigger = mapper.GetPressing(b.ActionName) || (std::abs(axisVal) > 0.0001f);
+				const bool isButtonStart = mapper.GetPressStart(b.ActionName);
+				const bool isAxisStart = (std::abs(m_lastAxis1DValues[b.ActionName]) <= EpsilonSq) && (std::abs(currentAxis1D) > EpsilonSq);
+				trigger = isButtonStart || isAxisStart;
 			}
 			break;
-		case ETriggerEvent::Completed: trigger = mapper.GetRelease(b.ActionName); break;
+		case ETriggerEvent::Triggered:
+			if (is2DAxis) {
+				trigger = (currentAxis2D.SizeSquared() > EpsilonSq);
+			}
+			else {
+				trigger = mapper.GetPressing(b.ActionName) || (std::abs(currentAxis1D) > EpsilonSq);
+			}
+			break;
+		case ETriggerEvent::Completed:
+			if (is2DAxis) {
+				const float lastSq = m_lastAxis2DValues[b.ActionName].SizeSquared();
+				trigger = (lastSq > EpsilonSq) && (currentAxis2D.SizeSquared() <= EpsilonSq);
+			}
+			else {
+				const bool isButtonRelease = mapper.GetRelease(b.ActionName);
+				const bool isAxisRelease = (std::abs(m_lastAxis1DValues[b.ActionName]) > EpsilonSq) && (std::abs(currentAxis1D) <= EpsilonSq);
+				trigger = isButtonRelease || isAxisRelease;
+			}
+			break;
 		}
 
 		if (!trigger || !b.Callback) continue;
 
 		FInputActionValue value;
 		value.bIsPressed = true;
-		value.Axis1D = axisVal;
-
-		if (b.ActionName == InputAction::Move) {
-			value.Axis2D = mapper.GetAxis2DValue(InputActionLower::MoveX, InputActionLower::MoveY);
-		}
-		else if (b.ActionName == UIAction::Move) {
-			value.Axis2D = mapper.GetAxis2DValue(UIActionLower::MoveX, UIActionLower::MoveY);
-		}
-		else if (b.ActionName == InputAction::Look) {
-			value.Axis2D = mapper.GetAxis2DValue(InputActionLower::LookX, InputActionLower::LookY);
-		}
+		value.Axis1D = currentAxis1D;
+		value.Axis2D = currentAxis2D;
 
 		b.Callback(value);
 	}
+
+	m_lastAxis2DValues = currentFrameAxis2D;
+	m_lastAxis1DValues = currentFrameAxis1D;
 }

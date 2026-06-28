@@ -7,6 +7,12 @@
 #include <DxLib.h>
 #include <EnhancedInputComponent.h>
 #include "Log.h"
+#include "PlayerController.h"
+#include "World.h"
+#include "ObjectManager.h"
+
+REGISTER_ACTOR(APawn)
+
 APawn::APawn()
 {
 	auto camera = std::make_unique<MCameraComponent>();
@@ -14,13 +20,21 @@ APawn::APawn()
 	AddComponent(std::move(camera));
 	Camera->SetFOV(1);
 }
-void APawn::OnPossesed()
+void APawn::OnPossessedBy(APlayerController* NewController)
 {
-	Camera->SetActiveCamera();
+	Controller = NewController;
+
+	if (Controller && Controller->GetPlayerId() == 0) {
+		Camera->SetActiveCamera();
+	}
+}
+
+void APawn::OnUnPossessed()
+{
+	Controller = nullptr;
 }
 void APawn::OnUpdate(float DeltaTime)
-{
-}
+{}
 
 void APawn::SetupPlayerInputComponent(MEnhancedInputComponent* comp) {
 	comp->BindAction(InputAction::Interact, ETriggerEvent::Started, this, &APawn::OnInteractPressed);
@@ -35,5 +49,5 @@ void APawn::OnInteractPressed()
 
 void APawn::OnMove(const FInputActionValue& Value)
 {
-	AddActorWorldOffset(Value.Axis2D*-10);
+	AddActorWorldOffset(Value.Axis2D * -10);
 }

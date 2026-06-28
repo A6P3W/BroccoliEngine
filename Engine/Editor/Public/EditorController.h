@@ -6,6 +6,7 @@ class MEnhancedInputComponent;
 class EditorController : public APlayerController
 {
 public:
+	DEFINE_ACTOR_CLASS(EditorController);
 	EditorController();
 
 	void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
