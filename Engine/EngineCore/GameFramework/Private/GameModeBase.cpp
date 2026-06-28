@@ -1,4 +1,4 @@
-#include "GameModeBase.h"
+﻿#include "GameModeBase.h"
 #include "Pawn.h"
 #include "ObjectManager.h"
 #include "CollisionSystem.h"
@@ -134,5 +134,6 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
     controller->Possess(pawn);
 
     M_LOG("Spawned Player Pawn: {} at ({}, {})", pawn->GetActorClassName(), spawnLocation.X, spawnLocation.Y);
+    OnPlayerSpawned(controller, pawn, ConnectionId);
     return controller;
 }

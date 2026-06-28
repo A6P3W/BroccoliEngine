@@ -9,7 +9,7 @@
 #include <imgui.h>
 #include "CameraComponent.h"
 #include "SpriteComponent.h"
-
+REGISTER_ACTOR(EditorPawn);
 EditorPawn::EditorPawn()
 {
 	auto GameScreenComp = std::make_unique<MSpriteComponent>(999);

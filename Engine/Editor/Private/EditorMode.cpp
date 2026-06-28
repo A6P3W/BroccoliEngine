@@ -169,6 +169,8 @@ EditorMode::EditorMode()
 	}
 	M_LOG("EditorMode initialized");
 	bEditorActor = true;
+	DefaultPawnClass = EditorPawn::StaticClassName();
+	DefaultPlayerControllerClass = EditorController::StaticClassName();
 }
 
 
@@ -261,7 +263,6 @@ void EditorMode::OnUpdate(float DeltaTime)
 void EditorMode::BeginPlay()
 {
 	GetWorld()->SetSimulating(false);
-	SpawnPlayer<EditorPawn, EditorController>({ 0,0 }, 0);
 
 	if (PendingLoadPath != "")
 	{

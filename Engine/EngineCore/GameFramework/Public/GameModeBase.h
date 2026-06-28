@@ -26,6 +26,8 @@ public:
 	virtual void OnUpdate(float DeltaTime) override;
 	virtual void Draw() override;
 
+	virtual void OnPlayerSpawned(APlayerController* Controller, APawn* Pawn, FNetworkConnectionId ConnectionId) {}
+
 	APawn* GetPlayerPawn() const { return PlayerPawn; }
 	const std::string& GetDefaultPlayerControllerClass() const { return DefaultPlayerControllerClass; }
 

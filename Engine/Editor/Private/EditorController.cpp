@@ -6,7 +6,7 @@
 #include "EditorMode.h"
 #include "World.h"
 #include <DxLib.h>
-
+REGISTER_ACTOR(EditorController);
 EditorController::EditorController()
 {
 	bEditorActor = true;
