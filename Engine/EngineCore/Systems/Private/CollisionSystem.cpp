@@ -7,7 +7,7 @@
 #include "CollisionComponent.h"
 #include <atomic>
 #include <algorithm>
-
+#include <random>
 MCollisionSystem::MCollisionSystem()
 {}
 
@@ -166,11 +166,14 @@ void MCollisionSystem::CircleAndCircle(MCircleCollisionComponent* a, MCircleColl
 
 		if (a->GetCollisionType() == ECollisionType::Block && b->GetCollisionType() == ECollisionType::Block) {
 			float distance = std::sqrt(distanceSquared);
-			if (distance <= 0.0001f) {
-				return;
-			}
+			FVector2D normal;
 
-			FVector2D normal = { dx / distance, dy / distance };
+			if (distance <= 0.0001f) {
+				normal = { 1.0f, 0.0f };
+			}
+			else {
+				normal = { dx / distance, dy / distance };
+			}
 
 			float overlapDepth = minDistance - distance;
 
