@@ -106,7 +106,7 @@ void EditorUI::DrawInspector(EditorMode* editorMode)
 			float locArr[2] = { loc.X, loc.Y };
 			if (ImGui::DragFloat2("Location", locArr, 1.0f))
 			{
-				selectedActor->SetActorLocation({ locArr[0], locArr[1] });
+				selectedActor->SetActorLocation(FVector2D{ locArr[0], locArr[1] });
 			}
 
 			FRotator rot = selectedActor->GetActorRotation();
@@ -120,7 +120,7 @@ void EditorUI::DrawInspector(EditorMode* editorMode)
 			float scaleVal = scale.Scale;
 			if (ImGui::DragFloat("Scale", &scaleVal, 0.01f))
 			{
-				selectedActor->SetActorScale(scale);
+				selectedActor->SetActorScale(FScale(scaleVal));
 			}
 		}
 
