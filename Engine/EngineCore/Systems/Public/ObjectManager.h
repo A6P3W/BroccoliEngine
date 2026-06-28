@@ -38,8 +38,6 @@ public:
 		ptr->SetActorRotation(rotation);
 
 		if (!DeferBeginPlay)ptr->Spawned();
-
-		M_LOG(ptr->GetActorClassName());
 		return ptr;
 	}
 	void RemovePendingDestroy();

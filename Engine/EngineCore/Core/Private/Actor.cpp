@@ -49,7 +49,6 @@ AActor::~AActor()
 
 void AActor::Spawned()
 {
-	M_LOG("Actor spawned: {}", GetActorClassName());
 	BeginPlay();
 
 	for (size_t i = 0; i < Components.size(); ++i) {

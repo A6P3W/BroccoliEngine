@@ -97,7 +97,6 @@ bool LevelSerializer::Load(World* world, const std::string& filePath, bool bLoad
 
 	for (const auto& data : actors)
 	{
-		M_LOG("Spawning: {}", data.ClassName);
 		AActor* actor = registry.Spawn(world, data.ClassName, data.Location, data.Rotation);
 		if (!actor)
 		{

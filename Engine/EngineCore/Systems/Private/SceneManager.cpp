@@ -166,5 +166,6 @@ void SceneManager::ProcessSceneChanges()
 		if (CurrentScene && CurrentScene->GetReplicationSystem()) {
 			CurrentScene->GetReplicationSystem()->NotifySceneLoaded();
 		}
+		M_LOG("Scene changed to ID: {}, NetMode: {}", CurrentSceneId, static_cast<int>(CurrentScene->GetNetMode()));
 	}
 }

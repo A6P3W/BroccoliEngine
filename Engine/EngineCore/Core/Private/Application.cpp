@@ -85,7 +85,17 @@ bool Application::Run()
 	SetAlwaysRunFlag(TRUE);
 	DxLib_Init();
 	SetWaitVSyncFlag(false);
-
+	std::string mode;
+	if (IsEditor) {
+		mode = "Editor";
+	}
+	else if (IsRelease) {
+		mode = "Release";
+	}
+	else {
+		mode = "Game";
+	}
+	M_LOG("Starting: {}", mode);
 	const LONGLONG TargetFrameTime = 1000000 / 60;
 	LONGLONG LastTime = GetNowHiPerformanceCount();
 
