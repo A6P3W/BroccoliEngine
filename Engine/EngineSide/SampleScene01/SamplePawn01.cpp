@@ -33,10 +33,10 @@ void ASamplePawn01::BeginPlay()
 	// 3. UIManagerにPushして画面の最前面で開く
 	UIManager::GetInstance()->AddWidget(mainMenuWidget);
 }
-void ASamplePawn01::OnPossesed()
+void ASamplePawn01::OnPossessedBy(APlayerController* NewController)
 {
+	APawn::OnPossessedBy(NewController);
 	Camera->SetFOV(1);
-	Camera->SetActiveCamera();
 }
 void ASamplePawn01::OnUpdate(float DeltaTime)
 {

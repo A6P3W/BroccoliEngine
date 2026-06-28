@@ -130,9 +130,9 @@ ANetworkTestPawn::ANetworkTestPawn()
 	AddComponent(std::move(replicationTest));
 }
 
-void ANetworkTestPawn::OnPossesed()
+void ANetworkTestPawn::OnPossessedBy(APlayerController* NewController)
 {
-	APawn::OnPossesed();
+	APawn::OnPossessedBy(NewController);
 }
 
 void ANetworkTestPawn::OnUpdate(float DeltaTime)

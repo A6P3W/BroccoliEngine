@@ -20,24 +20,18 @@ APawn::APawn()
 	AddComponent(std::move(camera));
 	Camera->SetFOV(1);
 }
-void APawn::OnPossesed()
+void APawn::OnPossessedBy(APlayerController* NewController)
 {
-	APlayerController* owningController = nullptr;
-	if (GetWorld() && GetWorld()->GetObjectManager()) {
-		const auto& actors = GetWorld()->GetObjectManager()->GetAllActors();
-		for (const auto& actorPtr : actors) {
-			if (auto controller = dynamic_cast<APlayerController*>(actorPtr.get())) {
-				if (controller->GetPawn() == this) {
-					owningController = controller;
-					break;
-				}
-			}
-		}
-	}
+	Controller = NewController;
 
-	if (owningController && owningController->GetPlayerId() == 0) {
+	if (Controller && Controller->GetPlayerId() == 0) {
 		Camera->SetActiveCamera();
 	}
+}
+
+void APawn::OnUnPossessed()
+{
+	Controller = nullptr;
 }
 void APawn::OnUpdate(float DeltaTime)
 {}

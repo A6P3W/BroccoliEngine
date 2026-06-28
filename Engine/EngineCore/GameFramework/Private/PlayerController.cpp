@@ -27,11 +27,20 @@ void APlayerController::Possess(APawn* NewPawn)
 	if (GetInputComponent()) {
 		GetInputComponent()->ClearBindings();
 	}
+
+	if (TargetPawn && TargetPawn != NewPawn) {
+		TargetPawn->OnUnPossessed();
+	}
+
 	TargetPawn = NewPawn;
-	TargetPawn->OnPossesed();
-	SetupPlayerInputComponent(GetInputComponent());
-	if (GetInputComponent()) {
-		TargetPawn->SetupPlayerInputComponent(GetInputComponent());
+
+	if (TargetPawn) {
+		TargetPawn->OnPossessedBy(this);
+		
+		SetupPlayerInputComponent(GetInputComponent());
+		if (GetInputComponent()) {
+			TargetPawn->SetupPlayerInputComponent(GetInputComponent());
+		}
 	}
 }
 

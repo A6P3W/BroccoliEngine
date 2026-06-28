@@ -20,11 +20,9 @@ EditorPawn::EditorPawn()
 }
 
 
-void EditorPawn::OnPossesed()
+void EditorPawn::OnPossessedBy(APlayerController* NewController)
 {
-	APawn::OnPossesed();
-
-
+	APawn::OnPossessedBy(NewController);
 }
 
 void EditorPawn::SetupPlayerInputComponent(MEnhancedInputComponent* comp)

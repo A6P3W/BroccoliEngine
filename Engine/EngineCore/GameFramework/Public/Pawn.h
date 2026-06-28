@@ -5,14 +5,19 @@
 class MCameraComponent;
 class MEnhancedInputComponent;
 struct FInputActionValue;
+class APlayerController;
+
 class APawn : public AActor
 {
 public:
 	DEFINE_ACTOR_CLASS(APawn);
 	APawn();
-	virtual void OnPossesed();
+	virtual void OnPossessedBy(APlayerController* NewController);
+	virtual void OnUnPossessed();
 	void OnUpdate(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent);
+
+	APlayerController* GetController() const { return Controller; }
 
 private:
 	void OnInteractPressed();
@@ -20,5 +25,6 @@ private:
 protected:
 	MCameraComponent* Camera = nullptr;
 	FVector2D ControlInputVector = { 0,0 };
+	APlayerController* Controller = nullptr;
 };
 
