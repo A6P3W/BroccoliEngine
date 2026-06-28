@@ -22,11 +22,13 @@ class AGameModeBase : public AActor
 public:
 	DEFINE_ACTOR_CLASS(AGameModeBase)
 	AGameModeBase();
-
+	void BeginPlay() override;
 	virtual void OnUpdate(float DeltaTime) override;
 	virtual void Draw() override;
 
 	APawn* GetPlayerPawn() const { return PlayerPawn; }
+	const std::string& GetDefaultPlayerControllerClass() const { return DefaultPlayerControllerClass; }
+
 	bool IsHostPlayerSpawned() const { return bHostPlayerSpawned; }
 	virtual APlayerController* OnClientConnected(FNetworkConnectionId ConnectionId);
 	virtual void OnClientDisconnected(FNetworkConnectionId ConnectionId);

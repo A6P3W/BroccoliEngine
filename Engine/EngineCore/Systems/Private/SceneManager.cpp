@@ -1,4 +1,4 @@
-#include "SceneManager.h"
+﻿#include "SceneManager.h"
 #include "ObjectManager.h"
 #include "GridLine.h"
 #include "RenderSystem.h"
@@ -78,22 +78,43 @@ void SceneManager::QueueSceneFactory(RegisteredSceneFactory Factory, ENetMode Ne
 		return;
 	}
 
-	PendingSceneFactory = [Factory = std::move(Factory), NetMode]()->std::unique_ptr<World> {
-		return Factory(NetMode);
-	};
+	std::string controllerClass;
+	auto controllerIt = RegisteredLocalPlayerControllerClasses.find(SceneId);
+	if (controllerIt != RegisteredLocalPlayerControllerClasses.end()) {
+		controllerClass = controllerIt->second;
+	}
+
+	PendingSceneFactory = [Factory = std::move(Factory), NetMode, controllerClass]()->std::unique_ptr<World> {
+		auto newWorld = Factory(NetMode);
+		if (newWorld && !controllerClass.empty()) {
+			newWorld->SetLocalPlayerControllerClass(controllerClass);
+		}
+		return newWorld;
+		};
 	PendingSceneId = SceneId;
 }
 
 void SceneManager::QueueLevelPath(const std::string& LevelPath, ENetMode NetMode, FNetworkSceneId SceneId)
 {
-	PendingSceneFactory = [LevelPath, NetMode]()->std::unique_ptr<World> {
+	std::string controllerClass;
+	auto controllerIt = RegisteredLocalPlayerControllerClasses.find(SceneId);
+	if (controllerIt != RegisteredLocalPlayerControllerClasses.end()) {
+		controllerClass = controllerIt->second;
+	}
+
+	PendingSceneFactory = [LevelPath, NetMode, controllerClass]()->std::unique_ptr<World> {
 		auto newWorld = std::make_unique<World>();
 		newWorld->SetNetMode(NetMode);
+
+		if (!controllerClass.empty()) {
+			newWorld->SetLocalPlayerControllerClass(controllerClass);
+		}
+
 		if (!LevelSerializer::Load(newWorld.get(), LevelPath, true)) {
 			return nullptr;
 		}
 		return newWorld;
-	};
+		};
 	PendingSceneId = SceneId;
 }
 
@@ -123,9 +144,21 @@ void SceneManager::ProcessSceneChanges()
 		}
 
 		if (CurrentScene) {
-			auto controllerIt = RegisteredLocalPlayerControllerClasses.find(CurrentSceneId);
-			if (controllerIt != RegisteredLocalPlayerControllerClasses.end()) {
-				CurrentScene->SetLocalPlayerControllerClass(controllerIt->second);
+			CurrentScene->GetOrCreateLocalPlayerController();
+			
+		}
+		if (CurrentScene) {
+			if (CurrentScene->IsServer()) {
+				// サーバー(またはスタンドアローン)の場合はGameModeにPawnとControllerを作らせる
+				if (AGameModeBase* gameMode = CurrentScene->GetGameMode()) {
+					if (!gameMode->IsHostPlayerSpawned()) {
+						gameMode->SpawnDefaultPlayer(0);
+					}
+				} else {
+					CurrentScene->GetOrCreateLocalPlayerController();
+				}
+			} else {
+				// クライアントの場合はControllerだけ作成し、Pawnはサーバーからのレプリケーションを待つ
 				CurrentScene->GetOrCreateLocalPlayerController();
 			}
 		}

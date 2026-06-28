@@ -21,6 +21,14 @@ AGameModeBase::AGameModeBase()
     camPtr->SetActiveCamera();
 }
 
+void AGameModeBase::BeginPlay()
+{
+    AActor::BeginPlay();
+    if (GetWorld() && GetWorld()->IsServer() && !bHostPlayerSpawned) {
+        bHostPlayerSpawned = SpawnDefaultPlayer(0) != nullptr;
+    }
+}
+
 APlayerController* AGameModeBase::OnClientConnected(FNetworkConnectionId ConnectionId)
 {
     return SpawnDefaultPlayer(ConnectionId);
@@ -34,10 +42,6 @@ void AGameModeBase::OnClientDisconnected(FNetworkConnectionId ConnectionId)
 void AGameModeBase::OnUpdate(float DeltaTime)
 {
     (void)DeltaTime;
-
-    if (GetWorld() && GetWorld()->IsServer() && !bHostPlayerSpawned) {
-        bHostPlayerSpawned = SpawnDefaultPlayer(0) != nullptr;
-    }
 }
 
 void AGameModeBase::Draw()
@@ -121,7 +125,9 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
     pawn->bHasAuthority = true;
     pawn->bIsLocallyControlled = bIsLocalPlayer;
 
-    controller->Spawned();
+    if (ConnectionId != 0) {
+        controller->Spawned();
+    }
     pawn->Spawned();
 
     PlayerPawn = pawn;

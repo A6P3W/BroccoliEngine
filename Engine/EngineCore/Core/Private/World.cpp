@@ -1,4 +1,4 @@
-#include "World.h"
+﻿#include "World.h"
 
 #include "ActorRegistry.h"
 
@@ -107,15 +107,22 @@ APlayerController* World::GetOrCreateLocalPlayerController()
     if (LocalPlayerController && !LocalPlayerController->IsPendingDestroy()) {
         return LocalPlayerController;
     }
-
+    
     AActor* controllerActor = nullptr;
-    if (!LocalPlayerControllerClass.empty()) {
-        controllerActor = ActorRegistry::GetInstance().Spawn(this, LocalPlayerControllerClass);
+    std::string controllerClass = LocalPlayerControllerClass;
+
+    if (controllerClass.empty() && GameMode != nullptr) {
+        controllerClass = GameMode->GetDefaultPlayerControllerClass();
     }
+
+    if (!controllerClass.empty()) {
+        controllerActor = ActorRegistry::GetInstance().Spawn(this, controllerClass);
+    }
+    
     if (!controllerActor) {
         controllerActor = SpawnActor<APlayerController>();
     }
-
+    
     LocalPlayerController = dynamic_cast<APlayerController*>(controllerActor);
     if (!LocalPlayerController) {
         if (controllerActor) {
@@ -123,7 +130,7 @@ APlayerController* World::GetOrCreateLocalPlayerController()
         }
         LocalPlayerController = SpawnActor<APlayerController>();
     }
-
+    
     LocalPlayerController->SetPlayerId(0);
     LocalPlayerController->bIsLocallyControlled = true;
     LocalPlayerController->SetupInputMappings();
