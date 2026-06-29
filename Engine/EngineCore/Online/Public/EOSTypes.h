@@ -27,8 +27,10 @@ struct FLobbyInfo {
 struct FCreateLobbyRequest {
   int MaxMembers = 4;
   bool bPublicAdvertised = true;
+  std::string BucketId = "BroccoliNetworkTest";
 };
 
 struct FLobbySearchRequest {
   int MaxResults = 10;
+  std::string BucketId = "BroccoliNetworkTest";
 };

@@ -15,6 +15,14 @@ const char* SafeText(const char* Text) { return Text ? Text : "<null>"; }
 
 const char* SafeEOSResult(EOS_EResult Result) { return SafeText(EOS_EResult_ToString(Result)); }
 
+const char* GetSafeBucketId(const FCreateLobbyRequest& Request) {
+  return Request.BucketId.empty() ? "BroccoliNetworkTest" : Request.BucketId.c_str();
+}
+
+const char* GetSafeBucketId(const FLobbySearchRequest& Request) {
+  return Request.BucketId.empty() ? "BroccoliNetworkTest" : Request.BucketId.c_str();
+}
+
 int ClampToInt(uint32_t Value) {
   return Value > static_cast<uint32_t>(INT32_MAX) ? INT32_MAX : static_cast<int>(Value);
 }
@@ -123,7 +131,7 @@ void EOSLobbyManager::CreateLobby(
                                                       : EOS_ELobbyPermissionLevel::EOS_LPL_INVITEONLY;
   Options.bPresenceEnabled = EOS_FALSE;
   Options.bAllowInvites = EOS_TRUE;
-  Options.BucketId = nullptr;
+  Options.BucketId = GetSafeBucketId(Request);
   Options.bDisableHostMigration = EOS_FALSE;
   Options.bEnableRTCRoom = EOS_FALSE;
   Options.LocalRTCOptions = nullptr;
@@ -205,10 +213,15 @@ void EOSLobbyManager::LeaveLobby(std::function<void(bool)> OnComplete) {
           return;
         }
 
-        if (Data->ResultCode == EOS_EResult::EOS_Success) {
+        if (Data->ResultCode == EOS_EResult::EOS_Success ||
+            Data->ResultCode == EOS_EResult::EOS_NotFound) {
           LobbyManager.CurrentLobbyId.clear();
           LobbyManager.bInLobby = false;
-          M_LOG("[EOSLobby] LeaveLobby success");
+          if (Data->ResultCode == EOS_EResult::EOS_Success) {
+            M_LOG("[EOSLobby] LeaveLobby success");
+          } else {
+            M_LOG("[EOSLobby] LeaveLobby recovered: lobby was already gone.");
+          }
           CompleteBoolCallback(Context->OnComplete, true);
           delete Context;
           return;
@@ -243,6 +256,24 @@ void EOSLobbyManager::SearchLobbies(
   EOS_EResult CreateSearchResult = EOS_Lobby_CreateLobbySearch(LobbyHandle, &CreateSearchOptions, &SearchHandle);
   if (CreateSearchResult != EOS_EResult::EOS_Success || !SearchHandle) {
     M_LOG("[EOSLobby] CreateLobbySearch failed: {}", SafeEOSResult(CreateSearchResult));
+    CompleteSearchCallback(OnComplete, false, {});
+    return;
+  }
+
+  EOS_Lobby_AttributeData BucketParameter = {};
+  BucketParameter.ApiVersion = EOS_LOBBY_ATTRIBUTEDATA_API_LATEST;
+  BucketParameter.Key = EOS_LOBBY_SEARCH_BUCKET_ID;
+  BucketParameter.Value.AsUtf8 = GetSafeBucketId(Request);
+  BucketParameter.ValueType = EOS_ELobbyAttributeType::EOS_AT_STRING;
+
+  EOS_LobbySearch_SetParameterOptions SetBucketOptions = {};
+  SetBucketOptions.ApiVersion = EOS_LOBBYSEARCH_SETPARAMETER_API_LATEST;
+  SetBucketOptions.Parameter = &BucketParameter;
+  SetBucketOptions.ComparisonOp = EOS_EComparisonOp::EOS_CO_EQUAL;
+  EOS_EResult SetBucketResult = EOS_LobbySearch_SetParameter(SearchHandle, &SetBucketOptions);
+  if (SetBucketResult != EOS_EResult::EOS_Success) {
+    M_LOG("[EOSLobby] SearchLobbies set bucket failed: {}", SafeEOSResult(SetBucketResult));
+    EOS_LobbySearch_Release(SearchHandle);
     CompleteSearchCallback(OnComplete, false, {});
     return;
   }

@@ -1,4 +1,4 @@
-#include "NetworkTest/NetworkTestPawn.h"
+﻿#include "NetworkTest/NetworkTestPawn.h"
 
 #include <DxLib.h>
 #include <MovementComponent.h>
@@ -6,6 +6,9 @@
 #include <imgui.h>
 
 #include "EnhancedInputComponent.h"
+#include "EOSAuthManager.h"
+#include "EOSCoreManager.h"
+#include "EOSLobbyManager.h"
 #include "Log.h"
 #include "NetworkManager.h"
 #include "NetworkTest/NetworkTestGameMode.h"
@@ -161,6 +164,9 @@ void ANetworkTestPawn::BeginPlay() {
     if (auto gameMode = dynamic_cast<ANetworkTestGameMode*>(GetWorld()->GetGameMode())) {
       StatusMessage = std::string(gameMode->GetSceneName()) + " loaded.";
     }
+    OnlineStatusMessage = EOSCoreManager::Get().IsInitialized()
+                              ? "EOS initialized. Login to use lobby."
+                              : "EOS is not initialized.";
   }
 }
 
@@ -185,6 +191,7 @@ void ANetworkTestPawn::Draw() {
   APawn::Draw();
   if (bIsLocallyControlled) {
     DrawConnectionWindow();
+    DrawOnlineWindow();
     DrawStatusWindow();
   }
 }
@@ -324,6 +331,82 @@ void ANetworkTestPawn::DrawConnectionWindow() {
   ImGui::End();
 }
 
+void ANetworkTestPawn::DrawOnlineWindow() {
+  EOSCoreManager& coreManager = EOSCoreManager::Get();
+  EOSAuthManager& authManager = EOSAuthManager::Get();
+  EOSLobbyManager& lobbyManager = EOSLobbyManager::Get();
+
+  if (OnlineLobbyMaxMembers < 1) {
+    OnlineLobbyMaxMembers = 1;
+  }
+  if (OnlineLobbyMaxMembers > 64) {
+    OnlineLobbyMaxMembers = 64;
+  }
+  if (OnlineSearchMaxResults < 1) {
+    OnlineSearchMaxResults = 1;
+  }
+  if (OnlineSearchMaxResults > 100) {
+    OnlineSearchMaxResults = 100;
+  }
+
+  ImGui::Begin("EOS Lobby Test");
+  ImGui::Text("EOS initialized: %s", coreManager.IsInitialized() ? "true" : "false");
+  ImGui::Text("Logged in: %s", authManager.IsLoggedIn() ? "true" : "false");
+  if (authManager.IsLoggedIn()) {
+    const std::string localUserId = authManager.GetLocalUserIdString();
+    ImGui::TextWrapped("ProductUserId: %s", localUserId.c_str());
+  }
+  ImGui::Text("In lobby: %s", lobbyManager.IsInLobby() ? "true" : "false");
+  if (lobbyManager.IsInLobby()) {
+    const std::string lobbyId = lobbyManager.GetCurrentLobbyId();
+    ImGui::TextWrapped("Current LobbyId: %s", lobbyId.c_str());
+  }
+  ImGui::Text("Operation pending: %s", bOnlineOperationPending ? "true" : "false");
+  ImGui::Separator();
+
+  ImGui::InputText("Display Name", OnlineDisplayName, sizeof(OnlineDisplayName));
+  if (ImGui::Button("Login Device ID")) {
+    LoginWithDeviceId();
+  }
+
+  ImGui::Separator();
+  ImGui::InputInt("Max Members", &OnlineLobbyMaxMembers);
+  if (ImGui::Button("Create Lobby")) {
+    CreateOnlineLobby();
+  }
+
+  ImGui::InputInt("Search Max Results", &OnlineSearchMaxResults);
+  if (ImGui::Button("Search Lobbies")) {
+    SearchOnlineLobbies();
+  }
+
+  if (!OnlineSearchResults.empty()) {
+    ImGui::BeginChild("EOSLobbySearchResults", ImVec2(0.0f, 120.0f), true);
+    for (int index = 0; index < static_cast<int>(OnlineSearchResults.size()); ++index) {
+      const FLobbyInfo& lobbyInfo = OnlineSearchResults[index];
+      std::string label = std::to_string(index + 1) + ": " + lobbyInfo.LobbyId + " (" +
+                          std::to_string(lobbyInfo.CurrentMembers) + "/" +
+                          std::to_string(lobbyInfo.MaxMembers) + ")";
+      if (ImGui::Selectable(label.c_str(), SelectedOnlineLobbyIndex == index)) {
+        SelectedOnlineLobbyIndex = index;
+      }
+    }
+    ImGui::EndChild();
+  } else {
+    ImGui::TextDisabled("No lobby search results.");
+  }
+
+  if (ImGui::Button("Join Selected Lobby")) {
+    JoinSelectedOnlineLobby();
+  }
+  if (ImGui::Button("Leave Lobby")) {
+    LeaveOnlineLobby();
+  }
+
+  ImGui::Separator();
+  ImGui::TextWrapped("%s", OnlineStatusMessage.c_str());
+  ImGui::End();
+}
 void ANetworkTestPawn::DrawStatusWindow() {
   ImGui::Begin("Network Status");
 
@@ -365,4 +448,170 @@ void ANetworkTestPawn::ConnectAsClient() {
   } else {
     StatusMessage = "Failed to connect to server.";
   }
+}
+
+void ANetworkTestPawn::LoginWithDeviceId() {
+  if (bOnlineOperationPending) {
+    OnlineStatusMessage = "EOS operation is already pending.";
+    return;
+  }
+
+  if (!EOSCoreManager::Get().IsInitialized()) {
+    OnlineStatusMessage = "EOS is not initialized.";
+    return;
+  }
+
+  if (EOSAuthManager::Get().IsLoggedIn()) {
+    OnlineStatusMessage = "Already logged in.";
+    return;
+  }
+
+  bOnlineOperationPending = true;
+  OnlineStatusMessage = "EOS Device ID login requested.";
+  EOSAuthManager::Get().LoginWithDeviceId(OnlineDisplayName, [this](bool bSuccess) {
+    bOnlineOperationPending = false;
+    if (bSuccess) {
+      OnlineStatusMessage = "EOS Device ID login succeeded.";
+      const std::string localUserId = EOSAuthManager::Get().GetLocalUserIdString();
+      if (!localUserId.empty()) {
+        OnlineStatusMessage += " ProductUserId: " + localUserId;
+      }
+    } else {
+      OnlineStatusMessage = "EOS Device ID login failed. See Logs for details.";
+    }
+  });
+}
+
+void ANetworkTestPawn::CreateOnlineLobby() {
+  if (bOnlineOperationPending) {
+    OnlineStatusMessage = "EOS operation is already pending.";
+    return;
+  }
+
+  if (!EOSAuthManager::Get().IsLoggedIn()) {
+    OnlineStatusMessage = "Login before creating a lobby.";
+    return;
+  }
+
+  if (EOSLobbyManager::Get().IsInLobby()) {
+    OnlineStatusMessage = "Already in a lobby. Leave it before creating another one.";
+    return;
+  }
+
+  if (OnlineLobbyMaxMembers < 1) {
+    OnlineLobbyMaxMembers = 1;
+  }
+
+  FCreateLobbyRequest request;
+  request.MaxMembers = OnlineLobbyMaxMembers;
+  request.bPublicAdvertised = true;
+
+  bOnlineOperationPending = true;
+  OnlineStatusMessage = "Create lobby requested.";
+  EOSLobbyManager::Get().CreateLobby(request, [this](bool bSuccess, const FLobbyInfo& lobbyInfo) {
+    bOnlineOperationPending = false;
+    if (bSuccess) {
+      OnlineSearchResults.clear();
+      SelectedOnlineLobbyIndex = -1;
+      OnlineStatusMessage = "Lobby created: " + lobbyInfo.LobbyId;
+    } else {
+      OnlineStatusMessage = "Create lobby failed. See Logs for details.";
+    }
+  });
+}
+
+void ANetworkTestPawn::SearchOnlineLobbies() {
+  if (bOnlineOperationPending) {
+    OnlineStatusMessage = "EOS operation is already pending.";
+    return;
+  }
+
+  if (!EOSAuthManager::Get().IsLoggedIn()) {
+    OnlineStatusMessage = "Login before searching lobbies.";
+    return;
+  }
+
+  if (OnlineSearchMaxResults < 1) {
+    OnlineSearchMaxResults = 1;
+  }
+
+  FLobbySearchRequest request;
+  request.MaxResults = OnlineSearchMaxResults;
+
+  bOnlineOperationPending = true;
+  OnlineSearchResults.clear();
+  SelectedOnlineLobbyIndex = -1;
+  OnlineStatusMessage = "Search lobbies requested.";
+  EOSLobbyManager::Get().SearchLobbies(
+      request,
+      [this](bool bSuccess, const std::vector<FLobbyInfo>& results) {
+        bOnlineOperationPending = false;
+        if (bSuccess) {
+          OnlineSearchResults = results;
+          SelectedOnlineLobbyIndex = OnlineSearchResults.empty() ? -1 : 0;
+          OnlineStatusMessage = "Lobby search completed. Found: " + std::to_string(OnlineSearchResults.size());
+        } else {
+          OnlineStatusMessage = "Lobby search failed. See Logs for details.";
+        }
+      }
+  );
+}
+
+void ANetworkTestPawn::JoinSelectedOnlineLobby() {
+  if (bOnlineOperationPending) {
+    OnlineStatusMessage = "EOS operation is already pending.";
+    return;
+  }
+
+  if (!EOSAuthManager::Get().IsLoggedIn()) {
+    OnlineStatusMessage = "Login before joining a lobby.";
+    return;
+  }
+
+  if (EOSLobbyManager::Get().IsInLobby()) {
+    OnlineStatusMessage = "Already in a lobby. Leave it before joining another one.";
+    return;
+  }
+
+  if (SelectedOnlineLobbyIndex < 0 ||
+      SelectedOnlineLobbyIndex >= static_cast<int>(OnlineSearchResults.size())) {
+    OnlineStatusMessage = "Select a lobby search result first.";
+    return;
+  }
+
+  const FLobbyInfo lobbyInfo = OnlineSearchResults[SelectedOnlineLobbyIndex];
+  bOnlineOperationPending = true;
+  OnlineStatusMessage = "Join lobby requested: " + lobbyInfo.LobbyId;
+  EOSLobbyManager::Get().JoinLobby(lobbyInfo, [this, lobbyInfo](bool bSuccess) {
+    bOnlineOperationPending = false;
+    if (bSuccess) {
+      OnlineStatusMessage = "Joined lobby: " + lobbyInfo.LobbyId;
+    } else {
+      OnlineStatusMessage = "Join lobby failed. Search again if the result is stale.";
+    }
+  });
+}
+
+void ANetworkTestPawn::LeaveOnlineLobby() {
+  if (bOnlineOperationPending) {
+    OnlineStatusMessage = "EOS operation is already pending.";
+    return;
+  }
+
+  if (!EOSLobbyManager::Get().IsInLobby()) {
+    OnlineStatusMessage = "Not in a lobby.";
+    return;
+  }
+
+  const std::string lobbyId = EOSLobbyManager::Get().GetCurrentLobbyId();
+  bOnlineOperationPending = true;
+  OnlineStatusMessage = "Leave lobby requested: " + lobbyId;
+  EOSLobbyManager::Get().LeaveLobby([this, lobbyId](bool bSuccess) {
+    bOnlineOperationPending = false;
+    if (bSuccess) {
+      OnlineStatusMessage = "Left lobby: " + lobbyId;
+    } else {
+      OnlineStatusMessage = "Leave lobby failed. See Logs for details.";
+    }
+  });
 }

@@ -1,8 +1,12 @@
-#pragma once
+﻿#pragma once
 
+#include "EOSTypes.h"
 #include "ActorComponent.h"
 #include "Pawn.h"
 #include "UMath.h"
+
+#include <string>
+#include <vector>
 
 class MEnhancedInputComponent;
 class MSpriteComponent;
@@ -56,9 +60,15 @@ class ANetworkTestPawn : public APawn {
   int GetDisplayColor() const;
 
   void DrawConnectionWindow();
+  void DrawOnlineWindow();
   void DrawStatusWindow();
   void StartListenServer();
   void ConnectAsClient();
+  void LoginWithDeviceId();
+  void CreateOnlineLobby();
+  void SearchOnlineLobbies();
+  void JoinSelectedOnlineLobby();
+  void LeaveOnlineLobby();
 
   MSpriteComponent* BodySprite = nullptr;
   MMovementComponent* Movement = nullptr;
@@ -70,4 +80,12 @@ class ANetworkTestPawn : public APawn {
   int Port = 7777;
   bool bSessionStarted = false;
   std::string StatusMessage;
+
+  char OnlineDisplayName[32] = "BroccoliPlayer";
+  int OnlineLobbyMaxMembers = 4;
+  int OnlineSearchMaxResults = 10;
+  bool bOnlineOperationPending = false;
+  std::vector<FLobbyInfo> OnlineSearchResults;
+  int SelectedOnlineLobbyIndex = -1;
+  std::string OnlineStatusMessage;
 };
