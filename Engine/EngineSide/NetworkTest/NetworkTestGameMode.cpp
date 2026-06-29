@@ -1,5 +1,10 @@
 ﻿#include "NetworkTest/NetworkTestGameMode.h"
 
+#include <eos_connect.h>
+#include <eos_lobby.h>
+#include <eos_sdk.h>
+#include <eos_sdk.h>
+#include <eos_logging.h>
 #include <imgui.h>
 
 #include "NetworkManager.h"

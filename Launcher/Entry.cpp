@@ -1,6 +1,9 @@
-﻿#include "NetworkTest/NetworkTestGameMode.h"
+﻿#include <eos_connect.h>
+#include <eos_lobby.h>
+#include <eos_sdk.h>
+#include <EOS_ProductCredentials.h>
+#include "NetworkTest/NetworkTestGameMode.h"
 #include "SceneManager.h"
-
 void SetupGame() {
   auto& sceneManager = SceneManager::GetInstance();
   sceneManager.RegisterLevelPath(

@@ -22,21 +22,27 @@
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/GameFramework/Public;
 		  $(MSBuildThisFileDirectory)Engine/ThirdParty;
 		  $(MSBuildThisFileDirectory)Engine/EngineCore/Utils/Public;
+		  $(MSBuildThisFileDirectory)Engine/ThirdParty/EOS/SDK/Include;
 		  %(AdditionalIncludeDirectories)
 	  </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
 		<AdditionalDependencies>
-			BroccoliEngine.lib;enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;
+			BroccoliEngine.lib;enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;EOSSDK-Win64-Shipping.lib;
 			%(AdditionalDependencies)
 		</AdditionalDependencies>
 		<AdditionalLibraryDirectories>
 			$(BroccoliEngineTargetDir);
 			$(BroccoliVcpkgLibDir);
+			$(MSBuildThisFileDirectory)Engine/ThirdParty/EOS/SDK/Lib/;
 			$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\;
 			$(MSBuildThisFileDirectory)BroccoliEngine\$(Platform)\$(Configuration)\;
+			$(MSBuildThisFileDirectory)Config;
 			%(AdditionalLibraryDirectories)
 		</AdditionalLibraryDirectories>
     </Link>
+	  <PostBuildEvent>
+		  <Command>copy /Y "$(MSBuildThisFileDirectory)Engine\ThirdParty\EOS\SDK\Bin\EOSSDK-Win64-Shipping.dll" "$(OutDir)"</Command>
+	  </PostBuildEvent>
   </ItemDefinitionGroup>
 </Project>
