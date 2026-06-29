@@ -1,69 +1,62 @@
 ﻿#include "UIManager.h"
-#include "EnhancedInputComponent.h"
-#include "Log.h"
-#include "Actor.h"
-#include "WidgetBase.h"
+
 #include <algorithm>
 
-void UIManager::RefreshZOrder()
-{
-	int currentOffset = 0;
-	for (AWidgetBase* widget : ActiveWidgets)
-	{
-		if (widget)
-		{
-			widget->SetZOrderOffset(currentOffset);
-			currentOffset += 100;
-		}
-	}
+#include "Actor.h"
+#include "EnhancedInputComponent.h"
+#include "Log.h"
+#include "WidgetBase.h"
+
+void UIManager::RefreshZOrder() {
+  int currentOffset = 0;
+  for (AWidgetBase* widget : ActiveWidgets) {
+    if (widget) {
+      widget->SetZOrderOffset(currentOffset);
+      currentOffset += 100;
+    }
+  }
 }
 
-void UIManager::AddWidget(AWidgetBase* Widget)
-{
-	if (!Widget) return;
+void UIManager::AddWidget(AWidgetBase* Widget) {
+  if (!Widget) return;
 
-	ActiveWidgets.push_back(Widget);
-	Widget->OnOpened();
+  ActiveWidgets.push_back(Widget);
+  Widget->OnOpened();
 
-	RefreshZOrder();
+  RefreshZOrder();
 }
 
-void UIManager::RemoveWidget(AWidgetBase* Widget)
-{
-	if (!Widget) return;
+void UIManager::RemoveWidget(AWidgetBase* Widget) {
+  if (!Widget) return;
 
-	if (CurrentFocusedWidget == Widget) {
-		CurrentFocusedWidget = nullptr;
-	}
+  if (CurrentFocusedWidget == Widget) {
+    CurrentFocusedWidget = nullptr;
+  }
 
-	auto it = std::find(ActiveWidgets.begin(), ActiveWidgets.end(), Widget);
-	if (it != ActiveWidgets.end())
-	{
-		(*it)->OnClosed();
-		(*it)->Destroy();
-		ActiveWidgets.erase(it);
+  auto it = std::find(ActiveWidgets.begin(), ActiveWidgets.end(), Widget);
+  if (it != ActiveWidgets.end()) {
+    (*it)->OnClosed();
+    (*it)->Destroy();
+    ActiveWidgets.erase(it);
 
-		RefreshZOrder();
-	}
+    RefreshZOrder();
+  }
 }
 
-void UIManager::Navigate(const FInputActionValue& Value)
-{
-	if (CurrentFocusedWidget) {
-		CurrentFocusedWidget->Navigate(Value);
-	}
+void UIManager::Navigate(const FInputActionValue& Value) {
+  if (CurrentFocusedWidget) {
+    CurrentFocusedWidget->Navigate(Value);
+  }
 }
 
-void UIManager::Submit()
-{
-	if (CurrentFocusedWidget) {
-		CurrentFocusedWidget->Submit();
-	}
+void UIManager::Submit() {
+  if (CurrentFocusedWidget) {
+    CurrentFocusedWidget->Submit();
+  }
 }
 
-void UIManager::Cancel()
-{
-	if (CurrentFocusedWidget) {
-		CurrentFocusedWidget->Cancel();
-	}
+void UIManager::Cancel() {
+  if (CurrentFocusedWidget) {
+    CurrentFocusedWidget->Cancel();
+  }
 }

@@ -1,0 +1,8 @@
+Language: Cpp
+BasedOnStyle: Google
+ColumnLimit: 100
+AlignAfterOpenBracket: BlockIndent
+BinPackArguments: false
+BinPackParameters: false
+LineEnding: CRLF
+IndentWidth: 2

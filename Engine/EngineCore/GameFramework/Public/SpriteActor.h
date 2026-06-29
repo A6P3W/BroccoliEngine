@@ -1,23 +1,23 @@
 ﻿#pragma once
-#include "Actor.h"
 #include <string>
+
+#include "Actor.h"
 
 class MSpriteComponent;
 
-class ASpriteActor : public AActor
-{
-public:
-	DEFINE_ACTOR_CLASS(ASpriteActor);
+class ASpriteActor : public AActor {
+ public:
+  DEFINE_ACTOR_CLASS(ASpriteActor);
 
-	ASpriteActor();
+  ASpriteActor();
 
-	void SetImagePath(const std::string& path);
-	const std::string& GetImagePath() const { return ImagePath; }
+  void SetImagePath(const std::string& path);
+  const std::string& GetImagePath() const { return ImagePath; }
 
-protected:
-	void BeginPlay() override;
+ protected:
+  void BeginPlay() override;
 
-private:
-	MSpriteComponent* SpriteComponent = nullptr;
-	std::string ImagePath;
+ private:
+  MSpriteComponent* SpriteComponent = nullptr;
+  std::string ImagePath;
 };

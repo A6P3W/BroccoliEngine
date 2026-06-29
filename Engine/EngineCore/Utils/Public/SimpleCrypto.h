@@ -2,8 +2,7 @@
 
 #include <string>
 
-class SimpleCrypto
-{
-public:
-	static std::string Process(const std::string& input);
+class SimpleCrypto {
+ public:
+  static std::string Process(const std::string& input);
 };

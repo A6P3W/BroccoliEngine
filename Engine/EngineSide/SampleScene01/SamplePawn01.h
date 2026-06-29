@@ -6,20 +6,17 @@ class MEnhancedInputComponent;
 struct FInputActionValue;
 class MMovementComponent;
 
+class ASamplePawn01 : public APawn {
+ public:
+  DEFINE_ACTOR_CLASS(ASamplePawn01)
+  ASamplePawn01();
+  void BeginPlay() override;
+  void OnPossessedBy(APlayerController* NewController) override;
+  void OnUpdate(float DeltaTime) override;
+  void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
 
-class ASamplePawn01 : public APawn
-{
-public:
-	DEFINE_ACTOR_CLASS(ASamplePawn01)
-	ASamplePawn01();
-	void BeginPlay() override;
-	void OnPossessedBy(APlayerController* NewController) override;
-    void OnUpdate(float DeltaTime) override;
-	void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
-
-private:
-	void OnInteractPressed();
-	void OnMove(const FInputActionValue& Value);
-	MMovementComponent* Movement = nullptr;
+ private:
+  void OnInteractPressed();
+  void OnMove(const FInputActionValue& Value);
+  MMovementComponent* Movement = nullptr;
 };
-

@@ -1,40 +1,35 @@
 ﻿#pragma once
-#include "Actor.h"
-#include "Pawn.h"
 #include <InputMapper.h>
+
 #include <memory>
 
-enum class EInputMode
-{
-	GameOnly,
-	UIOnly,
-	GameAndUI
-};
+#include "Actor.h"
+#include "Pawn.h"
+
+enum class EInputMode { GameOnly, UIOnly, GameAndUI };
 class MEnhancedInputComponent;
-class APlayerController :public AActor
-{
-public:
-	DEFINE_ACTOR_CLASS(APlayerController)
-		APlayerController();
-	virtual void Possess(APawn* NewPawn);
+class APlayerController : public AActor {
+ public:
+  DEFINE_ACTOR_CLASS(APlayerController)
+  APlayerController();
+  virtual void Possess(APawn* NewPawn);
 
-	void OnUpdate(float DeltaTime) override;
-	void SetPlayerId(int id);
-	int GetPlayerId() const { return PlayerId; }
-	virtual void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent);
-	virtual void SetupInputMappings();
-	InputMapper* GetInputMapper() { return InputMapperPtr.get(); }
-	MEnhancedInputComponent* GetInputComponent() { return InputComponent; }
-	APawn* GetPawn() const { return TargetPawn; }
+  void OnUpdate(float DeltaTime) override;
+  void SetPlayerId(int id);
+  int GetPlayerId() const { return PlayerId; }
+  virtual void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent);
+  virtual void SetupInputMappings();
+  InputMapper* GetInputMapper() { return InputMapperPtr.get(); }
+  MEnhancedInputComponent* GetInputComponent() { return InputComponent; }
+  APawn* GetPawn() const { return TargetPawn; }
 
-	void SetInputMode(EInputMode NewInputMode) { InputMode = NewInputMode; }
-	EInputMode GetInputMode() const { return InputMode; }
+  void SetInputMode(EInputMode NewInputMode) { InputMode = NewInputMode; }
+  EInputMode GetInputMode() const { return InputMode; }
 
-private:
-	APawn* TargetPawn = nullptr;
-	MEnhancedInputComponent* InputComponent;
-	std::unique_ptr<InputMapper> InputMapperPtr;
-	int PlayerId = 0;
-	EInputMode InputMode = EInputMode::GameAndUI;
+ private:
+  APawn* TargetPawn = nullptr;
+  MEnhancedInputComponent* InputComponent;
+  std::unique_ptr<InputMapper> InputMapperPtr;
+  int PlayerId = 0;
+  EInputMode InputMode = EInputMode::GameAndUI;
 };
-

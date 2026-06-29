@@ -1,300 +1,219 @@
 ﻿#pragma once
 
 #include <cmath>
-#include <numbers>
 #include <compare>
+#include <numbers>
 
 class UMath {
-public:
-    static constexpr float DegToRad(float Deg) {
-        return Deg * (std::numbers::pi_v<float> / 180.0f);
-    }
+ public:
+  static constexpr float DegToRad(float Deg) { return Deg * (std::numbers::pi_v<float> / 180.0f); }
 
-    static constexpr float RadToDeg(float Rad) {
-        return Rad * (180.0f / std::numbers::pi_v<float>);
-    }
+  static constexpr float RadToDeg(float Rad) { return Rad * (180.0f / std::numbers::pi_v<float>); }
 };
 
 struct FRotator;
 
 struct FScale {
-    float Scale = 1.0f;
+  float Scale = 1.0f;
 
-    FScale() = default;
+  FScale() = default;
 
-    explicit FScale(float InScale)
-        : Scale(InScale) {}
+  explicit FScale(float InScale) : Scale(InScale) {}
 
-    // --------------------
-    // Scale OP Scale
-    // --------------------
+  // --------------------
+  // Scale OP Scale
+  // --------------------
 
-    FScale operator+(const FScale& Other) const {
-        return FScale(Scale + Other.Scale);
-    }
+  FScale operator+(const FScale& Other) const { return FScale(Scale + Other.Scale); }
 
-    FScale operator-(const FScale& Other) const {
-        return FScale(Scale - Other.Scale);
-    }
+  FScale operator-(const FScale& Other) const { return FScale(Scale - Other.Scale); }
 
-    FScale operator*(const FScale& Other) const {
-        return FScale(Scale * Other.Scale);
-    }
+  FScale operator*(const FScale& Other) const { return FScale(Scale * Other.Scale); }
 
-    FScale operator/(const FScale& Other) const {
-        return FScale(Scale / Other.Scale);
-    }
+  FScale operator/(const FScale& Other) const { return FScale(Scale / Other.Scale); }
 
-    FScale& operator+=(const FScale& Other) {
-        Scale += Other.Scale;
-        return *this;
-    }
+  FScale& operator+=(const FScale& Other) {
+    Scale += Other.Scale;
+    return *this;
+  }
 
-    FScale& operator-=(const FScale& Other) {
-        Scale -= Other.Scale;
-        return *this;
-    }
+  FScale& operator-=(const FScale& Other) {
+    Scale -= Other.Scale;
+    return *this;
+  }
 
-    FScale& operator*=(const FScale& Other) {
-        Scale *= Other.Scale;
-        return *this;
-    }
+  FScale& operator*=(const FScale& Other) {
+    Scale *= Other.Scale;
+    return *this;
+  }
 
-    FScale& operator/=(const FScale& Other) {
-        Scale /= Other.Scale;
-        return *this;
-    }
+  FScale& operator/=(const FScale& Other) {
+    Scale /= Other.Scale;
+    return *this;
+  }
 
-    // --------------------
-    // Scale OP Float
-    // --------------------
+  // --------------------
+  // Scale OP Float
+  // --------------------
 
-    FScale operator+(float Value) const {
-        return FScale(Scale + Value);
-    }
+  FScale operator+(float Value) const { return FScale(Scale + Value); }
 
-    FScale operator-(float Value) const {
-        return FScale(Scale - Value);
-    }
+  FScale operator-(float Value) const { return FScale(Scale - Value); }
 
-    FScale operator*(float Value) const {
-        return FScale(Scale * Value);
-    }
+  FScale operator*(float Value) const { return FScale(Scale * Value); }
 
-    FScale operator/(float Value) const {
-        return FScale(Scale / Value);
-    }
+  FScale operator/(float Value) const { return FScale(Scale / Value); }
 
-    FScale& operator+=(float Value) {
-        Scale += Value;
-        return *this;
-    }
+  FScale& operator+=(float Value) {
+    Scale += Value;
+    return *this;
+  }
 
-    FScale& operator-=(float Value) {
-        Scale -= Value;
-        return *this;
-    }
+  FScale& operator-=(float Value) {
+    Scale -= Value;
+    return *this;
+  }
 
-    FScale& operator*=(float Value) {
-        Scale *= Value;
-        return *this;
-    }
+  FScale& operator*=(float Value) {
+    Scale *= Value;
+    return *this;
+  }
 
-    FScale& operator/=(float Value) {
-        Scale /= Value;
-        return *this;
-    }
+  FScale& operator/=(float Value) {
+    Scale /= Value;
+    return *this;
+  }
 
-    auto operator<=>(const FScale&) const = default;
+  auto operator<=>(const FScale&) const = default;
 };
 
 struct FVector2D {
-    float X = 0.0f;
-    float Y = 0.0f;
+  float X = 0.0f;
+  float Y = 0.0f;
 
-    FVector2D() = default;
+  FVector2D() = default;
 
-    FVector2D(float InX, float InY)
-        : X(InX)
-        , Y(InY) {}
+  FVector2D(float InX, float InY) : X(InX), Y(InY) {}
 
-    static const FVector2D ZeroVector;
+  static const FVector2D ZeroVector;
 
-    float SizeSquared() const {
-        return X * X + Y * Y;
-    }
+  float SizeSquared() const { return X * X + Y * Y; }
 
-    float Size() const {
-        return std::sqrt(SizeSquared());
-    }
+  float Size() const { return std::sqrt(SizeSquared()); }
 
-    bool Equals(
-        const FVector2D& Other,
-        float Tolerance = 0.001f
-    ) const {
-        return
-            std::abs(X - Other.X) < Tolerance &&
-            std::abs(Y - Other.Y) < Tolerance;
-    }
+  bool Equals(const FVector2D& Other, float Tolerance = 0.001f) const {
+    return std::abs(X - Other.X) < Tolerance && std::abs(Y - Other.Y) < Tolerance;
+  }
 
-    // --------------------
-    // Vector OP Vector
-    // --------------------
+  // --------------------
+  // Vector OP Vector
+  // --------------------
 
-    FVector2D operator+(const FVector2D& Other) const {
-        return {
-            X + Other.X,
-            Y + Other.Y
-        };
-    }
+  FVector2D operator+(const FVector2D& Other) const { return {X + Other.X, Y + Other.Y}; }
 
-    FVector2D operator-(const FVector2D& Other) const {
-        return {
-            X - Other.X,
-            Y - Other.Y
-        };
-    }
+  FVector2D operator-(const FVector2D& Other) const { return {X - Other.X, Y - Other.Y}; }
 
-    FVector2D& operator+=(const FVector2D& Other) {
-        X += Other.X;
-        Y += Other.Y;
-        return *this;
-    }
+  FVector2D& operator+=(const FVector2D& Other) {
+    X += Other.X;
+    Y += Other.Y;
+    return *this;
+  }
 
-    FVector2D& operator-=(const FVector2D& Other) {
-        X -= Other.X;
-        Y -= Other.Y;
-        return *this;
-    }
+  FVector2D& operator-=(const FVector2D& Other) {
+    X -= Other.X;
+    Y -= Other.Y;
+    return *this;
+  }
 
-    // --------------------
-    // Vector OP Scalar
-    // --------------------
+  // --------------------
+  // Vector OP Scalar
+  // --------------------
 
-    FVector2D operator+(float Value) const {
-        return {
-            X + Value,
-            Y + Value
-        };
-    }
+  FVector2D operator+(float Value) const { return {X + Value, Y + Value}; }
 
-    FVector2D operator-(float Value) const {
-        return {
-            X - Value,
-            Y - Value
-        };
-    }
+  FVector2D operator-(float Value) const { return {X - Value, Y - Value}; }
 
-    FVector2D operator*(float Value) const {
-        return {
-            X * Value,
-            Y * Value
-        };
-    }
+  FVector2D operator*(float Value) const { return {X * Value, Y * Value}; }
 
-    FVector2D operator/(float Value) const {
-        return {
-            X / Value,
-            Y / Value
-        };
-    }
+  FVector2D operator/(float Value) const { return {X / Value, Y / Value}; }
 
-    FVector2D& operator+=(float Value) {
-        X += Value;
-        Y += Value;
-        return *this;
-    }
+  FVector2D& operator+=(float Value) {
+    X += Value;
+    Y += Value;
+    return *this;
+  }
 
-    FVector2D& operator-=(float Value) {
-        X -= Value;
-        Y -= Value;
-        return *this;
-    }
+  FVector2D& operator-=(float Value) {
+    X -= Value;
+    Y -= Value;
+    return *this;
+  }
 
-    FVector2D& operator*=(float Value) {
-        X *= Value;
-        Y *= Value;
-        return *this;
-    }
+  FVector2D& operator*=(float Value) {
+    X *= Value;
+    Y *= Value;
+    return *this;
+  }
 
-    FVector2D& operator/=(float Value) {
-        X /= Value;
-        Y /= Value;
-        return *this;
-    }
-    FVector2D operator*(const FScale& InScale) const {
-        return {
-            X * InScale.Scale,
-            Y * InScale.Scale
-        };
-    }
+  FVector2D& operator/=(float Value) {
+    X /= Value;
+    Y /= Value;
+    return *this;
+  }
+  FVector2D operator*(const FScale& InScale) const {
+    return {X * InScale.Scale, Y * InScale.Scale};
+  }
 
-    FVector2D& operator*=(const FScale& InScale) {
-        X *= InScale.Scale;
-        Y *= InScale.Scale;
-        return *this;
-    }
-    FVector2D operator/(const FScale& InScale) const {
-        return {
-            X / InScale.Scale,
-            Y / InScale.Scale
-        };
-    }
+  FVector2D& operator*=(const FScale& InScale) {
+    X *= InScale.Scale;
+    Y *= InScale.Scale;
+    return *this;
+  }
+  FVector2D operator/(const FScale& InScale) const {
+    return {X / InScale.Scale, Y / InScale.Scale};
+  }
 
-    FVector2D& operator/=(const FScale& InScale) {
-        X /= InScale.Scale;
-        Y /= InScale.Scale;
-        return *this;
-    }
-    auto operator<=>(const FVector2D&) const = default;
+  FVector2D& operator/=(const FScale& InScale) {
+    X /= InScale.Scale;
+    Y /= InScale.Scale;
+    return *this;
+  }
+  auto operator<=>(const FVector2D&) const = default;
 
-    FVector2D RotateVector(const FRotator& Angle) const;
+  FVector2D RotateVector(const FRotator& Angle) const;
 };
 
 struct FRotator {
-    float Rotation = 0.0f;
+  float Rotation = 0.0f;
 
-    FRotator() = default;
+  FRotator() = default;
 
-    explicit FRotator(float InRotation)
-        : Rotation(InRotation) {}
+  explicit FRotator(float InRotation) : Rotation(InRotation) {}
 
-    FRotator operator+(const FRotator& Other) const {
-        return FRotator(Rotation + Other.Rotation);
-    }
+  FRotator operator+(const FRotator& Other) const { return FRotator(Rotation + Other.Rotation); }
 
-    FRotator operator-(const FRotator& Other) const {
-        return FRotator(Rotation - Other.Rotation);
-    }
+  FRotator operator-(const FRotator& Other) const { return FRotator(Rotation - Other.Rotation); }
 
-    FRotator& operator+=(const FRotator& Other) {
-        Rotation += Other.Rotation;
-        return *this;
-    }
+  FRotator& operator+=(const FRotator& Other) {
+    Rotation += Other.Rotation;
+    return *this;
+  }
 
-    FRotator& operator-=(const FRotator& Other) {
-        Rotation -= Other.Rotation;
-        return *this;
-    }
+  FRotator& operator-=(const FRotator& Other) {
+    Rotation -= Other.Rotation;
+    return *this;
+  }
 
-    auto operator<=>(const FRotator&) const = default;
+  auto operator<=>(const FRotator&) const = default;
 };
 
-inline FVector2D FVector2D::RotateVector(
-    const FRotator& Angle
-) const {
-    const float Rad = UMath::DegToRad(Angle.Rotation);
+inline FVector2D FVector2D::RotateVector(const FRotator& Angle) const {
+  const float Rad = UMath::DegToRad(Angle.Rotation);
 
-    const float CosTheta = std::cos(Rad);
-    const float SinTheta = std::sin(Rad);
+  const float CosTheta = std::cos(Rad);
+  const float SinTheta = std::sin(Rad);
 
-    return {
-        X * CosTheta - Y * SinTheta,
-        X * SinTheta + Y * CosTheta
-    };
+  return {X * CosTheta - Y * SinTheta, X * SinTheta + Y * CosTheta};
 }
 
-inline const FVector2D FVector2D::ZeroVector{
-    0.0f,
-    0.0f
-};
+inline const FVector2D FVector2D::ZeroVector{0.0f, 0.0f};

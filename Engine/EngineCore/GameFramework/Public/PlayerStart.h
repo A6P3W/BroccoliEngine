@@ -2,10 +2,9 @@
 
 #include "Actor.h"
 
-class APlayerStart : public AActor
-{
-public:
-	DEFINE_ACTOR_CLASS(APlayerStart)
+class APlayerStart : public AActor {
+ public:
+  DEFINE_ACTOR_CLASS(APlayerStart)
 
-	APlayerStart();
+  APlayerStart();
 };
