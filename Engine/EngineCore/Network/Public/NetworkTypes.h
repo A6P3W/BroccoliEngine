@@ -8,9 +8,4 @@ using FNetworkConnectionId = uint32_t;
 using FNetworkRPCId = uint32_t;
 using FNetworkSceneId = uint32_t;
 
-enum class ENetRPCType : uint8_t
-{
-	Server,
-	Client,
-	Multicast
-};
+enum class ENetRPCType : uint8_t { Server, Client, Multicast };

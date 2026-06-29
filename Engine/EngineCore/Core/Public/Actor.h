@@ -1,274 +1,297 @@
 ﻿#pragma once
-#include "BaseObject.h"
-#include <string>
-#include <string_view>
-#include <vector>
-#include "SceneComponent.h"
-#include "UMath.h"
-#include "ActorComponent.h"
-#include "ActorRegistry.h"
-#include "NetBuffer.h"
-#include "NetworkManager.h"
-#include "NetworkTypes.h"
-#include "ReplicatedProperty.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
-template<class T>
-struct TActorAutoRegister
-{
-	TActorAutoRegister(bool bIsGameMode = false)
-	{
-		ActorRegistry::GetInstance().Register<T>(bIsGameMode);
-	}
+#include "ActorComponent.h"
+#include "ActorRegistry.h"
+#include "BaseObject.h"
+#include "NetBuffer.h"
+#include "NetworkManager.h"
+#include "NetworkTypes.h"
+#include "ReplicatedProperty.h"
+#include "SceneComponent.h"
+#include "UMath.h"
+
+template <class T>
+struct TActorAutoRegister {
+  TActorAutoRegister(bool bIsGameMode = false) {
+    ActorRegistry::GetInstance().Register<T>(bIsGameMode);
+  }
 };
 
-#define REGISTER_ACTOR(ClassName) \
-    static TActorAutoRegister<ClassName> AutoRegister_##ClassName;
+#define REGISTER_ACTOR(ClassName) static TActorAutoRegister<ClassName> AutoRegister_##ClassName;
 
-#define DEFINE_ACTOR_CLASS(ClassName) \
-public: \
-	static std::string StaticClassName() { return #ClassName; }\
-    virtual std::string GetActorClassName() const override { return #ClassName; }
-
+#define DEFINE_ACTOR_CLASS(ClassName)                         \
+ public:                                                      \
+  static std::string StaticClassName() { return #ClassName; } \
+  virtual std::string GetActorClassName() const override { return #ClassName; }
 
 class MSceneComponent;
 class MTimerManager;
 class World;
-class AActor :
-	public MBaseObject
+class AActor : public MBaseObject
 
 {
+ public:
+  AActor();
+  virtual ~AActor() override;
 
-public:
+  void Spawned();
 
-	AActor();
-	virtual ~AActor() override;
+  virtual std::string GetActorClassName() const = 0;
 
-	void Spawned();
+  std::vector<std::string> Tags;
+  FNetworkActorId NetworkId = 0;
+  bool bReplicates = false;
 
-	virtual std::string GetActorClassName() const = 0;
+  bool bHasAuthority = true;
+  bool bIsLocallyControlled = false;
+  FNetworkConnectionId OwnerConnectionId = 0;
+  bool HasTag(std::string_view Tag) const;
 
-	std::vector<std::string> Tags;
-	FNetworkActorId NetworkId = 0;
-	bool bReplicates = false;
+  virtual void Update(float DeltaTime) final;
+  virtual void Draw();
+  MSceneComponent* GetRootComponent() const { return RootComponent; };
+  MTimerManager& GetWorldTimerManager();
 
-	bool bHasAuthority = true;
-	bool bIsLocallyControlled = false;
-	FNetworkConnectionId OwnerConnectionId = 0;
-	bool HasTag(std::string_view Tag) const;
+  const std::vector<std::unique_ptr<MActorComponent>>& GetComponents() const;
 
-	virtual void Update(float DeltaTime) final;
-	virtual void Draw();
-	MSceneComponent* GetRootComponent() const { return RootComponent; };
-	MTimerManager& GetWorldTimerManager();
+  void AddComponent(std::unique_ptr<MActorComponent> comp);
 
-	const std::vector<std::unique_ptr<MActorComponent>>& GetComponents() const;
+  MActorComponent* FindReplicatedComponent(FNetworkComponentId ComponentNetworkId) const;
+  MActorComponent* FindReplicatedComponentByName(std::string_view NetComponentName) const;
+  void AssignNetworkComponentIds();
 
-	void AddComponent(std::unique_ptr<MActorComponent> comp);
+  FVector2D GetActorLocation() const;
+  bool SetActorLocation(const FVector2D& NewLocation);
 
-	MActorComponent* FindReplicatedComponent(FNetworkComponentId ComponentNetworkId) const;
-	MActorComponent* FindReplicatedComponentByName(std::string_view NetComponentName) const;
-	void AssignNetworkComponentIds();
+  FRotator GetActorRotation() const;
+  bool SetActorRotation(const FRotator& NewRotation);
 
-	FVector2D GetActorLocation() const;
-	bool SetActorLocation(const FVector2D& NewLocation);
+  FScale GetActorScale() const;
+  bool SetActorScale(FScale NewScale);
 
-	FRotator GetActorRotation() const;
-	bool SetActorRotation(const FRotator& NewRotation);
+  void AddActorWorldOffset(const FVector2D& Offset);
+  void AddActorLocalOffset(const FVector2D& Offset);
+  void AddActorRotation(const FRotator& DeltaRotation);
 
-	FScale GetActorScale() const;
-	bool SetActorScale(FScale NewScale);
+  void Destroy();
+  bool IsPendingDestroy() const;
 
+  virtual void BeginOverlap(AActor* OtherActor) {}
+  virtual void EndOverlap(AActor* OtherActor) {}
 
-	void AddActorWorldOffset(const FVector2D& Offset);
-	void AddActorLocalOffset(const FVector2D& Offset);
-	void AddActorRotation(const FRotator& DeltaRotation);
+  virtual bool SerializeNetworkState(FNetBuffer& OutBuffer);
+  virtual bool DeserializeNetworkState(FNetBuffer& InBuffer);
 
-	void Destroy();
-	bool IsPendingDestroy() const;
+  virtual bool SerializeNetworkSpawn(FNetBuffer& OutBuffer);
+  virtual bool DeserializeNetworkSpawn(FNetBuffer& InBuffer);
 
-	virtual void BeginOverlap(AActor* OtherActor) {}
-	virtual void EndOverlap(AActor* OtherActor) {}
+  bool HasReplicatedStateChanged(float Tolerance = 0.001f) const;
+  void UpdateReplicatedStateCache();
+  void MarkReplicatedStateDirty();
+  uint32_t IncrementReplicationSequence();
+  uint32_t GetReplicationSequence() const { return ReplicationSequence; }
+  uint32_t GetLastReceivedReplicationSequence() const { return LastReceivedReplicationSequence; }
+  void SetLastReceivedReplicationSequence(uint32_t Sequence);
 
-	virtual bool SerializeNetworkState(FNetBuffer& OutBuffer);
-	virtual bool DeserializeNetworkState(FNetBuffer& InBuffer);
+  template <class T>
+  void RegisterReplicatedProperty(T* Property) {
+    if (!Property) {
+      return;
+    }
 
-	virtual bool SerializeNetworkSpawn(FNetBuffer& OutBuffer);
-	virtual bool DeserializeNetworkSpawn(FNetBuffer& InBuffer);
+    ReplicatedProperties.push_back(std::make_unique<TReplicatedProperty<T>>(Property));
+    MarkReplicatedStateDirty();
+  }
 
-	bool HasReplicatedStateChanged(float Tolerance = 0.001f) const;
-	void UpdateReplicatedStateCache();
-	void MarkReplicatedStateDirty();
-	uint32_t IncrementReplicationSequence();
-	uint32_t GetReplicationSequence() const { return ReplicationSequence; }
-	uint32_t GetLastReceivedReplicationSequence() const { return LastReceivedReplicationSequence; }
-	void SetLastReceivedReplicationSequence(uint32_t Sequence);
+  template <class T, class TObject>
+  void RegisterReplicatedProperty(T* Property, TObject* Object, void (TObject::*OnRep)(T)) {
+    if (!Property || !Object || !OnRep) {
+      return;
+    }
 
-	template<class T>
-	void RegisterReplicatedProperty(T* Property)
-	{
-		if (!Property) {
-			return;
-		}
+    ReplicatedProperties.push_back(
+        std::make_unique<TReplicatedProperty<T, TObject>>(Property, Object, OnRep)
+    );
+    MarkReplicatedStateDirty();
+  }
 
-		ReplicatedProperties.push_back(std::make_unique<TReplicatedProperty<T>>(Property));
-		MarkReplicatedStateDirty();
-	}
+  using FRPCHandler = std::function<void(FNetBuffer&)>;
+  void RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FRPCHandler Handler);
+  bool DispatchRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FNetBuffer& Payload);
+  bool DispatchRPC(
+      FNetworkComponentId ComponentNetworkId,
+      FNetworkRPCId RPCId,
+      ENetRPCType RPCType,
+      FNetBuffer& Payload
+  );
+  bool InvokeRPCWithPayload(
+      FNetworkRPCId RPCId,
+      ENetRPCType RPCType,
+      ENetPacketReliability Reliability,
+      const FNetBuffer& Payload
+  );
+  bool InvokeComponentRPCWithPayload(
+      MActorComponent* Component,
+      FNetworkRPCId RPCId,
+      ENetRPCType RPCType,
+      ENetPacketReliability Reliability,
+      const FNetBuffer& Payload
+  );
 
-	template<class T, class TObject>
-	void RegisterReplicatedProperty(T* Property, TObject* Object, void (TObject::* OnRep)(T))
-	{
-		if (!Property || !Object || !OnRep) {
-			return;
-		}
+  template <class TObject, class... TArgs>
+  void RegisterRPC(
+      FNetworkRPCId RPCId, ENetRPCType RPCType, TObject* Object, void (TObject::*Method)(TArgs...)
+  ) {
+    RegisterRPC(RPCId, RPCType, [Object, Method](FNetBuffer& Payload) {
+      std::tuple<std::decay_t<TArgs>...> args;
+      if (!ReadRPCTuple(Payload, args)) {
+        return;
+      }
 
-		ReplicatedProperties.push_back(std::make_unique<TReplicatedProperty<T, TObject>>(Property, Object, OnRep));
-		MarkReplicatedStateDirty();
-	}
+      std::apply(
+          [Object, Method](auto&&... Values) {
+            (Object->*Method)(std::forward<decltype(Values)>(Values)...);
+          },
+          args
+      );
+    });
+  }
 
-	using FRPCHandler = std::function<void(FNetBuffer&)>;
-	void RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FRPCHandler Handler);
-	bool DispatchRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FNetBuffer& Payload);
-	bool DispatchRPC(FNetworkComponentId ComponentNetworkId, FNetworkRPCId RPCId, ENetRPCType RPCType, FNetBuffer& Payload);
-	bool InvokeRPCWithPayload(FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload);
-	bool InvokeComponentRPCWithPayload(MActorComponent* Component, FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const FNetBuffer& Payload);
+  template <class TObject, class... TArgs>
+  void RegisterRPC(
+      FNetworkRPCId RPCId,
+      ENetRPCType RPCType,
+      TObject* Object,
+      void (TObject::*Method)(TArgs...) const
+  ) {
+    RegisterRPC(RPCId, RPCType, [Object, Method](FNetBuffer& Payload) {
+      std::tuple<std::decay_t<TArgs>...> args;
+      if (!ReadRPCTuple(Payload, args)) {
+        return;
+      }
 
-	template<class TObject, class... TArgs>
-	void RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, TObject* Object, void (TObject::* Method)(TArgs...))
-	{
-		RegisterRPC(RPCId, RPCType, [Object, Method](FNetBuffer& Payload) {
-			std::tuple<std::decay_t<TArgs>...> args;
-			if (!ReadRPCTuple(Payload, args)) {
-				return;
-			}
+      std::apply(
+          [Object, Method](auto&&... Values) {
+            (Object->*Method)(std::forward<decltype(Values)>(Values)...);
+          },
+          args
+      );
+    });
+  }
 
-			std::apply([Object, Method](auto&&... Values) {
-				(Object->*Method)(std::forward<decltype(Values)>(Values)...);
-			}, args);
-		});
-	}
+  template <class... TArgs>
+  bool InvokeRPC(
+      FNetworkRPCId RPCId,
+      ENetRPCType RPCType,
+      ENetPacketReliability Reliability,
+      const TArgs&... Args
+  ) {
+    FNetBuffer payload;
+    (WriteRPCArgument(payload, Args), ...);
+    return InvokeRPCWithPayload(RPCId, RPCType, Reliability, payload);
+  }
 
-	template<class TObject, class... TArgs>
-	void RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, TObject* Object, void (TObject::* Method)(TArgs...) const)
-	{
-		RegisterRPC(RPCId, RPCType, [Object, Method](FNetBuffer& Payload) {
-			std::tuple<std::decay_t<TArgs>...> args;
-			if (!ReadRPCTuple(Payload, args)) {
-				return;
-			}
+  template <class T>
+  std::vector<T*> GetComponents() const {
+    std::vector<T*> results;
+    for (const auto& comp : Components) {
+      if (auto casted = dynamic_cast<T*>(comp.get())) {
+        results.push_back(casted);
+      }
+    }
+    return results;
+  }
+  World* GetWorld() { return OwnerWorld; }
+  void SetWorld(World* world);
 
-			std::apply([Object, Method](auto&&... Values) {
-				(Object->*Method)(std::forward<decltype(Values)>(Values)...);
-			}, args);
-		});
-	}
+  bool IsEditorActor() const { return bEditorActor; }
+  bool CanUpdateAnytime() const { return bUpdateableAnytime; }
+  void SetUpdateableAnytime(bool bTick) { bUpdateableAnytime = bTick; }
 
-	template<class... TArgs>
-	bool InvokeRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, ENetPacketReliability Reliability, const TArgs&... Args)
-	{
-		FNetBuffer payload;
-		(WriteRPCArgument(payload, Args), ...);
-		return InvokeRPCWithPayload(RPCId, RPCType, Reliability, payload);
-	}
+ protected:
+  virtual void BeginPlay() {}
+  virtual void OnUpdate(float DeltaTime);
+  MSceneComponent* RootComponent = nullptr;
+  void SetRootComponent(MSceneComponent* Component);
 
-	template<class T>
-	std::vector <T*> GetComponents() const {
-		std::vector<T*> results;
-		for (const auto& comp : Components) {
-			if (auto casted = dynamic_cast<T*>(comp.get())) {
-				results.push_back(casted);
-			}
-		}
-		return results;
-	}
-	World* GetWorld() { return OwnerWorld; }
-	void SetWorld(World* world);
+  bool bEditorActor = false;
+  bool bUpdateableAnytime = false;
 
-	bool IsEditorActor() const { return bEditorActor; }
-	bool CanUpdateAnytime() const { return bUpdateableAnytime; }
-	void SetUpdateableAnytime(bool bTick) { bUpdateableAnytime = bTick; }
-protected:
-	virtual void BeginPlay() {}
-	virtual void OnUpdate(float DeltaTime);
-	MSceneComponent* RootComponent = nullptr;
-	void SetRootComponent(MSceneComponent* Component);
+ private:
+  std::vector<AActor*> ChildObjects;
+  bool bPendingDestroy = false;
+  std::vector<std::unique_ptr<MActorComponent>> Components;
+  World* OwnerWorld = nullptr;
+  FVector2D LastReplicatedLocation = FVector2D::ZeroVector;
+  FRotator LastReplicatedRotation;
+  FScale LastReplicatedScale;
+  bool bHasReplicatedStateCache = false;
+  bool bReplicatedStateDirty = false;
+  std::vector<std::unique_ptr<IReplicatedProperty>> ReplicatedProperties;
+  uint32_t ReplicationSequence = 0;
+  uint32_t LastReceivedReplicationSequence = 0;
+  FNetworkComponentId NextNetworkComponentId = 1;
+  std::unordered_map<FNetworkComponentId, MActorComponent*> ComponentsByNetworkId;
+  struct FRPCEntry {
+    ENetRPCType Type = ENetRPCType::Server;
+    FRPCHandler Handler;
+  };
+  std::unordered_map<FNetworkRPCId, FRPCEntry> RPCHandlers;
 
-	bool bEditorActor = false;
-	bool bUpdateableAnytime = false;
+  void EnsureNetComponentName(MActorComponent* Component);
+  std::vector<MActorComponent*> GetReplicatedNetworkComponents() const;
+  void SerializeActorNetworkState(FNetBuffer& OutBuffer);
+  bool DeserializeActorNetworkState(FNetBuffer& InBuffer);
+  bool SerializeReplicatedComponentStates(FNetBuffer& OutBuffer);
+  bool DeserializeReplicatedComponentStates(FNetBuffer& InBuffer);
+  bool SerializeReplicatedComponentSpawns(FNetBuffer& OutBuffer);
+  bool DeserializeReplicatedComponentSpawns(FNetBuffer& InBuffer);
 
-private:
-	std::vector<AActor*> ChildObjects;
-	bool bPendingDestroy = false;
-	std::vector<std::unique_ptr<MActorComponent>> Components;
-	World* OwnerWorld=nullptr;
-	FVector2D LastReplicatedLocation = FVector2D::ZeroVector;
-	FRotator LastReplicatedRotation;
-	FScale LastReplicatedScale;
-	bool bHasReplicatedStateCache = false;
-	bool bReplicatedStateDirty = false;
-	std::vector<std::unique_ptr<IReplicatedProperty>> ReplicatedProperties;
-	uint32_t ReplicationSequence = 0;
-	uint32_t LastReceivedReplicationSequence = 0;
-	FNetworkComponentId NextNetworkComponentId = 1;
-	std::unordered_map<FNetworkComponentId, MActorComponent*> ComponentsByNetworkId;
-	struct FRPCEntry
-	{
-		ENetRPCType Type = ENetRPCType::Server;
-		FRPCHandler Handler;
-	};
-	std::unordered_map<FNetworkRPCId, FRPCEntry> RPCHandlers;
+  template <class T>
+  static void WriteRPCArgument(FNetBuffer& Payload, const T& Value) {
+    if constexpr (std::is_same_v<std::decay_t<T>, std::string>) {
+      Payload.WriteString(Value);
+    } else {
+      static_assert(
+          std::is_trivially_copyable_v<T>,
+          "AActor::InvokeRPC supports trivially copyable RPC arguments."
+      );
+      Payload.Write(Value);
+    }
+  }
 
-	void EnsureNetComponentName(MActorComponent* Component);
-	std::vector<MActorComponent*> GetReplicatedNetworkComponents() const;
-	void SerializeActorNetworkState(FNetBuffer& OutBuffer);
-	bool DeserializeActorNetworkState(FNetBuffer& InBuffer);
-	bool SerializeReplicatedComponentStates(FNetBuffer& OutBuffer);
-	bool DeserializeReplicatedComponentStates(FNetBuffer& InBuffer);
-	bool SerializeReplicatedComponentSpawns(FNetBuffer& OutBuffer);
-	bool DeserializeReplicatedComponentSpawns(FNetBuffer& InBuffer);
+  template <class T>
+  static bool ReadRPCArgument(FNetBuffer& Payload, T& OutValue) {
+    if constexpr (std::is_same_v<std::decay_t<T>, std::string>) {
+      return Payload.ReadString(OutValue);
+    } else {
+      static_assert(
+          std::is_trivially_copyable_v<T>,
+          "AActor::RegisterRPC supports trivially copyable RPC arguments."
+      );
+      return Payload.Read(OutValue);
+    }
+  }
 
-	template<class T>
-	static void WriteRPCArgument(FNetBuffer& Payload, const T& Value)
-	{
-		if constexpr (std::is_same_v<std::decay_t<T>, std::string>) {
-			Payload.WriteString(Value);
-		}
-		else {
-			static_assert(std::is_trivially_copyable_v<T>, "AActor::InvokeRPC supports trivially copyable RPC arguments.");
-			Payload.Write(Value);
-		}
-	}
-
-	template<class T>
-	static bool ReadRPCArgument(FNetBuffer& Payload, T& OutValue)
-	{
-		if constexpr (std::is_same_v<std::decay_t<T>, std::string>) {
-			return Payload.ReadString(OutValue);
-		}
-		else {
-			static_assert(std::is_trivially_copyable_v<T>, "AActor::RegisterRPC supports trivially copyable RPC arguments.");
-			return Payload.Read(OutValue);
-		}
-	}
-
-	template<size_t Index = 0, class... TArgs>
-	static bool ReadRPCTuple(FNetBuffer& Payload, std::tuple<TArgs...>& Args)
-	{
-		if constexpr (Index == sizeof...(TArgs)) {
-			return true;
-		}
-		else {
-			if (!ReadRPCArgument(Payload, std::get<Index>(Args))) {
-				return false;
-			}
-			return ReadRPCTuple<Index + 1>(Payload, Args);
-		}
-	}
-
+  template <size_t Index = 0, class... TArgs>
+  static bool ReadRPCTuple(FNetBuffer& Payload, std::tuple<TArgs...>& Args) {
+    if constexpr (Index == sizeof...(TArgs)) {
+      return true;
+    } else {
+      if (!ReadRPCArgument(Payload, std::get<Index>(Args))) {
+        return false;
+      }
+      return ReadRPCTuple<Index + 1>(Payload, Args);
+    }
+  }
 };

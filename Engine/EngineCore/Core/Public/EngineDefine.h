@@ -2,23 +2,23 @@
 
 constexpr bool IsDebug =
 #if defined _DEBUG
-true;
+    true;
 #else
-false;
+    false;
 #endif
 
 constexpr bool IsEditor =
 #if defined _EDITOR
-true;
+    true;
 #else
-false;
+    false;
 #endif
 
 constexpr bool IsRelease =
 #if defined _RELEASE
-true;
+    true;
 #else
-false;
+    false;
 #endif
 
 constexpr int VirtualWidth = 1920;

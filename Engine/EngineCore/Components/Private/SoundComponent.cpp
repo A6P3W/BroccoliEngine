@@ -1,83 +1,74 @@
 ﻿#include "SoundComponent.h"
 
+#include <algorithm>
+
 #include "Actor.h"
 #include "SoundManager.h"
 #include "World.h"
-#include <algorithm>
 
-int MSoundComponent::PlaySE(const std::string& path, bool loop)
-{
-	MSoundManager* soundManager = GetSoundManager();
-	if (!soundManager) return -1;
+int MSoundComponent::PlaySE(const std::string& path, bool loop) {
+  MSoundManager* soundManager = GetSoundManager();
+  if (!soundManager) return -1;
 
-	int handle = soundManager->PlaySE(path, loop);
-	if (handle != -1) {
-		m_PlayingHandles.push_back(handle);
-	}
+  int handle = soundManager->PlaySE(path, loop);
+  if (handle != -1) {
+    m_PlayingHandles.push_back(handle);
+  }
 
-	return handle;
+  return handle;
 }
 
-int MSoundComponent::PlayBGM(const std::string& path, bool loop)
-{
-	MSoundManager* soundManager = GetSoundManager();
-	if (!soundManager) return -1;
+int MSoundComponent::PlayBGM(const std::string& path, bool loop) {
+  MSoundManager* soundManager = GetSoundManager();
+  if (!soundManager) return -1;
 
-	int handle = soundManager->PlayBGM(path, loop);
-	if (handle != -1) {
-		m_PlayingHandles.push_back(handle);
-	}
+  int handle = soundManager->PlayBGM(path, loop);
+  if (handle != -1) {
+    m_PlayingHandles.push_back(handle);
+  }
 
-	return handle;
+  return handle;
 }
 
-void MSoundComponent::SetVolume(int handle, float volume)
-{
-	MSoundManager* soundManager = GetSoundManager();
-	if (!soundManager) return;
+void MSoundComponent::SetVolume(int handle, float volume) {
+  MSoundManager* soundManager = GetSoundManager();
+  if (!soundManager) return;
 
-	soundManager->SetVolume(handle, volume);
+  soundManager->SetVolume(handle, volume);
 }
 
-void MSoundComponent::Stop(int handle)
-{
-	MSoundManager* soundManager = GetSoundManager();
-	if (!soundManager) return;
+void MSoundComponent::Stop(int handle) {
+  MSoundManager* soundManager = GetSoundManager();
+  if (!soundManager) return;
 
-	soundManager->Stop(handle);
-	std::erase(m_PlayingHandles, handle);
+  soundManager->Stop(handle);
+  std::erase(m_PlayingHandles, handle);
 }
 
-void MSoundComponent::StopAll()
-{
-	MSoundManager* soundManager = GetSoundManager();
-	if (!soundManager) {
-		m_PlayingHandles.clear();
-		return;
-	}
+void MSoundComponent::StopAll() {
+  MSoundManager* soundManager = GetSoundManager();
+  if (!soundManager) {
+    m_PlayingHandles.clear();
+    return;
+  }
 
-	for (int handle : m_PlayingHandles) {
-		soundManager->Stop(handle);
-	}
-	m_PlayingHandles.clear();
+  for (int handle : m_PlayingHandles) {
+    soundManager->Stop(handle);
+  }
+  m_PlayingHandles.clear();
 }
 
-void MSoundComponent::SetMasterVolume(float volume)
-{
-	MSoundManager* soundManager = GetSoundManager();
-	if (!soundManager) return;
+void MSoundComponent::SetMasterVolume(float volume) {
+  MSoundManager* soundManager = GetSoundManager();
+  if (!soundManager) return;
 
-	soundManager->SetMasterVolume(volume);
+  soundManager->SetMasterVolume(volume);
 }
 
-void MSoundComponent::OnComponentDestroy()
-{
-	StopAll();
-}
+void MSoundComponent::OnComponentDestroy() { StopAll(); }
 
-MSoundManager* MSoundComponent::GetSoundManager() const
-{
-	if (!GetOwner() || !GetOwner()->GetWorld()) return nullptr;
+MSoundManager* MSoundComponent::GetSoundManager() const {
+  if (!GetOwner() || !GetOwner()->GetWorld()) return nullptr;
 
-	return GetOwner()->GetWorld()->GetSoundManager();
+  return GetOwner()->GetWorld()->GetSoundManager();
 }

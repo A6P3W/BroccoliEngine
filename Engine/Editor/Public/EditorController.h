@@ -3,26 +3,26 @@
 
 class EditorMode;
 class MEnhancedInputComponent;
-class EditorController : public APlayerController
-{
-public:
-	DEFINE_ACTOR_CLASS(EditorController);
-	EditorController();
+class EditorController : public APlayerController {
+ public:
+  DEFINE_ACTOR_CLASS(EditorController);
+  EditorController();
 
-	void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
-	void SetupInputMappings() override;
-private:
-	void OnSelectModePressed();
-	void OnMoveModePressed();
-	void OnRotateModePressed();
-	void OnScaleModePressed();
+  void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
+  void SetupInputMappings() override;
 
-	void OnCopyPressed();
-	void OnPastePressed();
-	void OnCutPressed();
-	void OnDeletePressed();
+ private:
+  void OnSelectModePressed();
+  void OnMoveModePressed();
+  void OnRotateModePressed();
+  void OnScaleModePressed();
 
-	void OnSavePressed();
+  void OnCopyPressed();
+  void OnPastePressed();
+  void OnCutPressed();
+  void OnDeletePressed();
 
-	EditorMode* EditorModePtr = nullptr;
+  void OnSavePressed();
+
+  EditorMode* EditorModePtr = nullptr;
 };

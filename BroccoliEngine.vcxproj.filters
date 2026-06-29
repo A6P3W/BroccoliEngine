@@ -149,6 +149,7 @@
     <ClInclude Include="Engine\EngineCore\Network\Public\NetworkManager.h" />
     <ClInclude Include="Engine\EngineCore\Network\Public\ReplicatedProperty.h" />
     <ClInclude Include="Engine\EngineCore\Network\Public\ReplicationSystem.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameInstance.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />
