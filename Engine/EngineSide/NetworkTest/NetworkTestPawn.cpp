@@ -1,12 +1,16 @@
-﻿#include "NetworkTest/NetworkTestPawn.h"
+#include "NetworkTest/NetworkTestPawn.h"
 
 #include <DxLib.h>
 #include <MovementComponent.h>
 #include <RectangleCollisionComponent.h>
+#include <imgui.h>
 
 #include "EnhancedInputComponent.h"
 #include "Log.h"
+#include "NetworkManager.h"
+#include "NetworkTest/NetworkTestGameMode.h"
 #include "SpriteComponent.h"
+#include "World.h"
 
 namespace {
 enum : FNetworkRPCId {
@@ -150,6 +154,16 @@ ANetworkTestPawn::ANetworkTestPawn() {
   AddComponent(std::move(replicationTest));
 }
 
+void ANetworkTestPawn::BeginPlay() {
+  APawn::BeginPlay();
+  if (bIsLocallyControlled) {
+    StatusMessage = "Select network role.";
+    if (auto gameMode = dynamic_cast<ANetworkTestGameMode*>(GetWorld()->GetGameMode())) {
+      StatusMessage = std::string(gameMode->GetSceneName()) + " loaded.";
+    }
+  }
+}
+
 void ANetworkTestPawn::OnPossessedBy(APlayerController* NewController) {
   APawn::OnPossessedBy(NewController);
 }
@@ -164,6 +178,14 @@ void ANetworkTestPawn::OnUpdate(float DeltaTime) {
 
   if (BodySprite) {
     BodySprite->SubmitBox(48.0f, 48.0f, GetDisplayColor(), true);
+  }
+}
+
+void ANetworkTestPawn::Draw() {
+  APawn::Draw();
+  if (bIsLocallyControlled) {
+    DrawConnectionWindow();
+    DrawStatusWindow();
   }
 }
 
@@ -253,5 +275,94 @@ void ANetworkTestPawn::BeginOverlap(AActor* OtherActor) {
         NetworkId,
         otherPawn->NetworkId
     );
+  }
+}
+
+void ANetworkTestPawn::SetStatusMessage(const std::string& Message) {
+  if (bIsLocallyControlled) {
+    StatusMessage = Message;
+  }
+}
+
+void ANetworkTestPawn::DrawConnectionWindow() {
+  ImGui::Begin("Network Test");
+  ImGui::TextUnformatted("Local Network Replication Test");
+  ImGui::Separator();
+
+  ImGui::InputInt("Port", &Port);
+  if (Port < 1) {
+    Port = 1;
+  }
+  if (Port > 65535) {
+    Port = 65535;
+  }
+
+  if (ImGui::Button("Start Listen Server")) {
+    StartListenServer();
+  }
+
+  ImGui::InputText("Server IP", ServerAddress, sizeof(ServerAddress));
+  if (ImGui::Button("Connect as Client")) {
+    ConnectAsClient();
+  }
+
+  ImGui::Separator();
+
+  ANetworkTestGameMode* gameMode = dynamic_cast<ANetworkTestGameMode*>(GetWorld()->GetGameMode());
+  const char* sceneName = gameMode ? gameMode->GetSceneName() : "Unknown Scene";
+  ImGui::Text("Current Scene: %s", sceneName);
+
+  if (GetWorld()->IsServer() && gameMode && ImGui::Button(gameMode->GetTravelButtonText())) {
+    if (GetWorld()->ServerTravel(gameMode->GetTravelTargetSceneId())) {
+      StatusMessage = "Server travel requested.";
+    } else {
+      StatusMessage = "Server travel failed. Scene is not registered or local role is not server.";
+    }
+  }
+  ImGui::Separator();
+  ImGui::TextWrapped("%s", StatusMessage.c_str());
+  ImGui::End();
+}
+
+void ANetworkTestPawn::DrawStatusWindow() {
+  ImGui::Begin("Network Status");
+
+  const char* modeText = "Standalone";
+  if (GetWorld()->IsListenServer()) {
+    modeText = "ListenServer";
+  } else if (GetWorld()->IsClient()) {
+    modeText = "Client";
+  }
+
+  NetworkManager& network = NetworkManager::GetInstance();
+  ImGui::Text("Mode: %s", modeText);
+  ImGui::Text("Network running: %s", network.IsRunning() ? "true" : "false");
+  ImGui::Text("Local ConnectionId: %u", network.GetLocalConnectionId());
+
+  bool bHostSpawned = false;
+  if (auto gameMode = dynamic_cast<ANetworkTestGameMode*>(GetWorld()->GetGameMode())) {
+    bHostSpawned = gameMode->IsHostPlayerSpawned();
+  }
+  ImGui::Text("Host player spawned: %s", bHostSpawned ? "true" : "false");
+  ImGui::End();
+}
+
+void ANetworkTestPawn::StartListenServer() {
+  if (NetworkManager::GetInstance().StartServer(static_cast<uint16_t>(Port))) {
+    GetWorld()->SetNetMode(ENetMode::ListenServer);
+    bSessionStarted = true;
+    StatusMessage = "Listen server started. Host player will spawn on next update.";
+  } else {
+    StatusMessage = "Failed to start listen server.";
+  }
+}
+
+void ANetworkTestPawn::ConnectAsClient() {
+  if (NetworkManager::GetInstance().ConnectToServer(ServerAddress, static_cast<uint16_t>(Port))) {
+    GetWorld()->SetNetMode(ENetMode::Client);
+    bSessionStarted = true;
+    StatusMessage = "Connecting to server...";
+  } else {
+    StatusMessage = "Failed to connect to server.";
   }
 }

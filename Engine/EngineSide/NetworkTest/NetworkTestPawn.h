@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "ActorComponent.h"
 #include "Pawn.h"
@@ -37,9 +37,13 @@ class ANetworkTestPawn : public APawn {
   DEFINE_ACTOR_CLASS(ANetworkTestPawn)
   ANetworkTestPawn();
 
+  void BeginPlay() override;
   void OnPossessedBy(APlayerController* NewController) override;
   void OnUpdate(float DeltaTime) override;
+  void Draw() override;
   void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
+
+  void SetStatusMessage(const std::string& Message);
 
  private:
   void OnMove(const FInputActionValue& Value);
@@ -51,9 +55,19 @@ class ANetworkTestPawn : public APawn {
   void BeginOverlap(AActor* OtherActor) override;
   int GetDisplayColor() const;
 
+  void DrawConnectionWindow();
+  void DrawStatusWindow();
+  void StartListenServer();
+  void ConnectAsClient();
+
   MSpriteComponent* BodySprite = nullptr;
   MMovementComponent* Movement = nullptr;
   MNetworkTestRepComponent* ReplicationTest = nullptr;
   float MoveSpeed = 320.0f;
   float FlashTimer = 0.0f;
+
+  char ServerAddress[64] = "127.0.0.1";
+  int Port = 7777;
+  bool bSessionStarted = false;
+  std::string StatusMessage;
 };
