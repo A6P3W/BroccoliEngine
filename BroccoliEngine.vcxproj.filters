@@ -68,7 +68,9 @@
     <ClCompile Include="Engine\EngineCore\Network\Private\NetBuffer.cpp" />
     <ClCompile Include="Engine\EngineCore\Network\Private\NetworkManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Network\Private\ReplicationSystem.cpp" />
+    <ClCompile Include="Engine\EngineCore\Online\Private\EOSAuthManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Online\Private\EOSCoreManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Online\Private\EOSLobbyManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
@@ -151,7 +153,9 @@
     <ClInclude Include="Engine\EngineCore\Network\Public\ReplicatedProperty.h" />
     <ClInclude Include="Engine\EngineCore\Network\Public\ReplicationSystem.h" />
     <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameInstance.h" />
+    <ClInclude Include="Engine\EngineCore\Online\Public\EOSAuthManager.h" />
     <ClInclude Include="Engine\EngineCore\Online\Public\EOSCoreManager.h" />
+    <ClInclude Include="Engine\EngineCore\Online\Public\EOSLobbyManager.h" />
     <ClInclude Include="Engine\EngineCore\Online\Public\EOSTypes.h" />
   </ItemGroup>
   <ItemGroup>
