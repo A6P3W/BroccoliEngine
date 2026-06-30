@@ -3,15 +3,12 @@
 #include <DxLib.h>
 #include <MovementComponent.h>
 #include <RectangleCollisionComponent.h>
-#include <imgui.h>
 
 #include "EnhancedInputComponent.h"
-#include "EOSAuthManager.h"
-#include "EOSCoreManager.h"
-#include "EOSLobbyManager.h"
 #include "Log.h"
 #include "NetworkManager.h"
 #include "NetworkTest/NetworkTestGameMode.h"
+#include "NetworkTest/NetworkTestUI.h"
 #include "SpriteComponent.h"
 #include "World.h"
 
@@ -130,6 +127,7 @@ REGISTER_ACTOR(ANetworkTestPawn)
 
 ANetworkTestPawn::ANetworkTestPawn() {
   bReplicates = true;
+  NetworkTestUI = std::make_unique<FNetworkTestUI>(*this);
 
   RegisterRPC(RPC_ServerTest, ENetRPCType::Server, this, &ANetworkTestPawn::Server_TestRPC);
   RegisterRPC(
@@ -157,16 +155,12 @@ ANetworkTestPawn::ANetworkTestPawn() {
   AddComponent(std::move(replicationTest));
 }
 
+ANetworkTestPawn::~ANetworkTestPawn() = default;
+
 void ANetworkTestPawn::BeginPlay() {
   APawn::BeginPlay();
-  if (bIsLocallyControlled) {
-    StatusMessage = "Select network role.";
-    if (auto gameMode = dynamic_cast<ANetworkTestGameMode*>(GetWorld()->GetGameMode())) {
-      StatusMessage = std::string(gameMode->GetSceneName()) + " loaded.";
-    }
-    OnlineStatusMessage = EOSCoreManager::Get().IsInitialized()
-                              ? "EOS initialized. Login to use lobby."
-                              : "EOS is not initialized.";
+  if (bIsLocallyControlled && NetworkTestUI) {
+    NetworkTestUI->InitializeStatus();
   }
 }
 
@@ -189,10 +183,8 @@ void ANetworkTestPawn::OnUpdate(float DeltaTime) {
 
 void ANetworkTestPawn::Draw() {
   APawn::Draw();
-  if (bIsLocallyControlled) {
-    DrawConnectionWindow();
-    DrawOnlineWindow();
-    DrawStatusWindow();
+  if (bIsLocallyControlled && NetworkTestUI) {
+    NetworkTestUI->Draw();
   }
 }
 
@@ -286,332 +278,27 @@ void ANetworkTestPawn::BeginOverlap(AActor* OtherActor) {
 }
 
 void ANetworkTestPawn::SetStatusMessage(const std::string& Message) {
-  if (bIsLocallyControlled) {
-    StatusMessage = Message;
+  if (bIsLocallyControlled && NetworkTestUI) {
+    NetworkTestUI->SetStatusMessage(Message);
   }
 }
 
-void ANetworkTestPawn::DrawConnectionWindow() {
-  ImGui::Begin("Network Test");
-  ImGui::TextUnformatted("Local Network Replication Test");
-  ImGui::Separator();
-
-  ImGui::InputInt("Port", &Port);
-  if (Port < 1) {
-    Port = 1;
-  }
-  if (Port > 65535) {
-    Port = 65535;
-  }
-
-  if (ImGui::Button("Start Listen Server")) {
-    StartListenServer();
-  }
-
-  ImGui::InputText("Server IP", ServerAddress, sizeof(ServerAddress));
-  if (ImGui::Button("Connect as Client")) {
-    ConnectAsClient();
-  }
-
-  ImGui::Separator();
-
-  ANetworkTestGameMode* gameMode = dynamic_cast<ANetworkTestGameMode*>(GetWorld()->GetGameMode());
-  const char* sceneName = gameMode ? gameMode->GetSceneName() : "Unknown Scene";
-  ImGui::Text("Current Scene: %s", sceneName);
-
-  if (GetWorld()->IsServer() && gameMode && ImGui::Button(gameMode->GetTravelButtonText())) {
-    if (GetWorld()->ServerTravel(gameMode->GetTravelTargetSceneId())) {
-      StatusMessage = "Server travel requested.";
-    } else {
-      StatusMessage = "Server travel failed. Scene is not registered or local role is not server.";
-    }
-  }
-  ImGui::Separator();
-  ImGui::TextWrapped("%s", StatusMessage.c_str());
-  ImGui::End();
-}
-
-void ANetworkTestPawn::DrawOnlineWindow() {
-  EOSCoreManager& coreManager = EOSCoreManager::Get();
-  EOSAuthManager& authManager = EOSAuthManager::Get();
-  EOSLobbyManager& lobbyManager = EOSLobbyManager::Get();
-
-  if (OnlineLobbyMaxMembers < 1) {
-    OnlineLobbyMaxMembers = 1;
-  }
-  if (OnlineLobbyMaxMembers > 64) {
-    OnlineLobbyMaxMembers = 64;
-  }
-  if (OnlineSearchMaxResults < 1) {
-    OnlineSearchMaxResults = 1;
-  }
-  if (OnlineSearchMaxResults > 100) {
-    OnlineSearchMaxResults = 100;
-  }
-
-  ImGui::Begin("EOS Lobby Test");
-  ImGui::Text("EOS initialized: %s", coreManager.IsInitialized() ? "true" : "false");
-  ImGui::Text("Logged in: %s", authManager.IsLoggedIn() ? "true" : "false");
-  if (authManager.IsLoggedIn()) {
-    const std::string localUserId = authManager.GetLocalUserIdString();
-    ImGui::TextWrapped("ProductUserId: %s", localUserId.c_str());
-  }
-  ImGui::Text("In lobby: %s", lobbyManager.IsInLobby() ? "true" : "false");
-  if (lobbyManager.IsInLobby()) {
-    const std::string lobbyId = lobbyManager.GetCurrentLobbyId();
-    ImGui::TextWrapped("Current LobbyId: %s", lobbyId.c_str());
-  }
-  ImGui::Text("Operation pending: %s", bOnlineOperationPending ? "true" : "false");
-  ImGui::Separator();
-
-  ImGui::InputText("Display Name", OnlineDisplayName, sizeof(OnlineDisplayName));
-  if (ImGui::Button("Login Device ID")) {
-    LoginWithDeviceId();
-  }
-
-  ImGui::Separator();
-  ImGui::InputInt("Max Members", &OnlineLobbyMaxMembers);
-  if (ImGui::Button("Create Lobby")) {
-    CreateOnlineLobby();
-  }
-
-  ImGui::InputInt("Search Max Results", &OnlineSearchMaxResults);
-  if (ImGui::Button("Search Lobbies")) {
-    SearchOnlineLobbies();
-  }
-
-  if (!OnlineSearchResults.empty()) {
-    ImGui::BeginChild("EOSLobbySearchResults", ImVec2(0.0f, 120.0f), true);
-    for (int index = 0; index < static_cast<int>(OnlineSearchResults.size()); ++index) {
-      const FLobbyInfo& lobbyInfo = OnlineSearchResults[index];
-      std::string label = std::to_string(index + 1) + ": " + lobbyInfo.LobbyId + " (" +
-                          std::to_string(lobbyInfo.CurrentMembers) + "/" +
-                          std::to_string(lobbyInfo.MaxMembers) + ")";
-      if (ImGui::Selectable(label.c_str(), SelectedOnlineLobbyIndex == index)) {
-        SelectedOnlineLobbyIndex = index;
-      }
-    }
-    ImGui::EndChild();
-  } else {
-    ImGui::TextDisabled("No lobby search results.");
-  }
-
-  if (ImGui::Button("Join Selected Lobby")) {
-    JoinSelectedOnlineLobby();
-  }
-  if (ImGui::Button("Leave Lobby")) {
-    LeaveOnlineLobby();
-  }
-
-  ImGui::Separator();
-  ImGui::TextWrapped("%s", OnlineStatusMessage.c_str());
-  ImGui::End();
-}
-void ANetworkTestPawn::DrawStatusWindow() {
-  ImGui::Begin("Network Status");
-
-  const char* modeText = "Standalone";
-  if (GetWorld()->IsListenServer()) {
-    modeText = "ListenServer";
-  } else if (GetWorld()->IsClient()) {
-    modeText = "Client";
-  }
-
-  NetworkManager& network = NetworkManager::GetInstance();
-  ImGui::Text("Mode: %s", modeText);
-  ImGui::Text("Network running: %s", network.IsRunning() ? "true" : "false");
-  ImGui::Text("Local ConnectionId: %u", network.GetLocalConnectionId());
-
-  bool bHostSpawned = false;
-  if (auto gameMode = dynamic_cast<ANetworkTestGameMode*>(GetWorld()->GetGameMode())) {
-    bHostSpawned = gameMode->IsHostPlayerSpawned();
-  }
-  ImGui::Text("Host player spawned: %s", bHostSpawned ? "true" : "false");
-  ImGui::End();
-}
-
-void ANetworkTestPawn::StartListenServer() {
-  if (NetworkManager::GetInstance().StartServer(static_cast<uint16_t>(Port))) {
+bool ANetworkTestPawn::StartListenServer(uint16_t Port) {
+  if (NetworkManager::GetInstance().StartServer(Port)) {
     GetWorld()->SetNetMode(ENetMode::ListenServer);
     bSessionStarted = true;
-    StatusMessage = "Listen server started. Host player will spawn on next update.";
-  } else {
-    StatusMessage = "Failed to start listen server.";
+    return true;
   }
+
+  return false;
 }
 
-void ANetworkTestPawn::ConnectAsClient() {
-  if (NetworkManager::GetInstance().ConnectToServer(ServerAddress, static_cast<uint16_t>(Port))) {
+bool ANetworkTestPawn::ConnectAsClient(const std::string& HostAddress, uint16_t Port) {
+  if (NetworkManager::GetInstance().ConnectToServer(HostAddress, Port)) {
     GetWorld()->SetNetMode(ENetMode::Client);
     bSessionStarted = true;
-    StatusMessage = "Connecting to server...";
-  } else {
-    StatusMessage = "Failed to connect to server.";
-  }
-}
-
-void ANetworkTestPawn::LoginWithDeviceId() {
-  if (bOnlineOperationPending) {
-    OnlineStatusMessage = "EOS operation is already pending.";
-    return;
+    return true;
   }
 
-  if (!EOSCoreManager::Get().IsInitialized()) {
-    OnlineStatusMessage = "EOS is not initialized.";
-    return;
-  }
-
-  if (EOSAuthManager::Get().IsLoggedIn()) {
-    OnlineStatusMessage = "Already logged in.";
-    return;
-  }
-
-  bOnlineOperationPending = true;
-  OnlineStatusMessage = "EOS Device ID login requested.";
-  EOSAuthManager::Get().LoginWithDeviceId(OnlineDisplayName, [this](bool bSuccess) {
-    bOnlineOperationPending = false;
-    if (bSuccess) {
-      OnlineStatusMessage = "EOS Device ID login succeeded.";
-      const std::string localUserId = EOSAuthManager::Get().GetLocalUserIdString();
-      if (!localUserId.empty()) {
-        OnlineStatusMessage += " ProductUserId: " + localUserId;
-      }
-    } else {
-      OnlineStatusMessage = "EOS Device ID login failed. See Logs for details.";
-    }
-  });
-}
-
-void ANetworkTestPawn::CreateOnlineLobby() {
-  if (bOnlineOperationPending) {
-    OnlineStatusMessage = "EOS operation is already pending.";
-    return;
-  }
-
-  if (!EOSAuthManager::Get().IsLoggedIn()) {
-    OnlineStatusMessage = "Login before creating a lobby.";
-    return;
-  }
-
-  if (EOSLobbyManager::Get().IsInLobby()) {
-    OnlineStatusMessage = "Already in a lobby. Leave it before creating another one.";
-    return;
-  }
-
-  if (OnlineLobbyMaxMembers < 1) {
-    OnlineLobbyMaxMembers = 1;
-  }
-
-  FCreateLobbyRequest request;
-  request.MaxMembers = OnlineLobbyMaxMembers;
-  request.bPublicAdvertised = true;
-
-  bOnlineOperationPending = true;
-  OnlineStatusMessage = "Create lobby requested.";
-  EOSLobbyManager::Get().CreateLobby(request, [this](bool bSuccess, const FLobbyInfo& lobbyInfo) {
-    bOnlineOperationPending = false;
-    if (bSuccess) {
-      OnlineSearchResults.clear();
-      SelectedOnlineLobbyIndex = -1;
-      OnlineStatusMessage = "Lobby created: " + lobbyInfo.LobbyId;
-    } else {
-      OnlineStatusMessage = "Create lobby failed. See Logs for details.";
-    }
-  });
-}
-
-void ANetworkTestPawn::SearchOnlineLobbies() {
-  if (bOnlineOperationPending) {
-    OnlineStatusMessage = "EOS operation is already pending.";
-    return;
-  }
-
-  if (!EOSAuthManager::Get().IsLoggedIn()) {
-    OnlineStatusMessage = "Login before searching lobbies.";
-    return;
-  }
-
-  if (OnlineSearchMaxResults < 1) {
-    OnlineSearchMaxResults = 1;
-  }
-
-  FLobbySearchRequest request;
-  request.MaxResults = OnlineSearchMaxResults;
-
-  bOnlineOperationPending = true;
-  OnlineSearchResults.clear();
-  SelectedOnlineLobbyIndex = -1;
-  OnlineStatusMessage = "Search lobbies requested.";
-  EOSLobbyManager::Get().SearchLobbies(
-      request,
-      [this](bool bSuccess, const std::vector<FLobbyInfo>& results) {
-        bOnlineOperationPending = false;
-        if (bSuccess) {
-          OnlineSearchResults = results;
-          SelectedOnlineLobbyIndex = OnlineSearchResults.empty() ? -1 : 0;
-          OnlineStatusMessage = "Lobby search completed. Found: " + std::to_string(OnlineSearchResults.size());
-        } else {
-          OnlineStatusMessage = "Lobby search failed. See Logs for details.";
-        }
-      }
-  );
-}
-
-void ANetworkTestPawn::JoinSelectedOnlineLobby() {
-  if (bOnlineOperationPending) {
-    OnlineStatusMessage = "EOS operation is already pending.";
-    return;
-  }
-
-  if (!EOSAuthManager::Get().IsLoggedIn()) {
-    OnlineStatusMessage = "Login before joining a lobby.";
-    return;
-  }
-
-  if (EOSLobbyManager::Get().IsInLobby()) {
-    OnlineStatusMessage = "Already in a lobby. Leave it before joining another one.";
-    return;
-  }
-
-  if (SelectedOnlineLobbyIndex < 0 ||
-      SelectedOnlineLobbyIndex >= static_cast<int>(OnlineSearchResults.size())) {
-    OnlineStatusMessage = "Select a lobby search result first.";
-    return;
-  }
-
-  const FLobbyInfo lobbyInfo = OnlineSearchResults[SelectedOnlineLobbyIndex];
-  bOnlineOperationPending = true;
-  OnlineStatusMessage = "Join lobby requested: " + lobbyInfo.LobbyId;
-  EOSLobbyManager::Get().JoinLobby(lobbyInfo, [this, lobbyInfo](bool bSuccess) {
-    bOnlineOperationPending = false;
-    if (bSuccess) {
-      OnlineStatusMessage = "Joined lobby: " + lobbyInfo.LobbyId;
-    } else {
-      OnlineStatusMessage = "Join lobby failed. Search again if the result is stale.";
-    }
-  });
-}
-
-void ANetworkTestPawn::LeaveOnlineLobby() {
-  if (bOnlineOperationPending) {
-    OnlineStatusMessage = "EOS operation is already pending.";
-    return;
-  }
-
-  if (!EOSLobbyManager::Get().IsInLobby()) {
-    OnlineStatusMessage = "Not in a lobby.";
-    return;
-  }
-
-  const std::string lobbyId = EOSLobbyManager::Get().GetCurrentLobbyId();
-  bOnlineOperationPending = true;
-  OnlineStatusMessage = "Leave lobby requested: " + lobbyId;
-  EOSLobbyManager::Get().LeaveLobby([this, lobbyId](bool bSuccess) {
-    bOnlineOperationPending = false;
-    if (bSuccess) {
-      OnlineStatusMessage = "Left lobby: " + lobbyId;
-    } else {
-      OnlineStatusMessage = "Leave lobby failed. See Logs for details.";
-    }
-  });
+  return false;
 }

@@ -17,6 +17,7 @@ struct FEOSConfig {
 
 struct FLobbyInfo {
   std::string LobbyId;
+  std::string HostIPAddress;
 
   int CurrentMembers = 0;
   int MaxMembers = 0;
@@ -28,6 +29,7 @@ struct FCreateLobbyRequest {
   int MaxMembers = 4;
   bool bPublicAdvertised = true;
   std::string BucketId = "BroccoliNetworkTest";
+  std::string HostIPAddress;
 };
 
 struct FLobbySearchRequest {

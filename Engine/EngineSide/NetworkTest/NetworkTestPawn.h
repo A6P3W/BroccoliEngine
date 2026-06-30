@@ -1,17 +1,18 @@
 ﻿#pragma once
 
-#include "EOSTypes.h"
 #include "ActorComponent.h"
 #include "Pawn.h"
 #include "UMath.h"
 
+#include <cstdint>
+#include <memory>
 #include <string>
-#include <vector>
 
 class MEnhancedInputComponent;
 class MSpriteComponent;
 struct FInputActionValue;
 class MMovementComponent;
+class FNetworkTestUI;
 
 class MNetworkTestRepComponent : public MActorComponent {
  public:
@@ -40,6 +41,7 @@ class ANetworkTestPawn : public APawn {
  public:
   DEFINE_ACTOR_CLASS(ANetworkTestPawn)
   ANetworkTestPawn();
+  ~ANetworkTestPawn() override;
 
   void BeginPlay() override;
   void OnPossessedBy(APlayerController* NewController) override;
@@ -48,6 +50,8 @@ class ANetworkTestPawn : public APawn {
   void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
 
   void SetStatusMessage(const std::string& Message);
+  bool StartListenServer(uint16_t Port);
+  bool ConnectAsClient(const std::string& HostAddress, uint16_t Port);
 
  private:
   void OnMove(const FInputActionValue& Value);
@@ -59,33 +63,12 @@ class ANetworkTestPawn : public APawn {
   void BeginOverlap(AActor* OtherActor) override;
   int GetDisplayColor() const;
 
-  void DrawConnectionWindow();
-  void DrawOnlineWindow();
-  void DrawStatusWindow();
-  void StartListenServer();
-  void ConnectAsClient();
-  void LoginWithDeviceId();
-  void CreateOnlineLobby();
-  void SearchOnlineLobbies();
-  void JoinSelectedOnlineLobby();
-  void LeaveOnlineLobby();
-
   MSpriteComponent* BodySprite = nullptr;
   MMovementComponent* Movement = nullptr;
   MNetworkTestRepComponent* ReplicationTest = nullptr;
+  std::unique_ptr<FNetworkTestUI> NetworkTestUI;
   float MoveSpeed = 320.0f;
   float FlashTimer = 0.0f;
 
-  char ServerAddress[64] = "127.0.0.1";
-  int Port = 7777;
   bool bSessionStarted = false;
-  std::string StatusMessage;
-
-  char OnlineDisplayName[32] = "BroccoliPlayer";
-  int OnlineLobbyMaxMembers = 4;
-  int OnlineSearchMaxResults = 10;
-  bool bOnlineOperationPending = false;
-  std::vector<FLobbyInfo> OnlineSearchResults;
-  int SelectedOnlineLobbyIndex = -1;
-  std::string OnlineStatusMessage;
 };

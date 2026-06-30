@@ -11,6 +11,8 @@
 #include "Log.h"
 
 namespace {
+const char* HostIPAttributeKey = "HostIP";
+
 const char* SafeText(const char* Text) { return Text ? Text : "<null>"; }
 
 const char* SafeEOSResult(EOS_EResult Result) { return SafeText(EOS_EResult_ToString(Result)); }
@@ -30,6 +32,44 @@ int ClampToInt(uint32_t Value) {
 EOS_ProductUserId GetLoggedInUserId() {
   EOSAuthManager& AuthManager = EOSAuthManager::Get();
   return AuthManager.IsLoggedIn() ? AuthManager.GetLocalUserId() : nullptr;
+}
+
+std::string CopyStringLobbyAttributeByKey(EOS_HLobbyDetails DetailsHandle, const char* Key) {
+  if (!DetailsHandle || !Key) {
+    return {};
+  }
+
+  EOS_LobbyDetails_GetAttributeCountOptions CountOptions = {};
+  CountOptions.ApiVersion = EOS_LOBBYDETAILS_GETATTRIBUTECOUNT_API_LATEST;
+  if (EOS_LobbyDetails_GetAttributeCount(DetailsHandle, &CountOptions) == 0) {
+    return {};
+  }
+
+  EOS_LobbyDetails_CopyAttributeByKeyOptions CopyAttributeOptions = {};
+  CopyAttributeOptions.ApiVersion = EOS_LOBBYDETAILS_COPYATTRIBUTEBYKEY_API_LATEST;
+  CopyAttributeOptions.AttrKey = Key;
+
+  EOS_Lobby_Attribute* Attribute = nullptr;
+  EOS_EResult CopyResult =
+      EOS_LobbyDetails_CopyAttributeByKey(DetailsHandle, &CopyAttributeOptions, &Attribute);
+  if (CopyResult != EOS_EResult::EOS_Success || !Attribute || !Attribute->Data) {
+    if (CopyResult != EOS_EResult::EOS_NotFound) {
+      M_LOG("[EOSLobby] Copy lobby attribute failed: key={}, result={}", Key, SafeEOSResult(CopyResult));
+    }
+    if (Attribute) {
+      EOS_Lobby_Attribute_Release(Attribute);
+    }
+    return {};
+  }
+
+  std::string Value;
+  if (Attribute->Data->ValueType == EOS_ELobbyAttributeType::EOS_AT_STRING &&
+      Attribute->Data->Value.AsUtf8) {
+    Value = Attribute->Data->Value.AsUtf8;
+  }
+
+  EOS_Lobby_Attribute_Release(Attribute);
+  return Value;
 }
 
 FLobbyInfo MakeLobbyInfoFromDetails(EOS_HLobbyDetails DetailsHandle) {
@@ -52,6 +92,7 @@ FLobbyInfo MakeLobbyInfoFromDetails(EOS_HLobbyDetails DetailsHandle) {
   LobbyInfo.MaxMembers = ClampToInt(DetailsInfo->MaxMembers);
   LobbyInfo.CurrentMembers = ClampToInt(DetailsInfo->MaxMembers - (std::min)(DetailsInfo->AvailableSlots, DetailsInfo->MaxMembers));
   LobbyInfo.bValid = !LobbyInfo.LobbyId.empty();
+  LobbyInfo.HostIPAddress = CopyStringLobbyAttributeByKey(DetailsHandle, HostIPAttributeKey);
 
   EOS_LobbyDetails_Info_Release(DetailsInfo);
   return LobbyInfo;
@@ -59,6 +100,8 @@ FLobbyInfo MakeLobbyInfoFromDetails(EOS_HLobbyDetails DetailsHandle) {
 
 struct FCreateLobbyContext {
   FCreateLobbyRequest Request;
+  FLobbyInfo LobbyInfo;
+  EOS_HLobbyModification ModificationHandle = nullptr;
   std::function<void(bool, const FLobbyInfo&)> OnComplete;
 };
 
@@ -143,7 +186,7 @@ void EOSLobbyManager::CreateLobby(
   Options.bCrossplayOptOut = EOS_FALSE;
   Options.RTCRoomJoinActionType = EOS_ELobbyRTCRoomJoinActionType::EOS_LRRJAT_ManualJoin;
 
-  auto* Context = new FCreateLobbyContext{Request, std::move(OnComplete)};
+  auto* Context = new FCreateLobbyContext{Request, {}, nullptr, std::move(OnComplete)};
   EOS_Lobby_CreateLobby(
       LobbyHandle,
       &Options,
@@ -162,6 +205,7 @@ void EOSLobbyManager::CreateLobby(
         if (Data->ResultCode == EOS_EResult::EOS_Success && Data->LobbyId) {
           FLobbyInfo LobbyInfo;
           LobbyInfo.LobbyId = Data->LobbyId;
+          LobbyInfo.HostIPAddress = Context->Request.HostIPAddress;
           LobbyInfo.CurrentMembers = 1;
           LobbyInfo.MaxMembers = (std::max)(1, Context->Request.MaxMembers);
           LobbyInfo.bValid = true;
@@ -171,8 +215,92 @@ void EOSLobbyManager::CreateLobby(
 
           M_LOG("[EOSLobby] CreateLobby success");
           M_LOG("[EOSLobby] LobbyId = {}", LobbyManager.CurrentLobbyId);
-          CompleteCreateCallback(Context->OnComplete, true, LobbyInfo);
-          delete Context;
+
+          if (Context->Request.HostIPAddress.empty()) {
+            CompleteCreateCallback(Context->OnComplete, true, LobbyInfo);
+            delete Context;
+            return;
+          }
+
+          EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
+          EOS_ProductUserId LocalUserId = GetLoggedInUserId();
+          if (!LobbyHandle || !LocalUserId) {
+            M_LOG("[EOSLobby] Add HostIP failed: EOS lobby handle or local user is invalid.");
+            CompleteCreateCallback(Context->OnComplete, false, LobbyInfo);
+            delete Context;
+            return;
+          }
+
+          EOS_HLobbyModification ModificationHandle = nullptr;
+          EOS_Lobby_UpdateLobbyModificationOptions ModificationOptions = {};
+          ModificationOptions.ApiVersion = EOS_LOBBY_UPDATELOBBYMODIFICATION_API_LATEST;
+          ModificationOptions.LocalUserId = LocalUserId;
+          ModificationOptions.LobbyId = LobbyInfo.LobbyId.c_str();
+
+          EOS_EResult ModificationResult = EOS_Lobby_UpdateLobbyModification(
+              LobbyHandle, &ModificationOptions, &ModificationHandle
+          );
+          if (ModificationResult != EOS_EResult::EOS_Success || !ModificationHandle) {
+            M_LOG("[EOSLobby] UpdateLobbyModification failed: {}", SafeEOSResult(ModificationResult));
+            CompleteCreateCallback(Context->OnComplete, false, LobbyInfo);
+            delete Context;
+            return;
+          }
+
+          EOS_Lobby_AttributeData HostIPAttribute = {};
+          HostIPAttribute.ApiVersion = EOS_LOBBY_ATTRIBUTEDATA_API_LATEST;
+          HostIPAttribute.Key = HostIPAttributeKey;
+          HostIPAttribute.Value.AsUtf8 = Context->Request.HostIPAddress.c_str();
+          HostIPAttribute.ValueType = EOS_ELobbyAttributeType::EOS_AT_STRING;
+
+          EOS_LobbyModification_AddAttributeOptions AddAttributeOptions = {};
+          AddAttributeOptions.ApiVersion = EOS_LOBBYMODIFICATION_ADDATTRIBUTE_API_LATEST;
+          AddAttributeOptions.Attribute = &HostIPAttribute;
+          AddAttributeOptions.Visibility = EOS_ELobbyAttributeVisibility::EOS_LAT_PUBLIC;
+
+          EOS_EResult AddAttributeResult =
+              EOS_LobbyModification_AddAttribute(ModificationHandle, &AddAttributeOptions);
+          if (AddAttributeResult != EOS_EResult::EOS_Success) {
+            M_LOG("[EOSLobby] Add HostIP attribute failed: {}", SafeEOSResult(AddAttributeResult));
+            EOS_LobbyModification_Release(ModificationHandle);
+            CompleteCreateCallback(Context->OnComplete, false, LobbyInfo);
+            delete Context;
+            return;
+          }
+
+          Context->LobbyInfo = LobbyInfo;
+          Context->ModificationHandle = ModificationHandle;
+
+          EOS_Lobby_UpdateLobbyOptions UpdateOptions = {};
+          UpdateOptions.ApiVersion = EOS_LOBBY_UPDATELOBBY_API_LATEST;
+          UpdateOptions.LobbyModificationHandle = ModificationHandle;
+          EOS_Lobby_UpdateLobby(
+              LobbyHandle,
+              &UpdateOptions,
+              Context,
+              [](const EOS_Lobby_UpdateLobbyCallbackInfo* UpdateData) {
+                auto* Context = static_cast<FCreateLobbyContext*>(
+                    UpdateData ? UpdateData->ClientData : nullptr
+                );
+                if (!UpdateData || !Context) {
+                  M_LOG("[EOSLobby] UpdateLobby failed: callback data is null.");
+                  return;
+                }
+
+                if (UpdateData->ResultCode == EOS_EResult::EOS_Success) {
+                  M_LOG("[EOSLobby] HostIP attribute updated: {}", Context->LobbyInfo.HostIPAddress);
+                  CompleteCreateCallback(Context->OnComplete, true, Context->LobbyInfo);
+                } else {
+                  M_LOG("[EOSLobby] UpdateLobby failed: {}", SafeEOSResult(UpdateData->ResultCode));
+                  CompleteCreateCallback(Context->OnComplete, false, Context->LobbyInfo);
+                }
+                if (Context->ModificationHandle) {
+                  EOS_LobbyModification_Release(Context->ModificationHandle);
+                  Context->ModificationHandle = nullptr;
+                }
+                delete Context;
+              }
+          );
           return;
         }
 

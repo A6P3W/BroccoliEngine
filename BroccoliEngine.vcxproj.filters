@@ -61,10 +61,12 @@
     <ClCompile Include="Engine\EngineSide\SampleScene01\MainMenu.cpp" />
     <ClCompile Include="Engine\EngineSide\NetworkTest\NetworkTestGameMode.cpp" />
     <ClCompile Include="Engine\EngineSide\NetworkTest\NetworkTestPawn.cpp" />
+    <ClCompile Include="Engine\EngineSide\NetworkTest\NetworkTestUI.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UIBoxButton.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UITextComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\HttpManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Utils\Private\SimpleCrypto.cpp" />
+    <ClCompile Include="Engine\EngineCore\Utils\Private\NetworkUtils.cpp" />
     <ClCompile Include="Engine\EngineCore\Network\Private\NetBuffer.cpp" />
     <ClCompile Include="Engine\EngineCore\Network\Private\NetworkManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Network\Private\ReplicationSystem.cpp" />
@@ -141,10 +143,12 @@
     <ClInclude Include="Engine\EngineSide\SampleScene01\MainMenu.h" />
     <ClInclude Include="Engine\EngineSide\NetworkTest\NetworkTestGameMode.h" />
     <ClInclude Include="Engine\EngineSide\NetworkTest\NetworkTestPawn.h" />
+    <ClInclude Include="Engine\EngineSide\NetworkTest\NetworkTestUI.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UIBoxButton.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UITextComponent.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\HttpManager.h" />
     <ClInclude Include="Engine\EngineCore\Utils\Public\SimpleCrypto.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\Public\NetworkUtils.h" />
     <ClInclude Include="Engine\EngineCore\Network\Public\NetMode.h" />
     <ClInclude Include="Engine\EngineCore\Network\Public\NetworkTypes.h" />
     <ClInclude Include="Engine\EngineCore\Network\Public\NetPacketType.h" />
