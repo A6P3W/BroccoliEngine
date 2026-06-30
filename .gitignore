@@ -490,3 +490,4 @@ $RECYCLE.BIN/
 /Launcher/Log.txt
 /vcpkg_installed/
 *..repoignore
+*Build/
