@@ -491,3 +491,5 @@ $RECYCLE.BIN/
 /vcpkg_installed/
 *..repoignore
 *Build/
+!Engine/ThirdParty/EOS/SDK/Bin/
+/Launcher/Config

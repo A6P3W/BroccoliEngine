@@ -2,6 +2,11 @@
 
 #include <imgui.h>
 
+#include <algorithm>
+#include <cctype>
+#include <string>
+#include <vector>
+
 #include "Actor.h"
 #include "EditorMode.h"
 #include "FileDialog.h"
@@ -9,6 +14,7 @@
 #include "SpriteActor.h"
 #include "UMath.h"
 #include "World.h"
+
 void EditorUI::UpdateAndDraw(EditorMode* editorMode) {
   DrawMenuBar(editorMode);
 
@@ -53,16 +59,154 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode) {
 void EditorUI::DrawClassBrowser(EditorMode* editorMode) {
   ImGui::Begin("Class Browser");
 
-  const auto& classes = editorMode->GetClassList();
   const std::string& selectedClass = editorMode->GetSelectedClass();
 
-  for (const auto& className : classes) {
-    bool isSelected = (className == selectedClass);
-    if (ImGui::Selectable(className.c_str(), isSelected)) {
-      editorMode->SelectClass(className);
+  std::vector<std::string> sortedClasses = editorMode->GetClassList();
+  std::sort(sortedClasses.begin(), sortedClasses.end());
+
+  static std::vector<std::string> recentClasses;
+
+  if (recentClasses.empty() && !sortedClasses.empty()) {
+    size_t initCount = (sortedClasses.size() < 5) ? sortedClasses.size() : 5;
+    for (size_t i = 0; i < initCount; ++i) {
+      recentClasses.push_back(sortedClasses[i]);
     }
   }
 
+  auto OnClassSelected = [&](const std::string& className) {
+    editorMode->SelectClass(className);
+
+    auto it = std::find(recentClasses.begin(), recentClasses.end(), className);
+    if (it == recentClasses.end()) {
+      recentClasses.insert(recentClasses.begin(), className);
+      if (recentClasses.size() > 5) {
+        recentClasses.pop_back();
+      }
+    }
+  };
+
+  ImGui::Text("Selected:");
+  ImGui::SameLine();
+  if (selectedClass.empty()) {
+    ImGui::TextDisabled("(None)");
+  } else {
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "[ %s ]", selectedClass.c_str());
+  }
+
+  if (ImGui::Button("Clear Selection", ImVec2(-1, 0))) {
+    editorMode->SelectClass("");
+  }
+
+  ImGui::Separator();
+
+  static ImGuiTextFilter filter;
+  filter.Draw("##Search", ImGui::GetContentRegionAvail().x);
+  if (ImGui::IsItemHovered()) {
+    ImGui::SetTooltip("Search classes...");
+  }
+
+  static int groupCharCount = 2;
+  ImGui::SliderInt("Group Length", &groupCharCount, 1, 4, "%d chars");
+
+  ImGui::Separator();
+
+  auto GetHueFromName = [](const std::string& name) -> float {
+    unsigned long hash = 5381;
+    for (char c : name) {
+      hash = ((hash << 5) + hash) + c;
+    }
+    return static_cast<float>(hash % 1000) / 1000.0f;
+  };
+
+  auto DrawClassSelectable = [&](const std::string& className) {
+    bool isSelected = (className == selectedClass);
+
+    float r, g, b;
+    ImGui::ColorConvertHSVtoRGB(GetHueFromName(className), 0.4f, 0.9f, r, g, b);
+
+    if (!isSelected) {
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(r, g, b, 1.0f));
+    }
+
+    if (ImGui::Selectable(className.c_str(), isSelected)) {
+      OnClassSelected(className);
+    }
+
+    if (!isSelected) {
+      ImGui::PopStyleColor();
+    }
+
+    if (isSelected) {
+      ImGui::SetItemDefaultFocus();
+    }
+  };
+
+  ImGui::BeginChild("ClassListRegion", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+
+  if (filter.IsActive()) {
+    for (const auto& className : sortedClasses) {
+      if (filter.PassFilter(className.c_str())) {
+        DrawClassSelectable(className);
+      }
+    }
+  } else {
+    // --- Recent グループ ---
+    if (!recentClasses.empty()) {
+      ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+      if (ImGui::TreeNode("Recent")) {
+        for (const auto& className : recentClasses) {
+          if (std::find(sortedClasses.begin(), sortedClasses.end(), className) !=
+              sortedClasses.end()) {
+            DrawClassSelectable(className);
+          }
+        }
+        ImGui::TreePop();
+      }
+      ImGui::Separator();
+    }
+
+    // --- ツリーグループ ---
+    auto GetGroupKey = [&](const std::string& name) -> std::string {
+      if (name.empty()) return "?";
+
+      size_t nameLen = name.length();
+      size_t limit = static_cast<size_t>(groupCharCount);
+      size_t count = (nameLen < limit) ? nameLen : limit;
+
+      std::string key = name.substr(0, count);
+      for (char& c : key) {
+        c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+      }
+      return key;
+    };
+
+    std::string currentGroup = "";
+    bool nodeOpen = false;
+
+    for (const auto& className : sortedClasses) {
+      std::string groupKey = GetGroupKey(className);
+
+      if (groupKey != currentGroup) {
+        if (!currentGroup.empty() && nodeOpen) {
+          ImGui::TreePop();
+        }
+        currentGroup = groupKey;
+
+        std::string headerName = std::string("[ ") + currentGroup + " ]";
+        nodeOpen = ImGui::TreeNodeEx(headerName.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+      }
+
+      if (nodeOpen) {
+        DrawClassSelectable(className);
+      }
+    }
+
+    if (!currentGroup.empty() && nodeOpen) {
+      ImGui::TreePop();
+    }
+  }
+
+  ImGui::EndChild();
   ImGui::End();
 }
 

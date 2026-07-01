@@ -36,7 +36,15 @@ file(GLOB_RECURSE BROCCOLLI_SOURCES
   "Engine/*.hpp"
 )
 
+foreach(FILE_PATH IN LISTS BROCCOLLI_SOURCES)
+  file(TO_CMAKE_PATH "${FILE_PATH}" FILE_PATH_NORMALIZED)
 
+  if(
+    FILE_PATH_NORMALIZED MATCHES "/Engine/ThirdParty/EOS"
+  )
+    list(REMOVE_ITEM BROCCOLLI_SOURCES "${FILE_PATH}")
+  endif()
+endforeach()
 
 # IDE上の表示フォルダ構造を物理フォルダ階層にマッピングする設定
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/Engine" PREFIX "Engine" FILES ${BROCCOLLI_SOURCES})
@@ -60,8 +68,10 @@ target_include_directories(BroccoliEngine PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineSide/Default/Public"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore/GameFramework/Public"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/ThirdParty"
+  "${CMAKE_CURRENT_SOURCE_DIR}/Engine/ThirdParty/EOS/SDK/Include"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/Editor/Public"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore/Utils/Public"
+  "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore/Online/Public"
 )
 
 # DxLib のヘッダーからの警告を抑制するため SYSTEM インクルードとして追加
@@ -75,6 +85,7 @@ target_link_libraries(BroccoliEngine PUBLIC
   cpr::cpr
   imgui::imgui
   enet::enet
+  "${CMAKE_CURRENT_SOURCE_DIR}/Engine/ThirdParty/EOS/SDK/Lib/EOSSDK-Win64-Shipping.lib"
   ws2_32
   winmm
   crypt32
@@ -108,4 +119,7 @@ endif()
 
 
 # サブプロジェクト Launcher の追加
-add_subdirectory(Launcher)
+option(BUILD_LAUNCHER "Build Launcher application" OFF)
+if(BUILD_LAUNCHER)
+  add_subdirectory(Launcher)
+endif()
