@@ -35,7 +35,6 @@ class FNetworkTestUI {
   char OnlineDisplayName[32] = "BroccoliPlayer";
   int OnlineLobbyMaxMembers = 4;
   int OnlineSearchMaxResults = 10;
-  bool bOnlineOperationPending = false;
   std::vector<FLobbyInfo> OnlineSearchResults;
   int SelectedOnlineLobbyIndex = -1;
   std::string OnlineStatusMessage;

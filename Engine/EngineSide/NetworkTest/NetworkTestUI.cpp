@@ -6,9 +6,7 @@
 
 #include <imgui.h>
 
-#include "EOSAuthManager.h"
-#include "EOSCoreManager.h"
-#include "EOSLobbyManager.h"
+#include "OnlineSessionManager.h"
 #include "NetworkManager.h"
 #include "NetworkTest/NetworkTestGameMode.h"
 #include "NetworkTest/NetworkTestPawn.h"
@@ -23,7 +21,7 @@ void FNetworkTestUI::InitializeStatus() {
     StatusMessage = std::string(gameMode->GetSceneName()) + " loaded.";
   }
 
-  OnlineStatusMessage = EOSCoreManager::Get().IsInitialized()
+  OnlineStatusMessage = OnlineSessionManager::Get().IsEOSInitialized()
                             ? "EOS initialized. Login to use lobby."
                             : "EOS is not initialized.";
 }
@@ -80,41 +78,72 @@ void FNetworkTestUI::DrawConnectionWindow() {
 }
 
 void FNetworkTestUI::DrawOnlineWindow() {
-  EOSCoreManager& coreManager = EOSCoreManager::Get();
-  EOSAuthManager& authManager = EOSAuthManager::Get();
-  EOSLobbyManager& lobbyManager = EOSLobbyManager::Get();
+  OnlineSessionManager& onlineSession = OnlineSessionManager::Get();
 
   OnlineLobbyMaxMembers = std::clamp(OnlineLobbyMaxMembers, 1, 64);
   OnlineSearchMaxResults = std::clamp(OnlineSearchMaxResults, 1, 100);
 
   ImGui::Begin("EOS LAN Lobby Test");
-  ImGui::Text("EOS initialized: %s", coreManager.IsInitialized() ? "true" : "false");
-  ImGui::Text("Logged in: %s", authManager.IsLoggedIn() ? "true" : "false");
-  if (authManager.IsLoggedIn()) {
-    const std::string localUserId = authManager.GetLocalUserIdString();
+  ImGui::Text("EOS initialized: %s", onlineSession.IsEOSInitialized() ? "true" : "false");
+  ImGui::Text("Logged in: %s", onlineSession.IsLoggedIn() ? "true" : "false");
+  if (onlineSession.IsLoggedIn()) {
+    const std::string localUserId = onlineSession.GetLocalUserIdString();
     ImGui::TextWrapped("ProductUserId: %s", localUserId.c_str());
   }
-  ImGui::Text("In lobby: %s", lobbyManager.IsInLobby() ? "true" : "false");
-  if (lobbyManager.IsInLobby()) {
-    const std::string lobbyId = lobbyManager.GetCurrentLobbyId();
+  ImGui::Text("In lobby: %s", onlineSession.IsInLobby() ? "true" : "false");
+  if (onlineSession.IsInLobby()) {
+    const std::string lobbyId = onlineSession.GetCurrentLobbyId();
     ImGui::TextWrapped("Current LobbyId: %s", lobbyId.c_str());
   }
-  ImGui::Text("Operation pending: %s", bOnlineOperationPending ? "true" : "false");
+  ImGui::Text("Operation pending: %s", onlineSession.IsOperationPending() ? "true" : "false");
   ImGui::Separator();
 
-  ImGui::InputText("Display Name", OnlineDisplayName, sizeof(OnlineDisplayName));
-  if (ImGui::Button("Login Device ID")) {
-    LoginWithDeviceId();
+  if (!onlineSession.IsEOSInitialized()) {
+    ImGui::TextDisabled("EOS is not initialized.");
+    ImGui::Separator();
+    ImGui::TextWrapped("%s", OnlineStatusMessage.c_str());
+    ImGui::End();
+    return;
   }
 
-  ImGui::Separator();
+  if (!onlineSession.IsLoggedIn()) {
+    ImGui::InputText("Display Name", OnlineDisplayName, sizeof(OnlineDisplayName));
+    if (onlineSession.CanShowLogin() && ImGui::Button("Login Device ID")) {
+      LoginWithDeviceId();
+    }
+
+    ImGui::Separator();
+    ImGui::TextWrapped("%s", OnlineStatusMessage.c_str());
+    ImGui::End();
+    return;
+  }
+
+  if (onlineSession.IsInLobby()) {
+    if (onlineSession.CanShowLeaveLobby() && ImGui::Button("Leave Lobby")) {
+      LeaveOnlineLobby();
+    }
+
+    ImGui::Separator();
+    ImGui::TextWrapped("%s", OnlineStatusMessage.c_str());
+    ImGui::End();
+    return;
+  }
+
+  if (onlineSession.IsOperationPending()) {
+    ImGui::TextDisabled("EOS operation is pending.");
+    ImGui::Separator();
+    ImGui::TextWrapped("%s", OnlineStatusMessage.c_str());
+    ImGui::End();
+    return;
+  }
+
   ImGui::InputInt("Max Members", &OnlineLobbyMaxMembers);
-  if (ImGui::Button("Create LAN Lobby")) {
+  if (onlineSession.CanShowLobbyActions() && ImGui::Button("Create LAN Lobby")) {
     CreateLanLobby();
   }
 
   ImGui::InputInt("Search Max Results", &OnlineSearchMaxResults);
-  if (ImGui::Button("Search Lobbies")) {
+  if (onlineSession.CanShowSearchLobbies() && ImGui::Button("Search Lobbies")) {
     SearchOnlineLobbies();
   }
 
@@ -131,22 +160,18 @@ void FNetworkTestUI::DrawOnlineWindow() {
       }
     }
     ImGui::EndChild();
+
+    if (onlineSession.CanShowJoinLobby() && ImGui::Button("Join Selected LAN Lobby")) {
+      JoinSelectedLanLobby();
+    }
   } else {
     ImGui::TextDisabled("No lobby search results.");
-  }
-
-  if (ImGui::Button("Join Selected LAN Lobby")) {
-    JoinSelectedLanLobby();
-  }
-  if (ImGui::Button("Leave Lobby")) {
-    LeaveOnlineLobby();
   }
 
   ImGui::Separator();
   ImGui::TextWrapped("%s", OnlineStatusMessage.c_str());
   ImGui::End();
 }
-
 void FNetworkTestUI::DrawStatusWindow() {
   ImGui::Begin("Network Status");
 
@@ -171,49 +196,39 @@ void FNetworkTestUI::DrawStatusWindow() {
 }
 
 void FNetworkTestUI::LoginWithDeviceId() {
-  if (bOnlineOperationPending) {
-    OnlineStatusMessage = "EOS operation is already pending.";
-    return;
-  }
-
-  if (!EOSCoreManager::Get().IsInitialized()) {
+  if (!OnlineSessionManager::Get().IsEOSInitialized()) {
     OnlineStatusMessage = "EOS is not initialized.";
     return;
   }
 
-  if (EOSAuthManager::Get().IsLoggedIn()) {
+  if (OnlineSessionManager::Get().IsLoggedIn()) {
     OnlineStatusMessage = "Already logged in.";
     return;
   }
 
-  bOnlineOperationPending = true;
   OnlineStatusMessage = "EOS Device ID login requested.";
-  EOSAuthManager::Get().LoginWithDeviceId(OnlineDisplayName, [this](bool bSuccess) {
-    bOnlineOperationPending = false;
+  if (!OnlineSessionManager::Get().LoginWithDeviceId(OnlineDisplayName, [this](bool bSuccess) {
     if (bSuccess) {
       OnlineStatusMessage = "EOS Device ID login succeeded.";
-      const std::string localUserId = EOSAuthManager::Get().GetLocalUserIdString();
+      const std::string localUserId = OnlineSessionManager::Get().GetLocalUserIdString();
       if (!localUserId.empty()) {
         OnlineStatusMessage += " ProductUserId: " + localUserId;
       }
     } else {
       OnlineStatusMessage = "EOS Device ID login failed. See Logs for details.";
     }
-  });
+  })) {
+    OnlineStatusMessage = "EOS Device ID login request was rejected.";
+  }
 }
 
 void FNetworkTestUI::CreateLanLobby() {
-  if (bOnlineOperationPending) {
-    OnlineStatusMessage = "EOS operation is already pending.";
-    return;
-  }
-
-  if (!EOSAuthManager::Get().IsLoggedIn()) {
+  if (!OnlineSessionManager::Get().IsLoggedIn()) {
     OnlineStatusMessage = "Login before creating a lobby.";
     return;
   }
 
-  if (EOSLobbyManager::Get().IsInLobby()) {
+  if (OnlineSessionManager::Get().IsInLobby()) {
     OnlineStatusMessage = "Already in a lobby. Leave it before creating another one.";
     return;
   }
@@ -229,10 +244,8 @@ void FNetworkTestUI::CreateLanLobby() {
   request.bPublicAdvertised = true;
   request.HostIPAddress = localIPAddress;
 
-  bOnlineOperationPending = true;
   OnlineStatusMessage = "Create LAN lobby requested. HostIP=" + localIPAddress;
-  EOSLobbyManager::Get().CreateLobby(request, [this](bool bSuccess, const FLobbyInfo& lobbyInfo) {
-    bOnlineOperationPending = false;
+  if (!OnlineSessionManager::Get().CreateLobby(request, [this](bool bSuccess, const FLobbyInfo& lobbyInfo) {
     if (!bSuccess) {
       OnlineStatusMessage = "Create LAN lobby failed. See Logs for details.";
       return;
@@ -247,16 +260,13 @@ void FNetworkTestUI::CreateLanLobby() {
       OnlineStatusMessage = "LAN lobby created, but listen server failed to start.";
       StatusMessage = "Failed to start listen server.";
     }
-  });
+  })) {
+    OnlineStatusMessage = "Create LAN lobby request was rejected.";
+  }
 }
 
 void FNetworkTestUI::SearchOnlineLobbies() {
-  if (bOnlineOperationPending) {
-    OnlineStatusMessage = "EOS operation is already pending.";
-    return;
-  }
-
-  if (!EOSAuthManager::Get().IsLoggedIn()) {
+  if (!OnlineSessionManager::Get().IsLoggedIn()) {
     OnlineStatusMessage = "Login before searching lobbies.";
     return;
   }
@@ -264,14 +274,12 @@ void FNetworkTestUI::SearchOnlineLobbies() {
   FLobbySearchRequest request;
   request.MaxResults = (std::max)(1, OnlineSearchMaxResults);
 
-  bOnlineOperationPending = true;
   OnlineSearchResults.clear();
   SelectedOnlineLobbyIndex = -1;
   OnlineStatusMessage = "Search lobbies requested.";
-  EOSLobbyManager::Get().SearchLobbies(
+  if (!OnlineSessionManager::Get().SearchLobbies(
       request,
       [this](bool bSuccess, const std::vector<FLobbyInfo>& results) {
-        bOnlineOperationPending = false;
         if (bSuccess) {
           OnlineSearchResults = results;
           SelectedOnlineLobbyIndex = OnlineSearchResults.empty() ? -1 : 0;
@@ -281,21 +289,18 @@ void FNetworkTestUI::SearchOnlineLobbies() {
           OnlineStatusMessage = "Lobby search failed. See Logs for details.";
         }
       }
-  );
+  )) {
+    OnlineStatusMessage = "Lobby search request was rejected.";
+  }
 }
 
 void FNetworkTestUI::JoinSelectedLanLobby() {
-  if (bOnlineOperationPending) {
-    OnlineStatusMessage = "EOS operation is already pending.";
-    return;
-  }
-
-  if (!EOSAuthManager::Get().IsLoggedIn()) {
+  if (!OnlineSessionManager::Get().IsLoggedIn()) {
     OnlineStatusMessage = "Login before joining a lobby.";
     return;
   }
 
-  if (EOSLobbyManager::Get().IsInLobby()) {
+  if (OnlineSessionManager::Get().IsInLobby()) {
     OnlineStatusMessage = "Already in a lobby. Leave it before joining another one.";
     return;
   }
@@ -312,47 +317,41 @@ void FNetworkTestUI::JoinSelectedLanLobby() {
     return;
   }
 
-  bOnlineOperationPending = true;
   OnlineStatusMessage = "Join lobby requested: " + lobbyInfo.LobbyId;
-  EOSLobbyManager::Get().JoinLobby(lobbyInfo, [this, lobbyInfo](bool bSuccess) {
-    bOnlineOperationPending = false;
-    if (!bSuccess) {
-      OnlineStatusMessage = "Join lobby failed. Search again if the result is stale.";
-      return;
-    }
+  if (!OnlineSessionManager::Get().JoinLobby(
+          lobbyInfo,
+          static_cast<uint16_t>(Port),
+          [this, lobbyInfo](bool bSuccess) {
+            if (!bSuccess) {
+              OnlineStatusMessage = "Join lobby or ENet connection failed. Search again if the result is stale.";
+              return;
+            }
 
-    strncpy_s(ServerAddress, sizeof(ServerAddress), lobbyInfo.HostIPAddress.c_str(), _TRUNCATE);
-
-    if (Owner.ConnectAsClient(lobbyInfo.HostIPAddress, static_cast<uint16_t>(Port))) {
-      StatusMessage = "Connecting to lobby host: " + lobbyInfo.HostIPAddress;
-      OnlineStatusMessage = "Joined lobby and connecting: " + lobbyInfo.LobbyId;
-    } else {
-      OnlineStatusMessage = "Joined lobby, but ENet connection failed.";
-      StatusMessage = "Failed to connect to server.";
-    }
-  });
-}
-
-void FNetworkTestUI::LeaveOnlineLobby() {
-  if (bOnlineOperationPending) {
-    OnlineStatusMessage = "EOS operation is already pending.";
-    return;
+            strncpy_s(ServerAddress, sizeof(ServerAddress), lobbyInfo.HostIPAddress.c_str(), _TRUNCATE);
+            Owner.GetWorld()->SetNetMode(ENetMode::Client);
+            StatusMessage = "Connecting to lobby host: " + lobbyInfo.HostIPAddress;
+            OnlineStatusMessage = "Joined lobby and connecting: " + lobbyInfo.LobbyId;
+          }
+      )) {
+    OnlineStatusMessage = "Join lobby request was rejected.";
   }
-
-  if (!EOSLobbyManager::Get().IsInLobby()) {
+}
+void FNetworkTestUI::LeaveOnlineLobby() {
+  if (!OnlineSessionManager::Get().IsInLobby()) {
     OnlineStatusMessage = "Not in a lobby.";
     return;
   }
 
-  const std::string lobbyId = EOSLobbyManager::Get().GetCurrentLobbyId();
-  bOnlineOperationPending = true;
+  const std::string lobbyId = OnlineSessionManager::Get().GetCurrentLobbyId();
   OnlineStatusMessage = "Leave lobby requested: " + lobbyId;
-  EOSLobbyManager::Get().LeaveLobby([this, lobbyId](bool bSuccess) {
-    bOnlineOperationPending = false;
+  if (!OnlineSessionManager::Get().LeaveLobby([this, lobbyId](bool bSuccess) {
     if (bSuccess) {
+      Owner.GetWorld()->SetNetMode(ENetMode::Standalone);
       OnlineStatusMessage = "Left lobby: " + lobbyId;
     } else {
       OnlineStatusMessage = "Leave lobby failed. See Logs for details.";
     }
-  });
+  })) {
+    OnlineStatusMessage = "Leave lobby request was rejected.";
+  }
 }

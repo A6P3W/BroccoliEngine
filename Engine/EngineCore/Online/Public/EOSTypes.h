@@ -1,6 +1,8 @@
 ﻿#pragma once
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 struct FEOSConfig {
   const char* ProductName = nullptr;
@@ -15,6 +17,52 @@ struct FEOSConfig {
   const char* EncryptionKey = nullptr;
 };
 
+enum class ELobbyAttributeType { String, Int64, Double, Bool };
+
+struct FLobbyAttributeValue {
+  ELobbyAttributeType Type = ELobbyAttributeType::String;
+
+  std::string StringValue;
+  int64_t IntValue = 0;
+  double DoubleValue = 0.0;
+  bool BoolValue = false;
+
+  static FLobbyAttributeValue FromString(const std::string& Value) {
+    FLobbyAttributeValue Result;
+    Result.Type = ELobbyAttributeType::String;
+    Result.StringValue = Value;
+    return Result;
+  }
+
+  static FLobbyAttributeValue FromInt64(int64_t Value) {
+    FLobbyAttributeValue Result;
+    Result.Type = ELobbyAttributeType::Int64;
+    Result.IntValue = Value;
+    return Result;
+  }
+
+  static FLobbyAttributeValue FromDouble(double Value) {
+    FLobbyAttributeValue Result;
+    Result.Type = ELobbyAttributeType::Double;
+    Result.DoubleValue = Value;
+    return Result;
+  }
+
+  static FLobbyAttributeValue FromBool(bool Value) {
+    FLobbyAttributeValue Result;
+    Result.Type = ELobbyAttributeType::Bool;
+    Result.BoolValue = Value;
+    return Result;
+  }
+};
+
+struct FLobbyAttribute {
+  std::string Key;
+  FLobbyAttributeValue Value;
+
+  bool bAdvertised = true;
+};
+
 struct FLobbyInfo {
   std::string LobbyId;
   std::string HostIPAddress;
@@ -22,7 +70,25 @@ struct FLobbyInfo {
   int CurrentMembers = 0;
   int MaxMembers = 0;
 
+  std::vector<FLobbyAttribute> Attributes;
+
   bool bValid = false;
+};
+
+enum class ELobbyComparisonOp {
+  Equal,
+  NotEqual,
+  GreaterThan,
+  GreaterThanOrEqual,
+  LessThan,
+  LessThanOrEqual
+};
+
+struct FLobbySearchFilter {
+  std::string Key;
+  FLobbyAttributeValue Value;
+
+  ELobbyComparisonOp ComparisonOp = ELobbyComparisonOp::Equal;
 };
 
 struct FCreateLobbyRequest {
@@ -30,9 +96,13 @@ struct FCreateLobbyRequest {
   bool bPublicAdvertised = true;
   std::string BucketId = "BroccoliNetworkTest";
   std::string HostIPAddress;
+
+  std::vector<FLobbyAttribute> Attributes;
 };
 
 struct FLobbySearchRequest {
   int MaxResults = 10;
   std::string BucketId = "BroccoliNetworkTest";
+
+  std::vector<FLobbySearchFilter> Filters;
 };

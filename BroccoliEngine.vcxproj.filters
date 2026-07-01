@@ -73,6 +73,7 @@
     <ClCompile Include="Engine\EngineCore\Online\Private\EOSAuthManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Online\Private\EOSCoreManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Online\Private\EOSLobbyManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Online\Private\OnlineSessionManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
@@ -161,6 +162,7 @@
     <ClInclude Include="Engine\EngineCore\Online\Public\EOSCoreManager.h" />
     <ClInclude Include="Engine\EngineCore\Online\Public\EOSLobbyManager.h" />
     <ClInclude Include="Engine\EngineCore\Online\Public\EOSTypes.h" />
+    <ClInclude Include="Engine\EngineCore\Online\Public\OnlineSessionManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Engine\file.md" />
