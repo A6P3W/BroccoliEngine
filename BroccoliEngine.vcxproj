@@ -1,0 +1,401 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Editor|Win32">
+      <Configuration>Editor</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Editor|x64">
+      <Configuration>Editor</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{118bd4ba-a816-42c0-95d2-aeafcd33bac5}</ProjectGuid>
+    <RootNamespace>BroccoliEngine</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Editor|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Editor|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Editor|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Editor|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PublicIncludeDirectories>$(DXLIB_DIR)</PublicIncludeDirectories>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Editor|x64'">
+    <PublicIncludeDirectories>$(DXLIB_DIR)</PublicIncludeDirectories>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PublicIncludeDirectories>$(DXLIB_DIR)</PublicIncludeDirectories>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <VcpkgHostTriplet>
+    </VcpkgHostTriplet>
+    <VcpkgTriplet>x64-windows-static-md</VcpkgTriplet>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Editor|x64'">
+    <VcpkgHostTriplet>
+    </VcpkgHostTriplet>
+    <VcpkgTriplet>x64-windows-static-md</VcpkgTriplet>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <VcpkgHostTriplet>
+    </VcpkgHostTriplet>
+    <VcpkgTriplet>x64-windows-static-md</VcpkgTriplet>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Editor|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineCore/Network/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor/Public;$(ProjectDir)Engine/EngineCore/Utils/Public</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(DXLIB_DIR)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Editor|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_EDITOR;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineCore/Network/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor/Public;$(ProjectDir)Engine/EngineCore/Utils/Public</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(DXLIB_DIR)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_RELEASE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)Engine/EngineCore/;$(ProjectDir)\Game;$(ProjectDir)Engine/EngineCore/Core/Public;$(ProjectDir)Engine/EngineCore/Systems/Public;$(ProjectDir)Engine/EngineCore/Components/Public;$(ProjectDir)Engine/EngineCore/Network/Public;$(ProjectDir)Engine/EngineSide/;$(ProjectDir)Engine/EngineCore/GameFramework/Public;$(ProjectDir)Engine/EngineSide/Default/Public;$(ProjectDir)Engine/ThirdParty;$(ProjectDir)Engine/Editor/Public;$(ProjectDir)Engine/EngineCore/Utils/Public</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(DXLIB_DIR)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Engine\Editor\Private\EditorController.cpp" />
+    <ClCompile Include="Engine\Editor\Private\EditorMode.cpp" />
+    <ClCompile Include="Engine\Editor\Private\EditorPawn.cpp" />
+    <ClCompile Include="Engine\Editor\Private\EditorSelectPointComponent.cpp" />
+    <ClCompile Include="Engine\Editor\Private\EditorUI.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\EasyShakeComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\LineCollisionComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\RectangleCollisionComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\DefaultPawn.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\CameraComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\CircleCollisionComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\CollisionComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\MovementComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\SceneComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\SoundComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\SpriteComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Core\Private\Actor.cpp" />
+    <ClCompile Include="Engine\EngineCore\Core\Private\ActorComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Core\Private\Application.cpp" />
+    <ClCompile Include="Engine\EngineCore\Core\Private\BaseObject.cpp" />
+    <ClCompile Include="Engine\EngineCore\Core\Private\EngineEntry.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\Pawn.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\PlayerStart.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\SpriteActor.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\GameModeBase.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\PlayerController.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\CollisionSystem.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\InputManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\InputMapper.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\MouseDevice.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\ObjectManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\RenderSystem.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\ResourceManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\SceneManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\SoundManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\TimerManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\KeyboardDevice.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\GamepadDevice.cpp" />
+    <ClCompile Include="Engine\EngineSide\Default\Private\DefaultCircleCollisionActor.cpp" />
+    <ClCompile Include="Engine\EngineSide\Default\Private\DefaultLineCollisionActor.cpp" />
+    <ClCompile Include="Engine\EngineSide\Default\Private\DefaultRectangleCollisionActor.cpp" />
+    <ClCompile Include="Engine\EngineSide\GridLine.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp" />
+    <ClCompile Include="Engine\EngineSide\SampleScene01\SamplePawn01.cpp" />
+    <ClCompile Include="Engine\EngineSide\SampleScene01\SampleScene01.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\LevelSerializer.cpp" />
+    <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_dx11.cpp" />
+    <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_win32.cpp" />
+    <ClCompile Include="Engine\EngineCore\Core\Private\World.cpp" />
+    <ClCompile Include="Engine\EngineCore\Utils\Private\FileDialog.cpp" />
+    <ClCompile Include="Engine\EngineSide\StressTestActor.cpp" />
+    <ClCompile Include="Engine\EngineCore\Utils\Private\FileUtils.cpp" />
+    <ClCompile Include="Engine\EngineCore\GameFramework\Private\WidgetBase.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\UIWidgetComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\UIButtonComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\UIManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\UISpriteComponent.cpp" />
+    <ClCompile Include="Engine\EngineSide\SampleScene01\MainMenu.cpp" />
+    <ClCompile Include="Engine\EngineSide\NetworkTest\NetworkTestGameMode.cpp" />
+    <ClCompile Include="Engine\EngineSide\NetworkTest\NetworkTestPawn.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\UIBoxButton.cpp" />
+    <ClCompile Include="Engine\EngineCore\Components\Private\UITextComponent.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\HttpManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Utils\Private\SimpleCrypto.cpp" />
+    <ClCompile Include="Engine\EngineCore\Network\Private\NetBuffer.cpp" />
+    <ClCompile Include="Engine\EngineCore\Network\Private\NetworkManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Network\Private\ReplicationSystem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Engine\Editor\Public\EditorController.h" />
+    <ClInclude Include="Engine\Editor\Public\EditorSelectPointComponent.h" />
+    <ClInclude Include="Engine\Editor\Public\EditorUI.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\EngineDefine.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameInstance.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\ActorRegistry.h" />
+    <ClInclude Include="Engine\Editor\Public\EditorMode.h" />
+    <ClInclude Include="Engine\Editor\Public\EditorPawn.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\EasyShakeComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\LineCollisionComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\RectangleCollisionComponent.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\DefaultPawn.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\CameraComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\CircleCollisionComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\CollisionComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\MovementComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\SceneComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\SoundComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\SpriteComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\Actor.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\ActorComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\Application.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\BaseObject.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\TimerHandle.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\Pawn.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\PlayerStart.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\SpriteActor.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\GameModeBase.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\PlayerController.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\CollisionSystem.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\InputDevice.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\InputManager.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\InputMapper.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\KeyboardDevice.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\GamepadDevice.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\MouseDevice.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\ObjectManager.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\RenderSystem.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\ResourceManager.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\SceneManager.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\SoundManager.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\TimerManager.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\Public\Log.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\Public\UMath.h" />
+    <ClInclude Include="Engine\EngineSide\Default\Public\DefaultCircleCollisionActor.h" />
+    <ClInclude Include="Engine\EngineSide\Default\Public\DefaultLineCollisionActor.h" />
+    <ClInclude Include="Engine\EngineSide\Default\Public\DefaultRectangleCollisionActor.h" />
+    <ClInclude Include="Engine\EngineSide\GridLine.h" />
+    <ClInclude Include="Engine\EngineSide\SampleScene01\SamplePawn01.h" />
+    <ClInclude Include="Engine\EngineSide\SampleScene01\SampleScene01.h" />
+    <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_dx11.h" />
+    <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_win32.h" />
+    <ClInclude Include="Engine\ThirdParty\nlohmann\json.hpp" />
+    <ClInclude Include="Engine\Utils\Log.h" />
+    <ClInclude Include="Engine\Utils\UMath.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\EnhancedInputComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\LevelSerializer.h" />
+    <ClInclude Include="Engine\EngineCore\Core\Public\World.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\Public\FileDialog.h" />
+    <ClInclude Include="Engine\EngineSide\StressTestActor.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\Public\FileUtils.h" />
+    <ClInclude Include="Engine\EngineCore\GameFramework\Public\WidgetBase.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\UIWidgetComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\UIButtonComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\UIManager.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\UISpriteComponent.h" />
+    <ClInclude Include="Engine\EngineSide\SampleScene01\MainMenu.h" />
+    <ClInclude Include="Engine\EngineSide\NetworkTest\NetworkTestGameMode.h" />
+    <ClInclude Include="Engine\EngineSide\NetworkTest\NetworkTestPawn.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\UIBoxButton.h" />
+    <ClInclude Include="Engine\EngineCore\Components\Public\UITextComponent.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\HttpManager.h" />
+    <ClInclude Include="Engine\EngineCore\Utils\Public\SimpleCrypto.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetMode.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetworkTypes.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetPacketType.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetBuffer.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\NetworkManager.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\ReplicatedProperty.h" />
+    <ClInclude Include="Engine\EngineCore\Network\Public\ReplicationSystem.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AGENTS.md">
+      <SubType>
+      </SubType>
+    </None>
+    <None Include="Engine\file.md">
+      <SubType>
+      </SubType>
+    </None>
+    <None Include="Game\Objects\DefaultScene.json" />
+    <None Include="vcpkg.json">
+      <SubType>
+      </SubType>
+    </None>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
