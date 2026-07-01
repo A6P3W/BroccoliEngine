@@ -1,6 +1,7 @@
-﻿{
+{
   "name": "broccoli-engine",
   "version": "1.0.0",
+  "builtin-baseline": "aa40adda5352e87655b8583cfb2451d5e9e276fd",
   "dependencies": [
     "cpr",
     "enet",

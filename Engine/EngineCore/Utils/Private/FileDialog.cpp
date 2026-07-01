@@ -7,7 +7,7 @@
 #include <filesystem>
 
 std::string FileDialog::OpenFile(const char* filter) {
-  std::string currentDir = std::filesystem::current_path().string();
+  std::string ResourceDir = "Resources/" + std::filesystem::current_path().string();
 
   OPENFILENAMEA ofn;
   CHAR szFile[260] = {0};
@@ -20,7 +20,7 @@ std::string FileDialog::OpenFile(const char* filter) {
   ofn.nFilterIndex = 1;
   ofn.lpstrFileTitle = NULL;
   ofn.nMaxFileTitle = 0;
-  ofn.lpstrInitialDir = currentDir.c_str();
+  ofn.lpstrInitialDir = ResourceDir.c_str();
   ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
   if (GetOpenFileNameA(&ofn) == TRUE) {
@@ -30,7 +30,7 @@ std::string FileDialog::OpenFile(const char* filter) {
 }
 
 std::string FileDialog::SaveFile(const char* filter, const char* defaultExt) {
-  std::string currentDir = std::filesystem::current_path().string();
+  std::string ResourceDir = "Resources/" + std::filesystem::current_path().string();
 
   OPENFILENAMEA ofn;
   CHAR szFile[260] = {0};
@@ -43,7 +43,7 @@ std::string FileDialog::SaveFile(const char* filter, const char* defaultExt) {
   ofn.nFilterIndex = 1;
   ofn.lpstrFileTitle = NULL;
   ofn.nMaxFileTitle = 0;
-  ofn.lpstrInitialDir = currentDir.c_str();
+  ofn.lpstrInitialDir = ResourceDir.c_str();
   ofn.lpstrDefExt = defaultExt;
   ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
 
