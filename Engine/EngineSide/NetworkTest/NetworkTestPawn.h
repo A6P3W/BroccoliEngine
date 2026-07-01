@@ -4,10 +4,15 @@
 #include "Pawn.h"
 #include "UMath.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
 class MEnhancedInputComponent;
 class MSpriteComponent;
 struct FInputActionValue;
 class MMovementComponent;
+class FNetworkTestUI;
 
 class MNetworkTestRepComponent : public MActorComponent {
  public:
@@ -36,10 +41,17 @@ class ANetworkTestPawn : public APawn {
  public:
   DEFINE_ACTOR_CLASS(ANetworkTestPawn)
   ANetworkTestPawn();
+  ~ANetworkTestPawn() override;
 
+  void BeginPlay() override;
   void OnPossessedBy(APlayerController* NewController) override;
   void OnUpdate(float DeltaTime) override;
+  void Draw() override;
   void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
+
+  void SetStatusMessage(const std::string& Message);
+  bool StartListenServer(uint16_t Port);
+  bool ConnectAsClient(const std::string& HostAddress, uint16_t Port);
 
  private:
   void OnMove(const FInputActionValue& Value);
@@ -54,6 +66,9 @@ class ANetworkTestPawn : public APawn {
   MSpriteComponent* BodySprite = nullptr;
   MMovementComponent* Movement = nullptr;
   MNetworkTestRepComponent* ReplicationTest = nullptr;
+  std::unique_ptr<FNetworkTestUI> NetworkTestUI;
   float MoveSpeed = 320.0f;
   float FlashTimer = 0.0f;
+
+  bool bSessionStarted = false;
 };

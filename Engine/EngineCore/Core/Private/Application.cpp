@@ -17,6 +17,7 @@
 #include "KeyboardDevice.h"
 #include "MouseDevice.h"
 #include "NetworkManager.h"
+#include "EOSCoreManager.h"
 #include "ObjectManager.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
@@ -139,6 +140,8 @@ bool Application::Run() {
     Draw();
   }
 
+  EOSCoreManager::Get().Shutdown();
+
   return true;
 }
 
@@ -159,6 +162,7 @@ bool Application::Update(float DeltaTime) {
 
   SceneManager::GetInstance().ProcessSceneChanges();
   NetworkManager::GetInstance().Service();
+  EOSCoreManager::Get().Tick();
   InputManager::GetInstance().Update();
   HttpManager::GetInstance().Update();
 

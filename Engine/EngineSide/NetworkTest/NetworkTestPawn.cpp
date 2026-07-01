@@ -6,7 +6,11 @@
 
 #include "EnhancedInputComponent.h"
 #include "Log.h"
+#include "NetworkManager.h"
+#include "NetworkTest/NetworkTestGameMode.h"
+#include "NetworkTest/NetworkTestUI.h"
 #include "SpriteComponent.h"
+#include "World.h"
 
 namespace {
 enum : FNetworkRPCId {
@@ -123,6 +127,7 @@ REGISTER_ACTOR(ANetworkTestPawn)
 
 ANetworkTestPawn::ANetworkTestPawn() {
   bReplicates = true;
+  NetworkTestUI = std::make_unique<FNetworkTestUI>(*this);
 
   RegisterRPC(RPC_ServerTest, ENetRPCType::Server, this, &ANetworkTestPawn::Server_TestRPC);
   RegisterRPC(
@@ -150,6 +155,15 @@ ANetworkTestPawn::ANetworkTestPawn() {
   AddComponent(std::move(replicationTest));
 }
 
+ANetworkTestPawn::~ANetworkTestPawn() = default;
+
+void ANetworkTestPawn::BeginPlay() {
+  APawn::BeginPlay();
+  if (bIsLocallyControlled && NetworkTestUI) {
+    NetworkTestUI->InitializeStatus();
+  }
+}
+
 void ANetworkTestPawn::OnPossessedBy(APlayerController* NewController) {
   APawn::OnPossessedBy(NewController);
 }
@@ -164,6 +178,13 @@ void ANetworkTestPawn::OnUpdate(float DeltaTime) {
 
   if (BodySprite) {
     BodySprite->SubmitBox(48.0f, 48.0f, GetDisplayColor(), true);
+  }
+}
+
+void ANetworkTestPawn::Draw() {
+  APawn::Draw();
+  if (bIsLocallyControlled && NetworkTestUI) {
+    NetworkTestUI->Draw();
   }
 }
 
@@ -254,4 +275,30 @@ void ANetworkTestPawn::BeginOverlap(AActor* OtherActor) {
         otherPawn->NetworkId
     );
   }
+}
+
+void ANetworkTestPawn::SetStatusMessage(const std::string& Message) {
+  if (bIsLocallyControlled && NetworkTestUI) {
+    NetworkTestUI->SetStatusMessage(Message);
+  }
+}
+
+bool ANetworkTestPawn::StartListenServer(uint16_t Port) {
+  if (NetworkManager::GetInstance().StartServer(Port)) {
+    GetWorld()->SetNetMode(ENetMode::ListenServer);
+    bSessionStarted = true;
+    return true;
+  }
+
+  return false;
+}
+
+bool ANetworkTestPawn::ConnectAsClient(const std::string& HostAddress, uint16_t Port) {
+  if (NetworkManager::GetInstance().ConnectToServer(HostAddress, Port)) {
+    GetWorld()->SetNetMode(ENetMode::Client);
+    bSessionStarted = true;
+    return true;
+  }
+
+  return false;
 }
