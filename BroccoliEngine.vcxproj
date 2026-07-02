@@ -400,10 +400,6 @@
       <SubType>
       </SubType>
     </None>
-    <None Include="update_submodules.bat">
-      <SubType>
-      </SubType>
-    </None>
     <None Include="Game\Objects\DefaultScene.json" />
     <None Include="README.md">
       <SubType>
