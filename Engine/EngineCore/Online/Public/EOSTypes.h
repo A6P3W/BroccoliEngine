@@ -73,6 +73,17 @@ struct FLobbyInfo {
   std::vector<FLobbyAttribute> Attributes;
 
   bool bValid = false;
+
+  std::string GetStringAttribute(
+      const std::string& InKey, const std::string& DefaultValue = ""
+  ) const {
+    for (const auto& Attr : Attributes) {
+      if (Attr.Key == InKey && Attr.Value.Type == ELobbyAttributeType::String) {
+        return Attr.Value.StringValue;
+      }
+    }
+    return DefaultValue;
+  }
 };
 
 enum class ELobbyComparisonOp {

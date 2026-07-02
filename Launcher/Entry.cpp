@@ -5,7 +5,7 @@
 #include "SceneManager.h"
 
 void SetupGame() {
-  EOSCoreManager::Get().InitializeOnlineServices<SampleConstants>();
+  EOSCoreManager::Get().InitializeOnlineServices();
 
   auto& sceneManager = SceneManager::GetInstance();
   sceneManager.RegisterLevelPath(

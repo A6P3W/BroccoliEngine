@@ -26,7 +26,6 @@ class SceneManager {
   void ProcessSceneChanges();
 
   void RegisterLevelPath(FNetworkSceneId SceneId, const std::string& LevelPath);
-  void RegisterLocalPlayerControllerClass(FNetworkSceneId SceneId, const std::string& ClassName);
   bool OpenSceneById(FNetworkSceneId SceneId);
   bool OpenSceneById(FNetworkSceneId SceneId, ENetMode NetMode);
   bool OpenLevel(const std::string& LevelPath);
@@ -62,7 +61,6 @@ class SceneManager {
   std::unique_ptr<World> CurrentScene;
   std::function<std::unique_ptr<World>()> PendingSceneFactory;
   std::unordered_map<FNetworkSceneId, std::string> RegisteredLevelPaths;
-  std::unordered_map<FNetworkSceneId, std::string> RegisteredLocalPlayerControllerClasses;
   std::unique_ptr<GameInstance> GameInstance = nullptr;
   FNetworkSceneId CurrentSceneId = 0;
   FNetworkSceneId PendingSceneId = 0;
