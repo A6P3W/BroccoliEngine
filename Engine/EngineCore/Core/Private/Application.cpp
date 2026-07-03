@@ -107,7 +107,7 @@ bool Application::Run() {
   InitOffscreenBuffer();
 
   if (IsEditor) {
-    SceneManager::GetInstance().OpenScene<EditorMode>();
+    SceneManager::GetInstance().OpenGameMode<EditorMode>();
   } else {
     SetupGame();
   }

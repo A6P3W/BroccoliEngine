@@ -130,7 +130,7 @@ bool EditorMode::SaveLevel(const std::string& filePath) {
 
 bool EditorMode::LoadLevel(const std::string& filePath) {
   PendingLoadPath = filePath;
-  SceneManager::GetInstance().OpenScene<EditorMode>();
+  SceneManager::GetInstance().OpenGameMode<EditorMode>();
   return true;
 }
 bool EditorMode::QuickSaveLevel() {

@@ -17,7 +17,7 @@ class SceneManager {
     return instance;
   }
   template <class T>
-  void OpenScene() {
+  void OpenGameMode() {
     QueueSceneFactory(MakeSceneFactory<T>(), GetCurrentNetMode(), 0);
   }
 
