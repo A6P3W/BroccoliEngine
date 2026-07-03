@@ -67,10 +67,10 @@ void FNetworkTestUI::DrawConnectionWindow() {
   ImGui::Text("Current Scene: %s", sceneName);
 
   if (Owner.GetWorld()->IsServer() && gameMode && ImGui::Button(gameMode->GetTravelButtonText())) {
-    if (Owner.GetWorld()->ServerTravel(gameMode->GetTravelTargetSceneId())) {
+    if (Owner.GetWorld()->ServerTravel(gameMode->GetTravelTargetLevelPath())) {
       StatusMessage = "Server travel requested.";
     } else {
-      StatusMessage = "Server travel failed. Scene is not registered or local role is not server.";
+      StatusMessage = "Server travel failed. Level path is empty or local role is not server.";
     }
   }
   ImGui::Separator();

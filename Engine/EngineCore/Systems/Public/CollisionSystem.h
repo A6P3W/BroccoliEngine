@@ -19,10 +19,10 @@ struct pair_hash {
     return v.first * 31 + v.second;
   }
 };
-class MCollisionSystem {
+class FCollisionSystem {
  public:
-  MCollisionSystem();
-  ~MCollisionSystem();
+  FCollisionSystem();
+  ~FCollisionSystem();
 
   void RegisterCollision(MCollisionComponent* component);
   void UnRegisterCollision(MCollisionComponent* component);
@@ -52,7 +52,7 @@ class MCollisionSystem {
 
   void CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B);
 
-  static std::unique_ptr<MCollisionSystem> s_Instance;
+  static std::unique_ptr<FCollisionSystem> s_Instance;
 
   std::vector<MCollisionComponent*> CollisionComponents;
   std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash>

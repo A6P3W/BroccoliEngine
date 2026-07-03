@@ -10,7 +10,7 @@
 #include "EditorSelectPointComponent.h"
 #include "EditorUI.h"
 #include "Log.h"
-#include "ObjectManager.h"
+#include "ActorManager.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "SpriteActor.h"
@@ -130,7 +130,7 @@ bool EditorMode::SaveLevel(const std::string& filePath) {
 
 bool EditorMode::LoadLevel(const std::string& filePath) {
   PendingLoadPath = filePath;
-  SceneManager::GetInstance().OpenScene<EditorMode>();
+  SceneManager::GetInstance().OpenGameMode<EditorMode>();
   return true;
 }
 bool EditorMode::QuickSaveLevel() {

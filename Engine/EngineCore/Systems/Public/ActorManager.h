@@ -8,10 +8,10 @@
 #include "UMath.h"
 class AActor;
 class World;
-class MObjectManager {
+class FActorManager {
  public:
-  MObjectManager();
-  ~MObjectManager();
+  FActorManager();
+  ~FActorManager();
 
   void Update(float DeltaTime);
   void Draw();

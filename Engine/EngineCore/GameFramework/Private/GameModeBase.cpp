@@ -5,7 +5,7 @@
 #include "ActorRegistry.h"
 #include "CameraComponent.h"
 #include "CollisionSystem.h"
-#include "ObjectManager.h"
+#include "ActorManager.h"
 #include "Pawn.h"
 #include "PlayerStart.h"
 #include "TimerManager.h"

@@ -1,14 +1,14 @@
-﻿#include "ObjectManager.h"
+﻿#include "ActorManager.h"
 
 #include <algorithm>
 
 #include "Actor.h"
 
-MObjectManager::MObjectManager() {}
+FActorManager::FActorManager() {}
 
-MObjectManager::~MObjectManager() = default;
+FActorManager::~FActorManager() = default;
 
-void MObjectManager::Update(float DeltaTime) {
+void FActorManager::Update(float DeltaTime) {
   // 更新対象のポインタをコピーしてループを回す
   std::vector<AActor*> tempActors;
   tempActors.reserve(Actors.size());
@@ -24,16 +24,16 @@ void MObjectManager::Update(float DeltaTime) {
   }
 }
 
-void MObjectManager::Draw() {
+void FActorManager::Draw() {
   for (auto& object : Actors) {
     object->Draw();
   }
 }
 
-void MObjectManager::RemovePendingDestroy() {
+void FActorManager::RemovePendingDestroy() {
   std::erase_if(Actors, [](const std::unique_ptr<AActor>& obj) {
     return !obj || obj->IsPendingDestroy();
   });
 }
 
-void MObjectManager::ClearAllObjects() { Actors.clear(); }
+void FActorManager::ClearAllObjects() { Actors.clear(); }

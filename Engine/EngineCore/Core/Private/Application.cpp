@@ -18,7 +18,7 @@
 #include "MouseDevice.h"
 #include "NetworkManager.h"
 #include "EOSCoreManager.h"
-#include "ObjectManager.h"
+#include "ActorManager.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "TimerManager.h"
@@ -107,7 +107,7 @@ bool Application::Run() {
   InitOffscreenBuffer();
 
   if (IsEditor) {
-    SceneManager::GetInstance().OpenScene<EditorMode>();
+    SceneManager::GetInstance().OpenGameMode<EditorMode>();
   } else {
     SetupGame();
   }

@@ -35,7 +35,7 @@ struct TActorAutoRegister {
   virtual std::string GetActorClassName() const override { return #ClassName; }
 
 class MSceneComponent;
-class MTimerManager;
+class FTimerManager;
 class World;
 class AActor : public MBaseObject
 
@@ -60,7 +60,7 @@ class AActor : public MBaseObject
   virtual void Update(float DeltaTime) final;
   virtual void Draw();
   MSceneComponent* GetRootComponent() const { return RootComponent; };
-  MTimerManager& GetWorldTimerManager();
+  FTimerManager& GetWorldTimerManager();
 
   const std::vector<std::unique_ptr<MActorComponent>>& GetComponents() const;
 
