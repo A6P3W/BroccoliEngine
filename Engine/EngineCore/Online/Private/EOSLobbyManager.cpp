@@ -29,6 +29,188 @@ int ClampToInt(uint32_t Value) {
   return Value > static_cast<uint32_t>(INT32_MAX) ? INT32_MAX : static_cast<int>(Value);
 }
 
+EOS_ELobbyAttributeType ToEOSAttributeType(ELobbyAttributeType Type) {
+  switch (Type) {
+    case ELobbyAttributeType::Int64:
+      return EOS_ELobbyAttributeType::EOS_AT_INT64;
+    case ELobbyAttributeType::Double:
+      return EOS_ELobbyAttributeType::EOS_AT_DOUBLE;
+    case ELobbyAttributeType::Bool:
+      return EOS_ELobbyAttributeType::EOS_AT_BOOLEAN;
+    case ELobbyAttributeType::String:
+    default:
+      return EOS_ELobbyAttributeType::EOS_AT_STRING;
+  }
+}
+
+EOS_EComparisonOp ToEOSComparisonOp(ELobbyComparisonOp Op) {
+  switch (Op) {
+    case ELobbyComparisonOp::NotEqual:
+      return EOS_EComparisonOp::EOS_CO_NOTEQUAL;
+    case ELobbyComparisonOp::GreaterThan:
+      return EOS_EComparisonOp::EOS_CO_GREATERTHAN;
+    case ELobbyComparisonOp::GreaterThanOrEqual:
+      return EOS_EComparisonOp::EOS_CO_GREATERTHANOREQUAL;
+    case ELobbyComparisonOp::LessThan:
+      return EOS_EComparisonOp::EOS_CO_LESSTHAN;
+    case ELobbyComparisonOp::LessThanOrEqual:
+      return EOS_EComparisonOp::EOS_CO_LESSTHANOREQUAL;
+    case ELobbyComparisonOp::Equal:
+    default:
+      return EOS_EComparisonOp::EOS_CO_EQUAL;
+  }
+}
+
+void FillEOSAttributeData(
+    const std::string& Key,
+    const FLobbyAttributeValue& Value,
+    EOS_Lobby_AttributeData& OutData
+) {
+  OutData = {};
+  OutData.ApiVersion = EOS_LOBBY_ATTRIBUTEDATA_API_LATEST;
+  OutData.Key = Key.c_str();
+  OutData.ValueType = ToEOSAttributeType(Value.Type);
+
+  switch (Value.Type) {
+    case ELobbyAttributeType::Int64:
+      OutData.Value.AsInt64 = Value.IntValue;
+      break;
+    case ELobbyAttributeType::Double:
+      OutData.Value.AsDouble = Value.DoubleValue;
+      break;
+    case ELobbyAttributeType::Bool:
+      OutData.Value.AsBool = Value.BoolValue ? EOS_TRUE : EOS_FALSE;
+      break;
+    case ELobbyAttributeType::String:
+    default:
+      OutData.Value.AsUtf8 = Value.StringValue.c_str();
+      break;
+  }
+}
+
+FLobbyAttributeValue MakeLobbyAttributeValue(const EOS_Lobby_AttributeData& Data) {
+  switch (Data.ValueType) {
+    case EOS_ELobbyAttributeType::EOS_AT_INT64:
+      return FLobbyAttributeValue::FromInt64(Data.Value.AsInt64);
+    case EOS_ELobbyAttributeType::EOS_AT_DOUBLE:
+      return FLobbyAttributeValue::FromDouble(Data.Value.AsDouble);
+    case EOS_ELobbyAttributeType::EOS_AT_BOOLEAN:
+      return FLobbyAttributeValue::FromBool(Data.Value.AsBool == EOS_TRUE);
+    case EOS_ELobbyAttributeType::EOS_AT_STRING:
+    default:
+      return FLobbyAttributeValue::FromString(Data.Value.AsUtf8 ? Data.Value.AsUtf8 : "");
+  }
+}
+
+bool AddLobbyAttributeToModification(
+    EOS_HLobbyModification ModificationHandle,
+    const FLobbyAttribute& Attribute,
+    EOS_Lobby_AttributeData& AttributeData
+) {
+  if (!ModificationHandle || Attribute.Key.empty()) {
+    M_LOG("[EOSLobby] Add lobby attribute skipped: invalid handle or empty key.");
+    return false;
+  }
+
+  FillEOSAttributeData(Attribute.Key, Attribute.Value, AttributeData);
+
+  EOS_LobbyModification_AddAttributeOptions AddAttributeOptions = {};
+  AddAttributeOptions.ApiVersion = EOS_LOBBYMODIFICATION_ADDATTRIBUTE_API_LATEST;
+  AddAttributeOptions.Attribute = &AttributeData;
+  AddAttributeOptions.Visibility = Attribute.bAdvertised
+                                       ? EOS_ELobbyAttributeVisibility::EOS_LAT_PUBLIC
+                                       : EOS_ELobbyAttributeVisibility::EOS_LAT_PRIVATE;
+
+  EOS_EResult AddAttributeResult =
+      EOS_LobbyModification_AddAttribute(ModificationHandle, &AddAttributeOptions);
+  if (AddAttributeResult != EOS_EResult::EOS_Success) {
+    M_LOG(
+        "[EOSLobby] Add lobby attribute failed: key={}, result={}",
+        Attribute.Key,
+        SafeEOSResult(AddAttributeResult)
+    );
+    return false;
+  }
+
+  return true;
+}
+
+bool SetLobbySearchFilter(EOS_HLobbySearch SearchHandle, const FLobbySearchFilter& Filter) {
+  if (!SearchHandle || Filter.Key.empty()) {
+    M_LOG("[EOSLobby] Set lobby search filter skipped: invalid handle or empty key.");
+    return false;
+  }
+
+  EOS_Lobby_AttributeData Parameter = {};
+  FillEOSAttributeData(Filter.Key, Filter.Value, Parameter);
+
+  EOS_LobbySearch_SetParameterOptions SetParameterOptions = {};
+  SetParameterOptions.ApiVersion = EOS_LOBBYSEARCH_SETPARAMETER_API_LATEST;
+  SetParameterOptions.Parameter = &Parameter;
+  SetParameterOptions.ComparisonOp = ToEOSComparisonOp(Filter.ComparisonOp);
+
+  EOS_EResult SetParameterResult = EOS_LobbySearch_SetParameter(SearchHandle, &SetParameterOptions);
+  if (SetParameterResult != EOS_EResult::EOS_Success) {
+    M_LOG(
+        "[EOSLobby] SearchLobbies set filter failed: key={}, result={}",
+        Filter.Key,
+        SafeEOSResult(SetParameterResult)
+    );
+    return false;
+  }
+
+  return true;
+}
+
+std::vector<FLobbyAttribute> CopyLobbyAttributes(EOS_HLobbyDetails DetailsHandle) {
+  std::vector<FLobbyAttribute> Attributes;
+  if (!DetailsHandle) {
+    return Attributes;
+  }
+
+  EOS_LobbyDetails_GetAttributeCountOptions CountOptions = {};
+  CountOptions.ApiVersion = EOS_LOBBYDETAILS_GETATTRIBUTECOUNT_API_LATEST;
+  const uint32_t AttributeCount = EOS_LobbyDetails_GetAttributeCount(DetailsHandle, &CountOptions);
+  Attributes.reserve(AttributeCount);
+
+  for (uint32_t Index = 0; Index < AttributeCount; ++Index) {
+    EOS_LobbyDetails_CopyAttributeByIndexOptions CopyOptions = {};
+    CopyOptions.ApiVersion = EOS_LOBBYDETAILS_COPYATTRIBUTEBYINDEX_API_LATEST;
+    CopyOptions.AttrIndex = Index;
+
+    EOS_Lobby_Attribute* Attribute = nullptr;
+    EOS_EResult CopyResult = EOS_LobbyDetails_CopyAttributeByIndex(DetailsHandle, &CopyOptions, &Attribute);
+    if (CopyResult != EOS_EResult::EOS_Success || !Attribute || !Attribute->Data) {
+      M_LOG(
+          "[EOSLobby] Copy lobby attribute by index failed: index={}, result={}",
+          Index,
+          SafeEOSResult(CopyResult)
+      );
+      if (Attribute) {
+        EOS_Lobby_Attribute_Release(Attribute);
+      }
+      continue;
+    }
+
+    FLobbyAttribute LobbyAttribute;
+    LobbyAttribute.Key = Attribute->Data->Key ? Attribute->Data->Key : "";
+    LobbyAttribute.Value = MakeLobbyAttributeValue(*Attribute->Data);
+    LobbyAttribute.bAdvertised = Attribute->Visibility == EOS_ELobbyAttributeVisibility::EOS_LAT_PUBLIC;
+    Attributes.push_back(LobbyAttribute);
+
+    EOS_Lobby_Attribute_Release(Attribute);
+  }
+
+  return Attributes;
+}
+
+FLobbyAttribute MakeHostIPAttribute(const std::string& HostIPAddress) {
+  FLobbyAttribute Attribute;
+  Attribute.Key = HostIPAttributeKey;
+  Attribute.Value = FLobbyAttributeValue::FromString(HostIPAddress);
+  Attribute.bAdvertised = true;
+  return Attribute;
+}
 EOS_ProductUserId GetLoggedInUserId() {
   EOSAuthManager& AuthManager = EOSAuthManager::Get();
   return AuthManager.IsLoggedIn() ? AuthManager.GetLocalUserId() : nullptr;
@@ -36,12 +218,6 @@ EOS_ProductUserId GetLoggedInUserId() {
 
 std::string CopyStringLobbyAttributeByKey(EOS_HLobbyDetails DetailsHandle, const char* Key) {
   if (!DetailsHandle || !Key) {
-    return {};
-  }
-
-  EOS_LobbyDetails_GetAttributeCountOptions CountOptions = {};
-  CountOptions.ApiVersion = EOS_LOBBYDETAILS_GETATTRIBUTECOUNT_API_LATEST;
-  if (EOS_LobbyDetails_GetAttributeCount(DetailsHandle, &CountOptions) == 0) {
     return {};
   }
 
@@ -92,7 +268,19 @@ FLobbyInfo MakeLobbyInfoFromDetails(EOS_HLobbyDetails DetailsHandle) {
   LobbyInfo.MaxMembers = ClampToInt(DetailsInfo->MaxMembers);
   LobbyInfo.CurrentMembers = ClampToInt(DetailsInfo->MaxMembers - (std::min)(DetailsInfo->AvailableSlots, DetailsInfo->MaxMembers));
   LobbyInfo.bValid = !LobbyInfo.LobbyId.empty();
-  LobbyInfo.HostIPAddress = CopyStringLobbyAttributeByKey(DetailsHandle, HostIPAttributeKey);
+  LobbyInfo.Attributes = CopyLobbyAttributes(DetailsHandle);
+  for (const FLobbyAttribute& Attribute : LobbyInfo.Attributes) {
+    if (Attribute.Key == HostIPAttributeKey && Attribute.Value.Type == ELobbyAttributeType::String) {
+      LobbyInfo.HostIPAddress = Attribute.Value.StringValue;
+      break;
+    }
+  }
+  if (LobbyInfo.HostIPAddress.empty()) {
+    LobbyInfo.HostIPAddress = CopyStringLobbyAttributeByKey(DetailsHandle, HostIPAttributeKey);
+  }
+  if (LobbyInfo.HostIPAddress.empty()) {
+    M_LOG("[EOSLobby] HostIP attribute is missing: lobby={}, attributes={}", LobbyInfo.LobbyId, LobbyInfo.Attributes.size());
+  }
 
   EOS_LobbyDetails_Info_Release(DetailsInfo);
   return LobbyInfo;
@@ -102,6 +290,7 @@ struct FCreateLobbyContext {
   FCreateLobbyRequest Request;
   FLobbyInfo LobbyInfo;
   EOS_HLobbyModification ModificationHandle = nullptr;
+  std::vector<EOS_Lobby_AttributeData> AttributeDataStorage;
   std::function<void(bool, const FLobbyInfo&)> OnComplete;
 };
 
@@ -186,7 +375,7 @@ void EOSLobbyManager::CreateLobby(
   Options.bCrossplayOptOut = EOS_FALSE;
   Options.RTCRoomJoinActionType = EOS_ELobbyRTCRoomJoinActionType::EOS_LRRJAT_ManualJoin;
 
-  auto* Context = new FCreateLobbyContext{Request, {}, nullptr, std::move(OnComplete)};
+  auto* Context = new FCreateLobbyContext{Request, {}, nullptr, {}, std::move(OnComplete)};
   EOS_Lobby_CreateLobby(
       LobbyHandle,
       &Options,
@@ -216,7 +405,12 @@ void EOSLobbyManager::CreateLobby(
           M_LOG("[EOSLobby] CreateLobby success");
           M_LOG("[EOSLobby] LobbyId = {}", LobbyManager.CurrentLobbyId);
 
-          if (Context->Request.HostIPAddress.empty()) {
+          LobbyInfo.Attributes = Context->Request.Attributes;
+          if (!Context->Request.HostIPAddress.empty()) {
+            LobbyInfo.Attributes.push_back(MakeHostIPAttribute(Context->Request.HostIPAddress));
+          }
+
+          if (LobbyInfo.Attributes.empty()) {
             CompleteCreateCallback(Context->OnComplete, true, LobbyInfo);
             delete Context;
             return;
@@ -225,7 +419,7 @@ void EOSLobbyManager::CreateLobby(
           EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
           EOS_ProductUserId LocalUserId = GetLoggedInUserId();
           if (!LobbyHandle || !LocalUserId) {
-            M_LOG("[EOSLobby] Add HostIP failed: EOS lobby handle or local user is invalid.");
+            M_LOG("[EOSLobby] Add attributes failed: EOS lobby handle or local user is invalid.");
             CompleteCreateCallback(Context->OnComplete, false, LobbyInfo);
             delete Context;
             return;
@@ -247,25 +441,19 @@ void EOSLobbyManager::CreateLobby(
             return;
           }
 
-          EOS_Lobby_AttributeData HostIPAttribute = {};
-          HostIPAttribute.ApiVersion = EOS_LOBBY_ATTRIBUTEDATA_API_LATEST;
-          HostIPAttribute.Key = HostIPAttributeKey;
-          HostIPAttribute.Value.AsUtf8 = Context->Request.HostIPAddress.c_str();
-          HostIPAttribute.ValueType = EOS_ELobbyAttributeType::EOS_AT_STRING;
-
-          EOS_LobbyModification_AddAttributeOptions AddAttributeOptions = {};
-          AddAttributeOptions.ApiVersion = EOS_LOBBYMODIFICATION_ADDATTRIBUTE_API_LATEST;
-          AddAttributeOptions.Attribute = &HostIPAttribute;
-          AddAttributeOptions.Visibility = EOS_ELobbyAttributeVisibility::EOS_LAT_PUBLIC;
-
-          EOS_EResult AddAttributeResult =
-              EOS_LobbyModification_AddAttribute(ModificationHandle, &AddAttributeOptions);
-          if (AddAttributeResult != EOS_EResult::EOS_Success) {
-            M_LOG("[EOSLobby] Add HostIP attribute failed: {}", SafeEOSResult(AddAttributeResult));
-            EOS_LobbyModification_Release(ModificationHandle);
-            CompleteCreateCallback(Context->OnComplete, false, LobbyInfo);
-            delete Context;
-            return;
+          Context->AttributeDataStorage.resize(LobbyInfo.Attributes.size());
+          for (size_t AttributeIndex = 0; AttributeIndex < LobbyInfo.Attributes.size(); ++AttributeIndex) {
+            const FLobbyAttribute& Attribute = LobbyInfo.Attributes[AttributeIndex];
+            if (!AddLobbyAttributeToModification(
+                    ModificationHandle,
+                    Attribute,
+                    Context->AttributeDataStorage[AttributeIndex]
+                )) {
+              EOS_LobbyModification_Release(ModificationHandle);
+              CompleteCreateCallback(Context->OnComplete, false, LobbyInfo);
+              delete Context;
+              return;
+            }
           }
 
           Context->LobbyInfo = LobbyInfo;
@@ -288,7 +476,7 @@ void EOSLobbyManager::CreateLobby(
                 }
 
                 if (UpdateData->ResultCode == EOS_EResult::EOS_Success) {
-                  M_LOG("[EOSLobby] HostIP attribute updated: {}", Context->LobbyInfo.HostIPAddress);
+                  M_LOG("[EOSLobby] Lobby attributes updated: count={}", Context->LobbyInfo.Attributes.size());
                   CompleteCreateCallback(Context->OnComplete, true, Context->LobbyInfo);
                 } else {
                   M_LOG("[EOSLobby] UpdateLobby failed: {}", SafeEOSResult(UpdateData->ResultCode));
@@ -406,6 +594,13 @@ void EOSLobbyManager::SearchLobbies(
     return;
   }
 
+  for (const FLobbySearchFilter& Filter : Request.Filters) {
+    if (!SetLobbySearchFilter(SearchHandle, Filter)) {
+      EOS_LobbySearch_Release(SearchHandle);
+      CompleteSearchCallback(OnComplete, false, {});
+      return;
+    }
+  }
   EOS_LobbySearch_FindOptions FindOptions = {};
   FindOptions.ApiVersion = EOS_LOBBYSEARCH_FIND_API_LATEST;
   FindOptions.LocalUserId = LocalUserId;

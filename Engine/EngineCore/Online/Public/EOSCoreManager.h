@@ -1,23 +1,22 @@
 ﻿#pragma once
-
-#include "EOSTypes.h"
-
-#include <cstdint>
-
 #include <eos_connect.h>
 #include <eos_lobby.h>
 #include <eos_sdk.h>
+
+#include <cstdint>
+
+#include "EOSTypes.h"
 
 class EOSCoreManager {
  public:
   static EOSCoreManager& Get();
 
+  bool InitializeOnlineServices(const char* ProductVersion = "0.1.0");
+
   bool Initialize(const FEOSConfig& Config);
   void Tick();
   void Shutdown();
-
   bool IsInitialized() const;
-
   EOS_HPlatform GetPlatformHandle() const;
   EOS_HConnect GetConnectHandle() const;
   EOS_HLobby GetLobbyHandle() const;
@@ -25,7 +24,6 @@ class EOSCoreManager {
  private:
   EOSCoreManager() = default;
   ~EOSCoreManager() = default;
-
   EOSCoreManager(const EOSCoreManager&) = delete;
   EOSCoreManager& operator=(const EOSCoreManager&) = delete;
 
