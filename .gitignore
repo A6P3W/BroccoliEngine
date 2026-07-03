@@ -492,5 +492,5 @@ $RECYCLE.BIN/
 *..repoignore
 *Build/
 !Engine/ThirdParty/EOS/SDK/Bin/
-
+/Launcher/Config
 /PrivateConfig

@@ -404,6 +404,10 @@
       </SubType>
     </None>
     <None Include="Game\Objects\DefaultScene.json" />
+    <None Include="README.md">
+      <SubType>
+      </SubType>
+    </None>
     <None Include="vcpkg.json">
       <SubType>
       </SubType>
