@@ -5,9 +5,19 @@
 #include <commdlg.h>
 
 #include <filesystem>
+#include <system_error>
+
+namespace {
+std::string GetDefaultInitialDir() {
+  const std::string currentPath = std::filesystem::current_path().string();
+  const std::string resourceDir = "Resources/" + currentPath;
+  std::error_code errorCode;
+  return std::filesystem::exists(resourceDir, errorCode) ? resourceDir : currentPath;
+}
+}  // namespace
 
 std::string FileDialog::OpenFile(const char* filter) {
-  std::string ResourceDir = "Resources/" + std::filesystem::current_path().string();
+  std::string ResourceDir = GetDefaultInitialDir();
 
   OPENFILENAMEA ofn;
   CHAR szFile[260] = {0};
@@ -30,7 +40,7 @@ std::string FileDialog::OpenFile(const char* filter) {
 }
 
 std::string FileDialog::SaveFile(const char* filter, const char* defaultExt) {
-  std::string ResourceDir = "Resources/" + std::filesystem::current_path().string();
+  std::string ResourceDir = GetDefaultInitialDir();
 
   OPENFILENAMEA ofn;
   CHAR szFile[260] = {0};

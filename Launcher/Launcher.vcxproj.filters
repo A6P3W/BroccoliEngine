@@ -18,6 +18,12 @@
     <ClCompile Include="Entry.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="LevelStarter\LevelStarterGameMode.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="LevelStarter\LevelStarterWidget.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
     <ClCompile Include="NetworkTest\NetworkTestPawn.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -39,6 +45,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config\EOS_ProductCredentials.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="LevelStarter\LevelStarterGameMode.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="LevelStarter\LevelStarterWidget.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="NetworkTest\NetworkTestUI.h">

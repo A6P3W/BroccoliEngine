@@ -240,6 +240,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Entry.cpp" />
+    <ClCompile Include="LevelStarter\LevelStarterGameMode.cpp" />
+    <ClCompile Include="LevelStarter\LevelStarterWidget.cpp" />
     <ClCompile Include="NetworkTest\NetworkTestGameMode.cpp" />
     <ClCompile Include="NetworkTest\NetworkTestPawn.cpp" />
     <ClCompile Include="NetworkTest\NetworkTestUI.cpp" />
@@ -249,6 +251,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config\EOS_ProductCredentials.h" />
+    <ClInclude Include="LevelStarter\LevelStarterGameMode.h" />
+    <ClInclude Include="LevelStarter\LevelStarterWidget.h" />
     <ClInclude Include="NetworkTest\NetworkTestGameMode.h" />
     <ClInclude Include="NetworkTest\NetworkTestPawn.h" />
     <ClInclude Include="NetworkTest\NetworkTestUI.h" />
