@@ -42,23 +42,19 @@ AActor* AGameModeBase::FindPlayerStart(FNetworkConnectionId ConnectionId) {
   if (!GetWorld() || !GetWorld()->GetObjectManager()) {
     return nullptr;
   }
-
   std::vector<APlayerStart*> playerStarts;
   const auto& actors = GetWorld()->GetObjectManager()->GetAllActors();
   for (const auto& actorPtr : actors) {
     if (!actorPtr || actorPtr->IsPendingDestroy()) {
       continue;
     }
-
     if (auto* playerStart = dynamic_cast<APlayerStart*>(actorPtr.get())) {
       playerStarts.push_back(playerStart);
     }
   }
-
   if (playerStarts.empty()) {
     return nullptr;
   }
-
   const size_t index = static_cast<size_t>(ConnectionId) % playerStarts.size();
   return playerStarts[index];
 }
@@ -67,14 +63,13 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
   if (!GetWorld()) {
     return nullptr;
   }
-
   AActor* playerStart = FindPlayerStart(ConnectionId);
   const FVector2D spawnLocation =
       playerStart ? playerStart->GetActorLocation() : FVector2D::ZeroVector;
   const FRotator spawnRotation = playerStart ? playerStart->GetActorRotation() : FRotator(0.0f);
-
   ActorRegistry& registry = ActorRegistry::GetInstance();
   APlayerController* controller = nullptr;
+
   if (ConnectionId == 0) {
     controller = GetWorld()->GetOrCreateLocalPlayerController();
   } else {
@@ -104,6 +99,7 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
   const bool bIsLocalPlayer = (ConnectionId == 0);
 
   controller->OwnerConnectionId = ConnectionId;
+  controller->bReplicates = true;
   controller->bHasAuthority = true;
   controller->bIsLocallyControlled = bIsLocalPlayer;
   controller->SetPlayerId(static_cast<int>(ConnectionId));
@@ -118,8 +114,8 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
     controller->Spawned();
   }
   pawn->Spawned();
-
   PlayerPawn = pawn;
+
   controller->Possess(pawn);
 
   M_LOG(
@@ -128,6 +124,7 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
       spawnLocation.X,
       spawnLocation.Y
   );
+
   OnPlayerSpawned(controller, pawn, ConnectionId);
   return controller;
 }

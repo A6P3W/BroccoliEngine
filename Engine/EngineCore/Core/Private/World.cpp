@@ -16,7 +16,6 @@ World::World() {
   CollisionSystem = std::make_unique<MCollisionSystem>();
   SoundManager = std::make_unique<MSoundManager>();
   TimerManager = std::make_unique<MTimerManager>();
-
   ObjectManager->SetWorld(this);
   ReplicationSystem = std::make_unique<MReplicationSystem>(this);
 }
@@ -38,24 +37,17 @@ void World::Draw() {
 }
 
 void World::SetGameMode(AGameModeBase* mode) { GameMode = mode; }
-
 ENetMode World::GetNetMode() const { return NetMode; }
-
 void World::SetNetMode(ENetMode NewNetMode) { NetMode = NewNetMode; }
-
 bool World::IsStandalone() const { return NetMode == ENetMode::Standalone; }
-
 bool World::IsListenServer() const { return NetMode == ENetMode::ListenServer; }
-
 bool World::IsClient() const { return NetMode == ENetMode::Client; }
-
 bool World::IsServer() const { return IsStandalone() || IsListenServer(); }
 
 FNetworkActorId World::AllocateNetworkActorId() {
   if (!IsServer()) {
     return 0;
   }
-
   return NextNetworkActorId++;
 }
 
@@ -63,11 +55,9 @@ bool World::ServerTravel(FNetworkSceneId SceneId) {
   if (!IsServer() || !SceneManager::GetInstance().IsSceneRegistered(SceneId)) {
     return false;
   }
-
   if (IsListenServer() && ReplicationSystem) {
     ReplicationSystem->BroadcastServerTravel(SceneId);
   }
-
   return SceneManager::GetInstance().OpenSceneById(SceneId, GetNetMode());
 }
 
@@ -75,22 +65,17 @@ APlayerController* World::GetOrCreateLocalPlayerController() {
   if (LocalPlayerController && !LocalPlayerController->IsPendingDestroy()) {
     return LocalPlayerController;
   }
-
   AActor* controllerActor = nullptr;
   std::string controllerClass = LocalPlayerControllerClass;
-
   if (controllerClass.empty() && GameMode != nullptr) {
     controllerClass = GameMode->GetDefaultPlayerControllerClass();
   }
-
   if (!controllerClass.empty()) {
     controllerActor = ActorRegistry::GetInstance().Spawn(this, controllerClass);
   }
-
   if (!controllerActor) {
     controllerActor = SpawnActor<APlayerController>();
   }
-
   LocalPlayerController = dynamic_cast<APlayerController*>(controllerActor);
   if (!LocalPlayerController) {
     if (controllerActor) {
@@ -98,7 +83,6 @@ APlayerController* World::GetOrCreateLocalPlayerController() {
     }
     LocalPlayerController = SpawnActor<APlayerController>();
   }
-
   LocalPlayerController->SetPlayerId(0);
   LocalPlayerController->bIsLocallyControlled = true;
   LocalPlayerController->SetupInputMappings();
@@ -106,13 +90,21 @@ APlayerController* World::GetOrCreateLocalPlayerController() {
   return LocalPlayerController;
 }
 
+void World::SetLocalPlayerController(APlayerController* PC) {
+  LocalPlayerController = PC;
+  if (LocalPlayerController) {
+    LocalPlayerController->SetPlayerId(0);
+    LocalPlayerController->bIsLocallyControlled = true;
+    LocalPlayerController->SetupInputMappings();
+  }
+}
+
 void World::PossessLocalPawn(APawn* Pawn) {
   if (!Pawn) {
     return;
   }
-
-  if (APlayerController* controller = GetOrCreateLocalPlayerController()) {
-    controller->Possess(Pawn);
+  if (LocalPlayerController) {
+    LocalPlayerController->Possess(Pawn);
   }
 }
 

@@ -8,11 +8,12 @@
 #include "EditorSelectPointComponent.h"
 #include "GameModeBase.h"
 #include "Log.h"
+#include "nlohmann/json.hpp"
 #include "ObjectManager.h"
 #include "SimpleCrypto.h"
 #include "SpriteActor.h"
 #include "World.h"
-#include "nlohmann/json.hpp"
+
 using json = nlohmann::json;
 
 bool LevelSerializer::Save(
@@ -21,38 +22,29 @@ bool LevelSerializer::Save(
   if (!world) {
     return false;
   }
-
   std::vector<FActorSaveData> actors;
   auto& registry = ActorRegistry::GetInstance();
   AActor* gameModeActor = world->GetGameMode();
-
   for (const auto& actorPtr : world->GetObjectManager()->GetAllActors()) {
     AActor* actor = actorPtr.get();
     if (!actor || actor->IsPendingDestroy()) continue;
     if (actor == gameModeActor || actor->IsEditorActor()) continue;
-
     const std::string name = actor->GetActorClassName();
     if (!registry.Contains(name)) continue;
-
     const auto& gameModeClassNames = registry.GetGameModeClassNames();
     if (std::find(gameModeClassNames.begin(), gameModeClassNames.end(), name) !=
         gameModeClassNames.end())
       continue;
-
     FActorSaveData data;
     data.ClassName = name;
     data.Location = actor->GetActorLocation();
     data.Rotation = actor->GetActorRotation();
     data.Scale = actor->GetActorScale();
-
-    // ASpriteActorの場合は画像パスを保存
     if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor)) {
       data.CustomProperties["ImagePath"] = spriteActor->GetImagePath();
     }
-
     actors.push_back(data);
   }
-
   FLevelMetaData meta;
   meta.GameModeClassName = gameModeClassName;
   return SaveData(filePath, meta, actors);
@@ -68,17 +60,13 @@ bool LevelSerializer::Load(
   if (!world) {
     return false;
   }
-
   FLevelMetaData meta;
   std::vector<FActorSaveData> actors;
   if (!LoadData(filePath, meta, actors)) return false;
-
   if (outMeta) {
     *outMeta = meta;
   }
-
   M_LOG("Loaded actor count: {}", actors.size());
-
   auto& registry = ActorRegistry::GetInstance();
   std::vector<AActor*> spawnedActors;
 
@@ -104,15 +92,12 @@ bool LevelSerializer::Load(
       continue;
     }
     actor->SetActorScale(data.Scale);
-
-    // ASpriteActorの場合は画像パスを復元
     if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor)) {
       auto it = data.CustomProperties.find("ImagePath");
       if (it != data.CustomProperties.end()) {
         spriteActor->SetImagePath(it->second);
       }
     }
-
     spawnedActors.push_back(actor);
   }
   if (!world->IsSimulating()) {
@@ -121,7 +106,6 @@ bool LevelSerializer::Load(
   for (auto* actor : spawnedActors) {
     if (actor) actor->Spawned();
   }
-
   return true;
 }
 
@@ -133,7 +117,6 @@ bool LevelSerializer::SaveData(
   json root;
   root["meta"] = json::object();
   root["meta"]["game_mode"] = meta.GameModeClassName;
-
   json arr = json::array();
   for (const auto& d : actors) {
     json obj;
@@ -144,17 +127,13 @@ bool LevelSerializer::SaveData(
         {"rotation", d.Rotation.Rotation},
         {"scale", d.Scale.Scale}
     };
-
-    // プロパティが存在する場合はJSONに出力
     if (!d.CustomProperties.empty()) {
       obj["properties"] = d.CustomProperties;
     }
-
     arr.push_back(obj);
   }
   root["actors"] = arr;
   const std::string encryptedData = SimpleCrypto::Process(root.dump());
-
   std::ofstream ofs(filePath, std::ios::binary);
   if (!ofs.is_open()) return false;
   ofs.write(encryptedData.data(), static_cast<std::streamsize>(encryptedData.size()));
@@ -173,7 +152,6 @@ bool LevelSerializer::LoadData(
 ) {
   outMeta = FLevelMetaData{};
   outActors.clear();
-
   std::ifstream ifs(filePath, std::ios::binary);
   if (!ifs.is_open()) return false;
   const std::string encryptedData(
@@ -187,17 +165,14 @@ bool LevelSerializer::LoadData(
     M_LOG("Level data load failed: tampered or corrupted data. {}", e.what());
     return false;
   }
-
   if (root.contains("meta") && root["meta"].is_object()) {
     outMeta.GameModeClassName = root["meta"].value("game_mode", "");
   }
-
   if (!root.contains("actors") || !root["actors"].is_array()) return false;
   for (const auto& obj : root["actors"]) {
     FActorSaveData data;
     data.ClassName = obj.value("class", "");
     data.InstanceName = obj.value("instance_name", "");
-    // transformネスト対応
     if (obj.contains("transform")) {
       const auto& t = obj["transform"];
       if (t.contains("location")) {
@@ -207,8 +182,6 @@ bool LevelSerializer::LoadData(
       data.Rotation = FRotator(t.value("rotation", 0.0f));
       data.Scale = FScale(t.value("scale", 1.0f));
     }
-
-    // プロパティが含まれている場合は読み取る
     if (obj.contains("properties")) {
       for (auto& [key, val] : obj["properties"].items()) {
         if (val.is_string()) {
@@ -216,7 +189,6 @@ bool LevelSerializer::LoadData(
         }
       }
     }
-
     outActors.push_back(data);
   }
   return true;

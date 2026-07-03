@@ -15,7 +15,6 @@ void SceneManager::RegisterLevelPath(FNetworkSceneId SceneId, const std::string&
   if (SceneId == 0 || LevelPath.empty()) {
     return;
   }
-
   RegisteredLevelPaths[SceneId] = LevelPath;
 }
 
@@ -28,7 +27,6 @@ bool SceneManager::OpenSceneById(FNetworkSceneId SceneId, ENetMode NetMode) {
   if (it == RegisteredLevelPaths.end()) {
     return false;
   }
-
   QueueLevelPath(it->second, NetMode, SceneId);
   return true;
 }
@@ -41,7 +39,6 @@ bool SceneManager::OpenLevel(const std::string& LevelPath, ENetMode NetMode) {
   if (LevelPath.empty()) {
     return false;
   }
-
   QueueLevelPath(LevelPath, NetMode, 0);
   return true;
 }
@@ -54,7 +51,6 @@ ENetMode SceneManager::GetCurrentNetMode() const {
   if (!CurrentScene) {
     return ENetMode::Standalone;
   }
-
   return CurrentScene->GetNetMode();
 }
 
@@ -64,7 +60,6 @@ void SceneManager::QueueSceneFactory(
   if (!Factory) {
     return;
   }
-
   PendingSceneFactory = [Factory = std::move(Factory), NetMode]() -> std::unique_ptr<World> {
     return Factory(NetMode);
   };
@@ -77,11 +72,9 @@ void SceneManager::QueueLevelPath(
   PendingSceneFactory = [LevelPath, NetMode]() -> std::unique_ptr<World> {
     auto newWorld = std::make_unique<World>();
     newWorld->SetNetMode(NetMode);
-
     if (!LevelSerializer::Load(newWorld.get(), LevelPath, true)) {
       return nullptr;
     }
-
     return newWorld;
   };
   PendingSceneId = SceneId;
@@ -90,7 +83,6 @@ void SceneManager::QueueLevelPath(
 void SceneManager::ProcessSceneChanges() {
   if (PendingSceneFactory) {
     RenderSystem::GetInstance().SetCameraView(nullptr);
-
     auto sceneFactory = std::move(PendingSceneFactory);
     const FNetworkSceneId newSceneId = PendingSceneId;
     PendingSceneFactory = nullptr;
@@ -103,7 +95,6 @@ void SceneManager::ProcessSceneChanges() {
     if (!newScene) {
       return;
     }
-
     CurrentScene = std::move(newScene);
     CurrentSceneId = newSceneId;
 
@@ -112,7 +103,6 @@ void SceneManager::ProcessSceneChanges() {
     }
 
     if (CurrentScene && CurrentScene->IsServer()) {
-      // サーバー(またはスタンドアローン)の場合はGameModeにPawnとControllerを作らせる
       if (AGameModeBase* gameMode = CurrentScene->GetGameMode()) {
         if (!gameMode->IsHostPlayerSpawned()) {
           gameMode->SpawnDefaultPlayer(0);
@@ -120,15 +110,11 @@ void SceneManager::ProcessSceneChanges() {
       } else {
         CurrentScene->GetOrCreateLocalPlayerController();
       }
-    } else if (CurrentScene) {
-      // クライアントの場合はControllerだけ作成し、Pawnはサーバーからのレプリケーションを待つ
-      CurrentScene->GetOrCreateLocalPlayerController();
     }
 
     if (CurrentScene && CurrentScene->GetReplicationSystem()) {
       CurrentScene->GetReplicationSystem()->NotifySceneLoaded();
     }
-
     M_LOG(
         "Scene changed to ID: {}, NetMode: {}",
         CurrentSceneId,

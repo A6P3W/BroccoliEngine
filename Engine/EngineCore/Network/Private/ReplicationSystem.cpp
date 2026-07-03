@@ -44,14 +44,12 @@ void MReplicationSystem::Update() {
   if (!OwnerWorld || !OwnerWorld->IsServer() || !OwnerWorld->GetObjectManager()) {
     return;
   }
-
   const auto& actors = OwnerWorld->GetObjectManager()->GetAllActors();
   for (const auto& actorPtr : actors) {
     AActor* actor = actorPtr.get();
     if (!actor || !actor->bReplicates) {
       continue;
     }
-
     if (actor->IsPendingDestroy()) {
       if (actor->NetworkId != 0) {
         const FNetworkActorId networkId = actor->NetworkId;
@@ -61,7 +59,6 @@ void MReplicationSystem::Update() {
       }
       continue;
     }
-
     if (actor->NetworkId == 0) {
       if (EnsureServerActorRegistered(actor)) {
         if (SendActorSpawn(actor)) {
@@ -70,7 +67,6 @@ void MReplicationSystem::Update() {
       }
       continue;
     }
-
     RegisterActor(actor);
     if (actor->HasReplicatedStateChanged()) {
       SendActorState(actor);
@@ -83,7 +79,6 @@ AActor* MReplicationSystem::FindActor(FNetworkActorId NetworkId) const {
   if (it == ActorsByNetworkId.end()) {
     return nullptr;
   }
-
   return it->second;
 }
 
@@ -91,7 +86,6 @@ void MReplicationSystem::RegisterActor(AActor* Actor) {
   if (!Actor || Actor->NetworkId == 0) {
     return;
   }
-
   ActorsByNetworkId[Actor->NetworkId] = Actor;
 }
 
@@ -99,7 +93,6 @@ void MReplicationSystem::UnregisterActor(FNetworkActorId NetworkId) {
   if (NetworkId == 0) {
     return;
   }
-
   ActorsByNetworkId.erase(NetworkId);
 }
 
@@ -116,7 +109,6 @@ bool MReplicationSystem::SendActorRPC(
   if (!OwnerWorld || !Actor || Actor->NetworkId == 0 || RPCId == 0) {
     return false;
   }
-
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ActorRPC);
   buffer.Write(Actor->NetworkId);
@@ -126,7 +118,6 @@ bool MReplicationSystem::SendActorRPC(
   if (!buffer.WriteBufferWithSize(Payload)) {
     return false;
   }
-
   NetworkManager& network = NetworkManager::GetInstance();
   switch (RPCType) {
     case ENetRPCType::Server:
@@ -165,11 +156,9 @@ bool MReplicationSystem::BroadcastServerTravel(FNetworkSceneId SceneId) {
   if (!OwnerWorld || !OwnerWorld->IsListenServer() || SceneId == 0) {
     return false;
   }
-
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ServerTravel);
   buffer.Write(SceneId);
-
   return NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Reliable);
 }
 
@@ -177,20 +166,24 @@ void MReplicationSystem::NotifySceneLoaded() {
   if (!OwnerWorld || !OwnerWorld->IsClient()) {
     return;
   }
-
   SendClientTravelReady(SceneManager::GetInstance().GetCurrentSceneId());
 }
 
 void MReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId) {
-  if (!OwnerWorld || !OwnerWorld->IsServer()) {
+  if (!OwnerWorld) {
     return;
   }
-
+  if (NetworkManager::GetInstance().IsClient()) {
+    OwnerWorld->SetNetMode(ENetMode::Client);
+    return;
+  }
+  if (!OwnerWorld->IsServer()) {
+    return;
+  }
   const FNetworkSceneId currentSceneId = SceneManager::GetInstance().GetCurrentSceneId();
   if (currentSceneId != 0 && SendServerTravelToClient(ConnectionId, currentSceneId)) {
     return;
   }
-
   InitializeClientForCurrentScene(ConnectionId);
 }
 
@@ -202,18 +195,17 @@ void MReplicationSystem::HandleDisconnected(FNetworkConnectionId ConnectionId) {
     }
   }
 }
+
 void MReplicationSystem::HandlePacketReceived(
     FNetworkConnectionId ConnectionId, FNetBuffer& Buffer
 ) {
   if (!OwnerWorld) {
     return;
   }
-
   ENetPacketType packetType = ENetPacketType::None;
   if (!Buffer.Read(packetType)) {
     return;
   }
-
   switch (packetType) {
     case ENetPacketType::AssignNetId:
       if (!OwnerWorld->IsClient()) {
@@ -263,7 +255,6 @@ void MReplicationSystem::HandleActorSpawn(FNetBuffer& Buffer) {
   FNetworkActorId networkId = 0;
   FNetworkConnectionId ownerConnectionId = 0;
   std::string className;
-
   if (!Buffer.Read(networkId)) return;
   if (!Buffer.Read(ownerConnectionId)) return;
   if (!Buffer.ReadString(className)) return;
@@ -293,11 +284,18 @@ void MReplicationSystem::HandleActorSpawn(FNetBuffer& Buffer) {
   }
 
   RegisterActor(actor);
+
   if (actor->bIsLocallyControlled) {
-    if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
+    if (APlayerController* pc = dynamic_cast<APlayerController*>(actor)) {
+      // サーバーからレプリケートされてきたのが PlayerController
+      // の場合、自分のコントローラーとして登録する
+      OwnerWorld->SetLocalPlayerController(pc);
+    } else if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
+      // Pawnの場合はPossessする
       OwnerWorld->PossessLocalPawn(pawn);
     }
   }
+
   if (!bAlreadyExists) {
     actor->Spawned();
   }
@@ -308,21 +306,17 @@ void MReplicationSystem::HandleActorState(FNetBuffer& Buffer) {
   if (!Buffer.Read(networkId)) {
     return;
   }
-
   uint32_t sequence = 0;
   if (!Buffer.Read(sequence)) {
     return;
   }
-
   AActor* actor = FindActor(networkId);
   if (!actor) {
     return;
   }
-
   if (!IsReplicationSequenceNewer(sequence, actor->GetLastReceivedReplicationSequence())) {
     return;
   }
-
   if (actor->DeserializeNetworkState(Buffer)) {
     actor->SetLastReceivedReplicationSequence(sequence);
   }
@@ -333,7 +327,6 @@ void MReplicationSystem::HandleActorDestroy(FNetBuffer& Buffer) {
   if (!Buffer.Read(networkId)) {
     return;
   }
-
   AActor* actor = FindActor(networkId);
   if (actor) {
     actor->Destroy();
@@ -346,20 +339,16 @@ void MReplicationSystem::HandleActorRPC(FNetworkConnectionId ConnectionId, FNetB
   FNetworkComponentId componentNetworkId = 0;
   FNetworkRPCId rpcId = 0;
   ENetRPCType rpcType = ENetRPCType::Server;
-
   if (!Buffer.Read(networkId)) return;
   if (!Buffer.Read(componentNetworkId)) return;
   if (!Buffer.Read(rpcId)) return;
   if (!Buffer.Read(rpcType)) return;
-
   FNetBuffer payload;
   if (!Buffer.ReadBufferWithSize(payload)) return;
-
   AActor* actor = FindActor(networkId);
   if (!actor) {
     return;
   }
-
   if (OwnerWorld->IsServer()) {
     if (rpcType != ENetRPCType::Server || !actor->bHasAuthority || actor->OwnerConnectionId == 0 ||
         actor->OwnerConnectionId != ConnectionId) {
@@ -368,7 +357,6 @@ void MReplicationSystem::HandleActorRPC(FNetworkConnectionId ConnectionId, FNetB
   } else if (!OwnerWorld->IsClient() || rpcType == ENetRPCType::Server) {
     return;
   }
-
   actor->DispatchRPC(componentNetworkId, rpcId, rpcType, payload);
 }
 
@@ -377,7 +365,6 @@ void MReplicationSystem::HandleAssignNetId(FNetBuffer& Buffer) {
   if (!Buffer.Read(assignedConnectionId)) {
     return;
   }
-
   NetworkManager::GetInstance().SetLocalConnectionId(assignedConnectionId);
   RefreshLocalControl();
 }
@@ -387,7 +374,6 @@ void MReplicationSystem::HandleServerTravel(FNetBuffer& Buffer) {
   if (!Buffer.Read(sceneId)) {
     return;
   }
-
   SceneManager::GetInstance().OpenSceneById(sceneId, ENetMode::Client);
 }
 
@@ -398,17 +384,14 @@ void MReplicationSystem::HandleClientTravelReady(
   if (!Buffer.Read(sceneId)) {
     return;
   }
-
   if (sceneId == 0 || sceneId != SceneManager::GetInstance().GetCurrentSceneId()) {
     return;
   }
-
   auto readyIt = LastReadySceneByConnection.find(ConnectionId);
   if (readyIt != LastReadySceneByConnection.end() && readyIt->second == sceneId) {
     return;
   }
   LastReadySceneByConnection[ConnectionId] = sceneId;
-
   InitializeClientForCurrentScene(ConnectionId);
 }
 
@@ -416,11 +399,9 @@ void MReplicationSystem::SendAssignedConnectionId(FNetworkConnectionId Connectio
   if (!OwnerWorld || !OwnerWorld->IsServer() || ConnectionId == 0) {
     return;
   }
-
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::AssignNetId);
   buffer.Write(ConnectionId);
-
   NetworkManager::GetInstance().SendToClient(ConnectionId, buffer, ENetPacketReliability::Reliable);
 }
 
@@ -430,11 +411,9 @@ bool MReplicationSystem::SendServerTravelToClient(
   if (!OwnerWorld || !OwnerWorld->IsServer() || ConnectionId == 0 || SceneId == 0) {
     return false;
   }
-
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ServerTravel);
   buffer.Write(SceneId);
-
   return NetworkManager::GetInstance().SendToClient(
       ConnectionId, buffer, ENetPacketReliability::Reliable
   );
@@ -444,11 +423,9 @@ bool MReplicationSystem::SendClientTravelReady(FNetworkSceneId SceneId) {
   if (!OwnerWorld || !OwnerWorld->IsClient() || SceneId == 0) {
     return false;
   }
-
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ClientTravelReady);
   buffer.Write(SceneId);
-
   return NetworkManager::GetInstance().SendToServer(buffer, ENetPacketReliability::Reliable);
 }
 
@@ -456,18 +433,15 @@ void MReplicationSystem::SendInitialStateToClient(FNetworkConnectionId Connectio
   if (!OwnerWorld || !OwnerWorld->GetObjectManager()) {
     return;
   }
-
   const auto& actors = OwnerWorld->GetObjectManager()->GetAllActors();
   for (const auto& actorPtr : actors) {
     AActor* actor = actorPtr.get();
     if (!actor || !actor->bReplicates || actor->IsPendingDestroy()) {
       continue;
     }
-
     if (actor->NetworkId == 0) {
       continue;
     }
-
     SendActorSpawn(actor, ConnectionId);
   }
 }
@@ -476,7 +450,6 @@ bool MReplicationSystem::SendActorSpawn(AActor* Actor, FNetworkConnectionId Targ
   if (!Actor || Actor->NetworkId == 0) {
     return false;
   }
-
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ActorSpawn);
   buffer.Write(Actor->NetworkId);
@@ -484,13 +457,11 @@ bool MReplicationSystem::SendActorSpawn(AActor* Actor, FNetworkConnectionId Targ
   if (!Actor->SerializeNetworkSpawn(buffer)) {
     return false;
   }
-
   NetworkManager& network = NetworkManager::GetInstance();
   if (TargetConnectionId != 0) {
     network.SendToClient(TargetConnectionId, buffer, ENetPacketReliability::Reliable);
     return true;
   }
-
   network.Broadcast(buffer, ENetPacketReliability::Reliable);
   return true;
 }
@@ -499,7 +470,6 @@ bool MReplicationSystem::SendActorState(AActor* Actor) {
   if (!Actor || Actor->NetworkId == 0) {
     return false;
   }
-
   const uint32_t sequence = Actor->IncrementReplicationSequence();
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ActorState);
@@ -508,7 +478,6 @@ bool MReplicationSystem::SendActorState(AActor* Actor) {
   if (!Actor->SerializeNetworkState(buffer)) {
     return false;
   }
-
   NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Unreliable);
   Actor->UpdateReplicatedStateCache();
   return true;
@@ -518,11 +487,9 @@ void MReplicationSystem::SendActorDestroy(FNetworkActorId NetworkId) {
   if (NetworkId == 0) {
     return;
   }
-
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ActorDestroy);
   buffer.Write(NetworkId);
-
   NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Reliable);
 }
 
@@ -530,16 +497,13 @@ bool MReplicationSystem::EnsureServerActorRegistered(AActor* Actor) {
   if (!OwnerWorld || !Actor || !OwnerWorld->IsServer()) {
     return false;
   }
-
   if (Actor->NetworkId == 0) {
     Actor->NetworkId = OwnerWorld->AllocateNetworkActorId();
     Actor->bHasAuthority = true;
   }
-
   if (Actor->NetworkId == 0) {
     return false;
   }
-
   Actor->AssignNetworkComponentIds();
   RegisterActor(Actor);
   return true;
@@ -549,27 +513,26 @@ void MReplicationSystem::RefreshLocalControl() {
   if (!OwnerWorld || !OwnerWorld->IsClient()) {
     return;
   }
-
   const FNetworkConnectionId localConnectionId =
       NetworkManager::GetInstance().GetLocalConnectionId();
   if (localConnectionId == 0) {
     return;
   }
-
   for (const auto& pair : ActorsByNetworkId) {
     AActor* actor = pair.second;
     if (!actor) {
       continue;
     }
-
     const bool bShouldBeLocallyControlled = actor->OwnerConnectionId == localConnectionId;
     if (actor->bIsLocallyControlled == bShouldBeLocallyControlled) {
       continue;
     }
-
     actor->bIsLocallyControlled = bShouldBeLocallyControlled;
+
     if (bShouldBeLocallyControlled) {
-      if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
+      if (APlayerController* pc = dynamic_cast<APlayerController*>(actor)) {
+        OwnerWorld->SetLocalPlayerController(pc);
+      } else if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
         OwnerWorld->PossessLocalPawn(pawn);
       }
     }
