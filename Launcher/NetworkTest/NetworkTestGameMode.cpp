@@ -1,6 +1,6 @@
-#include "NetworkTest/NetworkTestGameMode.h"
+﻿#include "NetworkTestGameMode.h"
 
-#include "NetworkTest/NetworkTestPawn.h"
+#include "NetworkTestPawn.h"
 #include "PlayerController.h"
 #include "World.h"
 
@@ -12,9 +12,7 @@ ANetworkTestGameMode::ANetworkTestGameMode() {
   DefaultPlayerControllerClass = APlayerController::StaticClassName();
 }
 
-void ANetworkTestGameMode::BeginPlay() {
-  SetUpdateableAnytime(true);
-}
+void ANetworkTestGameMode::BeginPlay() { SetUpdateableAnytime(true); }
 
 APlayerController* ANetworkTestGameMode::OnClientConnected(FNetworkConnectionId ConnectionId) {
   APlayerController* controller = AGameModeBase::OnClientConnected(ConnectionId);

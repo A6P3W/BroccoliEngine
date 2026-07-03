@@ -8,10 +8,10 @@ void SetupGame() {
 
   auto& sceneManager = SceneManager::GetInstance();
   sceneManager.RegisterLevelPath(
-      NetworkTestSceneIds::Level1, "../Engine/EngineSide/NetworkTest/NetworkTestLevel.BLevel"
+      NetworkTestSceneIds::Level1, "NetworkTest/NetworkTestLevel.BLevel"
   );
   sceneManager.RegisterLevelPath(
-      NetworkTestSceneIds::Level2, "../Engine/EngineSide/NetworkTest/NetworkTestLevel2.BLevel"
+      NetworkTestSceneIds::Level2, "NetworkTest/NetworkTestLevel2.BLevel"
   );
   sceneManager.OpenSceneById(NetworkTestSceneIds::Level1);
 }
