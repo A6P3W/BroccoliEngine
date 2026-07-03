@@ -354,7 +354,7 @@ bool AActor::InvokeRPCWithPayload(
     return false;
   }
 
-  MReplicationSystem* replication = OwnerWorld->GetReplicationSystem();
+  FReplicationSystem* replication = OwnerWorld->GetReplicationSystem();
   if (!replication) {
     return false;
   }
@@ -390,7 +390,7 @@ bool AActor::InvokeComponentRPCWithPayload(
     return false;
   }
 
-  MReplicationSystem* replication = OwnerWorld->GetReplicationSystem();
+  FReplicationSystem* replication = OwnerWorld->GetReplicationSystem();
   if (!replication) {
     return false;
   }
@@ -413,7 +413,7 @@ void AActor::SetRootComponent(MSceneComponent* Component) {
   RootComponent = Component;
 }
 
-MTimerManager& AActor::GetWorldTimerManager() { return *(OwnerWorld->GetTimerManager()); }
+FTimerManager& AActor::GetWorldTimerManager() { return *(OwnerWorld->GetTimerManager()); }
 
 bool AActor::HasTag(std::string_view Tag) const {
   return std::any_of(Tags.begin(), Tags.end(), [&](const std::string& existing) {

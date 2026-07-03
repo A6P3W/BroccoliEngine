@@ -10,7 +10,7 @@
 #include "Actor.h"
 #include "EditorMode.h"
 #include "FileDialog.h"
-#include "ObjectManager.h"
+#include "ActorManager.h"
 #include "SpriteActor.h"
 #include "UMath.h"
 #include "World.h"

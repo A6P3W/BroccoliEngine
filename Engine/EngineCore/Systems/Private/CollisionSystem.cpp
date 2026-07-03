@@ -10,11 +10,11 @@
 #include "LineCollisionComponent.h"
 #include "MovementComponent.h"
 #include "RectangleCollisionComponent.h"
-MCollisionSystem::MCollisionSystem() {}
+FCollisionSystem::FCollisionSystem() {}
 
-MCollisionSystem::~MCollisionSystem() {}
+FCollisionSystem::~FCollisionSystem() {}
 
-void MCollisionSystem::RegisterCollision(MCollisionComponent* component) {
+void FCollisionSystem::RegisterCollision(MCollisionComponent* component) {
   CollisionComponents.push_back(component);
   if (component->IsStatic()) {
     if (std::find(
@@ -25,7 +25,7 @@ void MCollisionSystem::RegisterCollision(MCollisionComponent* component) {
   }
 }
 
-void MCollisionSystem::UnRegisterCollision(MCollisionComponent* component) {
+void FCollisionSystem::UnRegisterCollision(MCollisionComponent* component) {
   auto it = std::find(CollisionComponents.begin(), CollisionComponents.end(), component);
   if (it != CollisionComponents.end()) {
     *it = CollisionComponents.back();
@@ -44,9 +44,9 @@ void MCollisionSystem::UnRegisterCollision(MCollisionComponent* component) {
   }
 }
 
-void MCollisionSystem::BeginSceneTransition() { bDeferStaticRebuild = true; }
+void FCollisionSystem::BeginSceneTransition() { bDeferStaticRebuild = true; }
 
-void MCollisionSystem::EndSceneTransition() {
+void FCollisionSystem::EndSceneTransition() {
   bDeferStaticRebuild = false;
   if (bPendingStaticRebuild) {
     RebuildStaticCollisionMap();
@@ -54,7 +54,7 @@ void MCollisionSystem::EndSceneTransition() {
   }
 }
 
-void MCollisionSystem::RebuildStaticCollisionMap() {
+void FCollisionSystem::RebuildStaticCollisionMap() {
   StaticCollisionMap.clear();
   for (auto* comp : CollisionComponents) {
     if (!comp->IsStatic()) continue;
@@ -63,7 +63,7 @@ void MCollisionSystem::RebuildStaticCollisionMap() {
   }
 }
 
-void MCollisionSystem::UpdateCollisionMap() {
+void FCollisionSystem::UpdateCollisionMap() {
   DynamicCollisionMap.clear();
   for (auto collision : CollisionComponents) {
     if (collision->IsStatic()) {
@@ -85,7 +85,7 @@ void MCollisionSystem::UpdateCollisionMap() {
   }
 }
 
-void MCollisionSystem::CheckCollisions() {
+void FCollisionSystem::CheckCollisions() {
   for (auto* comp : PendingStaticRegistrations) RegisterToStaticMap(comp);
   PendingStaticRegistrations.clear();
 
@@ -136,7 +136,7 @@ void MCollisionSystem::CheckCollisions() {
   }
 }
 
-void MCollisionSystem::CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b) {
+void FCollisionSystem::CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b) {
   FVector2D locA = a->GetWorldLocation(), locB = b->GetWorldLocation();
   float radA = a->GetRadius() * a->GetWorldScale().Scale,
         radB = b->GetRadius() * b->GetWorldScale().Scale;
@@ -218,7 +218,7 @@ static bool LineSegmentsIntersect(
   return t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f;
 }
 
-void MCollisionSystem::CircleAndRectangle(
+void FCollisionSystem::CircleAndRectangle(
     MCircleCollisionComponent* circle, MRectangleCollisionComponent* rect
 ) {
   FVector2D circleCenter = circle->GetWorldLocation();
@@ -302,7 +302,7 @@ struct OBB {
   float HalfH;
 };
 
-void MCollisionSystem::RectangleAndRectangle(
+void FCollisionSystem::RectangleAndRectangle(
     MRectangleCollisionComponent* a, MRectangleCollisionComponent* b
 ) {
   auto GetOBB = [](MRectangleCollisionComponent* rect) -> OBB {
@@ -369,7 +369,7 @@ void MCollisionSystem::RectangleAndRectangle(
   }
 }
 
-void MCollisionSystem::LineAndCircle(
+void FCollisionSystem::LineAndCircle(
     MLineCollisionComponent* line, MCircleCollisionComponent* circle
 ) {
   FVector2D start = line->GetWorldStart();
@@ -407,7 +407,7 @@ void MCollisionSystem::LineAndCircle(
   }
 }
 
-void MCollisionSystem::LineAndRectangle(
+void FCollisionSystem::LineAndRectangle(
     MLineCollisionComponent* line, MRectangleCollisionComponent* rect
 ) {
   FVector2D start = line->GetWorldStart();
@@ -492,7 +492,7 @@ void MCollisionSystem::LineAndRectangle(
   }
 }
 
-void MCollisionSystem::LineAndLine(MLineCollisionComponent* a, MLineCollisionComponent* b) {
+void FCollisionSystem::LineAndLine(MLineCollisionComponent* a, MLineCollisionComponent* b) {
   FVector2D aStart = a->GetWorldStart();
   FVector2D aEnd = a->GetWorldEnd();
   FVector2D bStart = b->GetWorldStart();
@@ -505,7 +505,7 @@ void MCollisionSystem::LineAndLine(MLineCollisionComponent* a, MLineCollisionCom
   b->UpdateOverlapState(aActor, isOverlapping);
 }
 
-void MCollisionSystem::CancelNormalVelocity(MMovementComponent* move, const FVector2D& normal) {
+void FCollisionSystem::CancelNormalVelocity(MMovementComponent* move, const FVector2D& normal) {
   FVector2D v = move->GetVelocity();
   float dot = v.X * normal.X + v.Y * normal.Y;
   if (dot > 0.0f) {  // 衝突方向に向かっている成分のみキャンセル
@@ -513,7 +513,7 @@ void MCollisionSystem::CancelNormalVelocity(MMovementComponent* move, const FVec
   }
 }
 
-void MCollisionSystem::CollisionResolution(
+void FCollisionSystem::CollisionResolution(
     AActor* ActorA, AActor* ActorB, const FVector2D& normal, float overlapDepth
 ) {
   auto moveComponentA = ActorA->GetComponents<MMovementComponent>();
@@ -534,7 +534,7 @@ void MCollisionSystem::CollisionResolution(
   }
 }
 
-void MCollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B) {
+void FCollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B) {
   if (A->GetOwner() == B->GetOwner()) return;
   if (A->IsStatic() && B->IsStatic()) return;
   switch (A->GetShapeType()) {
@@ -589,7 +589,7 @@ void MCollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComp
   }
 }
 
-void MCollisionSystem::RegisterToStaticMap(MCollisionComponent* component) {
+void FCollisionSystem::RegisterToStaticMap(MCollisionComponent* component) {
   FAABB box = component->GetAABB();
   int minX = static_cast<int>(std::floor(box.MinX / CollisionCellSize));
   int maxX = static_cast<int>(std::floor(box.MaxX / CollisionCellSize));

@@ -3,7 +3,7 @@
 #include "ActorRegistry.h"
 #include "CameraComponent.h"
 #include "CollisionSystem.h"
-#include "ObjectManager.h"
+#include "ActorManager.h"
 #include "Pawn.h"
 #include "PlayerController.h"
 #include "ReplicationSystem.h"
@@ -12,20 +12,20 @@
 #include "TimerManager.h"
 
 World::World() {
-  ObjectManager = std::make_unique<MObjectManager>();
-  CollisionSystem = std::make_unique<MCollisionSystem>();
-  SoundManager = std::make_unique<MSoundManager>();
-  TimerManager = std::make_unique<MTimerManager>();
-  ObjectManager->SetWorld(this);
-  ReplicationSystem = std::make_unique<MReplicationSystem>(this);
+  ActorManager = std::make_unique<FActorManager>();
+  CollisionSystem = std::make_unique<FCollisionSystem>();
+  SoundManager = std::make_unique<FSoundManager>();
+  TimerManager = std::make_unique<FTimerManager>();
+  ActorManager->SetWorld(this);
+  ReplicationSystem = std::make_unique<FReplicationSystem>(this);
 }
 
-World::~World() { bTrendingDown = true; }
+World::~World() { bTearingDown = true; }
 
 void World::Update(float DeltaTime) {
-  if (ObjectManager) ObjectManager->Update(DeltaTime);
+  if (ActorManager) ActorManager->Update(DeltaTime);
   if (ReplicationSystem) ReplicationSystem->Update();
-  if (ObjectManager) ObjectManager->RemovePendingDestroy();
+  if (ActorManager) ActorManager->RemovePendingDestroy();
   if (bSimulating) {
     if (TimerManager) TimerManager->Update(DeltaTime);
     if (CollisionSystem) CollisionSystem->CheckCollisions();
@@ -33,7 +33,7 @@ void World::Update(float DeltaTime) {
 }
 
 void World::Draw() {
-  if (ObjectManager) ObjectManager->Draw();
+  if (ActorManager) ActorManager->Draw();
 }
 
 void World::SetGameMode(AGameModeBase* mode) { GameMode = mode; }

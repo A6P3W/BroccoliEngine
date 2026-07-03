@@ -7,7 +7,7 @@
 MCollisionComponent::MCollisionComponent() {}
 
 MCollisionComponent::~MCollisionComponent() {
-  if (!GetOwner()->GetWorld()->IsTrendingDown()) {
+  if (!GetOwner()->GetWorld()->IsTearingDown()) {
     UnRegisterComponent();
   }
 }

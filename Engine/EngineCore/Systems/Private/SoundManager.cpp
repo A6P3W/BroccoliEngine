@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-MSoundManager::~MSoundManager() {
+FSoundManager::~FSoundManager() {
   // 複製再生用ハンドルを全て強制終了・解放
   for (int handle : PlayHandles) {
     StopSoundMem(handle);
@@ -17,7 +17,7 @@ MSoundManager::~MSoundManager() {
   }
 }
 
-int MSoundManager::GetMasterHandle(const std::string& path) {
+int FSoundManager::GetMasterHandle(const std::string& path) {
   if (MasterSounds.count(path)) return MasterSounds[path];
 
   int handle = LoadSoundMem(path.c_str());
@@ -27,7 +27,7 @@ int MSoundManager::GetMasterHandle(const std::string& path) {
   return handle;
 }
 
-int MSoundManager::PlaySE(const std::string& path, bool loop) {
+int FSoundManager::PlaySE(const std::string& path, bool loop) {
   int master = GetMasterHandle(path);
   if (master == -1) return -1;
 
@@ -43,7 +43,7 @@ int MSoundManager::PlaySE(const std::string& path, bool loop) {
   return playHandle;
 }
 
-int MSoundManager::PlayBGM(const std::string& path, bool loop) {
+int FSoundManager::PlayBGM(const std::string& path, bool loop) {
   if (BGMHandle != -1) {
     Stop(BGMHandle);
     BGMHandle = -1;
@@ -53,7 +53,7 @@ int MSoundManager::PlayBGM(const std::string& path, bool loop) {
   return BGMHandle;
 }
 
-void MSoundManager::SetVolume(int handle, float volume) {
+void FSoundManager::SetVolume(int handle, float volume) {
   if (handle == -1) return;
 
   float clampedVolume = std::clamp(volume, 0.0f, 1.0f);
@@ -62,7 +62,7 @@ void MSoundManager::SetVolume(int handle, float volume) {
   ChangeVolumeSoundMem(vol, handle);
 }
 
-void MSoundManager::Stop(int handle) {
+void FSoundManager::Stop(int handle) {
   if (handle == -1) return;
 
   StopSoundMem(handle);

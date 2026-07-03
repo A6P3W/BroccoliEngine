@@ -10,7 +10,7 @@
 #include "EditorSelectPointComponent.h"
 #include "EditorUI.h"
 #include "Log.h"
-#include "ObjectManager.h"
+#include "ActorManager.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "SpriteActor.h"

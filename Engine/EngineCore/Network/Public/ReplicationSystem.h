@@ -10,10 +10,10 @@ class AActor;
 class FNetBuffer;
 class World;
 
-class MReplicationSystem {
+class FReplicationSystem {
  public:
-  explicit MReplicationSystem(World* InWorld);
-  ~MReplicationSystem();
+  explicit FReplicationSystem(World* InWorld);
+  ~FReplicationSystem();
 
   void Update();
 

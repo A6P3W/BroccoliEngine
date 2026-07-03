@@ -260,7 +260,7 @@
     <ClCompile Include="Engine\EngineCore\Systems\Private\InputManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\InputMapper.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\MouseDevice.cpp" />
-    <ClCompile Include="Engine\EngineCore\Systems\Private\ObjectManager.cpp" />
+    <ClCompile Include="Engine\EngineCore\Systems\Private\ActorManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\RenderSystem.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\ResourceManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\SceneManager.cpp" />
@@ -335,7 +335,7 @@
     <ClInclude Include="Engine\EngineCore\Systems\Public\KeyboardDevice.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\GamepadDevice.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\MouseDevice.h" />
-    <ClInclude Include="Engine\EngineCore\Systems\Public\ObjectManager.h" />
+    <ClInclude Include="Engine\EngineCore\Systems\Public\ActorManager.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\RenderSystem.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\ResourceManager.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\SceneManager.h" />

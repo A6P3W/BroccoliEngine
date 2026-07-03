@@ -7,7 +7,7 @@
 #include "GameModeBase.h"
 #include "GridLine.h"
 #include "LevelSerializer.h"
-#include "ObjectManager.h"
+#include "ActorManager.h"
 #include "RenderSystem.h"
 #include "ReplicationSystem.h"
 

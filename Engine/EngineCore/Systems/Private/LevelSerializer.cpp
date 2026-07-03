@@ -9,7 +9,7 @@
 #include "GameModeBase.h"
 #include "Log.h"
 #include "nlohmann/json.hpp"
-#include "ObjectManager.h"
+#include "ActorManager.h"
 #include "SimpleCrypto.h"
 #include "SpriteActor.h"
 #include "World.h"

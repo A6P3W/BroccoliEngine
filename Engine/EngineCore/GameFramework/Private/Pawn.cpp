@@ -7,7 +7,7 @@
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "Log.h"
-#include "ObjectManager.h"
+#include "ActorManager.h"
 #include "PlayerController.h"
 #include "ResourceManager.h"
 #include "SpriteComponent.h"

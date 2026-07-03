@@ -5,7 +5,7 @@
 
 #include "HttpManager.h"
 #include "Log.h"
-#include "ObjectManager.h"
+#include "ActorManager.h"
 #include "SamplePawn01.h"
 #include "UMath.h"
 #include "nlohmann/json.hpp"

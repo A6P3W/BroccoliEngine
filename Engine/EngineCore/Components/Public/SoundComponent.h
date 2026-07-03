@@ -5,7 +5,7 @@
 
 #include "ActorComponent.h"
 
-class MSoundManager;
+class FSoundManager;
 
 class MSoundComponent : public MActorComponent {
  public:
@@ -21,7 +21,7 @@ class MSoundComponent : public MActorComponent {
   void OnComponentDestroy() override;
 
  private:
-  MSoundManager* GetSoundManager() const;
+  FSoundManager* GetSoundManager() const;
 
   std::vector<int> m_PlayingHandles;
 };

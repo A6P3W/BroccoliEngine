@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <atomic>
 
-MTimerManager::MTimerManager() {}
+FTimerManager::FTimerManager() {}
 
-MTimerManager::~MTimerManager() {}
+FTimerManager::~FTimerManager() {}
 
-void MTimerManager::SetTimerInternal(
+void FTimerManager::SetTimerInternal(
     FTimerHandle& Handle,
     const void* OwnerObject,
     std::function<void()> Callback,
@@ -50,7 +50,7 @@ void MTimerManager::SetTimerInternal(
   AddTimerInternal(TimerId, std::move(TimerData));
 }
 
-void MTimerManager::ClearTimer(FTimerHandle& Handle) {
+void FTimerManager::ClearTimer(FTimerHandle& Handle) {
   if (!Handle.IsValid()) {
     return;
   }
@@ -70,7 +70,7 @@ void MTimerManager::ClearTimer(FTimerHandle& Handle) {
   RemoveTimerInternal(TimerId);
 }
 
-void MTimerManager::ClearAllTimersForObject(const void* OwnerObject) {
+void FTimerManager::ClearAllTimersForObject(const void* OwnerObject) {
   if (OwnerObject == nullptr) {
     return;
   }
@@ -107,7 +107,7 @@ void MTimerManager::ClearAllTimersForObject(const void* OwnerObject) {
   }
 }
 
-bool MTimerManager::IsTimerActive(const FTimerHandle& Handle) const {
+bool FTimerManager::IsTimerActive(const FTimerHandle& Handle) const {
   if (!Handle.IsValid()) {
     return false;
   }
@@ -125,7 +125,7 @@ bool MTimerManager::IsTimerActive(const FTimerHandle& Handle) const {
   return PendingRemoveTimerIds.find(TimerId) == PendingRemoveTimerIds.end();
 }
 
-float MTimerManager::GetTimerRemaining(const FTimerHandle& Handle) const {
+float FTimerManager::GetTimerRemaining(const FTimerHandle& Handle) const {
   if (!IsTimerActive(Handle)) {
     return -1.0f;
   }
@@ -138,7 +138,7 @@ float MTimerManager::GetTimerRemaining(const FTimerHandle& Handle) const {
   return TimerIt->second.Remaining;
 }
 
-void MTimerManager::Update(float DeltaTime) {
+void FTimerManager::Update(float DeltaTime) {
   if (DeltaTime <= 0.0f || Timers.empty()) {
     FlushPendingChanges();
     return;
@@ -193,7 +193,7 @@ void MTimerManager::Update(float DeltaTime) {
   FlushPendingChanges();
 }
 
-void MTimerManager::AddTimerInternal(uint64_t TimerId, FTimerData&& TimerData) {
+void FTimerManager::AddTimerInternal(uint64_t TimerId, FTimerData&& TimerData) {
   const void* OwnerObject = TimerData.OwnerObject;
   Timers[TimerId] = std::move(TimerData);
 
@@ -202,7 +202,7 @@ void MTimerManager::AddTimerInternal(uint64_t TimerId, FTimerData&& TimerData) {
   }
 }
 
-void MTimerManager::RemoveTimerInternal(uint64_t TimerId) {
+void FTimerManager::RemoveTimerInternal(uint64_t TimerId) {
   const auto TimerIt = Timers.find(TimerId);
   if (TimerIt == Timers.end()) {
     return;
@@ -222,7 +222,7 @@ void MTimerManager::RemoveTimerInternal(uint64_t TimerId) {
   Timers.erase(TimerIt);
 }
 
-void MTimerManager::FlushPendingChanges() {
+void FTimerManager::FlushPendingChanges() {
   if (bUpdating) {
     return;
   }
@@ -252,4 +252,4 @@ void MTimerManager::FlushPendingChanges() {
   }
 }
 
-uint64_t MTimerManager::AllocateTimerId() { return NextTimerId++; }
+uint64_t FTimerManager::AllocateTimerId() { return NextTimerId++; }

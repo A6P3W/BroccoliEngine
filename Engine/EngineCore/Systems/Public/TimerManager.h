@@ -8,10 +8,10 @@
 
 #include "TimerHandle.h"
 
-class MTimerManager {
+class FTimerManager {
  public:
-  MTimerManager();
-  ~MTimerManager();
+  FTimerManager();
+  ~FTimerManager();
 
   template <class UserClass>
   void SetTimer(
@@ -44,8 +44,8 @@ class MTimerManager {
   void Update(float DeltaTime);
 
  private:
-  MTimerManager(const MTimerManager&) = delete;
-  MTimerManager& operator=(const MTimerManager&) = delete;
+  FTimerManager(const FTimerManager&) = delete;
+  FTimerManager& operator=(const FTimerManager&) = delete;
 
   struct FTimerData {
     float Rate = 0.0f;

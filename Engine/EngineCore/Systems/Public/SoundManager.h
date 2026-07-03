@@ -3,13 +3,13 @@
 #include <unordered_map>
 #include <vector>
 
-class MSoundManager {
+class FSoundManager {
  public:
-  MSoundManager() = default;
-  ~MSoundManager();
+  FSoundManager() = default;
+  ~FSoundManager();
 
-  MSoundManager(const MSoundManager&) = delete;
-  MSoundManager& operator=(const MSoundManager&) = delete;
+  FSoundManager(const FSoundManager&) = delete;
+  FSoundManager& operator=(const FSoundManager&) = delete;
 
   // マスター音源をロード（内部用）
   int GetMasterHandle(const std::string& path);
