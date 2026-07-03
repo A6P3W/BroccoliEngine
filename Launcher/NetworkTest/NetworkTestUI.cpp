@@ -1,16 +1,16 @@
-﻿#include "NetworkTest/NetworkTestUI.h"
+﻿#include "NetworkTestUI.h"
+
+#include <imgui.h>
 
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
 
-#include <imgui.h>
-
-#include "OnlineSessionManager.h"
 #include "NetworkManager.h"
-#include "NetworkTest/NetworkTestGameMode.h"
-#include "NetworkTest/NetworkTestPawn.h"
+#include "NetworkTestGameMode.h"
+#include "NetworkTestPawn.h"
 #include "NetworkUtils.h"
+#include "OnlineSessionManager.h"
 #include "World.h"
 
 FNetworkTestUI::FNetworkTestUI(ANetworkTestPawn& InOwner) : Owner(InOwner) {}
@@ -61,7 +61,8 @@ void FNetworkTestUI::DrawConnectionWindow() {
 
   ImGui::Separator();
 
-  ANetworkTestGameMode* gameMode = dynamic_cast<ANetworkTestGameMode*>(Owner.GetWorld()->GetGameMode());
+  ANetworkTestGameMode* gameMode =
+      dynamic_cast<ANetworkTestGameMode*>(Owner.GetWorld()->GetGameMode());
   const char* sceneName = gameMode ? gameMode->GetSceneName() : "Unknown Scene";
   ImGui::Text("Current Scene: %s", sceneName);
 
@@ -151,10 +152,10 @@ void FNetworkTestUI::DrawOnlineWindow() {
     ImGui::BeginChild("EOSLobbySearchResults", ImVec2(0.0f, 120.0f), true);
     for (int index = 0; index < static_cast<int>(OnlineSearchResults.size()); ++index) {
       const FLobbyInfo& lobbyInfo = OnlineSearchResults[index];
-      std::string label = std::to_string(index + 1) + ": " + lobbyInfo.LobbyId + " (" +
-                          std::to_string(lobbyInfo.CurrentMembers) + "/" +
-                          std::to_string(lobbyInfo.MaxMembers) + ") HostIP=" +
-                          (lobbyInfo.HostIPAddress.empty() ? "<none>" : lobbyInfo.HostIPAddress);
+      std::string label =
+          std::to_string(index + 1) + ": " + lobbyInfo.LobbyId + " (" +
+          std::to_string(lobbyInfo.CurrentMembers) + "/" + std::to_string(lobbyInfo.MaxMembers) +
+          ") HostIP=" + (lobbyInfo.HostIPAddress.empty() ? "<none>" : lobbyInfo.HostIPAddress);
       if (ImGui::Selectable(label.c_str(), SelectedOnlineLobbyIndex == index)) {
         SelectedOnlineLobbyIndex = index;
       }
@@ -208,16 +209,16 @@ void FNetworkTestUI::LoginWithDeviceId() {
 
   OnlineStatusMessage = "EOS Device ID login requested.";
   if (!OnlineSessionManager::Get().LoginWithDeviceId(OnlineDisplayName, [this](bool bSuccess) {
-    if (bSuccess) {
-      OnlineStatusMessage = "EOS Device ID login succeeded.";
-      const std::string localUserId = OnlineSessionManager::Get().GetLocalUserIdString();
-      if (!localUserId.empty()) {
-        OnlineStatusMessage += " ProductUserId: " + localUserId;
-      }
-    } else {
-      OnlineStatusMessage = "EOS Device ID login failed. See Logs for details.";
-    }
-  })) {
+        if (bSuccess) {
+          OnlineStatusMessage = "EOS Device ID login succeeded.";
+          const std::string localUserId = OnlineSessionManager::Get().GetLocalUserIdString();
+          if (!localUserId.empty()) {
+            OnlineStatusMessage += " ProductUserId: " + localUserId;
+          }
+        } else {
+          OnlineStatusMessage = "EOS Device ID login failed. See Logs for details.";
+        }
+      })) {
     OnlineStatusMessage = "EOS Device ID login request was rejected.";
   }
 }
@@ -245,22 +246,25 @@ void FNetworkTestUI::CreateLanLobby() {
   request.HostIPAddress = localIPAddress;
 
   OnlineStatusMessage = "Create LAN lobby requested. HostIP=" + localIPAddress;
-  if (!OnlineSessionManager::Get().CreateLobby(request, [this](bool bSuccess, const FLobbyInfo& lobbyInfo) {
-    if (!bSuccess) {
-      OnlineStatusMessage = "Create LAN lobby failed. See Logs for details.";
-      return;
-    }
+  if (!OnlineSessionManager::Get().CreateLobby(
+          request, [this](bool bSuccess, const FLobbyInfo& lobbyInfo) {
+            if (!bSuccess) {
+              OnlineStatusMessage = "Create LAN lobby failed. See Logs for details.";
+              return;
+            }
 
-    OnlineSearchResults.clear();
-    SelectedOnlineLobbyIndex = -1;
-    if (Owner.StartListenServer(static_cast<uint16_t>(Port))) {
-      StatusMessage = "Listen server started from EOS lobby.";
-      OnlineStatusMessage = "LAN lobby created: " + lobbyInfo.LobbyId + " HostIP=" + lobbyInfo.HostIPAddress;
-    } else {
-      OnlineStatusMessage = "LAN lobby created, but listen server failed to start.";
-      StatusMessage = "Failed to start listen server.";
-    }
-  })) {
+            OnlineSearchResults.clear();
+            SelectedOnlineLobbyIndex = -1;
+            if (Owner.StartListenServer(static_cast<uint16_t>(Port))) {
+              StatusMessage = "Listen server started from EOS lobby.";
+              OnlineStatusMessage =
+                  "LAN lobby created: " + lobbyInfo.LobbyId + " HostIP=" + lobbyInfo.HostIPAddress;
+            } else {
+              OnlineStatusMessage = "LAN lobby created, but listen server failed to start.";
+              StatusMessage = "Failed to start listen server.";
+            }
+          }
+      )) {
     OnlineStatusMessage = "Create LAN lobby request was rejected.";
   }
 }
@@ -278,18 +282,17 @@ void FNetworkTestUI::SearchOnlineLobbies() {
   SelectedOnlineLobbyIndex = -1;
   OnlineStatusMessage = "Search lobbies requested.";
   if (!OnlineSessionManager::Get().SearchLobbies(
-      request,
-      [this](bool bSuccess, const std::vector<FLobbyInfo>& results) {
-        if (bSuccess) {
-          OnlineSearchResults = results;
-          SelectedOnlineLobbyIndex = OnlineSearchResults.empty() ? -1 : 0;
-          OnlineStatusMessage =
-              "Lobby search completed. Found: " + std::to_string(OnlineSearchResults.size());
-        } else {
-          OnlineStatusMessage = "Lobby search failed. See Logs for details.";
-        }
-      }
-  )) {
+          request, [this](bool bSuccess, const std::vector<FLobbyInfo>& results) {
+            if (bSuccess) {
+              OnlineSearchResults = results;
+              SelectedOnlineLobbyIndex = OnlineSearchResults.empty() ? -1 : 0;
+              OnlineStatusMessage =
+                  "Lobby search completed. Found: " + std::to_string(OnlineSearchResults.size());
+            } else {
+              OnlineStatusMessage = "Lobby search failed. See Logs for details.";
+            }
+          }
+      )) {
     OnlineStatusMessage = "Lobby search request was rejected.";
   }
 }
@@ -319,15 +322,16 @@ void FNetworkTestUI::JoinSelectedLanLobby() {
 
   OnlineStatusMessage = "Join lobby requested: " + lobbyInfo.LobbyId;
   if (!OnlineSessionManager::Get().JoinLobby(
-          lobbyInfo,
-          static_cast<uint16_t>(Port),
-          [this, lobbyInfo](bool bSuccess) {
+          lobbyInfo, static_cast<uint16_t>(Port), [this, lobbyInfo](bool bSuccess) {
             if (!bSuccess) {
-              OnlineStatusMessage = "Join lobby or ENet connection failed. Search again if the result is stale.";
+              OnlineStatusMessage =
+                  "Join lobby or ENet connection failed. Search again if the result is stale.";
               return;
             }
 
-            strncpy_s(ServerAddress, sizeof(ServerAddress), lobbyInfo.HostIPAddress.c_str(), _TRUNCATE);
+            strncpy_s(
+                ServerAddress, sizeof(ServerAddress), lobbyInfo.HostIPAddress.c_str(), _TRUNCATE
+            );
             Owner.GetWorld()->SetNetMode(ENetMode::Client);
             StatusMessage = "Connecting to lobby host: " + lobbyInfo.HostIPAddress;
             OnlineStatusMessage = "Joined lobby and connecting: " + lobbyInfo.LobbyId;
@@ -345,13 +349,13 @@ void FNetworkTestUI::LeaveOnlineLobby() {
   const std::string lobbyId = OnlineSessionManager::Get().GetCurrentLobbyId();
   OnlineStatusMessage = "Leave lobby requested: " + lobbyId;
   if (!OnlineSessionManager::Get().LeaveLobby([this, lobbyId](bool bSuccess) {
-    if (bSuccess) {
-      Owner.GetWorld()->SetNetMode(ENetMode::Standalone);
-      OnlineStatusMessage = "Left lobby: " + lobbyId;
-    } else {
-      OnlineStatusMessage = "Leave lobby failed. See Logs for details.";
-    }
-  })) {
+        if (bSuccess) {
+          Owner.GetWorld()->SetNetMode(ENetMode::Standalone);
+          OnlineStatusMessage = "Left lobby: " + lobbyId;
+        } else {
+          OnlineStatusMessage = "Leave lobby failed. See Logs for details.";
+        }
+      })) {
     OnlineStatusMessage = "Leave lobby request was rejected.";
   }
 }

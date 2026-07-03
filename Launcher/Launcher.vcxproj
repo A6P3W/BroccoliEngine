@@ -240,9 +240,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Entry.cpp" />
+    <ClCompile Include="NetworkTest\NetworkTestGameMode.cpp" />
+    <ClCompile Include="NetworkTest\NetworkTestPawn.cpp" />
+    <ClCompile Include="NetworkTest\NetworkTestUI.cpp" />
+    <ClCompile Include="SampleScene01\MainMenu.cpp" />
+    <ClCompile Include="SampleScene01\SamplePawn01.cpp" />
+    <ClCompile Include="SampleScene01\SampleScene01.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config\EOS_ProductCredentials.h" />
+    <ClInclude Include="NetworkTest\NetworkTestGameMode.h" />
+    <ClInclude Include="NetworkTest\NetworkTestPawn.h" />
+    <ClInclude Include="NetworkTest\NetworkTestUI.h" />
+    <ClInclude Include="SampleScene01\MainMenu.h" />
+    <ClInclude Include="SampleScene01\SamplePawn01.h" />
+    <ClInclude Include="SampleScene01\SampleScene01.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

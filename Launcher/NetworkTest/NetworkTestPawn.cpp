@@ -1,4 +1,4 @@
-﻿#include "NetworkTest/NetworkTestPawn.h"
+﻿#include "NetworkTestPawn.h"
 
 #include <DxLib.h>
 #include <MovementComponent.h>
@@ -7,8 +7,8 @@
 #include "EnhancedInputComponent.h"
 #include "Log.h"
 #include "NetworkManager.h"
-#include "NetworkTest/NetworkTestGameMode.h"
-#include "NetworkTest/NetworkTestUI.h"
+#include "NetworkTestGameMode.h"
+#include "NetworkTestUI.h"
 #include "SpriteComponent.h"
 #include "World.h"
 

@@ -273,8 +273,6 @@
     <ClCompile Include="Engine\EngineSide\Default\Private\DefaultRectangleCollisionActor.cpp" />
     <ClCompile Include="Engine\EngineSide\GridLine.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\EnhancedInputComponent.cpp" />
-    <ClCompile Include="Engine\EngineSide\SampleScene01\SamplePawn01.cpp" />
-    <ClCompile Include="Engine\EngineSide\SampleScene01\SampleScene01.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\LevelSerializer.cpp" />
     <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_dx11.cpp" />
     <ClCompile Include="Engine\ThirdParty\imgui_impl\Private\imgui_impl_win32.cpp" />
@@ -287,10 +285,6 @@
     <ClCompile Include="Engine\EngineCore\Components\Private\UIButtonComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\UIManager.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UISpriteComponent.cpp" />
-    <ClCompile Include="Engine\EngineSide\SampleScene01\MainMenu.cpp" />
-    <ClCompile Include="Engine\EngineSide\NetworkTest\NetworkTestGameMode.cpp" />
-    <ClCompile Include="Engine\EngineSide\NetworkTest\NetworkTestPawn.cpp" />
-    <ClCompile Include="Engine\EngineSide\NetworkTest\NetworkTestUI.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UIBoxButton.cpp" />
     <ClCompile Include="Engine\EngineCore\Components\Private\UITextComponent.cpp" />
     <ClCompile Include="Engine\EngineCore\Systems\Private\HttpManager.cpp" />
@@ -353,8 +347,6 @@
     <ClInclude Include="Engine\EngineSide\Default\Public\DefaultLineCollisionActor.h" />
     <ClInclude Include="Engine\EngineSide\Default\Public\DefaultRectangleCollisionActor.h" />
     <ClInclude Include="Engine\EngineSide\GridLine.h" />
-    <ClInclude Include="Engine\EngineSide\SampleScene01\SamplePawn01.h" />
-    <ClInclude Include="Engine\EngineSide\SampleScene01\SampleScene01.h" />
     <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_dx11.h" />
     <ClInclude Include="Engine\ThirdParty\imgui_impl\imgui_impl_win32.h" />
     <ClInclude Include="Engine\ThirdParty\nlohmann\json.hpp" />
@@ -371,10 +363,6 @@
     <ClInclude Include="Engine\EngineCore\Components\Public\UIButtonComponent.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\UIManager.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UISpriteComponent.h" />
-    <ClInclude Include="Engine\EngineSide\SampleScene01\MainMenu.h" />
-    <ClInclude Include="Engine\EngineSide\NetworkTest\NetworkTestGameMode.h" />
-    <ClInclude Include="Engine\EngineSide\NetworkTest\NetworkTestPawn.h" />
-    <ClInclude Include="Engine\EngineSide\NetworkTest\NetworkTestUI.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UIBoxButton.h" />
     <ClInclude Include="Engine\EngineCore\Components\Public\UITextComponent.h" />
     <ClInclude Include="Engine\EngineCore\Systems\Public\HttpManager.h" />
