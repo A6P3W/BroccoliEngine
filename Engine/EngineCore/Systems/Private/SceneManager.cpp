@@ -18,11 +18,11 @@ void SceneManager::RegisterLevelPath(FNetworkSceneId SceneId, const std::string&
   RegisteredLevelPaths[SceneId] = LevelPath;
 }
 
-bool SceneManager::OpenSceneById(FNetworkSceneId SceneId) {
-  return OpenSceneById(SceneId, GetCurrentNetMode());
+bool SceneManager::OpenLevelById(FNetworkSceneId SceneId) {
+  return OpenLevelById(SceneId, GetCurrentNetMode());
 }
 
-bool SceneManager::OpenSceneById(FNetworkSceneId SceneId, ENetMode NetMode) {
+bool SceneManager::OpenLevelById(FNetworkSceneId SceneId, ENetMode NetMode) {
   auto it = RegisteredLevelPaths.find(SceneId);
   if (it == RegisteredLevelPaths.end()) {
     return false;
@@ -31,11 +31,11 @@ bool SceneManager::OpenSceneById(FNetworkSceneId SceneId, ENetMode NetMode) {
   return true;
 }
 
-bool SceneManager::OpenLevel(const std::string& LevelPath) {
-  return OpenLevel(LevelPath, GetCurrentNetMode());
+bool SceneManager::OpenLevelByPath(const std::string& LevelPath) {
+  return OpenLevelByPath(LevelPath, GetCurrentNetMode());
 }
 
-bool SceneManager::OpenLevel(const std::string& LevelPath, ENetMode NetMode) {
+bool SceneManager::OpenLevelByPath(const std::string& LevelPath, ENetMode NetMode) {
   if (LevelPath.empty()) {
     return false;
   }
@@ -64,6 +64,7 @@ void SceneManager::QueueSceneFactory(
     return Factory(NetMode);
   };
   PendingSceneId = SceneId;
+  PendingLevelPath.clear();
 }
 
 void SceneManager::QueueLevelPath(
@@ -78,6 +79,7 @@ void SceneManager::QueueLevelPath(
     return newWorld;
   };
   PendingSceneId = SceneId;
+  PendingLevelPath = LevelPath;
 }
 
 void SceneManager::ProcessSceneChanges() {
@@ -85,11 +87,14 @@ void SceneManager::ProcessSceneChanges() {
     RenderSystem::GetInstance().SetCameraView(nullptr);
     auto sceneFactory = std::move(PendingSceneFactory);
     const FNetworkSceneId newSceneId = PendingSceneId;
+    const std::string newLevelPath = PendingLevelPath;
     PendingSceneFactory = nullptr;
     PendingSceneId = 0;
+    PendingLevelPath.clear();
 
     CurrentScene.reset();
     CurrentSceneId = 0;
+    CurrentLevelPath.clear();
 
     auto newScene = sceneFactory();
     if (!newScene) {
@@ -97,6 +102,7 @@ void SceneManager::ProcessSceneChanges() {
     }
     CurrentScene = std::move(newScene);
     CurrentSceneId = newSceneId;
+    CurrentLevelPath = newLevelPath;
 
     if (CurrentScene && IsDebug) {
       CurrentScene->SpawnActor<AGridLine>();

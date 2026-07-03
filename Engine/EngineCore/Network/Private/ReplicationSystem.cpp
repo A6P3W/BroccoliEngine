@@ -11,12 +11,33 @@
 #include "NetworkManager.h"
 #include "ObjectManager.h"
 #include "Pawn.h"
+#include "PlayerController.h"
 #include "SceneManager.h"
 #include "World.h"
 
 namespace {
 bool IsReplicationSequenceNewer(uint32_t IncomingSequence, uint32_t CurrentSequence) {
   return static_cast<int32_t>(IncomingSequence - CurrentSequence) > 0;
+}
+
+std::string MakeSceneIdTravelKey(FNetworkSceneId SceneId) {
+  return "id:" + std::to_string(SceneId);
+}
+
+std::string MakeLevelPathTravelKey(const std::string& LevelPath) {
+  return "path:" + LevelPath;
+}
+
+void WriteServerTravelPayload(FNetBuffer& Buffer, FNetworkSceneId SceneId) {
+  const bool bIsPathBased = false;
+  Buffer.Write(bIsPathBased);
+  Buffer.Write(SceneId);
+}
+
+void WriteServerTravelPayload(FNetBuffer& Buffer, const std::string& LevelPath) {
+  const bool bIsPathBased = true;
+  Buffer.Write(bIsPathBased);
+  Buffer.WriteString(LevelPath);
 }
 }  // namespace
 
@@ -158,7 +179,17 @@ bool MReplicationSystem::BroadcastServerTravel(FNetworkSceneId SceneId) {
   }
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ServerTravel);
-  buffer.Write(SceneId);
+  WriteServerTravelPayload(buffer, SceneId);
+  return NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Reliable);
+}
+
+bool MReplicationSystem::BroadcastServerTravel(const std::string& LevelPath) {
+  if (!OwnerWorld || !OwnerWorld->IsListenServer() || LevelPath.empty()) {
+    return false;
+  }
+  FNetBuffer buffer;
+  buffer.Write(ENetPacketType::ServerTravel);
+  WriteServerTravelPayload(buffer, LevelPath);
   return NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Reliable);
 }
 
@@ -166,7 +197,15 @@ void MReplicationSystem::NotifySceneLoaded() {
   if (!OwnerWorld || !OwnerWorld->IsClient()) {
     return;
   }
-  SendClientTravelReady(SceneManager::GetInstance().GetCurrentSceneId());
+
+  SceneManager& sceneManager = SceneManager::GetInstance();
+  const FNetworkSceneId currentSceneId = sceneManager.GetCurrentSceneId();
+  if (currentSceneId != 0) {
+    SendClientTravelReady(currentSceneId);
+    return;
+  }
+
+  SendClientTravelReady(sceneManager.GetCurrentLevelPath());
 }
 
 void MReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId) {
@@ -184,11 +223,17 @@ void MReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId) {
   if (currentSceneId != 0 && SendServerTravelToClient(ConnectionId, currentSceneId)) {
     return;
   }
+
+  const std::string& currentLevelPath = SceneManager::GetInstance().GetCurrentLevelPath();
+  if (!currentLevelPath.empty() && SendServerTravelToClient(ConnectionId, currentLevelPath)) {
+    return;
+  }
+
   InitializeClientForCurrentScene(ConnectionId);
 }
 
 void MReplicationSystem::HandleDisconnected(FNetworkConnectionId ConnectionId) {
-  LastReadySceneByConnection.erase(ConnectionId);
+  LastReadyTravelByConnection.erase(ConnectionId);
   if (OwnerWorld && OwnerWorld->IsServer()) {
     if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
       gameMode->OnClientDisconnected(ConnectionId);
@@ -370,28 +415,62 @@ void MReplicationSystem::HandleAssignNetId(FNetBuffer& Buffer) {
 }
 
 void MReplicationSystem::HandleServerTravel(FNetBuffer& Buffer) {
+  bool bIsPathBased = false;
+  if (!Buffer.Read(bIsPathBased)) {
+    return;
+  }
+
+  if (bIsPathBased) {
+    std::string levelPath;
+    if (!Buffer.ReadString(levelPath) || levelPath.empty()) {
+      return;
+    }
+
+    SceneManager::GetInstance().OpenLevelByPath(levelPath, ENetMode::Client);
+    return;
+  }
+
   FNetworkSceneId sceneId = 0;
   if (!Buffer.Read(sceneId)) {
     return;
   }
-  SceneManager::GetInstance().OpenSceneById(sceneId, ENetMode::Client);
+  SceneManager::GetInstance().OpenLevelById(sceneId, ENetMode::Client);
 }
 
 void MReplicationSystem::HandleClientTravelReady(
     FNetworkConnectionId ConnectionId, FNetBuffer& Buffer
 ) {
-  FNetworkSceneId sceneId = 0;
-  if (!Buffer.Read(sceneId)) {
+  bool bIsPathBased = false;
+  if (!Buffer.Read(bIsPathBased)) {
     return;
   }
-  if (sceneId == 0 || sceneId != SceneManager::GetInstance().GetCurrentSceneId()) {
+
+  std::string travelKey;
+  if (bIsPathBased) {
+    std::string levelPath;
+    if (!Buffer.ReadString(levelPath) || levelPath.empty()) {
+      return;
+    }
+    if (levelPath != SceneManager::GetInstance().GetCurrentLevelPath()) {
+      return;
+    }
+    travelKey = MakeLevelPathTravelKey(levelPath);
+  } else {
+    FNetworkSceneId sceneId = 0;
+    if (!Buffer.Read(sceneId)) {
+      return;
+    }
+    if (sceneId == 0 || sceneId != SceneManager::GetInstance().GetCurrentSceneId()) {
+      return;
+    }
+    travelKey = MakeSceneIdTravelKey(sceneId);
+  }
+
+  auto readyIt = LastReadyTravelByConnection.find(ConnectionId);
+  if (readyIt != LastReadyTravelByConnection.end() && readyIt->second == travelKey) {
     return;
   }
-  auto readyIt = LastReadySceneByConnection.find(ConnectionId);
-  if (readyIt != LastReadySceneByConnection.end() && readyIt->second == sceneId) {
-    return;
-  }
-  LastReadySceneByConnection[ConnectionId] = sceneId;
+  LastReadyTravelByConnection[ConnectionId] = travelKey;
   InitializeClientForCurrentScene(ConnectionId);
 }
 
@@ -413,7 +492,21 @@ bool MReplicationSystem::SendServerTravelToClient(
   }
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ServerTravel);
-  buffer.Write(SceneId);
+  WriteServerTravelPayload(buffer, SceneId);
+  return NetworkManager::GetInstance().SendToClient(
+      ConnectionId, buffer, ENetPacketReliability::Reliable
+  );
+}
+
+bool MReplicationSystem::SendServerTravelToClient(
+    FNetworkConnectionId ConnectionId, const std::string& LevelPath
+) {
+  if (!OwnerWorld || !OwnerWorld->IsServer() || ConnectionId == 0 || LevelPath.empty()) {
+    return false;
+  }
+  FNetBuffer buffer;
+  buffer.Write(ENetPacketType::ServerTravel);
+  WriteServerTravelPayload(buffer, LevelPath);
   return NetworkManager::GetInstance().SendToClient(
       ConnectionId, buffer, ENetPacketReliability::Reliable
   );
@@ -425,7 +518,17 @@ bool MReplicationSystem::SendClientTravelReady(FNetworkSceneId SceneId) {
   }
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ClientTravelReady);
-  buffer.Write(SceneId);
+  WriteServerTravelPayload(buffer, SceneId);
+  return NetworkManager::GetInstance().SendToServer(buffer, ENetPacketReliability::Reliable);
+}
+
+bool MReplicationSystem::SendClientTravelReady(const std::string& LevelPath) {
+  if (!OwnerWorld || !OwnerWorld->IsClient() || LevelPath.empty()) {
+    return false;
+  }
+  FNetBuffer buffer;
+  buffer.Write(ENetPacketType::ClientTravelReady);
+  WriteServerTravelPayload(buffer, LevelPath);
   return NetworkManager::GetInstance().SendToServer(buffer, ENetPacketReliability::Reliable);
 }
 

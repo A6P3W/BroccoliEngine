@@ -58,7 +58,17 @@ bool World::ServerTravel(FNetworkSceneId SceneId) {
   if (IsListenServer() && ReplicationSystem) {
     ReplicationSystem->BroadcastServerTravel(SceneId);
   }
-  return SceneManager::GetInstance().OpenSceneById(SceneId, GetNetMode());
+  return SceneManager::GetInstance().OpenLevelById(SceneId, GetNetMode());
+}
+
+bool World::ServerTravel(const std::string& LevelPath) {
+  if (!IsServer() || LevelPath.empty()) {
+    return false;
+  }
+  if (IsListenServer() && ReplicationSystem) {
+    ReplicationSystem->BroadcastServerTravel(LevelPath);
+  }
+  return SceneManager::GetInstance().OpenLevelByPath(LevelPath, GetNetMode());
 }
 
 APlayerController* World::GetOrCreateLocalPlayerController() {

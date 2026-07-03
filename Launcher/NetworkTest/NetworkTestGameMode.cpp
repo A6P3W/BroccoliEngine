@@ -34,6 +34,10 @@ FNetworkSceneId ANetworkTestGameMode::GetTravelTargetSceneId() const {
   return NetworkTestSceneIds::Level2;
 }
 
+const char* ANetworkTestGameMode::GetTravelTargetLevelPath() const {
+  return NetworkTestLevelPaths::Level2;
+}
+
 const char* ANetworkTestLevel2GameMode::GetSceneName() const { return "NetworkTest Level 2"; }
 
 const char* ANetworkTestLevel2GameMode::GetTravelButtonText() const {
@@ -42,4 +46,8 @@ const char* ANetworkTestLevel2GameMode::GetTravelButtonText() const {
 
 FNetworkSceneId ANetworkTestLevel2GameMode::GetTravelTargetSceneId() const {
   return NetworkTestSceneIds::Level1;
+}
+
+const char* ANetworkTestLevel2GameMode::GetTravelTargetLevelPath() const {
+  return NetworkTestLevelPaths::Level1;
 }

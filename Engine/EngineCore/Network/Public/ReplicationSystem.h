@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <string>
 #include <unordered_map>
 
 #include "NetworkManager.h"
@@ -29,6 +30,7 @@ class MReplicationSystem {
       FNetworkComponentId ComponentNetworkId = 0
   );
   bool BroadcastServerTravel(FNetworkSceneId SceneId);
+  bool BroadcastServerTravel(const std::string& LevelPath);
   void NotifySceneLoaded();
 
  private:
@@ -46,7 +48,9 @@ class MReplicationSystem {
 
   void SendAssignedConnectionId(FNetworkConnectionId ConnectionId);
   bool SendServerTravelToClient(FNetworkConnectionId ConnectionId, FNetworkSceneId SceneId);
+  bool SendServerTravelToClient(FNetworkConnectionId ConnectionId, const std::string& LevelPath);
   bool SendClientTravelReady(FNetworkSceneId SceneId);
+  bool SendClientTravelReady(const std::string& LevelPath);
 
   void SendInitialStateToClient(FNetworkConnectionId ConnectionId);
   bool SendActorSpawn(AActor* Actor, FNetworkConnectionId TargetConnectionId = 0);
@@ -61,5 +65,5 @@ class MReplicationSystem {
 
   World* OwnerWorld = nullptr;
   std::unordered_map<FNetworkActorId, AActor*> ActorsByNetworkId;
-  std::unordered_map<FNetworkConnectionId, FNetworkSceneId> LastReadySceneByConnection;
+  std::unordered_map<FNetworkConnectionId, std::string> LastReadyTravelByConnection;
 };

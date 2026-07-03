@@ -61,6 +61,7 @@ class World {
 
   FNetworkActorId AllocateNetworkActorId();
   bool ServerTravel(FNetworkSceneId SceneId);
+  bool ServerTravel(const std::string& LevelPath);
   void SetGameMode(AGameModeBase* mode);
 
   APlayerController* GetOrCreateLocalPlayerController();

@@ -26,12 +26,13 @@ class SceneManager {
   void ProcessSceneChanges();
 
   void RegisterLevelPath(FNetworkSceneId SceneId, const std::string& LevelPath);
-  bool OpenSceneById(FNetworkSceneId SceneId);
-  bool OpenSceneById(FNetworkSceneId SceneId, ENetMode NetMode);
-  bool OpenLevel(const std::string& LevelPath);
-  bool OpenLevel(const std::string& LevelPath, ENetMode NetMode);
+  bool OpenLevelById(FNetworkSceneId SceneId);
+  bool OpenLevelById(FNetworkSceneId SceneId, ENetMode NetMode);
+  bool OpenLevelByPath(const std::string& LevelPath);
+  bool OpenLevelByPath(const std::string& LevelPath, ENetMode NetMode);
   bool IsSceneRegistered(FNetworkSceneId SceneId) const;
   FNetworkSceneId GetCurrentSceneId() const { return CurrentSceneId; }
+  const std::string& GetCurrentLevelPath() const { return CurrentLevelPath; }
   ENetMode GetCurrentNetMode() const;
 
   template <class T>
@@ -64,4 +65,6 @@ class SceneManager {
   std::unique_ptr<GameInstance> GameInstance = nullptr;
   FNetworkSceneId CurrentSceneId = 0;
   FNetworkSceneId PendingSceneId = 0;
+  std::string CurrentLevelPath;
+  std::string PendingLevelPath;
 };

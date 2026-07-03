@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "GameModeBase.h"
 #include "NetworkTypes.h"
@@ -9,6 +9,11 @@ namespace NetworkTestSceneIds {
 constexpr FNetworkSceneId Level1 = 1;
 constexpr FNetworkSceneId Level2 = 2;
 }  // namespace NetworkTestSceneIds
+
+namespace NetworkTestLevelPaths {
+constexpr const char* Level1 = "NetworkTest/NetworkTestLevel.BLevel";
+constexpr const char* Level2 = "NetworkTest/NetworkTestLevel2.BLevel";
+}  // namespace NetworkTestLevelPaths
 
 class ANetworkTestGameMode : public AGameModeBase {
  public:
@@ -21,6 +26,7 @@ class ANetworkTestGameMode : public AGameModeBase {
   virtual const char* GetSceneName() const;
   virtual const char* GetTravelButtonText() const;
   virtual FNetworkSceneId GetTravelTargetSceneId() const;
+  virtual const char* GetTravelTargetLevelPath() const;
 };
 
 class ANetworkTestLevel2GameMode : public ANetworkTestGameMode {
@@ -31,4 +37,5 @@ class ANetworkTestLevel2GameMode : public ANetworkTestGameMode {
   const char* GetSceneName() const override;
   const char* GetTravelButtonText() const override;
   FNetworkSceneId GetTravelTargetSceneId() const override;
+  const char* GetTravelTargetLevelPath() const override;
 };
