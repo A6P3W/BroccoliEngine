@@ -12,9 +12,7 @@ class ALevelStarterWidget : public AWidgetBase {
 
  protected:
   void BeginPlay() override;
-  void OnUpdate(float DeltaTime) override;
 
  private:
   MUIButtonComponent* OpenButton = nullptr;
-  bool bWasMouseLeftDown = false;
 };

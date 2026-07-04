@@ -16,6 +16,9 @@ AWidgetTestGameMode::AWidgetTestGameMode() {
   DefaultPlayerControllerClass = APlayerController::StaticClassName();
 }
 
-void AWidgetTestGameMode::BeginPlay() {}
+void AWidgetTestGameMode::BeginPlay() {
+  AGameModeBase::BeginPlay();
+  M_LOG("WidgetTestGameMode: UIToggleButtonComponent sample is available in WidgetTestUIMain.");
+}
 
 void AWidgetTestGameMode::OnUpdate(float DeltaTime) { AGameModeBase::OnUpdate(DeltaTime); }

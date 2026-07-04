@@ -49,7 +49,7 @@ void AWidgetBase::Navigate(const FInputActionValue& Value) {
 
 void AWidgetBase::Submit() {
   if (FocusedButtonComponent) {
-    FocusedButtonComponent->OnPressed();
+    FocusedButtonComponent->Press();
   }
 }
 

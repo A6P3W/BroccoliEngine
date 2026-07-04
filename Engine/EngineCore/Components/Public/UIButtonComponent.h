@@ -16,6 +16,7 @@ class MUIButtonComponent : public MUIWidgetComponent {
   void OnUpdate(float DeltaTime) override;
   std::function<void()> OnPressed;
 
+  virtual void Press();
   virtual void OnStateChanged(EButtonState NewState) {}
   void SetState(EButtonState NewState);
 
