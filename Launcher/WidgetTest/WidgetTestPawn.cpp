@@ -1,4 +1,4 @@
-﻿#include "SamplePawn01.h"
+﻿#include "WidgetTestPawn.h"
 
 #include <CircleCollisionComponent.h>
 #include <DxLib.h>
@@ -9,15 +9,15 @@
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "Log.h"
-#include "MainMenu.h"
+#include "WidgetTestUIMain.h"
 #include "ResourceManager.h"
 #include "SpriteComponent.h"
 #include "UIManager.h"
 #include "World.h"
 
-REGISTER_ACTOR(ASamplePawn01)
+REGISTER_ACTOR(AWidgetTestPawn)
 
-ASamplePawn01::ASamplePawn01() {
+AWidgetTestPawn::AWidgetTestPawn() {
   auto col = std::make_unique<MCircleCollisionComponent>(32.0f);
   col->SetParentComponent(GetRootComponent());
   AddComponent(std::move(col));
@@ -26,29 +26,29 @@ ASamplePawn01::ASamplePawn01() {
   Movement = movement.get();
   AddComponent(std::move(movement));
 }
-void ASamplePawn01::BeginPlay() {
-  auto* mainMenuWidget = GetWorld()->GetObjectManager()->SpawnObject<MainMenu>();
+void AWidgetTestPawn::BeginPlay() {
+  auto* mainMenuWidget = GetWorld()->GetObjectManager()->SpawnObject<AWidgetTestUIMain>();
 
-  // 3. UIManagerにPushして画面の最前面で開く
   UIManager::GetInstance()->AddWidget(mainMenuWidget);
+  UIManager::GetInstance()->SetFocusedWidget(mainMenuWidget);
 }
-void ASamplePawn01::OnPossessedBy(APlayerController* NewController) {
+void AWidgetTestPawn::OnPossessedBy(APlayerController* NewController) {
   APawn::OnPossessedBy(NewController);
   Camera->SetFOV(1);
 }
-void ASamplePawn01::OnUpdate(float DeltaTime) {}
+void AWidgetTestPawn::OnUpdate(float DeltaTime) {}
 
-void ASamplePawn01::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) {
+void AWidgetTestPawn::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) {
   PlayerInputComponent->BindAction(
-      InputAction::Interact, ETriggerEvent::Started, this, &ASamplePawn01::OnInteractPressed
+      InputAction::Interact, ETriggerEvent::Started, this, &AWidgetTestPawn::OnInteractPressed
   );
   PlayerInputComponent->BindAction(
-      InputAction::Move, ETriggerEvent::Triggered, this, &ASamplePawn01::OnMove
+      InputAction::Move, ETriggerEvent::Triggered, this, &AWidgetTestPawn::OnMove
   );
 }
 
-void ASamplePawn01::OnInteractPressed() { M_LOG("F"); }
+void AWidgetTestPawn::OnInteractPressed() { M_LOG("F"); }
 
-void ASamplePawn01::OnMove(const FInputActionValue& Value) {
+void AWidgetTestPawn::OnMove(const FInputActionValue& Value) {
   Movement->AddWorldForce(Value.Axis2D * -2);
 }

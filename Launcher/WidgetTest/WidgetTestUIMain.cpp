@@ -1,4 +1,4 @@
-﻿#include "MainMenu.h"
+﻿#include "WidgetTestUIMain.h"
 
 #include <DxLib.h>
 
@@ -6,7 +6,7 @@
 #include "Log.h"
 #include "UIBoxButton.h"
 #include "UITextComponent.h"
-MainMenu::MainMenu() {
+AWidgetTestUIMain::AWidgetTestUIMain() {
   float btnWidth = 200.0f;
   float btnHeight = 50.0f;
   int normalColor = GetColor(100, 100, 100);

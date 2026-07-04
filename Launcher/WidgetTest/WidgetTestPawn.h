@@ -6,10 +6,10 @@ class MEnhancedInputComponent;
 struct FInputActionValue;
 class MMovementComponent;
 
-class ASamplePawn01 : public APawn {
+class AWidgetTestPawn : public APawn {
  public:
-  DEFINE_ACTOR_CLASS(ASamplePawn01)
-  ASamplePawn01();
+  DEFINE_ACTOR_CLASS(AWidgetTestPawn)
+  AWidgetTestPawn();
   void BeginPlay() override;
   void OnPossessedBy(APlayerController* NewController) override;
   void OnUpdate(float DeltaTime) override;
