@@ -100,6 +100,7 @@ bool LevelSerializer::Load(
     }
     spawnedActors.push_back(actor);
   }
+  world->GetObjectManager()->FlushPendingActors();
   if (!world->IsSimulating()) {
     return true;
   }

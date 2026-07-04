@@ -36,17 +36,19 @@ class FActorManager {
     }
     T* ptr = obj.get();
     ptr->SetWorld(World);
-    Actors.push_back(std::move(obj));
     ptr->SetActorLocation(location);
     ptr->SetActorRotation(rotation);
 
     if (!DeferBeginPlay) ptr->Spawned();
+    PendingActors.push_back(std::move(obj));
     return ptr;
   }
   void RemovePendingDestroy();
+  void FlushPendingActors();
   void ClearAllObjects();
 
  private:
   std::vector<std::unique_ptr<AActor>> Actors;
+  std::vector<std::unique_ptr<AActor>> PendingActors;
   World* World = nullptr;
 };
