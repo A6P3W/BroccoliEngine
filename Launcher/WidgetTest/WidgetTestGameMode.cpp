@@ -3,11 +3,13 @@
 #include <PlayerController.h>
 #include <SpriteComponent.h>
 
+#include "ActorManager.h"
 #include "HttpManager.h"
 #include "Log.h"
-#include "ActorManager.h"
-#include "WidgetTestPawn.h"
+#include "UIManager.h"
 #include "UMath.h"
+#include "WidgetTestPawn.h"
+#include "WidgetTestUIMain.h"
 #include "nlohmann/json.hpp"
 
 REGISTER_GAME_MODE(AWidgetTestGameMode)
@@ -18,7 +20,12 @@ AWidgetTestGameMode::AWidgetTestGameMode() {
 
 void AWidgetTestGameMode::BeginPlay() {
   AGameModeBase::BeginPlay();
-  M_LOG("WidgetTestGameMode: UIToggleButtonComponent sample is available in WidgetTestUIMain.");
+  auto* mainMenuWidget = GetWorld()->GetObjectManager()->SpawnObject<AWidgetTestUIMain>();
+
+  UIManager::GetInstance()->AddWidget(mainMenuWidget);
+  UIManager::GetInstance()->SetFocusedWidget(mainMenuWidget);
+
+  M_LOG("WidgetTestGameMode: MUIVerticalBoxComponent sample is available in WidgetTestUIMain.");
 }
 
 void AWidgetTestGameMode::OnUpdate(float DeltaTime) { AGameModeBase::OnUpdate(DeltaTime); }

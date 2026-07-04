@@ -1,9 +1,9 @@
 ﻿#pragma once
 
-#include "EOSTypes.h"
-
 #include <string>
 #include <vector>
+
+#include "EOSTypes.h"
 
 class ANetworkTestPawn;
 

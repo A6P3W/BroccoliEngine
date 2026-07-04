@@ -18,18 +18,13 @@ ALevelStarterWidget::ALevelStarterWidget() {
   constexpr float ButtonHeight = 60.0f;
 
   auto button = std::make_unique<UIBoxButtonComponent>(
-      ButtonWidth,
-      ButtonHeight,
-      GetColor(85, 85, 85),
-      GetColor(119, 119, 119),
-      GetColor(51, 51, 51)
+      ButtonWidth, ButtonHeight, GetColor(85, 85, 85), GetColor(119, 119, 119), GetColor(51, 51, 51)
   );
   UIBoxButtonComponent* buttonPtr = button.get();
   buttonPtr->SetAnchor(EUIAnchor::MiddleCenter);
   buttonPtr->OnPressed = []() {
-    const std::string filepath = FileDialog::OpenFile(
-        "Broccoli Level Files (*.BLevel)\0*.BLevel\0All Files (*.*)\0*.*\0"
-    );
+    const std::string filepath =
+        FileDialog::OpenFile("Broccoli Level Files (*.BLevel)\0*.BLevel\0All Files (*.*)\0*.*\0");
     if (!filepath.empty()) {
       SceneManager::GetInstance().OpenLevelByPath(filepath);
     }

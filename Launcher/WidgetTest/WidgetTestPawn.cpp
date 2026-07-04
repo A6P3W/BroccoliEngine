@@ -9,10 +9,8 @@
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "Log.h"
-#include "WidgetTestUIMain.h"
 #include "ResourceManager.h"
 #include "SpriteComponent.h"
-#include "UIManager.h"
 #include "World.h"
 
 REGISTER_ACTOR(AWidgetTestPawn)
@@ -26,12 +24,7 @@ AWidgetTestPawn::AWidgetTestPawn() {
   Movement = movement.get();
   AddComponent(std::move(movement));
 }
-void AWidgetTestPawn::BeginPlay() {
-  auto* mainMenuWidget = GetWorld()->GetObjectManager()->SpawnObject<AWidgetTestUIMain>();
-
-  UIManager::GetInstance()->AddWidget(mainMenuWidget);
-  UIManager::GetInstance()->SetFocusedWidget(mainMenuWidget);
-}
+void AWidgetTestPawn::BeginPlay() {}
 void AWidgetTestPawn::OnPossessedBy(APlayerController* NewController) {
   APawn::OnPossessedBy(NewController);
   Camera->SetFOV(1);

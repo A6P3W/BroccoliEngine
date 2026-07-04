@@ -31,11 +31,23 @@ void MSceneComponent::OnComponentDestroy() {
 }
 
 void MSceneComponent::SetParentComponent(MSceneComponent* parent) {
-  if (!parent) {
+  if (ParentComponent == parent || parent == this) {
     return;
   }
+
+  if (ParentComponent != nullptr) {
+    std::erase(ParentComponent->ChildComponents, this);
+  }
+
   ParentComponent = parent;
-  parent->ChildComponents.push_back(this);
+
+  if (ParentComponent != nullptr &&
+      std::find(ParentComponent->ChildComponents.begin(), ParentComponent->ChildComponents.end(),
+                this) == ParentComponent->ChildComponents.end()) {
+    ParentComponent->ChildComponents.push_back(this);
+  }
+
+  MakeTransformDirty();
 }
 
 bool MSceneComponent::SetWorldLocation(const FVector2D& NewWorldLocation) {
