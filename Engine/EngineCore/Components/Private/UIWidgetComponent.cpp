@@ -4,10 +4,10 @@
 
 #include "EngineDefine.h"
 
-MUIWidgetComponent::MUIWidgetComponent(int basePriority) : m_basePriority(basePriority) {}
+MUIWidgetComponent::MUIWidgetComponent(int basePriority) : BasePriority(basePriority) {}
 
 void MUIWidgetComponent::SetZOrderOffset(int offset) {
-  m_zOrderOffset = offset;
+  ZOrderOffset = offset;
   for (auto* child : ChildComponents) {
     if (auto* childWidget = dynamic_cast<MUIWidgetComponent*>(child)) {
       childWidget->SetZOrderOffset(offset);
@@ -15,25 +15,25 @@ void MUIWidgetComponent::SetZOrderOffset(int offset) {
   }
 }
 
-int MUIWidgetComponent::GetFinalPriority() const { return m_basePriority + m_zOrderOffset; }
+int MUIWidgetComponent::GetFinalPriority() const { return BasePriority + ZOrderOffset; }
 
 void MUIWidgetComponent::SetAnchor(EUIAnchor anchor) {
-  m_anchor = anchor;
+  Anchor = anchor;
   UpdateAnchoredLocation();
 }
 
 void MUIWidgetComponent::SetPivot(const FVector2D& pivot) {
-  m_pivot = pivot;
+  Pivot = pivot;
   UpdateAnchoredLocation();
 }
 
 void MUIWidgetComponent::SetWidgetSize(const FVector2D& size) {
-  m_widgetSize = size;
+  WidgetSize = size;
   UpdateAnchoredLocation();
 }
 
 void MUIWidgetComponent::SetAnchoredPosition(const FVector2D& pos) {
-  m_anchoredPosition = pos;
+  AnchoredPosition = pos;
   UpdateAnchoredLocation();
 }
 
@@ -52,7 +52,7 @@ void MUIWidgetComponent::UpdateAnchoredLocation() {
   }
 
   FVector2D anchorOffset = FVector2D::ZeroVector;
-  switch (m_anchor) {
+  switch (Anchor) {
     case EUIAnchor::TopLeft:
       anchorOffset = {0.0f, 0.0f};
       break;
@@ -82,11 +82,11 @@ void MUIWidgetComponent::UpdateAnchoredLocation() {
       break;
   }
 
-  FVector2D pivotOffset = {m_widgetSize.X * m_pivot.X, m_widgetSize.Y * m_pivot.Y};
+  FVector2D pivotOffset = {WidgetSize.X * Pivot.X, WidgetSize.Y * Pivot.Y};
 
-  FVector2D topLeft = parentTopLeft + anchorOffset + m_anchoredPosition - pivotOffset;
+  FVector2D topLeft = parentTopLeft + anchorOffset + AnchoredPosition - pivotOffset;
 
-  FVector2D newRelativeLoc = {topLeft.X + m_widgetSize.X * 0.5f, topLeft.Y + m_widgetSize.Y * 0.5f};
+  FVector2D newRelativeLoc = {topLeft.X + WidgetSize.X * 0.5f, topLeft.Y + WidgetSize.Y * 0.5f};
 
   if (std::abs(newRelativeLoc.X - GetRelativeLocation().X) > 0.001f ||
       std::abs(newRelativeLoc.Y - GetRelativeLocation().Y) > 0.001f) {

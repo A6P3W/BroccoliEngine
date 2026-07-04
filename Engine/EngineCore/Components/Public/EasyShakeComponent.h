@@ -7,16 +7,16 @@
 class FShakeHandle {
  public:
   FShakeHandle() = default;
-  explicit FShakeHandle(uint64_t InId) : m_Id(InId) {}
+  explicit FShakeHandle(uint64_t InId) : ShakeID(InId) {}
 
-  bool IsValid() const { return m_Id != 0; }
-  void Invalidate() { m_Id = 0; }
-  uint64_t GetId() const { return m_Id; }
-  bool operator==(const FShakeHandle& Other) const { return m_Id == Other.m_Id; }
+  bool IsValid() const { return ShakeID != 0; }
+  void Invalidate() { ShakeID = 0; }
+  uint64_t GetId() const { return ShakeID; }
+  bool operator==(const FShakeHandle& Other) const { return ShakeID == Other.ShakeID; }
   bool operator!=(const FShakeHandle& Other) const { return !(*this == Other); }
 
  private:
-  uint64_t m_Id = 0;
+  uint64_t ShakeID = 0;
 };
 
 class MEasyShakeComponent : public MSceneComponent {
@@ -41,9 +41,9 @@ class MEasyShakeComponent : public MSceneComponent {
     bool bFadeOut = false;
   };
 
-  std::vector<FShakeInstance> m_activeShakes;
-  uint64_t m_nextShakeId = 1;
-  FVector2D m_lastAppliedLocalOffset = FVector2D::ZeroVector;
-  FVector2D m_baseLocalLocation = FVector2D::ZeroVector;
-  bool m_hasBaseLocalLocation = false;
+  std::vector<FShakeInstance> ActiveShakes;
+  uint64_t NextShakeId = 1;
+  FVector2D LastAppliedLocalOffset = FVector2D::ZeroVector;
+  FVector2D BaseLocalLocation = FVector2D::ZeroVector;
+  bool HasBaseLocalLocation = false;
 };

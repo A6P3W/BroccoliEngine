@@ -7,7 +7,7 @@ void MEnhancedInputComponent::ProcessInputBindings(
   std::unordered_map<std::string, float> currentFrameAxis1D;
   constexpr float EpsilonSq = 0.0001f;
 
-  for (const auto& b : m_bindings) {
+  for (const auto& b : Bindings) {
     bool bIsUIAction = b.IsUIAction;
     if (bIsUIAction && !AllowUI) continue;
     if (!bIsUIAction && !AllowGame) continue;
@@ -38,11 +38,11 @@ void MEnhancedInputComponent::ProcessInputBindings(
     switch (b.Event) {
       case ETriggerEvent::Started:
         if (is2DAxis) {
-          const float lastSq = m_lastAxis2DValues[b.ActionName].SizeSquared();
+          const float lastSq = LastAxis2DValues[b.ActionName].SizeSquared();
           trigger = (lastSq <= EpsilonSq) && (currentAxis2D.SizeSquared() > EpsilonSq);
         } else {
           const bool isButtonStart = mapper.GetPressStart(b.ActionName);
-          const bool isAxisStart = (std::abs(m_lastAxis1DValues[b.ActionName]) <= EpsilonSq) &&
+          const bool isAxisStart = (std::abs(LastAxis1DValues[b.ActionName]) <= EpsilonSq) &&
                                    (std::abs(currentAxis1D) > EpsilonSq);
           trigger = isButtonStart || isAxisStart;
         }
@@ -56,11 +56,11 @@ void MEnhancedInputComponent::ProcessInputBindings(
         break;
       case ETriggerEvent::Completed:
         if (is2DAxis) {
-          const float lastSq = m_lastAxis2DValues[b.ActionName].SizeSquared();
+          const float lastSq = LastAxis2DValues[b.ActionName].SizeSquared();
           trigger = (lastSq > EpsilonSq) && (currentAxis2D.SizeSquared() <= EpsilonSq);
         } else {
           const bool isButtonRelease = mapper.GetRelease(b.ActionName);
-          const bool isAxisRelease = (std::abs(m_lastAxis1DValues[b.ActionName]) > EpsilonSq) &&
+          const bool isAxisRelease = (std::abs(LastAxis1DValues[b.ActionName]) > EpsilonSq) &&
                                      (std::abs(currentAxis1D) <= EpsilonSq);
           trigger = isButtonRelease || isAxisRelease;
         }
@@ -77,6 +77,6 @@ void MEnhancedInputComponent::ProcessInputBindings(
     b.Callback(value);
   }
 
-  m_lastAxis2DValues = currentFrameAxis2D;
-  m_lastAxis1DValues = currentFrameAxis1D;
+  LastAxis2DValues = currentFrameAxis2D;
+  LastAxis1DValues = currentFrameAxis1D;
 }

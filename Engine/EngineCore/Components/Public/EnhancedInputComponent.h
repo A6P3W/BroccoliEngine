@@ -24,15 +24,15 @@ class MEnhancedInputComponent : public MActorComponent {
     std::function<void(const FInputActionValue&)> Callback;
     bool IsUIAction = false;
   };
-  std::vector<FInputBinding> m_bindings;
-  std::unordered_map<std::string, FVector2D> m_lastAxis2DValues;
-  std::unordered_map<std::string, float> m_lastAxis1DValues;
+  std::vector<FInputBinding> Bindings;
+  std::unordered_map<std::string, FVector2D> LastAxis2DValues;
+  std::unordered_map<std::string, float> LastAxis1DValues;
 
  public:
   void ClearBindings() {
-    m_bindings.clear();
-    m_lastAxis2DValues.clear();
-    m_lastAxis1DValues.clear();
+    Bindings.clear();
+    LastAxis2DValues.clear();
+    LastAxis1DValues.clear();
   }
   template <class T>
   void BindAction(
@@ -42,7 +42,7 @@ class MEnhancedInputComponent : public MActorComponent {
       void (T::*func)(const FInputActionValue&),
       bool isUIAction = false
   ) {
-    m_bindings.push_back(
+    Bindings.push_back(
         {actionName,
          event,
          [obj, func](const FInputActionValue& v) { (obj->*func)(v); },
@@ -57,7 +57,7 @@ class MEnhancedInputComponent : public MActorComponent {
       void (T::*func)(),
       bool isUIAction = false
   ) {
-    m_bindings.push_back(
+    Bindings.push_back(
         {actionName, event, [obj, func](const FInputActionValue&) { (obj->*func)(); }, isUIAction}
     );
   }

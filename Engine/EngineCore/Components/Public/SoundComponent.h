@@ -23,5 +23,5 @@ class MSoundComponent : public MActorComponent {
  private:
   FSoundManager* GetSoundManager() const;
 
-  std::vector<int> m_PlayingHandles;
+  std::vector<int> PlayingHandles;
 };

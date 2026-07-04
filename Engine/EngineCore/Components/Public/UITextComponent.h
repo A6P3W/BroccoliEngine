@@ -17,9 +17,9 @@ class UITextComponent : public MUIWidgetComponent {
  private:
   void UpdateText();
 
-  MSpriteComponent* m_TextSprite = nullptr;
-  std::string m_Text;
-  int m_Color = 0xFFFFFF;
-  int m_FontSize = 24;
-  int m_FontHandle = -1;
+  MSpriteComponent* TextSprite = nullptr;
+  std::string Text;
+  int Color = 0xFFFFFF;
+  int FontSize = 24;
+  int FontHandle = -1;
 };

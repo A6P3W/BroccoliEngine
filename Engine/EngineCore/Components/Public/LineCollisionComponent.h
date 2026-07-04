@@ -7,24 +7,24 @@ class MLineCollisionComponent : public MCollisionComponent {
       const FVector2D& localStart = FVector2D::ZeroVector,
       const FVector2D& localEnd = {100.0f, 0.0f}
   )
-      : m_localStart(localStart), m_localEnd(localEnd) {}
+      : LocalStart(localStart), LocalEnd(localEnd) {}
 
   ECollisionShape GetShapeType() const override { return ECollisionShape::Line; }
 
-  FVector2D GetLocalStart() const { return m_localStart; }
-  FVector2D GetLocalEnd() const { return m_localEnd; }
+  FVector2D GetLocalStart() const { return LocalStart; }
+  FVector2D GetLocalEnd() const { return LocalEnd; }
 
   FVector2D GetWorldStart() const {
-    return GetWorldLocation() + m_localStart.RotateVector(GetWorldRotation()) * GetWorldScale();
+    return GetWorldLocation() + LocalStart.RotateVector(GetWorldRotation()) * GetWorldScale();
   }
   FVector2D GetWorldEnd() const {
-    return GetWorldLocation() + m_localEnd.RotateVector(GetWorldRotation()) * GetWorldScale();
+    return GetWorldLocation() + LocalEnd.RotateVector(GetWorldRotation()) * GetWorldScale();
   }
 
   void Draw() override;
   FAABB GetAABB() const override;
 
  private:
-  FVector2D m_localStart;
-  FVector2D m_localEnd;
+  FVector2D LocalStart;
+  FVector2D LocalEnd;
 };
