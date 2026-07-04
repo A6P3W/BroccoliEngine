@@ -100,6 +100,9 @@ void SceneManager::ProcessSceneChanges() {
     if (!newScene) {
       return;
     }
+
+    newScene->GetObjectManager()->FlushPendingActors();
+
     CurrentScene = std::move(newScene);
     CurrentSceneId = newSceneId;
     CurrentLevelPath = newLevelPath;

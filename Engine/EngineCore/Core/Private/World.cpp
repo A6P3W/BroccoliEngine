@@ -25,7 +25,10 @@ World::~World() { bTearingDown = true; }
 void World::Update(float DeltaTime) {
   if (ActorManager) ActorManager->Update(DeltaTime);
   if (ReplicationSystem) ReplicationSystem->Update();
-  if (ActorManager) ActorManager->RemovePendingDestroy();
+  if (ActorManager) {
+    ActorManager->RemovePendingDestroy();
+    ActorManager->FlushPendingActors();
+  }
   if (bSimulating) {
     if (TimerManager) TimerManager->Update(DeltaTime);
     if (CollisionSystem) CollisionSystem->CheckCollisions();

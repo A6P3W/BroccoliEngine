@@ -9,13 +9,7 @@ FActorManager::FActorManager() {}
 FActorManager::~FActorManager() = default;
 
 void FActorManager::Update(float DeltaTime) {
-  // 更新対象のポインタをコピーしてループを回す
-  std::vector<AActor*> tempActors;
-  tempActors.reserve(Actors.size());
   for (auto& object : Actors) {
-    tempActors.push_back(object.get());
-  }
-  for (auto* object : tempActors) {
     if (object && !object->IsPendingDestroy()) {
       if (World->IsSimulating() || object->IsEditorActor() || object->CanUpdateAnytime()) {
         object->Update(DeltaTime);
@@ -31,9 +25,27 @@ void FActorManager::Draw() {
 }
 
 void FActorManager::RemovePendingDestroy() {
-  std::erase_if(Actors, [](const std::unique_ptr<AActor>& obj) {
+  auto shouldRemove = [](const std::unique_ptr<AActor>& obj) {
     return !obj || obj->IsPendingDestroy();
-  });
+  };
+
+  std::erase_if(Actors, shouldRemove);
+  std::erase_if(PendingActors, shouldRemove);
 }
 
-void FActorManager::ClearAllObjects() { Actors.clear(); }
+void FActorManager::FlushPendingActors() {
+  if (PendingActors.empty()) {
+    return;
+  }
+
+  Actors.reserve(Actors.size() + PendingActors.size());
+  for (auto& pendingObj : PendingActors) {
+    Actors.push_back(std::move(pendingObj));
+  }
+  PendingActors.clear();
+}
+
+void FActorManager::ClearAllObjects() {
+  Actors.clear();
+  PendingActors.clear();
+}
