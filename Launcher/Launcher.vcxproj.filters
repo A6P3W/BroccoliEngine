@@ -33,13 +33,13 @@
     <ClCompile Include="NetworkTest\NetworkTestGameMode.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="SampleScene01\MainMenu.cpp">
+    <ClCompile Include="WidgetTest\WidgetTestUIMain.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="SampleScene01\SamplePawn01.cpp">
+    <ClCompile Include="WidgetTest\WidgetTestPawn.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="SampleScene01\SampleScene01.cpp">
+    <ClCompile Include="WidgetTest\WidgetTestGameMode.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -62,13 +62,13 @@
     <ClInclude Include="NetworkTest\NetworkTestGameMode.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="SampleScene01\MainMenu.h">
+    <ClInclude Include="WidgetTest\WidgetTestUIMain.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="SampleScene01\SamplePawn01.h">
+    <ClInclude Include="WidgetTest\WidgetTestPawn.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="SampleScene01\SampleScene01.h">
+    <ClInclude Include="WidgetTest\WidgetTestGameMode.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

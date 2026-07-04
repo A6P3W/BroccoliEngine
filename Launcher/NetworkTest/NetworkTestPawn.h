@@ -1,12 +1,12 @@
 ﻿#pragma once
 
-#include "ActorComponent.h"
-#include "Pawn.h"
-#include "UMath.h"
-
 #include <cstdint>
 #include <memory>
 #include <string>
+
+#include "ActorComponent.h"
+#include "Pawn.h"
+#include "UMath.h"
 
 class MEnhancedInputComponent;
 class MSpriteComponent;

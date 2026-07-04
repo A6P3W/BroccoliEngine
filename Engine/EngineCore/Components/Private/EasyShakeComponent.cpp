@@ -55,7 +55,7 @@ void MEasyShakeComponent::ApplyShake(
   inst.ElapsedSeconds = 0.0f;
   inst.bFadeIn = bEnableFadeIn;
   inst.bFadeOut = bEnableFadeOut;
-  m_activeShakes.push_back(inst);
+  ActiveShakes.push_back(inst);
 }
 
 void MEasyShakeComponent::StartShake(
@@ -70,7 +70,7 @@ void MEasyShakeComponent::StartShake(
     EndShake(Handle);
   }
 
-  uint64_t NewId = ++m_nextShakeId;
+  uint64_t NewId = ++NextShakeId;
   Handle = FShakeHandle(NewId);
 
   FShakeInstance inst;
@@ -80,17 +80,17 @@ void MEasyShakeComponent::StartShake(
   inst.ElapsedSeconds = 0.0f;
   inst.bFadeIn = false;
   inst.bFadeOut = false;
-  m_activeShakes.push_back(inst);
+  ActiveShakes.push_back(inst);
 }
 
 void MEasyShakeComponent::EndShake(FShakeHandle& Handle, bool bEnableFadeOut) {
   if (!Handle.IsValid()) return;
 
   const uint64_t Id = Handle.GetId();
-  for (auto it = m_activeShakes.begin(); it != m_activeShakes.end(); ++it) {
+  for (auto it = ActiveShakes.begin(); it != ActiveShakes.end(); ++it) {
     if (it->Id == Id) {
       if (!bEnableFadeOut) {
-        m_activeShakes.erase(it);
+        ActiveShakes.erase(it);
         Handle.Invalidate();
       } else {
         float originalDuration = it->DurationSeconds;
@@ -107,7 +107,7 @@ void MEasyShakeComponent::EndShake(FShakeHandle& Handle, bool bEnableFadeOut) {
 bool MEasyShakeComponent::IsShakeActive(const FShakeHandle& Handle) const {
   if (!Handle.IsValid()) return false;
   const uint64_t Id = Handle.GetId();
-  for (const auto& inst : m_activeShakes) {
+  for (const auto& inst : ActiveShakes) {
     if (inst.Id == Id) return true;
   }
   return false;
@@ -117,20 +117,20 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime) {
   MSceneComponent* target = this;
   if (!target) return;
 
-  if (m_lastAppliedLocalOffset.SizeSquared() > 1e-8f) {
-    target->AddLocalOffset(m_lastAppliedLocalOffset * -1.0f);
-    m_lastAppliedLocalOffset = FVector2D::ZeroVector;
+  if (LastAppliedLocalOffset.SizeSquared() > 1e-8f) {
+    target->AddLocalOffset(LastAppliedLocalOffset * -1.0f);
+    LastAppliedLocalOffset = FVector2D::ZeroVector;
   }
 
-  if (m_activeShakes.empty()) {
+  if (ActiveShakes.empty()) {
     return;
   }
 
   FVector2D totalOffset = FVector2D::ZeroVector;
-  for (auto it = m_activeShakes.begin(); it != m_activeShakes.end();) {
+  for (auto it = ActiveShakes.begin(); it != ActiveShakes.end();) {
     it->ElapsedSeconds += DeltaTime;
     if (it->ElapsedSeconds >= it->DurationSeconds) {
-      it = m_activeShakes.erase(it);
+      it = ActiveShakes.erase(it);
       continue;
     }
 
@@ -142,6 +142,6 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime) {
 
   if (totalOffset.SizeSquared() > 1e-8f) {
     target->AddLocalOffset(totalOffset);
-    m_lastAppliedLocalOffset = totalOffset;
+    LastAppliedLocalOffset = totalOffset;
   }
 }

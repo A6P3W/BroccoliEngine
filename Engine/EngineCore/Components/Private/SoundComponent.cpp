@@ -12,7 +12,7 @@ int MSoundComponent::PlaySE(const std::string& path, bool loop) {
 
   int handle = soundManager->PlaySE(path, loop);
   if (handle != -1) {
-    m_PlayingHandles.push_back(handle);
+    PlayingHandles.push_back(handle);
   }
 
   return handle;
@@ -24,7 +24,7 @@ int MSoundComponent::PlayBGM(const std::string& path, bool loop) {
 
   int handle = soundManager->PlayBGM(path, loop);
   if (handle != -1) {
-    m_PlayingHandles.push_back(handle);
+    PlayingHandles.push_back(handle);
   }
 
   return handle;
@@ -42,20 +42,20 @@ void MSoundComponent::Stop(int handle) {
   if (!soundManager) return;
 
   soundManager->Stop(handle);
-  std::erase(m_PlayingHandles, handle);
+  std::erase(PlayingHandles, handle);
 }
 
 void MSoundComponent::StopAll() {
   FSoundManager* soundManager = GetSoundManager();
   if (!soundManager) {
-    m_PlayingHandles.clear();
+    PlayingHandles.clear();
     return;
   }
 
-  for (int handle : m_PlayingHandles) {
+  for (int handle : PlayingHandles) {
     soundManager->Stop(handle);
   }
-  m_PlayingHandles.clear();
+  PlayingHandles.clear();
 }
 
 void MSoundComponent::SetMasterVolume(float volume) {

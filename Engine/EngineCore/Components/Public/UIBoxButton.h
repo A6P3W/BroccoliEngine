@@ -19,11 +19,11 @@ class UIBoxButtonComponent : public MUIButtonComponent {
   void UpdateBox();
   int GetColorForState(EButtonState State) const;
 
-  MSpriteComponent* m_BoxSprite = nullptr;
-  float m_Width = 0.0f;
-  float m_Height = 0.0f;
-  int m_NormalColor = 0;
-  int m_HoveredColor = 0;
-  int m_PressedColor = 0;
-  EButtonState m_CurrentState = EButtonState::Normal;
+  MSpriteComponent* BoxSprite = nullptr;
+  float Width = 0.0f;
+  float Height = 0.0f;
+  int NormalColor = 0;
+  int HoveredColor = 0;
+  int PressedColor = 0;
+  EButtonState CurrentState = EButtonState::Normal;
 };

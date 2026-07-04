@@ -7,8 +7,8 @@
 void MRectangleCollisionComponent::Draw() {
   if (!IsDebug) return;
   FVector2D center = GetWorldLocation();
-  float halfWidth = (m_width * GetWorldScale().Scale) * 0.5f;
-  float halfHeight = (m_height * GetWorldScale().Scale) * 0.5f;
+  float halfWidth = (Width * GetWorldScale().Scale) * 0.5f;
+  float halfHeight = (Height * GetWorldScale().Scale) * 0.5f;
 
   // 回転時のピボット(左上)を計算するために、中心から左上へのベクトルを回転させます
   float rad = UMath::DegToRad(GetWorldRotation().Rotation);
@@ -45,8 +45,8 @@ void MRectangleCollisionComponent::Draw() {
 
 FAABB MRectangleCollisionComponent::GetAABB() const {
   FVector2D center = GetWorldLocation();
-  float halfWidth = (m_width * GetWorldScale().Scale) * 0.5f;
-  float halfHeight = (m_height * GetWorldScale().Scale) * 0.5f;
+  float halfWidth = (Width * GetWorldScale().Scale) * 0.5f;
+  float halfHeight = (Height * GetWorldScale().Scale) * 0.5f;
 
   float rad = UMath::DegToRad(GetWorldRotation().Rotation);
   float cosA = std::cos(rad);
