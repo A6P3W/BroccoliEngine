@@ -389,7 +389,6 @@
     <ClInclude Include="PrivateConfig\EOS_ProductCredentials.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\AGENTS.md" />
     <None Include="..\README.md">
       <SubType>
       </SubType>
