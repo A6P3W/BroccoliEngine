@@ -32,7 +32,30 @@ APlayerController* AGameModeBase::OnClientConnected(FNetworkConnectionId Connect
   return SpawnDefaultPlayer(ConnectionId);
 }
 
-void AGameModeBase::OnClientDisconnected(FNetworkConnectionId ConnectionId) { (void)ConnectionId; }
+void AGameModeBase::OnClientDisconnected(FNetworkConnectionId ConnectionId) {
+  if (!GetWorld() || !GetWorld()->GetObjectManager()) {
+    return;
+  }
+
+  const auto& actors = GetWorld()->GetObjectManager()->GetAllActors();
+  for (const auto& actorPtr : actors) {
+    AActor* actor = actorPtr.get();
+    if (!actor || actor->IsPendingDestroy()) {
+      continue;
+    }
+
+    if (actor->OwnerConnectionId == ConnectionId) {
+      if (dynamic_cast<APlayerController*>(actor) || dynamic_cast<APawn*>(actor)) {
+        actor->Destroy();
+        M_LOG(
+            "Destroyed actor {} for disconnected client {}",
+            actor->GetActorClassName(),
+            ConnectionId
+        );
+      }
+    }
+  }
+}
 
 void AGameModeBase::OnUpdate(float DeltaTime) { (void)DeltaTime; }
 
