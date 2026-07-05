@@ -20,6 +20,9 @@ class UIManager {
   void Submit();
   void Cancel();
 
+  void SetTextInputActive(bool bActive) { bTextInputActive = bActive; }
+  bool IsTextInputActive() const { return bTextInputActive; }
+
   void SetFocusedWidget(AWidgetBase* Widget) { CurrentFocusedWidget = Widget; }
   AWidgetBase* GetFocusedWidget() const { return CurrentFocusedWidget; }
 
@@ -28,4 +31,5 @@ class UIManager {
 
   AWidgetBase* CurrentFocusedWidget = nullptr;
   std::vector<AWidgetBase*> ActiveWidgets;
+  bool bTextInputActive = false;
 };

@@ -5,6 +5,7 @@
 #include "Application.h"
 #include "Log.h"
 #include "UIBoxButton.h"
+#include "UIInputTextComponent.h"
 #include "UITextComponent.h"
 #include "UIToggleButtonComponent.h"
 #include "UIVerticalBoxComponent.h"
@@ -17,6 +18,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   int normalColor = GetColor(100, 100, 100);
   int hoveredColor = GetColor(150, 150, 150);
   int pressedColor = GetColor(50, 50, 50);
+  int inputEditingColor = GetColor(40, 100, 170);
 
   auto VerticalBox = std::make_unique<MUIVerticalBoxComponent>();
   auto VerticalBoxPtr = VerticalBox.get();
@@ -59,6 +61,14 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   VerticalBoxPtr->AddItem(ConfigBtnPtr);
   AddComponent(std::move(ConfigBtn));
 
+  // 入力可能テキスト欄
+  auto NameInput = std::make_unique<UIInputTextComponent>(btnWidth, btnHeight, "Name...");
+  auto NameInputPtr = NameInput.get();
+  NameInputPtr->SetMaxLength(12);
+  NameInputPtr->SetColors(normalColor, hoveredColor, inputEditingColor);
+  VerticalBoxPtr->AddItem(NameInputPtr);
+  AddComponent(std::move(NameInput));
+
   // Exitボタン
   auto ExitBtn = std::make_unique<UIBoxButtonComponent>(
       btnWidth, btnHeight, normalColor, hoveredColor, pressedColor
@@ -98,11 +108,26 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   rightNavText->SetParentComponent(RightNavBtnPtr);
   AddComponent(std::move(rightNavText));
 
+  auto committedText =
+      std::make_unique<UITextComponent>("Input: <empty>", GetColor(210, 230, 255), 20);
+  auto CommittedTextPtr = committedText.get();
+  CommittedTextPtr->SetAnchor(EUIAnchor::MiddleCenter);
+  CommittedTextPtr->SetAnchoredPosition({0.0f, 210.0f});
+  AddComponent(std::move(committedText));
+
   // ボタン押下時の処理
   StartBtnPtr->OnPressed = []() { M_LOG("Start Game!"); };
   ToggleBtnPtr->OnToggled = [ToggleTextPtr](bool bIsOn) {
     ToggleTextPtr->SetText(bIsOn ? "Toggle: ON" : "Toggle: OFF");
     M_LOG("Toggle Button: {}", bIsOn ? "ON" : "OFF");
+  };
+  NameInputPtr->OnTextChanged = [](const std::string& text) {
+    M_LOG("Input changed: {}", text);
+  };
+  NameInputPtr->OnTextCommitted = [CommittedTextPtr](const std::string& text) {
+    const std::string displayText = text.empty() ? "<empty>" : text;
+    CommittedTextPtr->SetText("Input: " + displayText);
+    M_LOG("Input committed: {}", displayText);
   };
   ExitBtnPtr->OnPressed = []() {
     M_LOG("Exit Game!");

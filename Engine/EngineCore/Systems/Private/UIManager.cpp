@@ -31,6 +31,7 @@ void UIManager::RemoveWidget(AWidgetBase* Widget) {
 
   if (CurrentFocusedWidget == Widget) {
     CurrentFocusedWidget = nullptr;
+    bTextInputActive = false;
   }
 
   auto it = std::find(ActiveWidgets.begin(), ActiveWidgets.end(), Widget);
@@ -44,18 +45,30 @@ void UIManager::RemoveWidget(AWidgetBase* Widget) {
 }
 
 void UIManager::Navigate(const FInputActionValue& Value) {
+  if (bTextInputActive) {
+    return;
+  }
+
   if (CurrentFocusedWidget) {
     CurrentFocusedWidget->Navigate(Value);
   }
 }
 
 void UIManager::Submit() {
+  if (bTextInputActive) {
+    return;
+  }
+
   if (CurrentFocusedWidget) {
     CurrentFocusedWidget->Submit();
   }
 }
 
 void UIManager::Cancel() {
+  if (bTextInputActive) {
+    return;
+  }
+
   if (CurrentFocusedWidget) {
     CurrentFocusedWidget->Cancel();
   }
