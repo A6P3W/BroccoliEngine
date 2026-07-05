@@ -494,4 +494,5 @@ $RECYCLE.BIN/
 !Engine/ThirdParty/EOS/SDK/Bin/
 /Launcher/Config
 /PrivateConfig
-/.repomixignore
+
+**.repomixignore
