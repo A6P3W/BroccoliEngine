@@ -5,6 +5,7 @@
 #include <functional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "NetBuffer.h"
 #include "NetworkTypes.h"
@@ -21,6 +22,7 @@ class NetworkManager {
   using ConnectedCallback = std::function<void(FNetworkConnectionId)>;
   using DisconnectedCallback = std::function<void(FNetworkConnectionId)>;
   using PacketReceivedCallback = std::function<void(FNetworkConnectionId, FNetBuffer&)>;
+  using CallbackHandle = size_t;
 
   static NetworkManager& GetInstance();
 
@@ -55,11 +57,12 @@ class NetworkManager {
 
   void SetLocalConnectionId(FNetworkConnectionId ConnectionId) { LocalConnectionId = ConnectionId; }
 
-  void SetOnConnected(ConnectedCallback Callback) { OnConnected = std::move(Callback); }
-  void SetOnDisconnected(DisconnectedCallback Callback) { OnDisconnected = std::move(Callback); }
-  void SetOnPacketReceived(PacketReceivedCallback Callback) {
-    OnPacketReceived = std::move(Callback);
-  }
+  CallbackHandle AddOnConnected(ConnectedCallback Callback);
+  CallbackHandle AddOnDisconnected(DisconnectedCallback Callback);
+  CallbackHandle AddOnPacketReceived(PacketReceivedCallback Callback);
+  void RemoveOnConnected(CallbackHandle Handle);
+  void RemoveOnDisconnected(CallbackHandle Handle);
+  void RemoveOnPacketReceived(CallbackHandle Handle);
 
  private:
   NetworkManager();
@@ -74,12 +77,17 @@ class NetworkManager {
   FNetworkConnectionId FindConnectionId(ENetPeer* Peer) const;
   void RemovePeer(ENetPeer* Peer);
   void ClearPeers();
+  void BroadcastConnected(FNetworkConnectionId ConnectionId);
+  void BroadcastDisconnected(FNetworkConnectionId ConnectionId);
+  void BroadcastPacketReceived(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer);
 
   ENetHost* Host = nullptr;
   ENetPeer* ServerPeer = nullptr;
   bool bEnetInitialized = false;
   bool bIsServer = false;
   bool bIsClient = false;
+  bool bIsServicing = false;
+  bool bStopRequested = false;
   FNetworkConnectionId NextConnectionId = 1;
   FNetworkConnectionId ServerConnectionId = 1;
   FNetworkConnectionId LocalConnectionId = 0;
@@ -87,7 +95,8 @@ class NetworkManager {
   struct Impl;
   Impl* ImplPtr = nullptr;
 
-  ConnectedCallback OnConnected;
-  DisconnectedCallback OnDisconnected;
-  PacketReceivedCallback OnPacketReceived;
+  CallbackHandle NextCallbackHandle = 1;
+  std::vector<std::pair<CallbackHandle, ConnectedCallback>> OnConnectedCallbacks;
+  std::vector<std::pair<CallbackHandle, DisconnectedCallback>> OnDisconnectedCallbacks;
+  std::vector<std::pair<CallbackHandle, PacketReceivedCallback>> OnPacketReceivedCallbacks;
 };

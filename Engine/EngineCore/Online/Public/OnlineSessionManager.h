@@ -1,7 +1,9 @@
 ﻿#pragma once
 
 #include "EOSTypes.h"
+#include "NetworkTypes.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -18,6 +20,7 @@ class OnlineSessionManager {
       std::function<void(bool, const std::vector<FLobbyInfo>&)> OnComplete
   );
   bool JoinLobby(const FLobbyInfo& LobbyInfo, uint16_t Port, std::function<void(bool)> OnComplete);
+  bool LeaveSession(std::function<void(bool)> OnComplete);
   bool LeaveLobby(std::function<void(bool)> OnComplete);
 
   bool IsEOSInitialized() const;
@@ -29,6 +32,7 @@ class OnlineSessionManager {
   bool CanShowLobbyActions() const;
   bool CanShowSearchLobbies() const;
   bool CanShowJoinLobby() const;
+  bool CanShowLeaveSession() const;
   bool CanShowLeaveLobby() const;
 
   std::string GetLocalUserIdString() const;
@@ -36,7 +40,7 @@ class OnlineSessionManager {
 
  private:
   OnlineSessionManager();
-  ~OnlineSessionManager() = default;
+  ~OnlineSessionManager();
 
   OnlineSessionManager(const OnlineSessionManager&) = delete;
   OnlineSessionManager& operator=(const OnlineSessionManager&) = delete;
@@ -45,8 +49,11 @@ class OnlineSessionManager {
   bool BeginOperation();
   void EndOperation();
   void HandleLobbyDisconnected(ELobbyDisconnectReason Reason);
+  void HandleNetworkDisconnected(FNetworkConnectionId ConnectionId);
   void HandleAuthLost(EAuthLossReason Reason);
 
  private:
   bool bOperationPending = false;
+  bool bIsLeavingSession = false;
+  size_t NetworkDisconnectedCallbackHandle = 0;
 };

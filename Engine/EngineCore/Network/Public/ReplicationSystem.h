@@ -64,6 +64,9 @@ class FReplicationSystem {
   void InitializeClientForCurrentScene(FNetworkConnectionId ConnectionId);
 
   World* OwnerWorld = nullptr;
+  NetworkManager::CallbackHandle ConnectedCallbackHandle = 0;
+  NetworkManager::CallbackHandle DisconnectedCallbackHandle = 0;
+  NetworkManager::CallbackHandle PacketReceivedCallbackHandle = 0;
   std::unordered_map<FNetworkActorId, AActor*> ActorsByNetworkId;
   std::unordered_map<FNetworkConnectionId, std::string> LastReadyTravelByConnection;
 };

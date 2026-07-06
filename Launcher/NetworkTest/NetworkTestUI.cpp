@@ -120,8 +120,8 @@ void FNetworkTestUI::DrawOnlineWindow() {
   }
 
   if (onlineSession.IsInLobby()) {
-    if (onlineSession.CanShowLeaveLobby() && ImGui::Button("Leave Lobby")) {
-      LeaveOnlineLobby();
+    if (onlineSession.CanShowLeaveSession() && ImGui::Button("Leave Session")) {
+      LeaveOnlineSession();
     }
 
     ImGui::Separator();
@@ -340,22 +340,22 @@ void FNetworkTestUI::JoinSelectedLanLobby() {
     OnlineStatusMessage = "Join lobby request was rejected.";
   }
 }
-void FNetworkTestUI::LeaveOnlineLobby() {
+void FNetworkTestUI::LeaveOnlineSession() {
   if (!OnlineSessionManager::Get().IsInLobby()) {
     OnlineStatusMessage = "Not in a lobby.";
     return;
   }
 
   const std::string lobbyId = OnlineSessionManager::Get().GetCurrentLobbyId();
-  OnlineStatusMessage = "Leave lobby requested: " + lobbyId;
-  if (!OnlineSessionManager::Get().LeaveLobby([this, lobbyId](bool bSuccess) {
+  OnlineStatusMessage = "Leave session requested: " + lobbyId;
+  if (!OnlineSessionManager::Get().LeaveSession([this, lobbyId](bool bSuccess) {
         if (bSuccess) {
           Owner.GetWorld()->SetNetMode(ENetMode::Standalone);
-          OnlineStatusMessage = "Left lobby: " + lobbyId;
+          OnlineStatusMessage = "Left session: " + lobbyId;
         } else {
-          OnlineStatusMessage = "Leave lobby failed. See Logs for details.";
+          OnlineStatusMessage = "Leave session failed. See Logs for details.";
         }
       })) {
-    OnlineStatusMessage = "Leave lobby request was rejected.";
+    OnlineStatusMessage = "Leave session request was rejected.";
   }
 }
