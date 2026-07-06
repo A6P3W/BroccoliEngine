@@ -43,6 +43,10 @@ bool SceneManager::OpenLevelByPath(const std::string& LevelPath, ENetMode NetMod
   return true;
 }
 
+bool SceneManager::OpenStartupLevel() {
+  return OpenLevelByPath(StartupLevelPath, ENetMode::Standalone);
+}
+
 bool SceneManager::IsSceneRegistered(FNetworkSceneId SceneId) const {
   return RegisteredLevelPaths.find(SceneId) != RegisteredLevelPaths.end();
 }

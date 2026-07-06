@@ -110,6 +110,7 @@ bool Application::Run() {
     SceneManager::GetInstance().OpenGameMode<EditorMode>();
   } else {
     SetupGame();
+    SceneManager::GetInstance().OpenStartupLevel();
   }
 
   if (!IsRelease) {

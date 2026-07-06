@@ -34,6 +34,9 @@ class SceneManager {
   FNetworkSceneId GetCurrentSceneId() const { return CurrentSceneId; }
   const std::string& GetCurrentLevelPath() const { return CurrentLevelPath; }
   ENetMode GetCurrentNetMode() const;
+  void SetStartupLevelPath(const std::string& LevelPath) { StartupLevelPath = LevelPath; }
+  const std::string& GetStartupLevelPath() const { return StartupLevelPath; }
+  bool OpenStartupLevel();
 
   template <class T>
   void SetGameInstance() {
@@ -67,4 +70,5 @@ class SceneManager {
   FNetworkSceneId PendingSceneId = 0;
   std::string CurrentLevelPath;
   std::string PendingLevelPath;
+  std::string StartupLevelPath;
 };
