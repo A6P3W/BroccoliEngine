@@ -1,6 +1,7 @@
 ﻿#include "EOSLobbyManager.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <utility>
 
@@ -27,6 +28,85 @@ const char* GetSafeBucketId(const FLobbySearchRequest& Request) {
 
 int ClampToInt(uint32_t Value) {
   return Value > static_cast<uint32_t>(INT32_MAX) ? INT32_MAX : static_cast<int>(Value);
+}
+
+std::string ProductUserIdToString(EOS_ProductUserId UserId) {
+  if (!UserId) {
+    return {};
+  }
+
+  std::array<char, EOS_PRODUCTUSERID_MAX_LENGTH + 1> Buffer = {};
+  int32_t BufferLength = static_cast<int32_t>(Buffer.size());
+  EOS_EResult Result = EOS_ProductUserId_ToString(UserId, Buffer.data(), &BufferLength);
+  if (Result != EOS_EResult::EOS_Success) {
+    M_LOG("[EOSLobby] ProductUserId stringify failed: {}", SafeEOSResult(Result));
+    return {};
+  }
+
+  return std::string(Buffer.data());
+}
+
+bool IsSameProductUserId(EOS_ProductUserId A, EOS_ProductUserId B) {
+  if (!A || !B) {
+    return false;
+  }
+
+  return ProductUserIdToString(A) == ProductUserIdToString(B);
+}
+
+const char* LobbyDisconnectReasonToString(ELobbyDisconnectReason Reason) {
+  switch (Reason) {
+    case ELobbyDisconnectReason::Kicked:
+      return "Kicked";
+    case ELobbyDisconnectReason::HostLeft:
+      return "HostLeft";
+    case ELobbyDisconnectReason::NetworkError:
+      return "NetworkError";
+    case ELobbyDisconnectReason::LobbyClosed:
+      return "LobbyClosed";
+    case ELobbyDisconnectReason::AuthLost:
+      return "AuthLost";
+    default:
+      return "Unknown";
+  }
+}
+
+const char* LobbyMemberStatusToString(EOS_ELobbyMemberStatus Status) {
+  switch (Status) {
+    case EOS_ELobbyMemberStatus::EOS_LMS_JOINED:
+      return "Joined";
+    case EOS_ELobbyMemberStatus::EOS_LMS_LEFT:
+      return "Left";
+    case EOS_ELobbyMemberStatus::EOS_LMS_DISCONNECTED:
+      return "Disconnected";
+    case EOS_ELobbyMemberStatus::EOS_LMS_KICKED:
+      return "Kicked";
+    case EOS_ELobbyMemberStatus::EOS_LMS_PROMOTED:
+      return "Promoted";
+    case EOS_ELobbyMemberStatus::EOS_LMS_CLOSED:
+      return "Closed";
+    default:
+      return "Unknown";
+  }
+}
+
+bool TryGetDisconnectReasonFromMemberStatus(
+    EOS_ELobbyMemberStatus Status,
+    ELobbyDisconnectReason& OutReason
+) {
+  switch (Status) {
+    case EOS_ELobbyMemberStatus::EOS_LMS_LEFT:
+      OutReason = ELobbyDisconnectReason::HostLeft;
+      return true;
+    case EOS_ELobbyMemberStatus::EOS_LMS_KICKED:
+      OutReason = ELobbyDisconnectReason::Kicked;
+      return true;
+    case EOS_ELobbyMemberStatus::EOS_LMS_DISCONNECTED:
+      OutReason = ELobbyDisconnectReason::NetworkError;
+      return true;
+    default:
+      return false;
+  }
 }
 
 EOS_ELobbyAttributeType ToEOSAttributeType(ELobbyAttributeType Type) {
@@ -341,7 +421,10 @@ EOSLobbyManager& EOSLobbyManager::Get() {
   return Instance;
 }
 
-EOSLobbyManager::~EOSLobbyManager() { ClearCachedLobbyDetails(); }
+EOSLobbyManager::~EOSLobbyManager() {
+  UnregisterLobbyNotifications();
+  ClearCachedLobbyDetails();
+}
 
 void EOSLobbyManager::CreateLobby(
     const FCreateLobbyRequest& Request,
@@ -364,7 +447,7 @@ void EOSLobbyManager::CreateLobby(
   Options.bPresenceEnabled = EOS_FALSE;
   Options.bAllowInvites = EOS_TRUE;
   Options.BucketId = GetSafeBucketId(Request);
-  Options.bDisableHostMigration = EOS_FALSE;
+  Options.bDisableHostMigration = EOS_TRUE;
   Options.bEnableRTCRoom = EOS_FALSE;
   Options.LocalRTCOptions = nullptr;
   Options.LobbyId = nullptr;
@@ -401,6 +484,7 @@ void EOSLobbyManager::CreateLobby(
 
           LobbyManager.CurrentLobbyId = LobbyInfo.LobbyId;
           LobbyManager.bInLobby = true;
+          LobbyManager.RegisterLobbyNotifications();
 
           M_LOG("[EOSLobby] CreateLobby success");
           M_LOG("[EOSLobby] LobbyId = {}", LobbyManager.CurrentLobbyId);
@@ -511,6 +595,7 @@ void EOSLobbyManager::LeaveLobby(std::function<void(bool)> OnComplete) {
   }
 
   auto* Context = new FLeaveLobbyContext{CurrentLobbyId, std::move(OnComplete)};
+  UnregisterLobbyNotifications();
 
   EOS_Lobby_LeaveLobbyOptions Options = {};
   Options.ApiVersion = EOS_LOBBY_LEAVELOBBY_API_LATEST;
@@ -533,6 +618,7 @@ void EOSLobbyManager::LeaveLobby(std::function<void(bool)> OnComplete) {
             Data->ResultCode == EOS_EResult::EOS_NotFound) {
           LobbyManager.CurrentLobbyId.clear();
           LobbyManager.bInLobby = false;
+          LobbyManager.ClearCachedLobbyDetails();
           if (Data->ResultCode == EOS_EResult::EOS_Success) {
             M_LOG("[EOSLobby] LeaveLobby success");
           } else {
@@ -544,6 +630,7 @@ void EOSLobbyManager::LeaveLobby(std::function<void(bool)> OnComplete) {
         }
 
         M_LOG("[EOSLobby] LeaveLobby failed: {}", SafeEOSResult(Data->ResultCode));
+        LobbyManager.RegisterLobbyNotifications();
         CompleteBoolCallback(Context->OnComplete, false);
         delete Context;
       }
@@ -704,6 +791,7 @@ void EOSLobbyManager::JoinLobby(const FLobbyInfo& LobbyInfo, std::function<void(
         if (Data->ResultCode == EOS_EResult::EOS_Success) {
           LobbyManager.CurrentLobbyId = !Context->LobbyId.empty() ? Context->LobbyId : SafeText(Data->LobbyId);
           LobbyManager.bInLobby = true;
+          LobbyManager.RegisterLobbyNotifications();
           M_LOG("[EOSLobby] JoinLobby success");
           M_LOG("[EOSLobby] LobbyId = {}", LobbyManager.CurrentLobbyId);
           CompleteBoolCallback(Context->OnComplete, true);
@@ -721,6 +809,16 @@ void EOSLobbyManager::JoinLobby(const FLobbyInfo& LobbyInfo, std::function<void(
 bool EOSLobbyManager::IsInLobby() const { return bInLobby; }
 
 std::string EOSLobbyManager::GetCurrentLobbyId() const { return CurrentLobbyId; }
+
+void EOSLobbyManager::ForceLocalDisconnect(ELobbyDisconnectReason Reason) {
+  HandleLocalDisconnect(Reason, true);
+}
+
+void EOSLobbyManager::SetOnLobbyDisconnected(
+    std::function<void(ELobbyDisconnectReason)> Callback
+) {
+  OnLobbyDisconnected = std::move(Callback);
+}
 
 void EOSLobbyManager::ClearCachedLobbyDetails() {
   for (FCachedLobbyDetails& CachedLobbyDetail : CachedLobbyDetails) {
@@ -743,4 +841,166 @@ EOS_HLobbyDetails EOSLobbyManager::FindCachedLobbyDetails(const std::string& Lob
   );
 
   return It != CachedLobbyDetails.end() ? It->DetailsHandle : nullptr;
+}
+
+void EOSLobbyManager::RegisterLobbyNotifications() {
+  EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
+  if (!LobbyHandle) {
+    M_LOG("[EOSLobby] Register notifications skipped: lobby handle is null.");
+    return;
+  }
+
+  UnregisterLobbyNotifications();
+
+  EOS_Lobby_AddNotifyLobbyMemberStatusReceivedOptions MemberStatusOptions = {};
+  MemberStatusOptions.ApiVersion = EOS_LOBBY_ADDNOTIFYLOBBYMEMBERSTATUSRECEIVED_API_LATEST;
+  MemberStatusNotificationId = EOS_Lobby_AddNotifyLobbyMemberStatusReceived(
+      LobbyHandle,
+      &MemberStatusOptions,
+      this,
+      &EOSLobbyManager::OnLobbyMemberStatusReceived
+  );
+  if (MemberStatusNotificationId == EOS_INVALID_NOTIFICATIONID) {
+    M_LOG("[EOSLobby] AddNotifyLobbyMemberStatusReceived failed.");
+  }
+
+  EOS_Lobby_AddNotifyLobbyUpdateReceivedOptions LobbyUpdateOptions = {};
+  LobbyUpdateOptions.ApiVersion = EOS_LOBBY_ADDNOTIFYLOBBYUPDATERECEIVED_API_LATEST;
+  LobbyUpdateNotificationId = EOS_Lobby_AddNotifyLobbyUpdateReceived(
+      LobbyHandle,
+      &LobbyUpdateOptions,
+      this,
+      &EOSLobbyManager::OnLobbyUpdateReceived
+  );
+  if (LobbyUpdateNotificationId == EOS_INVALID_NOTIFICATIONID) {
+    M_LOG("[EOSLobby] AddNotifyLobbyUpdateReceived failed.");
+  }
+}
+
+void EOSLobbyManager::UnregisterLobbyNotifications() {
+  EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
+  if (!LobbyHandle) {
+    MemberStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+    LobbyUpdateNotificationId = EOS_INVALID_NOTIFICATIONID;
+    return;
+  }
+
+  if (MemberStatusNotificationId != EOS_INVALID_NOTIFICATIONID) {
+    EOS_Lobby_RemoveNotifyLobbyMemberStatusReceived(LobbyHandle, MemberStatusNotificationId);
+    MemberStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+  }
+
+  if (LobbyUpdateNotificationId != EOS_INVALID_NOTIFICATIONID) {
+    EOS_Lobby_RemoveNotifyLobbyUpdateReceived(LobbyHandle, LobbyUpdateNotificationId);
+    LobbyUpdateNotificationId = EOS_INVALID_NOTIFICATIONID;
+  }
+}
+
+void EOSLobbyManager::HandleLocalDisconnect(ELobbyDisconnectReason Reason, bool bNotify) {
+  if (!bInLobby) {
+    return;
+  }
+
+  M_LOG("[EOSLobby] Local lobby disconnected: reason={}", LobbyDisconnectReasonToString(Reason));
+  bInLobby = false;
+  CurrentLobbyId.clear();
+  ClearCachedLobbyDetails();
+  UnregisterLobbyNotifications();
+
+  if (bNotify && OnLobbyDisconnected) {
+    OnLobbyDisconnected(Reason);
+  }
+}
+
+void EOSLobbyManager::HandleMemberStatusReceived(
+    const EOS_Lobby_LobbyMemberStatusReceivedCallbackInfo* Data
+) {
+  if (!Data || !bInLobby) {
+    return;
+  }
+
+  M_LOG(
+      "[EOSLobby] Member status received: lobby={}, status={}",
+      SafeText(Data->LobbyId),
+      LobbyMemberStatusToString(Data->CurrentStatus)
+  );
+
+  if (CurrentLobbyId != SafeText(Data->LobbyId)) {
+    return;
+  }
+
+  EOS_ProductUserId LocalUserId = GetLoggedInUserId();
+  if (!IsSameProductUserId(LocalUserId, Data->TargetUserId)) {
+    return;
+  }
+
+  ELobbyDisconnectReason Reason = ELobbyDisconnectReason::NetworkError;
+  if (TryGetDisconnectReasonFromMemberStatus(Data->CurrentStatus, Reason)) {
+    HandleLocalDisconnect(Reason, true);
+    return;
+  }
+
+  if (Data->CurrentStatus == EOS_ELobbyMemberStatus::EOS_LMS_PROMOTED) {
+    M_LOG("[EOSLobby] Local user was promoted to lobby owner.");
+  }
+}
+
+void EOSLobbyManager::HandleLobbyUpdateReceived(
+    const EOS_Lobby_LobbyUpdateReceivedCallbackInfo* Data
+) {
+  if (!Data || !bInLobby || CurrentLobbyId != SafeText(Data->LobbyId)) {
+    return;
+  }
+
+  if (IsCurrentLobbyUpdateClosed(Data)) {
+    HandleLocalDisconnect(ELobbyDisconnectReason::LobbyClosed, true);
+  }
+}
+
+bool EOSLobbyManager::IsCurrentLobbyUpdateClosed(
+    const EOS_Lobby_LobbyUpdateReceivedCallbackInfo* Data
+) const {
+  EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
+  EOS_ProductUserId LocalUserId = GetLoggedInUserId();
+  if (!Data || !LobbyHandle || !LocalUserId) {
+    return true;
+  }
+
+  EOS_Lobby_CopyLobbyDetailsHandleOptions Options = {};
+  Options.ApiVersion = EOS_LOBBY_COPYLOBBYDETAILSHANDLE_API_LATEST;
+  Options.LobbyId = Data->LobbyId;
+  Options.LocalUserId = LocalUserId;
+
+  EOS_HLobbyDetails DetailsHandle = nullptr;
+  EOS_EResult Result = EOS_Lobby_CopyLobbyDetailsHandle(LobbyHandle, &Options, &DetailsHandle);
+  if (Result == EOS_EResult::EOS_Success && DetailsHandle) {
+    EOS_LobbyDetails_Release(DetailsHandle);
+    M_LOG("[EOSLobby] Lobby update received: lobby={}", SafeText(Data->LobbyId));
+    return false;
+  }
+
+  M_LOG(
+      "[EOSLobby] Lobby update indicates closed lobby: lobby={}, result={}",
+      SafeText(Data->LobbyId),
+      SafeEOSResult(Result)
+  );
+  return true;
+}
+
+void EOS_CALL EOSLobbyManager::OnLobbyMemberStatusReceived(
+    const EOS_Lobby_LobbyMemberStatusReceivedCallbackInfo* Data
+) {
+  auto* LobbyManager = static_cast<EOSLobbyManager*>(Data ? Data->ClientData : nullptr);
+  if (LobbyManager) {
+    LobbyManager->HandleMemberStatusReceived(Data);
+  }
+}
+
+void EOS_CALL EOSLobbyManager::OnLobbyUpdateReceived(
+    const EOS_Lobby_LobbyUpdateReceivedCallbackInfo* Data
+) {
+  auto* LobbyManager = static_cast<EOSLobbyManager*>(Data ? Data->ClientData : nullptr);
+  if (LobbyManager) {
+    LobbyManager->HandleLobbyUpdateReceived(Data);
+  }
 }

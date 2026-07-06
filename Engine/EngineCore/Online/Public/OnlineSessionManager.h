@@ -35,7 +35,7 @@ class OnlineSessionManager {
   std::string GetCurrentLobbyId() const;
 
  private:
-  OnlineSessionManager() = default;
+  OnlineSessionManager();
   ~OnlineSessionManager() = default;
 
   OnlineSessionManager(const OnlineSessionManager&) = delete;
@@ -44,6 +44,8 @@ class OnlineSessionManager {
  private:
   bool BeginOperation();
   void EndOperation();
+  void HandleLobbyDisconnected(ELobbyDisconnectReason Reason);
+  void HandleAuthLost(EAuthLossReason Reason);
 
  private:
   bool bOperationPending = false;

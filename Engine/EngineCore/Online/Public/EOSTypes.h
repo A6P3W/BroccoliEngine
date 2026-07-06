@@ -19,6 +19,10 @@ struct FEOSConfig {
 
 enum class ELobbyAttributeType { String, Int64, Double, Bool };
 
+enum class ELobbyDisconnectReason { Kicked, HostLeft, NetworkError, LobbyClosed, AuthLost };
+
+enum class EAuthLossReason { TokenExpired, NetworkError, Unknown };
+
 struct FLobbyAttributeValue {
   ELobbyAttributeType Type = ELobbyAttributeType::String;
 

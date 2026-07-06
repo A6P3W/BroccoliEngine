@@ -1,9 +1,12 @@
 ﻿#pragma once
 
+#include "EOSTypes.h"
+
 #include <functional>
 #include <string>
 
 #include <eos_common.h>
+#include <eos_connect_types.h>
 
 enum class EEOSAuthState {
   NotLoggedIn,
@@ -18,6 +21,7 @@ class EOSAuthManager {
   static EOSAuthManager& Get();
 
   void LoginWithDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete);
+  void SetOnAuthLost(std::function<void(EAuthLossReason)> Callback);
 
   bool IsLoggedIn() const;
   EOS_ProductUserId GetLocalUserId() const;
@@ -25,7 +29,7 @@ class EOSAuthManager {
 
  private:
   EOSAuthManager() = default;
-  ~EOSAuthManager() = default;
+  ~EOSAuthManager();
 
   EOSAuthManager(const EOSAuthManager&) = delete;
   EOSAuthManager& operator=(const EOSAuthManager&) = delete;
@@ -33,8 +37,14 @@ class EOSAuthManager {
  private:
   void CreateDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete);
   void LoginAfterDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete);
+  void RegisterLoginStatusNotification();
+  void UnregisterLoginStatusNotification();
+  void HandleLoginStatusChanged(const EOS_Connect_LoginStatusChangedCallbackInfo* Data);
+  static void EOS_CALL OnLoginStatusChanged(const EOS_Connect_LoginStatusChangedCallbackInfo* Data);
 
  private:
   EOS_ProductUserId LocalUserId = nullptr;
   EEOSAuthState State = EEOSAuthState::NotLoggedIn;
+  EOS_NotificationId LoginStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+  std::function<void(EAuthLossReason)> OnAuthLost;
 };

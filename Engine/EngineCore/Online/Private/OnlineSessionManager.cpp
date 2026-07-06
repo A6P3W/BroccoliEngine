@@ -41,6 +41,13 @@ OnlineSessionManager& OnlineSessionManager::Get() {
   return Instance;
 }
 
+OnlineSessionManager::OnlineSessionManager() {
+  EOSLobbyManager::Get().SetOnLobbyDisconnected(
+      [this](ELobbyDisconnectReason Reason) { HandleLobbyDisconnected(Reason); }
+  );
+  EOSAuthManager::Get().SetOnAuthLost([this](EAuthLossReason Reason) { HandleAuthLost(Reason); });
+}
+
 bool OnlineSessionManager::LoginWithDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete) {
   if (!CanShowLogin() || !BeginOperation()) {
     M_LOG("[OnlineSession] LoginWithDeviceId rejected.");
@@ -215,3 +222,23 @@ bool OnlineSessionManager::BeginOperation() {
 }
 
 void OnlineSessionManager::EndOperation() { bOperationPending = false; }
+
+void OnlineSessionManager::HandleLobbyDisconnected(ELobbyDisconnectReason Reason) {
+  (void)Reason;
+  if (bOperationPending) {
+    M_LOG("[OnlineSession] Operation was reset by lobby disconnect.");
+  }
+  bOperationPending = false;
+}
+
+void OnlineSessionManager::HandleAuthLost(EAuthLossReason Reason) {
+  (void)Reason;
+  if (EOSLobbyManager::Get().IsInLobby()) {
+    EOSLobbyManager::Get().ForceLocalDisconnect(ELobbyDisconnectReason::AuthLost);
+  }
+
+  if (bOperationPending) {
+    M_LOG("[OnlineSession] Operation was reset by auth loss.");
+  }
+  bOperationPending = false;
+}
