@@ -26,6 +26,8 @@ class UIInputTextComponent : public MUIButtonComponent {
   void SetColors(int normalColor, int hoveredColor, int editingColor);
   void SetTextColor(int color);
   void SetHintColor(int color);
+  void SetTextOffsetY(float offsetY);
+  void SetActionHintOffsetY(float offsetY);
 
   bool IsEditing() const { return bIsEditing; }
 
@@ -47,6 +49,8 @@ class UIInputTextComponent : public MUIButtonComponent {
 
   MSpriteComponent* BoxSprite = nullptr;
   MSpriteComponent* TextSprite = nullptr;
+  MSpriteComponent* BorderSprite = nullptr;
+  MSpriteComponent* ActionHintSprite = nullptr;
 
   std::string Text;
   std::string HintText;
@@ -59,6 +63,8 @@ class UIInputTextComponent : public MUIButtonComponent {
 
   float Width = 0.0f;
   float Height = 0.0f;
+  float TextOffsetY = 0.0f;
+  float ActionHintOffsetY = 3.0f;
   int NormalColor = 0;
   int HoveredColor = 0;
   int EditingColor = 0;
@@ -66,5 +72,6 @@ class UIInputTextComponent : public MUIButtonComponent {
   int HintColor = 0xA0A0A0;
   int FontSize = 24;
   int FontHandle = -1;
+  int HintFontHandle = -1;
   EButtonState CurrentState = EButtonState::Normal;
 };
