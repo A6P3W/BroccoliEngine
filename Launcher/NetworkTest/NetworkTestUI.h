@@ -24,7 +24,7 @@ class FNetworkTestUI {
   void CreateLanLobby();
   void SearchOnlineLobbies();
   void JoinSelectedLanLobby();
-  void LeaveOnlineLobby();
+  void LeaveOnlineSession();
 
   ANetworkTestPawn& Owner;
 

@@ -17,6 +17,18 @@ const char* SafeDisplayName(const char* DisplayName) {
 
 const char* SafeEOSResult(EOS_EResult Result) { return SafeText(EOS_EResult_ToString(Result)); }
 
+const char* AuthLossReasonToString(EAuthLossReason Reason) {
+  switch (Reason) {
+    case EAuthLossReason::TokenExpired:
+      return "TokenExpired";
+    case EAuthLossReason::NetworkError:
+      return "NetworkError";
+    case EAuthLossReason::Unknown:
+    default:
+      return "Unknown";
+  }
+}
+
 struct FCreateDeviceIdContext {
   std::string DisplayName;
   std::function<void(bool)> OnComplete;
@@ -39,6 +51,8 @@ EOSAuthManager& EOSAuthManager::Get() {
   return Instance;
 }
 
+EOSAuthManager::~EOSAuthManager() { UnregisterLoginStatusNotification(); }
+
 void EOSAuthManager::LoginWithDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete) {
   if (!EOSCoreManager::Get().IsInitialized()) {
     M_LOG("[EOSAuth] LoginWithDeviceId failed: EOSCoreManager is not initialized.");
@@ -60,6 +74,10 @@ void EOSAuthManager::LoginWithDeviceId(const char* DisplayName, std::function<vo
 }
 
 bool EOSAuthManager::IsLoggedIn() const { return State == EEOSAuthState::LoggedIn && LocalUserId != nullptr; }
+
+void EOSAuthManager::SetOnAuthLost(std::function<void(EAuthLossReason)> Callback) {
+  OnAuthLost = std::move(Callback);
+}
 
 EOS_ProductUserId EOSAuthManager::GetLocalUserId() const { return LocalUserId; }
 
@@ -179,6 +197,7 @@ void EOSAuthManager::LoginAfterDeviceId(const char* DisplayName, std::function<v
         if (Data->ResultCode == EOS_EResult::EOS_Success && Data->LocalUserId) {
           AuthManager.LocalUserId = Data->LocalUserId;
           AuthManager.State = EEOSAuthState::LoggedIn;
+          AuthManager.RegisterLoginStatusNotification();
           M_LOG("[EOSAuth] Connect Login success");
           M_LOG("[EOSAuth] ProductUserId = {}", AuthManager.GetLocalUserIdString());
           CompleteAuthCallback(Context->OnComplete, true);
@@ -193,4 +212,64 @@ void EOSAuthManager::LoginAfterDeviceId(const char* DisplayName, std::function<v
         delete Context;
       }
   );
+}
+
+void EOSAuthManager::RegisterLoginStatusNotification() {
+  EOS_HConnect ConnectHandle = EOSCoreManager::Get().GetConnectHandle();
+  if (!ConnectHandle) {
+    M_LOG("[EOSAuth] Register login status notification skipped: ConnectHandle is null.");
+    return;
+  }
+
+  UnregisterLoginStatusNotification();
+
+  EOS_Connect_AddNotifyLoginStatusChangedOptions Options = {};
+  Options.ApiVersion = EOS_CONNECT_ADDNOTIFYLOGINSTATUSCHANGED_API_LATEST;
+  LoginStatusNotificationId =
+      EOS_Connect_AddNotifyLoginStatusChanged(ConnectHandle, &Options, this, &EOSAuthManager::OnLoginStatusChanged);
+  if (LoginStatusNotificationId == EOS_INVALID_NOTIFICATIONID) {
+    M_LOG("[EOSAuth] AddNotifyLoginStatusChanged failed.");
+  }
+}
+
+void EOSAuthManager::UnregisterLoginStatusNotification() {
+  EOS_HConnect ConnectHandle = EOSCoreManager::Get().GetConnectHandle();
+  if (!ConnectHandle) {
+    LoginStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+    return;
+  }
+
+  if (LoginStatusNotificationId != EOS_INVALID_NOTIFICATIONID) {
+    EOS_Connect_RemoveNotifyLoginStatusChanged(ConnectHandle, LoginStatusNotificationId);
+    LoginStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+  }
+}
+
+void EOSAuthManager::HandleLoginStatusChanged(const EOS_Connect_LoginStatusChangedCallbackInfo* Data) {
+  if (!Data || Data->CurrentStatus != EOS_ELoginStatus::EOS_LS_NotLoggedIn) {
+    return;
+  }
+
+  if (LocalUserId && Data->LocalUserId && LocalUserId != Data->LocalUserId) {
+    return;
+  }
+
+  const EAuthLossReason Reason = EAuthLossReason::Unknown;
+  M_LOG("[EOSAuth] Login status lost: reason={}", AuthLossReasonToString(Reason));
+  LocalUserId = nullptr;
+  State = EEOSAuthState::NotLoggedIn;
+  UnregisterLoginStatusNotification();
+
+  if (OnAuthLost) {
+    OnAuthLost(Reason);
+  }
+}
+
+void EOS_CALL EOSAuthManager::OnLoginStatusChanged(
+    const EOS_Connect_LoginStatusChangedCallbackInfo* Data
+) {
+  auto* AuthManager = static_cast<EOSAuthManager*>(Data ? Data->ClientData : nullptr);
+  if (AuthManager) {
+    AuthManager->HandleLoginStatusChanged(Data);
+  }
 }

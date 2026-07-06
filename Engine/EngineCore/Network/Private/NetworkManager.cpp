@@ -2,6 +2,7 @@
 
 #include <enet/enet.h>
 
+#include <algorithm>
 #include <unordered_map>
 #include <vector>
 
@@ -92,20 +93,19 @@ void NetworkManager::Service() {
   }
 
   ENetEvent event{};
-  while (enet_host_service(Host, &event, 0) > 0) {
+  bIsServicing = true;
+  while (!bStopRequested && Host && enet_host_service(Host, &event, 0) > 0) {
     switch (event.type) {
       case ENET_EVENT_TYPE_CONNECT: {
         const FNetworkConnectionId connectionId = RegisterPeer(event.peer);
-        if (OnConnected) {
-          OnConnected(connectionId);
-        }
+        BroadcastConnected(connectionId);
         break;
       }
       case ENET_EVENT_TYPE_DISCONNECT: {
         const FNetworkConnectionId connectionId = FindConnectionId(event.peer);
         RemovePeer(event.peer);
-        if (OnDisconnected && connectionId != 0) {
-          OnDisconnected(connectionId);
+        if (connectionId != 0) {
+          BroadcastDisconnected(connectionId);
         }
         break;
       }
@@ -121,9 +121,7 @@ void NetworkManager::Service() {
           ENetPacketType packetType = ENetPacketType::None;
           if (buffer.Read(packetType)) {
             buffer.ResetRead();
-            if (OnPacketReceived) {
-              OnPacketReceived(connectionId, buffer);
-            }
+            BroadcastPacketReceived(connectionId, buffer);
           }
         }
 
@@ -135,6 +133,12 @@ void NetworkManager::Service() {
       default:
         break;
     }
+  }
+  bIsServicing = false;
+
+  if (bStopRequested) {
+    bStopRequested = false;
+    Stop();
   }
 }
 
@@ -157,6 +161,11 @@ void NetworkManager::Disconnect() {
 }
 
 void NetworkManager::Stop() {
+  if (bIsServicing) {
+    bStopRequested = true;
+    return;
+  }
+
   if (!Host) {
     ClearPeers();
     return;
@@ -227,6 +236,71 @@ bool NetworkManager::Broadcast(
   enet_host_broadcast(Host, ChannelId, packet);
   enet_host_flush(Host);
   return true;
+}
+
+NetworkManager::CallbackHandle NetworkManager::AddOnConnected(ConnectedCallback Callback) {
+  if (!Callback) {
+    return 0;
+  }
+
+  const CallbackHandle handle = NextCallbackHandle++;
+  OnConnectedCallbacks.push_back({handle, std::move(Callback)});
+  return handle;
+}
+
+NetworkManager::CallbackHandle NetworkManager::AddOnDisconnected(DisconnectedCallback Callback) {
+  if (!Callback) {
+    return 0;
+  }
+
+  const CallbackHandle handle = NextCallbackHandle++;
+  OnDisconnectedCallbacks.push_back({handle, std::move(Callback)});
+  return handle;
+}
+
+NetworkManager::CallbackHandle NetworkManager::AddOnPacketReceived(
+    PacketReceivedCallback Callback
+) {
+  if (!Callback) {
+    return 0;
+  }
+
+  const CallbackHandle handle = NextCallbackHandle++;
+  OnPacketReceivedCallbacks.push_back({handle, std::move(Callback)});
+  return handle;
+}
+
+void NetworkManager::RemoveOnConnected(CallbackHandle Handle) {
+  OnConnectedCallbacks.erase(
+      std::remove_if(
+          OnConnectedCallbacks.begin(),
+          OnConnectedCallbacks.end(),
+          [Handle](const auto& CallbackEntry) { return CallbackEntry.first == Handle; }
+      ),
+      OnConnectedCallbacks.end()
+  );
+}
+
+void NetworkManager::RemoveOnDisconnected(CallbackHandle Handle) {
+  OnDisconnectedCallbacks.erase(
+      std::remove_if(
+          OnDisconnectedCallbacks.begin(),
+          OnDisconnectedCallbacks.end(),
+          [Handle](const auto& CallbackEntry) { return CallbackEntry.first == Handle; }
+      ),
+      OnDisconnectedCallbacks.end()
+  );
+}
+
+void NetworkManager::RemoveOnPacketReceived(CallbackHandle Handle) {
+  OnPacketReceivedCallbacks.erase(
+      std::remove_if(
+          OnPacketReceivedCallbacks.begin(),
+          OnPacketReceivedCallbacks.end(),
+          [Handle](const auto& CallbackEntry) { return CallbackEntry.first == Handle; }
+      ),
+      OnPacketReceivedCallbacks.end()
+  );
 }
 
 bool NetworkManager::SendToPeer(
@@ -304,4 +378,32 @@ void NetworkManager::ClearPeers() {
 
   ImplPtr->PeersByConnectionId.clear();
   ImplPtr->ConnectionIdsByPeer.clear();
+}
+
+void NetworkManager::BroadcastConnected(FNetworkConnectionId ConnectionId) {
+  const auto callbacks = OnConnectedCallbacks;
+  for (const auto& callbackEntry : callbacks) {
+    if (callbackEntry.second) {
+      callbackEntry.second(ConnectionId);
+    }
+  }
+}
+
+void NetworkManager::BroadcastDisconnected(FNetworkConnectionId ConnectionId) {
+  const auto callbacks = OnDisconnectedCallbacks;
+  for (const auto& callbackEntry : callbacks) {
+    if (callbackEntry.second) {
+      callbackEntry.second(ConnectionId);
+    }
+  }
+}
+
+void NetworkManager::BroadcastPacketReceived(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer) {
+  const auto callbacks = OnPacketReceivedCallbacks;
+  for (const auto& callbackEntry : callbacks) {
+    Buffer.ResetRead();
+    if (callbackEntry.second) {
+      callbackEntry.second(ConnectionId, Buffer);
+    }
+  }
 }

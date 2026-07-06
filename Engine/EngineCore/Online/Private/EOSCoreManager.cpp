@@ -139,7 +139,7 @@ void EOSCoreManager::Tick() {
   if (!bTickLogged) {
     M_LOG("EOS_Platform_Tick started. Count={}", TickCount);
     bTickLogged = true;
-  } else if (TickCount % 300 == 0) {
+  } else if (TickCount % 10000 == 0) {
     M_LOG("EOS_Platform_Tick running. Count={}", TickCount);
   }
 }

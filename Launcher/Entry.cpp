@@ -5,5 +5,5 @@
 void SetupGame() {
   EOSCoreManager::Get().InitializeOnlineServices();
 
-  SceneManager::GetInstance().OpenGameMode<ALevelStarterGameMode>();
+  SceneManager::GetInstance().SetStartupLevelPath("LevelStarter/LevelStarter.BLevel");
 }

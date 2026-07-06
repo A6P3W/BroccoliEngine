@@ -69,7 +69,6 @@ bool Application::Run() {
   SetProcessDPIAware();
   SetGraphMode(1920, 1080, 32);
   SetUseDirect3D11(true);
-  ChangeWindowMode(true);
   bool bFitScreen = !IsEditor;
   bool bFullScreen = !IsRelease;
   SetWindowSizeChangeEnableFlag(true, bFitScreen);
@@ -77,7 +76,6 @@ bool Application::Run() {
   SetDoubleStartValidFlag(TRUE);
   SetOutApplicationLogValidFlag(FALSE);
   SetAlwaysRunFlag(TRUE);
-  DxLib_Init();
   SetWaitVSyncFlag(false);
   std::string mode;
   if (IsEditor) {
@@ -90,6 +88,8 @@ bool Application::Run() {
   M_LOG("Starting: {}", mode);
   const LONGLONG TargetFrameTime = 1000000 / 60;
   LONGLONG LastTime = GetNowHiPerformanceCount();
+
+  DxLib_Init();
 
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -110,6 +110,7 @@ bool Application::Run() {
     SceneManager::GetInstance().OpenGameMode<EditorMode>();
   } else {
     SetupGame();
+    SceneManager::GetInstance().OpenStartupLevel();
   }
 
   if (!IsRelease) {

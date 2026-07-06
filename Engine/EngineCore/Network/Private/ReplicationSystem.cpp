@@ -43,22 +43,23 @@ void WriteServerTravelPayload(FNetBuffer& Buffer, const std::string& LevelPath) 
 
 FReplicationSystem::FReplicationSystem(World* InWorld) : OwnerWorld(InWorld) {
   NetworkManager& network = NetworkManager::GetInstance();
-  network.SetOnConnected([this](FNetworkConnectionId ConnectionId) {
+  ConnectedCallbackHandle = network.AddOnConnected([this](FNetworkConnectionId ConnectionId) {
     HandleConnected(ConnectionId);
   });
-  network.SetOnDisconnected([this](FNetworkConnectionId ConnectionId) {
+  DisconnectedCallbackHandle = network.AddOnDisconnected([this](FNetworkConnectionId ConnectionId) {
     HandleDisconnected(ConnectionId);
   });
-  network.SetOnPacketReceived([this](FNetworkConnectionId ConnectionId, FNetBuffer& Buffer) {
-    HandlePacketReceived(ConnectionId, Buffer);
-  });
+  PacketReceivedCallbackHandle =
+      network.AddOnPacketReceived([this](FNetworkConnectionId ConnectionId, FNetBuffer& Buffer) {
+        HandlePacketReceived(ConnectionId, Buffer);
+      });
 }
 
 FReplicationSystem::~FReplicationSystem() {
   NetworkManager& network = NetworkManager::GetInstance();
-  network.SetOnConnected({});
-  network.SetOnDisconnected({});
-  network.SetOnPacketReceived({});
+  network.RemoveOnConnected(ConnectedCallbackHandle);
+  network.RemoveOnDisconnected(DisconnectedCallbackHandle);
+  network.RemoveOnPacketReceived(PacketReceivedCallbackHandle);
 }
 
 void FReplicationSystem::Update() {

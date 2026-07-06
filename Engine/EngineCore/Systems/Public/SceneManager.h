@@ -34,6 +34,9 @@ class SceneManager {
   FNetworkSceneId GetCurrentSceneId() const { return CurrentSceneId; }
   const std::string& GetCurrentLevelPath() const { return CurrentLevelPath; }
   ENetMode GetCurrentNetMode() const;
+  void SetStartupLevelPath(const std::string& LevelPath) { StartupLevelPath = LevelPath; }
+  const std::string& GetStartupLevelPath() const { return StartupLevelPath; }
+  bool OpenStartupLevel();
 
   template <class T>
   void SetGameInstance() {
@@ -62,9 +65,10 @@ class SceneManager {
   std::unique_ptr<World> CurrentScene;
   std::function<std::unique_ptr<World>()> PendingSceneFactory;
   std::unordered_map<FNetworkSceneId, std::string> RegisteredLevelPaths;
-  std::unique_ptr<GameInstance> GameInstance = nullptr;
+  std::unique_ptr<GameInstance> GameInstance = std::make_unique<::GameInstance>();
   FNetworkSceneId CurrentSceneId = 0;
   FNetworkSceneId PendingSceneId = 0;
   std::string CurrentLevelPath;
   std::string PendingLevelPath;
+  std::string StartupLevelPath;
 };
