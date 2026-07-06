@@ -15,6 +15,9 @@
 #include "UIManager.h"
 
 namespace {
+constexpr int ActionHintFontSize = 14;
+const std::string ActionHintText = "決定/インタラクトで入力";
+
 bool IsShiftPressed(const KeyboardDevice* Keyboard) {
   return Keyboard != nullptr &&
          (Keyboard->GetPressing(KEY_INPUT_LSHIFT) || Keyboard->GetPressing(KEY_INPUT_RSHIFT));
@@ -50,7 +53,18 @@ void UIInputTextComponent::RegisterComponent() {
   TextSprite->SetParentComponent(this);
   GetOwner()->AddComponent(std::move(textSprite));
 
+  auto borderSprite = std::make_unique<MSpriteComponent>(GetFinalPriority() + 2, RenderSpace::Screen);
+  BorderSprite = borderSprite.get();
+  BorderSprite->SetParentComponent(this);
+  GetOwner()->AddComponent(std::move(borderSprite));
+
+  auto actionHintSprite = std::make_unique<MSpriteComponent>(GetFinalPriority() + 3, RenderSpace::Screen);
+  ActionHintSprite = actionHintSprite.get();
+  ActionHintSprite->SetParentComponent(this);
+  GetOwner()->AddComponent(std::move(actionHintSprite));
+
   FontHandle = ResourceManager::GetInstance().GetFont(FontSize, 5);
+  HintFontHandle = ResourceManager::GetInstance().GetFont(ActionHintFontSize, 5);
   UpdateVisuals();
 }
 
@@ -143,6 +157,16 @@ void UIInputTextComponent::SetTextColor(int color) {
 
 void UIInputTextComponent::SetHintColor(int color) {
   HintColor = color;
+  UpdateVisuals();
+}
+
+void UIInputTextComponent::SetTextOffsetY(float offsetY) {
+  TextOffsetY = offsetY;
+  UpdateVisuals();
+}
+
+void UIInputTextComponent::SetActionHintOffsetY(float offsetY) {
+  ActionHintOffsetY = offsetY;
   UpdateVisuals();
 }
 
@@ -274,6 +298,29 @@ void UIInputTextComponent::UpdateVisuals() {
     BoxSprite->SubmitBox(Width, Height, GetCurrentBackgroundColor(), true);
   }
 
+  if (BorderSprite != nullptr) {
+    BorderSprite->SetRelativeLocation({-Width * 0.5f, -Height * 0.5f});
+    if (bIsEditing) {
+      BorderSprite->SubmitBox(Width, Height, GetColor(0, 255, 0), false);
+    } else if (CurrentState == EButtonState::Hovered) {
+      BorderSprite->SubmitBox(Width, Height, GetColor(255, 255, 255), false);
+    } else {
+      BorderSprite->SubmitBox(Width, Height, GetColor(255, 255, 255), false, 0);
+    }
+  }
+
+  if (ActionHintSprite != nullptr) {
+    if (CurrentState == EButtonState::Hovered && !bIsEditing) {
+      const int hintWidth = GetDrawStringWidthToHandle(
+          ActionHintText.c_str(), static_cast<int>(ActionHintText.length()), HintFontHandle
+      );
+      ActionHintSprite->SetRelativeLocation({-hintWidth * 0.5f, Height * 0.5f + ActionHintOffsetY});
+      ActionHintSprite->SubmitText(ActionHintText, GetColor(255, 230, 64), HintFontHandle);
+    } else {
+      ActionHintSprite->SubmitText("", GetColor(255, 230, 64), HintFontHandle, 0);
+    }
+  }
+
   if (TextSprite == nullptr) {
     return;
   }
@@ -287,7 +334,7 @@ void UIInputTextComponent::UpdateVisuals() {
   const float leftPadding = 16.0f;
   const float maxTextWidth = (std::max)(0.0f, Width - leftPadding * 2.0f);
   const float textX = -Width * 0.5f + leftPadding;
-  const float textY = -FontSize * 0.5f;
+  const float textY = -FontSize * 0.5f + TextOffsetY;
   TextSprite->SetRelativeLocation({textX, textY});
   TextSprite->SubmitText(displayText, color, FontHandle, textWidth > maxTextWidth ? 220 : 255);
 }
