@@ -4,15 +4,15 @@
 #include <fstream>
 
 #include "Actor.h"
+#include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "EditorSelectPointComponent.h"
 #include "GameModeBase.h"
 #include "Log.h"
-#include "nlohmann/json.hpp"
-#include "ActorManager.h"
 #include "SimpleCrypto.h"
 #include "SpriteActor.h"
 #include "World.h"
+#include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
 
@@ -91,6 +91,12 @@ bool LevelSerializer::Load(
       M_LOG("Spawn failed: {} (not registered?)", data.ClassName);
       continue;
     }
+
+    if (world->IsClient() && actor->bReplicates) {
+      actor->Destroy();
+      continue;
+    }
+
     actor->SetActorScale(data.Scale);
     if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor)) {
       auto it = data.CustomProperties.find("ImagePath");

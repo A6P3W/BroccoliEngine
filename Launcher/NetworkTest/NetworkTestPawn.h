@@ -59,6 +59,7 @@ class ANetworkTestPawn : public APawn {
   void Server_TestRPC(int PlayerId);
   void Multicast_TestRPC(int PlayerId);
   void Server_Move(const FVector2D& MoveInput);
+  void Server_SpawnBreakableActor();
   void ApplyMovementInput(const FVector2D& MoveInput);
   void BeginOverlap(AActor* OtherActor) override;
   int GetDisplayColor() const;

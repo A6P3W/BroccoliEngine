@@ -7,6 +7,7 @@
 #include "EnhancedInputComponent.h"
 #include "Log.h"
 #include "NetworkManager.h"
+#include "NetworkTestBreakableActor.h"
 #include "NetworkTestGameMode.h"
 #include "NetworkTestUI.h"
 #include "SpriteComponent.h"
@@ -17,6 +18,7 @@ enum : FNetworkRPCId {
   RPC_ServerTest = 1,
   RPC_MulticastTest = 2,
   RPC_ServerMove = 3,
+  RPC_ServerSpawnBreakableActor = 4,
   RPC_ComponentServerTest = 101,
   RPC_ComponentMulticastTest = 102
 };
@@ -134,6 +136,12 @@ ANetworkTestPawn::ANetworkTestPawn() {
       RPC_MulticastTest, ENetRPCType::Multicast, this, &ANetworkTestPawn::Multicast_TestRPC
   );
   RegisterRPC(RPC_ServerMove, ENetRPCType::Server, this, &ANetworkTestPawn::Server_Move);
+  RegisterRPC(
+      RPC_ServerSpawnBreakableActor,
+      ENetRPCType::Server,
+      this,
+      &ANetworkTestPawn::Server_SpawnBreakableActor
+  );
 
   auto sprite = std::make_unique<MSpriteComponent>(10, RenderSpace::World);
   BodySprite = sprite.get();
@@ -215,6 +223,18 @@ void ANetworkTestPawn::OnMove(const FInputActionValue& Value) {
 
 void ANetworkTestPawn::Server_Move(const FVector2D& MoveInput) { ApplyMovementInput(MoveInput); }
 
+void ANetworkTestPawn::Server_SpawnBreakableActor() {
+  if (!GetWorld() || !bHasAuthority) {
+    return;
+  }
+
+  ANetworkTestBreakableActor* Actor =
+      GetWorld()->SpawnActor<ANetworkTestBreakableActor>({300.0f, 0.0f});
+  if (Actor) {
+    M_LOG("Spawned NetworkTestBreakableActor at (300, 0): actor={}", Actor->NetworkId);
+  }
+}
+
 void ANetworkTestPawn::ApplyMovementInput(const FVector2D& MoveInput) {
   if (Movement) {
     Movement->AddWorldForce(MoveInput * (-MoveSpeed / 60.0f) * 0.05f);
@@ -235,6 +255,10 @@ void ANetworkTestPawn::OnInteract(const FInputActionValue& Value) {
   if (ReplicationTest) {
     ReplicationTest->RequestTest(playerId);
   }
+
+  InvokeRPC(
+      RPC_ServerSpawnBreakableActor, ENetRPCType::Server, ENetPacketReliability::Reliable
+  );
 }
 
 void ANetworkTestPawn::Server_TestRPC(int PlayerId) {
