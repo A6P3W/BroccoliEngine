@@ -7,6 +7,7 @@
 #include "EOSLobbyManager.h"
 #include "Log.h"
 #include "NetworkManager.h"
+#include "SceneManager.h"
 
 namespace {
 void CompleteBoolCallback(std::function<void(bool)>& OnComplete, bool bSuccess) {
@@ -239,8 +240,17 @@ bool OnlineSessionManager::BeginOperation() {
 
 void OnlineSessionManager::EndOperation() { bOperationPending = false; }
 
+void OnlineSessionManager::NotifySessionDisconnected(ELobbyDisconnectReason Reason) {
+  GameInstance* CurrentGameInstance = SceneManager::GetInstance().GetGameInstance();
+  if (!CurrentGameInstance) {
+    M_LOG("[OnlineSession] Session disconnected but GameInstance is null.");
+    return;
+  }
+
+  CurrentGameInstance->OnSessionDisconnected(Reason);
+}
+
 void OnlineSessionManager::HandleLobbyDisconnected(ELobbyDisconnectReason Reason) {
-  (void)Reason;
   if (bIsLeavingSession) {
     if (bOperationPending) {
       M_LOG("[OnlineSession] Operation was reset by lobby disconnect during session leave.");
@@ -258,6 +268,7 @@ void OnlineSessionManager::HandleLobbyDisconnected(ELobbyDisconnectReason Reason
     NetworkManager::GetInstance().Stop();
   }
   bIsLeavingSession = false;
+  NotifySessionDisconnected(Reason);
 }
 
 void OnlineSessionManager::HandleNetworkDisconnected(FNetworkConnectionId ConnectionId) {
@@ -284,6 +295,7 @@ void OnlineSessionManager::HandleNetworkDisconnected(FNetworkConnectionId Connec
     NetworkManager::GetInstance().Stop();
     bIsLeavingSession = false;
     EndOperation();
+    NotifySessionDisconnected(ELobbyDisconnectReason::NetworkError);
   });
 }
 
@@ -291,10 +303,12 @@ void OnlineSessionManager::HandleAuthLost(EAuthLossReason Reason) {
   (void)Reason;
   if (EOSLobbyManager::Get().IsInLobby()) {
     EOSLobbyManager::Get().ForceLocalDisconnect(ELobbyDisconnectReason::AuthLost);
+    return;
   }
 
   if (bOperationPending) {
     M_LOG("[OnlineSession] Operation was reset by auth loss.");
   }
   bOperationPending = false;
+  NotifySessionDisconnected(ELobbyDisconnectReason::AuthLost);
 }

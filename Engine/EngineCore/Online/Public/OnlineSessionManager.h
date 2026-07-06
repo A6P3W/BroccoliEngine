@@ -48,6 +48,7 @@ class OnlineSessionManager {
  private:
   bool BeginOperation();
   void EndOperation();
+  void NotifySessionDisconnected(ELobbyDisconnectReason Reason);
   void HandleLobbyDisconnected(ELobbyDisconnectReason Reason);
   void HandleNetworkDisconnected(FNetworkConnectionId ConnectionId);
   void HandleAuthLost(EAuthLossReason Reason);

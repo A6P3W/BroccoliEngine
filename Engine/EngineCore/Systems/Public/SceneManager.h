@@ -65,7 +65,7 @@ class SceneManager {
   std::unique_ptr<World> CurrentScene;
   std::function<std::unique_ptr<World>()> PendingSceneFactory;
   std::unordered_map<FNetworkSceneId, std::string> RegisteredLevelPaths;
-  std::unique_ptr<GameInstance> GameInstance = nullptr;
+  std::unique_ptr<GameInstance> GameInstance = std::make_unique<::GameInstance>();
   FNetworkSceneId CurrentSceneId = 0;
   FNetworkSceneId PendingSceneId = 0;
   std::string CurrentLevelPath;
