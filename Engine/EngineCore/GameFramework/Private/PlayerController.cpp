@@ -98,6 +98,7 @@ void APlayerController::SetupInputMappings() {
 
     InputMapperPtr->AddMapping(InputAction::Interact, kb, KEY_INPUT_F);
     InputMapperPtr->AddMapping(UIAction::Submit, kb, KEY_INPUT_SPACE);
+    InputMapperPtr->AddMapping(UIAction::Submit, kb, KEY_INPUT_RETURN);
     InputMapperPtr->AddMapping(UIAction::Cancel, kb, KEY_INPUT_ESCAPE);
     InputMapperPtr->AddMapping(InputAction::Pause, kb, KEY_INPUT_ESCAPE);
   }
