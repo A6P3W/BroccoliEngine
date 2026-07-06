@@ -16,6 +16,7 @@ class AWidgetBase : public AActor {
   virtual void OnRevealed() {}
 
   void SetFocusedButton(MUIButtonComponent* Button);
+  MUIButtonComponent* GetFocusedButton() const { return FocusedButtonComponent; }
   void Navigate(const FInputActionValue& Value);
   void Submit();
   virtual void Cancel();
