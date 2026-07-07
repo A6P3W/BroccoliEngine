@@ -44,10 +44,13 @@ void APlayerController::Possess(APawn* NewPawn) {
 
 void APlayerController::OnUpdate(float DeltaTime) {
   if (!TargetPawn) return;
-  if (MEnhancedInputComponent* InputComp = GetInputComponent()) {
-    bool bAllowUI = (InputMode == EInputMode::UIOnly || InputMode == EInputMode::GameAndUI);
-    bool bAllowGame = (InputMode == EInputMode::GameOnly || InputMode == EInputMode::GameAndUI);
-    InputComp->ProcessInputBindings(*InputMapperPtr, bAllowUI, bAllowGame);
+
+  if (bIsLocallyControlled) {
+    if (MEnhancedInputComponent* InputComp = GetInputComponent()) {
+      bool bAllowUI = (InputMode == EInputMode::UIOnly || InputMode == EInputMode::GameAndUI);
+      bool bAllowGame = (InputMode == EInputMode::GameOnly || InputMode == EInputMode::GameAndUI);
+      InputComp->ProcessInputBindings(*InputMapperPtr, bAllowUI, bAllowGame);
+    }
   }
 }
 
