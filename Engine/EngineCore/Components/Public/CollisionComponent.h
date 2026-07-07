@@ -1,10 +1,10 @@
-﻿#pragma once
+#pragma once
 #include <cstdint>
 #include <unordered_map>
 #include <unordered_set>
 
-#include "Actor.h"
 #include "SceneComponent.h"
+class AActor;
 enum class ECollisionShape {
   Circle,
   Rectangle,
@@ -25,32 +25,9 @@ class MCollisionComponent : public MSceneComponent {
   ECollisionType GetCollisionType() { return CollisionType; }
   void SetCollisionType(ECollisionType NewType) { CollisionType = NewType; }
 
-  bool IsOverlappingActor(AActor* OtherActor) const {
-    return OverlappingActors.contains(OtherActor);
-  }
-  bool ShouldProcessPair(MCollisionComponent* OtherComponent, std::uint64_t FrameId) {
-    auto it = LastCheckedFrame.find(OtherComponent);
-    if (it != LastCheckedFrame.end() && it->second == FrameId) {
-      CheckedThisFrame.insert(OtherComponent->GetOwner());
-      return false;
-    }
-
-    LastCheckedFrame[OtherComponent] = FrameId;
-
-    auto& otherFrame = OtherComponent->LastCheckedFrame;
-    otherFrame[this] = FrameId;
-
-    return true;
-  }
-  void UpdateOverlapState(AActor* OtherActor, bool bIsIntersecting) {
-    CheckedThisFrame.insert(OtherActor);
-    if (bIsIntersecting) {
-      IntersectingThisFrame.insert(OtherActor);
-      if (OverlappingActors.insert(OtherActor).second) {
-        GetOwner()->BeginOverlap(OtherActor);
-      }
-    }
-  }
+  bool IsOverlappingActor(AActor* OtherActor) const;
+  bool ShouldProcessPair(MCollisionComponent* OtherComponent, std::uint64_t FrameId);
+  void UpdateOverlapState(AActor* OtherActor, bool bIsIntersecting);
   void SetStatic(bool IsStatic);
   bool IsStatic() const { return bIsStatic; }
   void MarkCheckedThisFrame(AActor* OtherActor);

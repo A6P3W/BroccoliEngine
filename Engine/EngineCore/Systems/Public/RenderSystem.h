@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "UMath.h"
+
 enum class RenderType { Graph, Box, Text, Line, RectGraph, Circle };
 enum class RenderSpace { World, Screen };
 
@@ -119,11 +120,13 @@ class RenderSystem {
 
   FVector2D WorldToScreen(const FVector2D& worldPosition) const;
   FVector2D ScreenToWorld(const FVector2D& screenPosition) const;
+
   void Draw();
+
   void SetCameraView(MCameraComponent* m);
   MCameraComponent* GetCamera();
 
  private:
-  std::map<int, std::vector<RenderCommand>> PriorityCommands;
+  std::vector<RenderCommand> CommandBuffer;
   MCameraComponent* MainCamera = nullptr;
 };

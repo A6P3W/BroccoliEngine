@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "CollisionComponent.h"
 #include "UMath.h"
 
 class MCollisionComponent;
@@ -19,6 +20,7 @@ struct pair_hash {
     return v.first * 31 + v.second;
   }
 };
+
 class FCollisionSystem {
  public:
   FCollisionSystem();
@@ -27,11 +29,11 @@ class FCollisionSystem {
   void RegisterCollision(MCollisionComponent* component);
   void UnRegisterCollision(MCollisionComponent* component);
   void RebuildStaticCollisionMap();
+
   void BeginSceneTransition();
   void EndSceneTransition();
 
   void UpdateCollisionMap();
-
   void CheckCollisions();
 
   float GetCollisionCellSize() { return CollisionCellSize; }
@@ -45,7 +47,6 @@ class FCollisionSystem {
   void LineAndLine(MLineCollisionComponent* a, MLineCollisionComponent* b);
 
   static void CancelNormalVelocity(MMovementComponent* move, const FVector2D& normal);
-
   void CollisionResolution(
       AActor* ActorA, AActor* ActorB, const FVector2D& normal, float overlapDepth
   );
@@ -55,15 +56,23 @@ class FCollisionSystem {
   static std::unique_ptr<FCollisionSystem> s_Instance;
 
   std::vector<MCollisionComponent*> CollisionComponents;
+
   std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash>
       StaticCollisionMap;
   std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash>
       DynamicCollisionMap;
+
+  std::vector<std::pair<int, int>> ActiveStaticCells;
+  std::vector<std::pair<int, int>> ActiveDynamicCells;
+
+  std::unordered_map<MCollisionComponent*, FAABB> CachedAABBs;
+
   float CollisionCellSize = 100;
   std::uint64_t FrameId = 0;
+
   bool bDeferStaticRebuild = false;
   bool bPendingStaticRebuild = false;
-
   std::vector<MCollisionComponent*> PendingStaticRegistrations;
+
   void RegisterToStaticMap(MCollisionComponent* component);
 };
