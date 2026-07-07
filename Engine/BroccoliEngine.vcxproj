@@ -182,7 +182,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -200,7 +200,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -221,7 +221,8 @@
       <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
