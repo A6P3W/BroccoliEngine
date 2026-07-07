@@ -20,6 +20,8 @@ class MUIVerticalBoxComponent : public MUIWidgetComponent {
   void SetNavigationLeft(MUIButtonComponent* LeftButton);
   void SetNavigationRight(MUIButtonComponent* RightButton);
   void OnUpdate(float DeltaTime) override;
+  // 子要素の可視性変更などにより外部から再レイアウトを要求する
+  void MarkLayoutDirty() { bNeedsLayoutUpdate = true; }
 
  protected:
   void UpdateLayout();
