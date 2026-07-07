@@ -6,12 +6,11 @@
 
 #include "Actor.h"
 #include "CircleCollisionComponent.h"
-#include "CollisionComponent.h"
 #include "LineCollisionComponent.h"
 #include "MovementComponent.h"
 #include "RectangleCollisionComponent.h"
-FCollisionSystem::FCollisionSystem() {}
 
+FCollisionSystem::FCollisionSystem() {}
 FCollisionSystem::~FCollisionSystem() {}
 
 void FCollisionSystem::RegisterCollision(MCollisionComponent* component) {
@@ -31,10 +30,14 @@ void FCollisionSystem::UnRegisterCollision(MCollisionComponent* component) {
     *it = CollisionComponents.back();
     CollisionComponents.pop_back();
   }
+
   PendingStaticRegistrations.erase(
       std::remove(PendingStaticRegistrations.begin(), PendingStaticRegistrations.end(), component),
       PendingStaticRegistrations.end()
   );
+
+  CachedAABBs.erase(component);
+
   if (component->IsStatic()) {
     if (bDeferStaticRebuild) {
       bPendingStaticRebuild = true;
@@ -55,22 +58,31 @@ void FCollisionSystem::EndSceneTransition() {
 }
 
 void FCollisionSystem::RebuildStaticCollisionMap() {
-  StaticCollisionMap.clear();
+  for (const auto& loc : ActiveStaticCells) {
+    StaticCollisionMap[loc].clear();
+  }
+  ActiveStaticCells.clear();
+
   for (auto* comp : CollisionComponents) {
     if (!comp->IsStatic()) continue;
+    CachedAABBs[comp] = comp->GetAABB(); 
     RegisterToStaticMap(comp);
     comp->SetGridClean();
   }
 }
 
 void FCollisionSystem::UpdateCollisionMap() {
-  DynamicCollisionMap.clear();
+  for (const auto& loc : ActiveDynamicCells) {
+    DynamicCollisionMap[loc].clear();
+  }
+  ActiveDynamicCells.clear();
+
   for (auto collision : CollisionComponents) {
     if (collision->IsStatic()) {
       continue;
     }
-    FAABB box = collision->GetAABB();
 
+    const FAABB& box = CachedAABBs[collision];
     int minX = static_cast<int>(std::floor(box.MinX / CollisionCellSize));
     int maxX = static_cast<int>(std::floor(box.MaxX / CollisionCellSize));
     int minY = static_cast<int>(std::floor(box.MinY / CollisionCellSize));
@@ -78,7 +90,11 @@ void FCollisionSystem::UpdateCollisionMap() {
 
     for (int x = minX; x <= maxX; ++x) {
       for (int y = minY; y <= maxY; ++y) {
-        DynamicCollisionMap[{x, y}].push_back(collision);
+        auto loc = std::make_pair(x, y);
+        if (DynamicCollisionMap[loc].empty()) {
+          ActiveDynamicCells.push_back(loc);
+        }
+        DynamicCollisionMap[loc].push_back(collision);
       }
     }
     collision->SetGridClean();
@@ -86,31 +102,43 @@ void FCollisionSystem::UpdateCollisionMap() {
 }
 
 void FCollisionSystem::CheckCollisions() {
-  for (auto* comp : PendingStaticRegistrations) RegisterToStaticMap(comp);
+  for (auto* comp : CollisionComponents) {
+    CachedAABBs[comp] = comp->GetAABB();
+  }
+
+  for (auto* comp : PendingStaticRegistrations) {
+    RegisterToStaticMap(comp);
+  }
   PendingStaticRegistrations.clear();
 
   UpdateCollisionMap();
   ++FrameId;
 
-  for (auto& [loc, vec] : DynamicCollisionMap) {
+  for (const auto& loc : ActiveDynamicCells) {
+    const auto& vec = DynamicCollisionMap[loc];
     auto staticIter = StaticCollisionMap.find(loc);
     const auto* staticVec = staticIter != StaticCollisionMap.end() ? &staticIter->second : nullptr;
 
     for (size_t i = 0; i < vec.size(); ++i) {
       auto* A = vec[i];
+      const FAABB& aabbA = CachedAABBs[A];
+
       if (staticVec) {
         for (auto* B : *staticVec) {
           if (A == B) {
             continue;
           }
+
+          const FAABB& aabbB = CachedAABBs[B];
+          if (aabbA.MaxX < aabbB.MinX || aabbA.MinX > aabbB.MaxX || aabbA.MaxY < aabbB.MinY ||
+              aabbA.MinY > aabbB.MaxY) {
+            continue;
+          }
+
           if (A > B) {
-            if (!B->ShouldProcessPair(A, FrameId)) {
-              continue;
-            }
+            if (!B->ShouldProcessPair(A, FrameId)) continue;
           } else {
-            if (!A->ShouldProcessPair(B, FrameId)) {
-              continue;
-            }
+            if (!A->ShouldProcessPair(B, FrameId)) continue;
           }
           CheckCollisionPair(A, B);
         }
@@ -118,19 +146,22 @@ void FCollisionSystem::CheckCollisions() {
 
       for (size_t j = i + 1; j < vec.size(); ++j) {
         auto* B = vec[j];
+        const FAABB& aabbB = CachedAABBs[B];
+        if (aabbA.MaxX < aabbB.MinX || aabbA.MinX > aabbB.MaxX || aabbA.MaxY < aabbB.MinY ||
+            aabbA.MinY > aabbB.MaxY) {
+          continue;
+        }
+
         if (A > B) {
-          if (!B->ShouldProcessPair(A, FrameId)) {
-            continue;
-          }
+          if (!B->ShouldProcessPair(A, FrameId)) continue;
         } else {
-          if (!A->ShouldProcessPair(B, FrameId)) {
-            continue;
-          }
+          if (!A->ShouldProcessPair(B, FrameId)) continue;
         }
         CheckCollisionPair(A, B);
       }
     }
   }
+
   for (auto* comp : CollisionComponents) {
     comp->FlushOverlapState();
   }
@@ -144,27 +175,21 @@ void FCollisionSystem::CircleAndCircle(MCircleCollisionComponent* a, MCircleColl
   float dy = locB.Y - locA.Y;
   float distanceSquared = dx * dx + dy * dy;
   float minDistance = radA + radB;
-
   auto aActor = a->GetOwner();
   auto bActor = b->GetOwner();
-
   if (distanceSquared <= minDistance * minDistance) {
     a->UpdateOverlapState(bActor, true);
     b->UpdateOverlapState(aActor, true);
-
     if (a->GetCollisionType() == ECollisionType::Block &&
         b->GetCollisionType() == ECollisionType::Block) {
       float distance = std::sqrt(distanceSquared);
       FVector2D normal;
-
       if (distance <= 0.0001f) {
         normal = {1.0f, 0.0f};
       } else {
         normal = {dx / distance, dy / distance};
       }
-
       float overlapDepth = minDistance - distance;
-
       CollisionResolution(aActor, bActor, normal, overlapDepth);
     }
   } else {
@@ -225,28 +250,22 @@ void FCollisionSystem::CircleAndRectangle(
   FVector2D rectCenter = rect->GetWorldLocation();
   float halfWidth = (rect->GetWidth() * rect->GetWorldScale().Scale) * 0.5f;
   float halfHeight = (rect->GetHeight() * rect->GetWorldScale().Scale) * 0.5f;
-
   float rad = UMath::DegToRad(rect->GetWorldRotation().Rotation);
   float cosA = std::cos(rad);
   float sinA = std::sin(rad);
 
-  // 円の中心を矩形のローカル座標に変換
   float dx = circleCenter.X - rectCenter.X;
   float dy = circleCenter.Y - rectCenter.Y;
   float localCircleX = dx * cosA + dy * sinA;
   float localCircleY = -dx * sinA + dy * cosA;
-
   float closestX = ClampFloat(localCircleX, -halfWidth, halfWidth);
   float closestY = ClampFloat(localCircleY, -halfHeight, halfHeight);
-
   float localDx = localCircleX - closestX;
   float localDy = localCircleY - closestY;
   float distanceSquared = localDx * localDx + localDy * localDy;
   float radius = circle->GetRadius() * circle->GetWorldScale().Scale;
-
   auto circleActor = circle->GetOwner();
   auto rectActor = rect->GetOwner();
-
   constexpr float HysteresisMargin = 1.0f;
   float exitRadius = radius + (circle->IsOverlappingActor(rectActor) ? HysteresisMargin : 0.0f);
   bool isOverlapping = distanceSquared <= (exitRadius * exitRadius);
@@ -258,7 +277,6 @@ void FCollisionSystem::CircleAndRectangle(
       rect->GetCollisionType() == ECollisionType::Block) {
     FVector2D localNormal{0.0f, 0.0f};
     float overlapDepth = 0.0f;
-
     if (distanceSquared <= 0.0001f) {
       float left = localCircleX - (-halfWidth);
       float right = halfWidth - localCircleX;
@@ -284,12 +302,9 @@ void FCollisionSystem::CircleAndRectangle(
       localNormal = {localDx / distance, localDy / distance};
       overlapDepth = radius - distance;
     }
-
-    // ローカル法線をワールド法線に変換
     FVector2D worldNormal = {
         localNormal.X * cosA - localNormal.Y * sinA, localNormal.X * sinA + localNormal.Y * cosA
     };
-    // worldNormal は四角から円への向きになっているため反転させて渡す
     CollisionResolution(circleActor, rectActor, {-worldNormal.X, -worldNormal.Y}, overlapDepth);
   }
 }
@@ -318,39 +333,31 @@ void FCollisionSystem::RectangleAndRectangle(
 
   OBB obbA = GetOBB(a);
   OBB obbB = GetOBB(b);
-
-  // 互いのローカルX軸とY軸の計4本でSAT(分離軸定理)を行う
   FVector2D axes[4] = {obbA.AxisX, obbA.AxisY, obbB.AxisX, obbB.AxisY};
-
   float minOverlap = 1e9f;
-  FVector2D mtvAxis{0.0f, 0.0f};  // Minimum Translation Vector (押し出し方向)
+  FVector2D mtvAxis{0.0f, 0.0f};
   bool isOverlapping = true;
 
   for (int i = 0; i < 4; ++i) {
     FVector2D axis = axes[i];
     if (axis.X * axis.X + axis.Y * axis.Y < 0.0001f) continue;
-
     auto Project = [](const OBB& obb, const FVector2D& ax) -> float {
       return std::abs(obb.AxisX.X * ax.X + obb.AxisX.Y * ax.Y) * obb.HalfW +
              std::abs(obb.AxisY.X * ax.X + obb.AxisY.Y * ax.Y) * obb.HalfH;
     };
-
     float rA = Project(obbA, axis);
     float rB = Project(obbB, axis);
-
     FVector2D t = {obbB.Center.X - obbA.Center.X, obbB.Center.Y - obbA.Center.Y};
     float distance = std::abs(t.X * axis.X + t.Y * axis.Y);
-
     float overlap = rA + rB - distance;
+
     if (overlap <= 0.0f) {
       isOverlapping = false;
-      break;  // 1つでも隙間があれば非衝突
+      break;
     }
-
     if (overlap < minOverlap) {
       minOverlap = overlap;
       mtvAxis = axis;
-      // 常に A から B への方向に合わせる
       if (t.X * axis.X + t.Y * axis.Y < 0.0f) {
         mtvAxis = {-axis.X, -axis.Y};
       }
@@ -359,7 +366,6 @@ void FCollisionSystem::RectangleAndRectangle(
 
   auto aActor = a->GetOwner();
   auto bActor = b->GetOwner();
-
   a->UpdateOverlapState(bActor, isOverlapping);
   b->UpdateOverlapState(aActor, isOverlapping);
 
@@ -382,6 +388,7 @@ void FCollisionSystem::LineAndCircle(
   auto circleActor = circle->GetOwner();
   line->UpdateOverlapState(circleActor, isOverlapping);
   circle->UpdateOverlapState(lineActor, isOverlapping);
+
   if (isOverlapping && line->GetCollisionType() == ECollisionType::Block &&
       circle->GetCollisionType() == ECollisionType::Block) {
     FVector2D ab{end.X - start.X, end.Y - start.Y};
@@ -396,13 +403,11 @@ void FCollisionSystem::LineAndCircle(
     float dx = center.X - closest.X;
     float dy = center.Y - closest.Y;
     float distanceSquared = dx * dx + dy * dy;
-    if (distanceSquared <= 0.0001f) {
-      return;
-    }
+
+    if (distanceSquared <= 0.0001f) return;
     float distance = std::sqrt(distanceSquared);
     FVector2D normal{dx / distance, dy / distance};
     float overlapDepth = radius - distance;
-
     CollisionResolution(lineActor, circleActor, normal, overlapDepth);
   }
 }
@@ -413,15 +418,12 @@ void FCollisionSystem::LineAndRectangle(
   FVector2D start = line->GetWorldStart();
   FVector2D end = line->GetWorldEnd();
   FVector2D rectCenter = rect->GetWorldLocation();
-
   float halfWidth = (rect->GetWidth() * rect->GetWorldScale().Scale) * 0.5f;
   float halfHeight = (rect->GetHeight() * rect->GetWorldScale().Scale) * 0.5f;
-
   float rad = UMath::DegToRad(rect->GetWorldRotation().Rotation);
   float cosA = std::cos(rad);
   float sinA = std::sin(rad);
 
-  // 線分を矩形のローカル座標に変換
   auto ToLocal = [&](const FVector2D& pt) -> FVector2D {
     float dx = pt.X - rectCenter.X;
     float dy = pt.Y - rectCenter.Y;
@@ -430,7 +432,6 @@ void FCollisionSystem::LineAndRectangle(
 
   FVector2D localStart = ToLocal(start);
   FVector2D localEnd = ToLocal(end);
-
   float minX = -halfWidth;
   float maxX = halfWidth;
   float minY = -halfHeight;
@@ -440,8 +441,8 @@ void FCollisionSystem::LineAndRectangle(
       localStart.X >= minX && localStart.X <= maxX && localStart.Y >= minY && localStart.Y <= maxY;
   bool endInside =
       localEnd.X >= minX && localEnd.X <= maxX && localEnd.Y >= minY && localEnd.Y <= maxY;
-
   bool isOverlapping = startInside || endInside;
+
   if (!isOverlapping) {
     FVector2D topLeft{minX, minY};
     FVector2D topRight{maxX, minY};
@@ -461,7 +462,7 @@ void FCollisionSystem::LineAndRectangle(
   if (isOverlapping && line->GetCollisionType() == ECollisionType::Block &&
       rect->GetCollisionType() == ECollisionType::Block) {
     FVector2D ab{localEnd.X - localStart.X, localEnd.Y - localStart.Y};
-    FVector2D ap{-localStart.X, -localStart.Y};  // center (0,0) - localStart
+    FVector2D ap{-localStart.X, -localStart.Y};
     float abLenSq = ab.X * ab.X + ab.Y * ab.Y;
     float t = 0.0f;
     if (abLenSq > 0.0001f) {
@@ -469,25 +470,21 @@ void FCollisionSystem::LineAndRectangle(
       t = ClampFloat(t, 0.0f, 1.0f);
     }
     FVector2D closest{localStart.X + ab.X * t, localStart.Y + ab.Y * t};
-    float dx = -closest.X;  // 0 - closest.X
-    float dy = -closest.Y;  // 0 - closest.Y
+    float dx = -closest.X;
+    float dy = -closest.Y;
     float distanceSquared = dx * dx + dy * dy;
 
     if (distanceSquared <= 0.0001f) return;
-
     float distance = std::sqrt(distanceSquared);
     FVector2D localNormal{dx / distance, dy / distance};
     float supportRadius =
         std::abs(localNormal.X) * halfWidth + std::abs(localNormal.Y) * halfHeight;
     float overlapDepth = supportRadius - distance;
-
     if (overlapDepth <= 0.0f) return;
 
-    // ローカル法線をワールド法線に変換
     FVector2D worldNormal = {
         localNormal.X * cosA - localNormal.Y * sinA, localNormal.X * sinA + localNormal.Y * cosA
     };
-
     CollisionResolution(lineActor, rectActor, worldNormal, overlapDepth);
   }
 }
@@ -508,7 +505,7 @@ void FCollisionSystem::LineAndLine(MLineCollisionComponent* a, MLineCollisionCom
 void FCollisionSystem::CancelNormalVelocity(MMovementComponent* move, const FVector2D& normal) {
   FVector2D v = move->GetVelocity();
   float dot = v.X * normal.X + v.Y * normal.Y;
-  if (dot > 0.0f) {  // 衝突方向に向かっている成分のみキャンセル
+  if (dot > 0.0f) {
     move->SetWorldForce({v.X - normal.X * dot, v.Y - normal.Y * dot});
   }
 }
@@ -520,6 +517,7 @@ void FCollisionSystem::CollisionResolution(
   auto moveComponentB = ActorB->GetComponents<MMovementComponent>();
   auto* moveA = moveComponentA.empty() ? nullptr : moveComponentA.front();
   auto* moveB = moveComponentB.empty() ? nullptr : moveComponentB.front();
+
   if (moveA && moveB) {
     ActorA->AddActorWorldOffset(normal * (-overlapDepth * 0.5f));
     ActorB->AddActorWorldOffset(normal * (overlapDepth * 0.5f));
@@ -537,6 +535,7 @@ void FCollisionSystem::CollisionResolution(
 void FCollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B) {
   if (A->GetOwner() == B->GetOwner()) return;
   if (A->IsStatic() && B->IsStatic()) return;
+
   switch (A->GetShapeType()) {
     case ECollisionShape::Circle:
       if (B->GetShapeType() == ECollisionShape::Circle) {
@@ -590,7 +589,7 @@ void FCollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComp
 }
 
 void FCollisionSystem::RegisterToStaticMap(MCollisionComponent* component) {
-  FAABB box = component->GetAABB();
+  const FAABB& box = CachedAABBs[component];
   int minX = static_cast<int>(std::floor(box.MinX / CollisionCellSize));
   int maxX = static_cast<int>(std::floor(box.MaxX / CollisionCellSize));
   int minY = static_cast<int>(std::floor(box.MinY / CollisionCellSize));
@@ -598,7 +597,11 @@ void FCollisionSystem::RegisterToStaticMap(MCollisionComponent* component) {
 
   for (int x = minX; x <= maxX; ++x) {
     for (int y = minY; y <= maxY; ++y) {
-      StaticCollisionMap[{x, y}].push_back(component);
+      auto loc = std::make_pair(x, y);
+      if (StaticCollisionMap[loc].empty()) {
+        ActiveStaticCells.push_back(loc);
+      }
+      StaticCollisionMap[loc].push_back(component);
     }
   }
 }
