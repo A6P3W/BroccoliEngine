@@ -38,6 +38,8 @@ class MUIWidgetComponent : public MSceneComponent {
   FVector2D GetAnchoredPosition() const { return AnchoredPosition; }
 
   void OnUpdate(float DeltaTime) override;
+  // 可視性変更時、親のVerticalBoxに再レイアウトを通知する
+  void SetVisibility(bool bNewVisibility) override;
 
  protected:
   // アンカーとピボットを基に実際の相対座標(RelativeLocation)を計算

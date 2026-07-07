@@ -36,7 +36,7 @@ class MSceneComponent : public MActorComponent {
   bool SetWorldScale(FScale NewScale);
   FScale GetWorldScale() const;
 
-  void SetVisibility(bool bNewVisibility);
+  virtual void SetVisibility(bool bNewVisibility);
   bool IsVisible() const { return bVisible; }
   bool bVisible = true;
 

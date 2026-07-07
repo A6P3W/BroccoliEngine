@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "EngineDefine.h"
+#include "UIVerticalBoxComponent.h"
 
 MUIWidgetComponent::MUIWidgetComponent(int basePriority) : BasePriority(basePriority) {}
 
@@ -91,5 +92,13 @@ void MUIWidgetComponent::UpdateAnchoredLocation() {
   if (std::abs(newRelativeLoc.X - GetRelativeLocation().X) > 0.001f ||
       std::abs(newRelativeLoc.Y - GetRelativeLocation().Y) > 0.001f) {
     SetRelativeLocation(newRelativeLoc);
+  }
+}
+
+void MUIWidgetComponent::SetVisibility(bool bNewVisibility) {
+  MSceneComponent::SetVisibility(bNewVisibility);
+  // 親がVerticalBoxの場合、可視性変化による再レイアウトを要求する
+  if (auto* parentBox = dynamic_cast<MUIVerticalBoxComponent*>(GetParentComponent())) {
+    parentBox->MarkLayoutDirty();
   }
 }
