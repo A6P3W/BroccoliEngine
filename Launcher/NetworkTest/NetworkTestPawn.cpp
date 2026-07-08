@@ -1,7 +1,7 @@
 ﻿#include "NetworkTestPawn.h"
 
 #include <DxLib.h>
-#include <CharacterMovementComponent.h>
+#include <NetMovementComponent.h>
 #include <RectangleCollisionComponent.h>
 
 #include "EnhancedInputComponent.h"
@@ -17,6 +17,12 @@ enum : FNetworkRPCId {
   RPC_ComponentServerTest = 101,
   RPC_ComponentMulticastTest = 102
 };
+
+namespace NetworkTestActions {
+enum : FMoveActionState {
+  Interact = 1 << 0,
+};
+}
 }
 
 MNetworkTestRepComponent::MNetworkTestRepComponent() {
@@ -137,7 +143,7 @@ ANetworkTestPawn::ANetworkTestPawn() {
   CollisionComponent->SetStatic(false);
   AddComponent(std::move(CollisionComponent));
 
-  auto MovementComponent = std::make_unique<MCharacterMovementComponent>();
+  auto MovementComponent = std::make_unique<MNetMovementComponent>();
   Movement = MovementComponent.get();
   AddComponent(std::move(MovementComponent));
 
@@ -197,7 +203,7 @@ void ANetworkTestPawn::OnMove(const FInputActionValue& Value) {
     return;
   }
 
-  Movement->AddInputVector(Value.Axis2D);
+  Movement->AddMovementInput(Value.Axis2D);
 }
 
 void ANetworkTestPawn::OnInteract(const FInputActionValue& Value) {
@@ -207,7 +213,7 @@ void ANetworkTestPawn::OnInteract(const FInputActionValue& Value) {
     return;
   }
 
-  Movement->AddInputFlag(FLAG_Jump);
+  Movement->AddMovementAction(NetworkTestActions::Interact);
 }
 
 int ANetworkTestPawn::GetDisplayColor() const {

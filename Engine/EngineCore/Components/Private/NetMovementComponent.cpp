@@ -1,4 +1,4 @@
-﻿#include "CharacterMovementComponent.h"
+﻿#include "NetMovementComponent.h"
 
 #include <algorithm>
 #include <cmath>
@@ -38,69 +38,68 @@ FVector2D ClampVectorSize(const FVector2D& Value, float MaxSize) {
 }
 }
 
-MCharacterMovementComponent::MCharacterMovementComponent() {
+MNetMovementComponent::MNetMovementComponent() {
   bReplicates = true;
-  SetNetComponentName("CharacterMovementComponent");
+  SetNetComponentName("NetMovementComponent");
   RegisterReplicatedProperty(&Friction);
   RegisterReplicatedProperty(&MaxSpeed);
   RegisterReplicatedProperty(&Acceleration);
-  RegisterReplicatedProperty(&DashSpeedMultiplier);
 }
 
-void MCharacterMovementComponent::RegisterComponent() {
+void MNetMovementComponent::RegisterComponent() {
   MMovementComponent::RegisterComponent();
 
   RegisterRPC(
       RPC_ServerReceiveMove,
       ENetRPCType::Server,
       this,
-      &MCharacterMovementComponent::Server_ReceiveMove
+      &MNetMovementComponent::Server_UploadMove
   );
   RegisterRPC(
       RPC_ClientReceiveAck,
       ENetRPCType::Client,
       this,
-      &MCharacterMovementComponent::Client_ReceiveAck
+      &MNetMovementComponent::Client_ResolveMove
   );
 }
 
-void MCharacterMovementComponent::OnUpdate(float DeltaTime) {
+void MNetMovementComponent::OnUpdate(float DeltaTime) {
   AActor* OwnerActor = GetOwner();
   if (!OwnerActor || DeltaTime <= 0.0f) {
     CurrentInputAxis = FVector2D::ZeroVector;
-    CurrentInputFlags = 0;
+    CurrentActions = EMoveAction::None;
     return;
   }
 
   if (OwnerActor->bIsLocallyControlled && !OwnerActor->bHasAuthority) {
-    FSavedMove NewMove;
+    FMovePredictionData NewMove;
     NewMove.Sequence = ++CurrentSequence;
     NewMove.DeltaTime = DeltaTime;
     NewMove.InputAxis = CurrentInputAxis;
-    NewMove.SavedFlags = CurrentInputFlags;
+    NewMove.Actions = CurrentActions;
 
-    SavedMoves.push_back(NewMove);
-    PerformMovement(NewMove);
+    InFlightMoves.push_back(NewMove);
+    SimulateMovement(NewMove);
     InvokeRPC(
         RPC_ServerReceiveMove, ENetRPCType::Server, ENetPacketReliability::Unreliable, NewMove
     );
 
     CurrentInputAxis = FVector2D::ZeroVector;
-    CurrentInputFlags = 0;
+    CurrentActions = EMoveAction::None;
     return;
   }
 
-  if (OwnerActor->bHasAuthority && OwnerActor->bIsLocallyControlled && HasPendingSimulation()) {
-    FSavedMove LocalMove;
+  if (OwnerActor->bHasAuthority && OwnerActor->bIsLocallyControlled && ShouldSimulate()) {
+    FMovePredictionData LocalMove;
     LocalMove.Sequence = ++CurrentSequence;
     LocalMove.DeltaTime = DeltaTime;
     LocalMove.InputAxis = CurrentInputAxis;
-    LocalMove.SavedFlags = CurrentInputFlags;
-    PerformMovement(LocalMove);
+    LocalMove.Actions = CurrentActions;
+    SimulateMovement(LocalMove);
   }
 
   CurrentInputAxis = FVector2D::ZeroVector;
-  CurrentInputFlags = 0;
+  CurrentActions = EMoveAction::None;
 
   if (!OwnerActor->bHasAuthority) {
     return;
@@ -109,55 +108,60 @@ void MCharacterMovementComponent::OnUpdate(float DeltaTime) {
   std::stable_sort(
       ServerPendingMoves.begin(),
       ServerPendingMoves.end(),
-      [](const FSavedMove& Lhs, const FSavedMove& Rhs) {
+      [](const FMovePredictionData& Lhs, const FMovePredictionData& Rhs) {
         return Lhs.Sequence < Rhs.Sequence;
       }
   );
 
   bool bProcessedMove = false;
-  uint32_t ProcessedSequence = LastAckedSequence;
-  for (const FSavedMove& Move : ServerPendingMoves) {
+  uint32_t ProcessedSequence = LastConfirmedSequence;
+  for (const FMovePredictionData& Move : ServerPendingMoves) {
     if (Move.Sequence <= ProcessedSequence) {
       continue;
     }
 
-    PerformMovement(Move);
+    SimulateMovement(Move);
     ProcessedSequence = Move.Sequence;
     bProcessedMove = true;
   }
   ServerPendingMoves.clear();
 
   if (bProcessedMove) {
-    LastAckedSequence = ProcessedSequence;
+    LastConfirmedSequence = ProcessedSequence;
     InvokeRPC(
         RPC_ClientReceiveAck,
         ENetRPCType::Client,
         ENetPacketReliability::Unreliable,
-        LastAckedSequence,
+        LastConfirmedSequence,
         OwnerActor->GetActorLocation(),
         GetVelocity()
     );
   }
 }
 
-void MCharacterMovementComponent::AddInputVector(const FVector2D& Input) {
+void MNetMovementComponent::AddMovementInput(const FVector2D& Input) {
   CurrentInputAxis += Input;
 }
 
-void MCharacterMovementComponent::AddInputFlag(uint8_t Flag) { CurrentInputFlags |= Flag; }
+void MNetMovementComponent::AddMovementAction(FMoveActionState Action) { CurrentActions |= Action; }
 
-void MCharacterMovementComponent::PerformMovement(const FSavedMove& Move) {
+void MNetMovementComponent::SetMovementActions(FMoveActionState Actions) { CurrentActions = Actions; }
+
+float MNetMovementComponent::GetMaxSpeedForActions(FMoveActionState Actions) const {
+  (void)Actions;
+  return MaxSpeed;
+}
+
+void MNetMovementComponent::SimulateMovement(const FMovePredictionData& Move) {
   if (Move.DeltaTime <= 0.0f) {
     return;
   }
 
   const FVector2D InputAxis = ClampInputAxis(Move.InputAxis);
-  const bool bWantsDash = (Move.SavedFlags & FLAG_Dash) != 0;
-  const float SpeedMultiplier = bWantsDash ? DashSpeedMultiplier : 1.0f;
-  const float TargetMaxSpeed = MaxSpeed * SpeedMultiplier;
+  const float TargetMaxSpeed = GetMaxSpeedForActions(Move.Actions);
 
   FVector2D NewVelocity = GetVelocity();
-  NewVelocity += InputAxis * (-Acceleration * SpeedMultiplier * Move.DeltaTime);
+  NewVelocity += InputAxis * (-Acceleration * Move.DeltaTime);
   NewVelocity = ClampVectorSize(NewVelocity, TargetMaxSpeed);
   NewVelocity *= std::pow(Friction, Move.DeltaTime * 60.0f);
 
@@ -166,10 +170,10 @@ void MCharacterMovementComponent::PerformMovement(const FSavedMove& Move) {
   }
 
   SetWorldForce(NewVelocity);
-  MoveWithCollision(NewVelocity * Move.DeltaTime);
+  ApplyMovementData(NewVelocity * Move.DeltaTime);
 }
 
-void MCharacterMovementComponent::MoveWithCollision(const FVector2D& DesiredOffset) {
+void MNetMovementComponent::ApplyMovementData(const FVector2D& DesiredOffset) {
   AActor* OwnerActor = GetOwner();
   if (!OwnerActor || DesiredOffset.SizeSquared() <= 0.0001f) {
     return;
@@ -178,7 +182,7 @@ void MCharacterMovementComponent::MoveWithCollision(const FVector2D& DesiredOffs
   OwnerActor->AddActorWorldOffset(DesiredOffset);
 }
 
-void MCharacterMovementComponent::Server_ReceiveMove(FSavedMove Move) {
+void MNetMovementComponent::Server_UploadMove(FMovePredictionData Move) {
   AActor* OwnerActor = GetOwner();
   if (!OwnerActor || !OwnerActor->bHasAuthority) {
     return;
@@ -187,7 +191,7 @@ void MCharacterMovementComponent::Server_ReceiveMove(FSavedMove Move) {
   ServerPendingMoves.push_back(Move);
 }
 
-void MCharacterMovementComponent::Client_ReceiveAck(
+void MNetMovementComponent::Client_ResolveMove(
     uint32_t AckedSequence, FVector2D ServerLocation, FVector2D ServerVelocity
 ) {
   AActor* OwnerActor = GetOwner();
@@ -195,22 +199,22 @@ void MCharacterMovementComponent::Client_ReceiveAck(
     return;
   }
 
-  if (AckedSequence <= LastAckedSequence) {
+  if (AckedSequence <= LastConfirmedSequence) {
     return;
   }
 
-  LastAckedSequence = AckedSequence;
+  LastConfirmedSequence = AckedSequence;
 
   const FVector2D PredictedLocation = OwnerActor->GetActorLocation();
 
   OwnerActor->SetActorLocation(ServerLocation);
   SetWorldForce(ServerVelocity);
-  std::erase_if(SavedMoves, [AckedSequence](const FSavedMove& Move) {
+  std::erase_if(InFlightMoves, [AckedSequence](const FMovePredictionData& Move) {
     return Move.Sequence <= AckedSequence;
   });
 
-  for (const FSavedMove& Move : SavedMoves) {
-    PerformMovement(Move);
+  for (const FMovePredictionData& Move : InFlightMoves) {
+    SimulateMovement(Move);
   }
 
   const FVector2D CorrectedLocation = OwnerActor->GetActorLocation();
@@ -219,7 +223,7 @@ void MCharacterMovementComponent::Client_ReceiveAck(
   }
 }
 
-bool MCharacterMovementComponent::HasPendingSimulation() const {
-  return CurrentInputAxis.SizeSquared() > 0.0001f || CurrentInputFlags != 0 ||
+bool MNetMovementComponent::ShouldSimulate() const {
+  return CurrentInputAxis.SizeSquared() > 0.0001f || CurrentActions != EMoveAction::None ||
          GetVelocitySizeSquared() > 0.001f;
 }

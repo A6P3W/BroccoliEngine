@@ -12,15 +12,17 @@ using FNetworkSceneId = uint32_t;
 
 enum class ENetRPCType : uint8_t { Server, Client, Multicast };
 
-enum EMoveFlags : uint8_t {
-  FLAG_None = 0,
-  FLAG_Jump = 1 << 0,
-  FLAG_Dash = 1 << 1,
-};
+using FMoveActionState = uint32_t;
 
-struct FSavedMove {
+namespace EMoveAction {
+enum : FMoveActionState {
+  None = 0,
+};
+}
+
+struct FMovePredictionData {
   uint32_t Sequence = 0;
   float DeltaTime = 0.0f;
   FVector2D InputAxis = {0.0f, 0.0f};
-  uint8_t SavedFlags = 0;
+  FMoveActionState Actions = EMoveAction::None;
 };

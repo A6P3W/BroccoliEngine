@@ -11,7 +11,7 @@
 class MEnhancedInputComponent;
 class MSpriteComponent;
 struct FInputActionValue;
-class MCharacterMovementComponent;
+class MNetMovementComponent;
 class FNetworkTestUI;
 
 class MNetworkTestRepComponent : public MActorComponent {
@@ -60,7 +60,7 @@ class ANetworkTestPawn : public APawn {
   int GetDisplayColor() const;
 
   MSpriteComponent* BodySprite = nullptr;
-  MCharacterMovementComponent* Movement = nullptr;
+  MNetMovementComponent* Movement = nullptr;
   MNetworkTestRepComponent* ReplicationTest = nullptr;
   std::unique_ptr<FNetworkTestUI> NetworkTestUI;
   float FlashTimer = 0.0f;
