@@ -1,6 +1,7 @@
 ﻿#include "Pawn.h"
 
 #include <DxLib.h>
+#include <CharacterMovementComponent.h>
 #include <EnhancedInputComponent.h>
 
 #include "CameraComponent.h"
@@ -40,4 +41,9 @@ void APawn::SetupPlayerInputComponent(MEnhancedInputComponent* comp) {
 
 void APawn::OnInteractPressed() { M_LOG("FFFF"); }
 
-void APawn::OnMove(const FInputActionValue& Value) { AddActorWorldOffset(Value.Axis2D * -10); }
+void APawn::OnMove(const FInputActionValue& Value) {
+  auto MovementComponents = GetComponents<MCharacterMovementComponent>();
+  if (!MovementComponents.empty() && MovementComponents.front()) {
+    MovementComponents.front()->AddInputVector(Value.Axis2D);
+  }
+}

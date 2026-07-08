@@ -251,7 +251,7 @@ class AActor : public MBaseObject
   void EnsureNetComponentName(MActorComponent* Component);
   std::vector<MActorComponent*> GetReplicatedNetworkComponents() const;
   void SerializeActorNetworkState(FNetBuffer& OutBuffer);
-  bool DeserializeActorNetworkState(FNetBuffer& InBuffer);
+  bool DeserializeActorNetworkState(FNetBuffer& InBuffer, bool bApplyTransform = true);
   bool SerializeReplicatedComponentStates(FNetBuffer& OutBuffer);
   bool DeserializeReplicatedComponentStates(FNetBuffer& InBuffer);
   bool SerializeReplicatedComponentSpawns(FNetBuffer& OutBuffer);

@@ -216,7 +216,7 @@ bool AActor::SerializeNetworkState(FNetBuffer& OutBuffer) {
 }
 
 bool AActor::DeserializeNetworkState(FNetBuffer& InBuffer) {
-  if (!DeserializeActorNetworkState(InBuffer)) {
+  if (!DeserializeActorNetworkState(InBuffer, !bIsLocallyControlled)) {
     return false;
   }
 
@@ -475,7 +475,7 @@ void AActor::SerializeActorNetworkState(FNetBuffer& OutBuffer) {
   }
 }
 
-bool AActor::DeserializeActorNetworkState(FNetBuffer& InBuffer) {
+bool AActor::DeserializeActorNetworkState(FNetBuffer& InBuffer, bool bApplyTransform) {
   float locationX = 0.0f;
   float locationY = 0.0f;
   float rotation = 0.0f;
@@ -486,9 +486,11 @@ bool AActor::DeserializeActorNetworkState(FNetBuffer& InBuffer) {
   if (!InBuffer.Read(rotation)) return false;
   if (!InBuffer.Read(scale)) return false;
 
-  SetActorLocation({locationX, locationY});
-  SetActorRotation(FRotator(rotation));
-  SetActorScale(FScale(scale));
+  if (bApplyTransform) {
+    SetActorLocation({locationX, locationY});
+    SetActorRotation(FRotator(rotation));
+    SetActorScale(FScale(scale));
+  }
 
   for (const auto& replicatedProperty : ReplicatedProperties) {
     if (replicatedProperty && !replicatedProperty->DeserializeAndTriggerOnRep(InBuffer)) {

@@ -1,13 +1,12 @@
 ﻿#include "NetworkTestPawn.h"
 
 #include <DxLib.h>
-#include <MovementComponent.h>
+#include <CharacterMovementComponent.h>
 #include <RectangleCollisionComponent.h>
 
 #include "EnhancedInputComponent.h"
 #include "Log.h"
 #include "NetworkManager.h"
-#include "NetworkTestBreakableActor.h"
 #include "NetworkTestGameMode.h"
 #include "NetworkTestUI.h"
 #include "SpriteComponent.h"
@@ -15,10 +14,6 @@
 
 namespace {
 enum : FNetworkRPCId {
-  RPC_ServerTest = 1,
-  RPC_MulticastTest = 2,
-  RPC_ServerMove = 3,
-  RPC_ServerSpawnBreakableActor = 4,
   RPC_ComponentServerTest = 101,
   RPC_ComponentMulticastTest = 102
 };
@@ -131,36 +126,24 @@ ANetworkTestPawn::ANetworkTestPawn() {
   bReplicates = true;
   NetworkTestUI = std::make_unique<FNetworkTestUI>(*this);
 
-  RegisterRPC(RPC_ServerTest, ENetRPCType::Server, this, &ANetworkTestPawn::Server_TestRPC);
-  RegisterRPC(
-      RPC_MulticastTest, ENetRPCType::Multicast, this, &ANetworkTestPawn::Multicast_TestRPC
-  );
-  RegisterRPC(RPC_ServerMove, ENetRPCType::Server, this, &ANetworkTestPawn::Server_Move);
-  RegisterRPC(
-      RPC_ServerSpawnBreakableActor,
-      ENetRPCType::Server,
-      this,
-      &ANetworkTestPawn::Server_SpawnBreakableActor
-  );
-
-  auto sprite = std::make_unique<MSpriteComponent>(10, RenderSpace::World);
-  BodySprite = sprite.get();
+  auto Sprite = std::make_unique<MSpriteComponent>(10, RenderSpace::World);
+  BodySprite = Sprite.get();
   BodySprite->SubmitBox(48.0f, 48.0f, GetDisplayColor(), true);
   BodySprite->SetRelativeLocation({-24.0f, -24.0f});
-  AddComponent(std::move(sprite));
+  AddComponent(std::move(Sprite));
 
-  auto col = std::make_unique<MRectangleCollisionComponent>(48.0f, 48.0f);
-  col->SetParentComponent(GetRootComponent());
-  col->SetStatic(false);
-  AddComponent(std::move(col));
+  auto CollisionComponent = std::make_unique<MRectangleCollisionComponent>(48.0f, 48.0f);
+  CollisionComponent->SetParentComponent(GetRootComponent());
+  CollisionComponent->SetStatic(false);
+  AddComponent(std::move(CollisionComponent));
 
-  auto movement = std::make_unique<MMovementComponent>();
-  Movement = movement.get();
-  AddComponent(std::move(movement));
+  auto MovementComponent = std::make_unique<MCharacterMovementComponent>();
+  Movement = MovementComponent.get();
+  AddComponent(std::move(MovementComponent));
 
-  auto replicationTest = std::make_unique<MNetworkTestRepComponent>();
-  ReplicationTest = replicationTest.get();
-  AddComponent(std::move(replicationTest));
+  auto ReplicationTestComponent = std::make_unique<MNetworkTestRepComponent>();
+  ReplicationTest = ReplicationTestComponent.get();
+  AddComponent(std::move(ReplicationTestComponent));
 }
 
 ANetworkTestPawn::~ANetworkTestPawn() = default;
@@ -210,65 +193,21 @@ void ANetworkTestPawn::SetupPlayerInputComponent(MEnhancedInputComponent* Player
 }
 
 void ANetworkTestPawn::OnMove(const FInputActionValue& Value) {
-  if (!bIsLocallyControlled) {
+  if (!bIsLocallyControlled || !Movement) {
     return;
   }
 
-  if (bHasAuthority) {
-    ApplyMovementInput(Value.Axis2D);
-  } else {
-    InvokeRPC(RPC_ServerMove, ENetRPCType::Server, ENetPacketReliability::Unreliable, Value.Axis2D);
-  }
-}
-
-void ANetworkTestPawn::Server_Move(const FVector2D& MoveInput) { ApplyMovementInput(MoveInput); }
-
-void ANetworkTestPawn::Server_SpawnBreakableActor() {
-  if (!GetWorld() || !bHasAuthority) {
-    return;
-  }
-
-  ANetworkTestBreakableActor* Actor =
-      GetWorld()->SpawnActor<ANetworkTestBreakableActor>({300.0f, 0.0f});
-  if (Actor) {
-    M_LOG("Spawned NetworkTestBreakableActor at (300, 0): actor={}", Actor->NetworkId);
-  }
-}
-
-void ANetworkTestPawn::ApplyMovementInput(const FVector2D& MoveInput) {
-  if (Movement) {
-    Movement->AddWorldForce(MoveInput * (-MoveSpeed / 60.0f) * 0.05f);
-  }
+  Movement->AddInputVector(Value.Axis2D);
 }
 
 void ANetworkTestPawn::OnInteract(const FInputActionValue& Value) {
   (void)Value;
 
-  if (!bIsLocallyControlled) {
+  if (!bIsLocallyControlled || !Movement) {
     return;
   }
 
-  const int playerId = static_cast<int>(OwnerConnectionId);
-  M_LOG("RPC test input: actor={} player={}", NetworkId, playerId);
-  InvokeRPC(RPC_ServerTest, ENetRPCType::Server, ENetPacketReliability::Reliable, playerId);
-
-  if (ReplicationTest) {
-    ReplicationTest->RequestTest(playerId);
-  }
-
-  InvokeRPC(
-      RPC_ServerSpawnBreakableActor, ENetRPCType::Server, ENetPacketReliability::Reliable
-  );
-}
-
-void ANetworkTestPawn::Server_TestRPC(int PlayerId) {
-  M_LOG("Server_TestRPC received: actor={} player={}", NetworkId, PlayerId);
-  InvokeRPC(RPC_MulticastTest, ENetRPCType::Multicast, ENetPacketReliability::Reliable, PlayerId);
-}
-
-void ANetworkTestPawn::Multicast_TestRPC(int PlayerId) {
-  M_LOG("Multicast_TestRPC received: actor={} player={}", NetworkId, PlayerId);
-  FlashTimer = 0.5f;
+  Movement->AddInputFlag(FLAG_Jump);
 }
 
 int ANetworkTestPawn::GetDisplayColor() const {
@@ -292,11 +231,11 @@ int ANetworkTestPawn::GetDisplayColor() const {
 void ANetworkTestPawn::BeginOverlap(AActor* OtherActor) {
   AActor::BeginOverlap(OtherActor);
 
-  if (auto otherPawn = dynamic_cast<ANetworkTestPawn*>(OtherActor)) {
+  if (auto OtherPawn = dynamic_cast<ANetworkTestPawn*>(OtherActor)) {
     M_LOG(
         "Player overlap detected! My NetworkId: {}, Other NetworkId: {}",
         NetworkId,
-        otherPawn->NetworkId
+        OtherPawn->NetworkId
     );
   }
 }

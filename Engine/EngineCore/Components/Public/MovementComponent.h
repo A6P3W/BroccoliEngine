@@ -13,9 +13,11 @@ class MMovementComponent : public MActorComponent {
 
   FVector2D GetVelocity() const { return Velocity; }
   float GetVelocitySizeSquared() const { return Velocity.SizeSquared(); }
+  float GetFriction() const { return Friction; }
+  void SetFriction(float NewFriction) { Friction = NewFriction; }
   void OnUpdate(float DeltaTime) override;
 
- private:
+ protected:
   FVector2D Velocity = {0.0f, 0.0f};
   float Friction = 0.95f;
 };
