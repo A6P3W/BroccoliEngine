@@ -86,7 +86,6 @@ bool Application::Run() {
     mode = "Game";
   }
   M_LOG("Starting: {}", mode);
-  const LONGLONG TargetFrameTime = 1000000 / 60;
   LONGLONG LastTime = GetNowHiPerformanceCount();
 
   DxLib_Init();
@@ -125,6 +124,12 @@ bool Application::Run() {
   IM.AddDevice(std::make_unique<GamepadDevice>(1));
 
   while (ProcessMessage() == 0 && !ShouldQuitGame) {
+    int TargetFps = 120;
+    if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
+      TargetFps = CurrentScene->GetTargetFps();
+    }
+    const LONGLONG TargetFrameTime = 1000000 / TargetFps;
+
     LONGLONG CurrentTime = GetNowHiPerformanceCount();
     LONGLONG ElapsedTime = CurrentTime - LastTime;
     if (ElapsedTime < TargetFrameTime) {
@@ -135,6 +140,10 @@ bool Application::Run() {
     }
     DeltaTime = static_cast<float>(ElapsedTime) / 1000000.0f;
     LastTime = CurrentTime;
+
+    if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
+      CurrentScene->UpdateCurrentFps(DeltaTime);
+    }
 
     if (DeltaTime > 0.1f) DeltaTime = 0.1f;
     Update(DeltaTime);

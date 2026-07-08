@@ -51,6 +51,10 @@ class World {
   void SetSimulating(bool bRunning) { bSimulating = bRunning; }
   bool IsSimulating() const { return bSimulating; }
   bool IsTearingDown() const { return bTearingDown; }
+  void SetTargetFps(int NewTargetFps);
+  int GetTargetFps() const { return TargetFps; }
+  float GetCurrentFps() const { return CurrentFps; }
+  void UpdateCurrentFps(float DeltaTime);
 
   ENetMode GetNetMode() const;
   void SetNetMode(ENetMode NewNetMode);
@@ -81,6 +85,8 @@ class World {
   AGameModeBase* GameMode = nullptr;
   bool bSimulating = true;
   bool bTearingDown = false;
+  int TargetFps = 60;
+  float CurrentFps = 0.0f;
   ENetMode NetMode = ENetMode::Standalone;
   FNetworkActorId NextNetworkActorId = 1;
 
