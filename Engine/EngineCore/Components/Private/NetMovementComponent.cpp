@@ -16,16 +16,6 @@ enum : FNetworkRPCId {
 constexpr float CorrectionTolerance = 4.0f;
 constexpr float CorrectionToleranceSquared = CorrectionTolerance * CorrectionTolerance;
 
-FVector2D ClampInputAxis(const FVector2D& InputAxis) {
-  const float SizeSquared = InputAxis.SizeSquared();
-  if (SizeSquared <= 1.0f || SizeSquared <= 0.0001f) {
-    return InputAxis;
-  }
-
-  const float Size = std::sqrt(SizeSquared);
-  return InputAxis / Size;
-}
-
 FVector2D ClampVectorSize(const FVector2D& Value, float MaxSize) {
   const float SizeSquared = Value.SizeSquared();
   const float MaxSizeSquared = MaxSize * MaxSize;
@@ -66,8 +56,7 @@ void MNetMovementComponent::RegisterComponent() {
 void MNetMovementComponent::OnUpdate(float DeltaTime) {
   AActor* OwnerActor = GetOwner();
   if (!OwnerActor || DeltaTime <= 0.0f) {
-    CurrentInputAxis = FVector2D::ZeroVector;
-    CurrentActions = EMoveAction::None;
+    CurrentDesiredVelocity = FVector2D::ZeroVector;
     return;
   }
 
@@ -75,9 +64,8 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
     FMovePredictionData NewMove;
     NewMove.Sequence = ++CurrentSequence;
     NewMove.DeltaTime = DeltaTime;
-    NewMove.InputAxis = CurrentInputAxis;
+    NewMove.DesiredVelocity = CurrentDesiredVelocity;
     NewMove.StartRotation = OwnerActor->GetActorRotation();
-    NewMove.Actions = CurrentActions;
 
     InFlightMoves.push_back(NewMove);
     SimulateMovement(NewMove);
@@ -85,8 +73,7 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
         RPC_ServerReceiveMove, ENetRPCType::Server, ENetPacketReliability::Unreliable, NewMove
     );
 
-    CurrentInputAxis = FVector2D::ZeroVector;
-    CurrentActions = EMoveAction::None;
+    CurrentDesiredVelocity = FVector2D::ZeroVector;
     return;
   }
 
@@ -94,14 +81,12 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
     FMovePredictionData LocalMove;
     LocalMove.Sequence = ++CurrentSequence;
     LocalMove.DeltaTime = DeltaTime;
-    LocalMove.InputAxis = CurrentInputAxis;
+    LocalMove.DesiredVelocity = CurrentDesiredVelocity;
     LocalMove.StartRotation = OwnerActor->GetActorRotation();
-    LocalMove.Actions = CurrentActions;
     SimulateMovement(LocalMove);
   }
 
-  CurrentInputAxis = FVector2D::ZeroVector;
-  CurrentActions = EMoveAction::None;
+  CurrentDesiredVelocity = FVector2D::ZeroVector;
 
   if (!OwnerActor->bHasAuthority) {
     return;
@@ -144,15 +129,55 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
 }
 
 void MNetMovementComponent::AddMovementInput(const FVector2D& Input) {
-  CurrentInputAxis += Input;
+  AddWorldForce(Input * -MaxSpeed);
 }
 
-void MNetMovementComponent::AddMovementAction(FMoveActionState Action) { CurrentActions |= Action; }
+void MNetMovementComponent::AddWorldForce(const FVector2D& Force) {
+  CurrentDesiredVelocity = CurrentDesiredVelocity + Force;
+}
 
-void MNetMovementComponent::SetMovementActions(FMoveActionState Actions) { CurrentActions = Actions; }
+void MNetMovementComponent::AddLocalForce(const FVector2D& Force) {
+  AActor* OwnerActor = GetOwner();
+  if (!OwnerActor) {
+    AddWorldForce(Force);
+    return;
+  }
 
-float MNetMovementComponent::GetMaxSpeedForActions(FMoveActionState Actions) const {
-  (void)Actions;
+  AddWorldForce(Force.RotateVector(OwnerActor->GetActorRotation()));
+}
+
+void MNetMovementComponent::SetWorldForce(const FVector2D& Force) {
+  CurrentDesiredVelocity = Force;
+}
+
+void MNetMovementComponent::SetLocalForce(const FVector2D& Force) {
+  AActor* OwnerActor = GetOwner();
+  if (!OwnerActor) {
+    SetWorldForce(Force);
+    return;
+  }
+
+  SetWorldForce(Force.RotateVector(OwnerActor->GetActorRotation()));
+}
+
+void MNetMovementComponent::AddVelocityRotation(const FRotator& Rotation) {
+  CurrentDesiredVelocity = CurrentDesiredVelocity.RotateVector(Rotation);
+}
+
+void MNetMovementComponent::SetVelocityRotation(const FRotator& Rotation) {
+  AActor* OwnerActor = GetOwner();
+  if (!OwnerActor) {
+    return;
+  }
+
+  const FRotator CurrentRotation = OwnerActor->GetActorRotation();
+  CurrentDesiredVelocity = CurrentDesiredVelocity.RotateVector(Rotation - CurrentRotation);
+}
+
+float MNetMovementComponent::GetMaxSpeedForDesiredVelocity(
+    const FVector2D& DesiredVelocity
+) const {
+  (void)DesiredVelocity;
   return MaxSpeed;
 }
 
@@ -161,19 +186,20 @@ void MNetMovementComponent::SimulateMovement(const FMovePredictionData& Move) {
     return;
   }
 
-  const FVector2D InputAxis = ClampInputAxis(Move.InputAxis);
-  const float TargetMaxSpeed = GetMaxSpeedForActions(Move.Actions);
+  const FVector2D DesiredVelocity = ClampVectorSize(
+      Move.DesiredVelocity, GetMaxSpeedForDesiredVelocity(Move.DesiredVelocity)
+  );
+  const FVector2D VelocityDelta = DesiredVelocity - GetVelocity();
+  const FVector2D AccelerationDelta = ClampVectorSize(VelocityDelta, Acceleration * Move.DeltaTime);
 
-  FVector2D NewVelocity = GetVelocity();
-  NewVelocity += InputAxis * (-Acceleration * Move.DeltaTime);
-  NewVelocity = ClampVectorSize(NewVelocity, TargetMaxSpeed);
+  FVector2D NewVelocity = GetVelocity() + AccelerationDelta;
   NewVelocity *= std::pow(Friction, Move.DeltaTime * 60.0f);
 
   if (NewVelocity.SizeSquared() <= 0.001f) {
     NewVelocity = FVector2D::ZeroVector;
   }
 
-  SetWorldForce(NewVelocity);
+  MMovementComponent::SetWorldForce(NewVelocity);
   ApplyMovementData(NewVelocity * Move.DeltaTime);
 }
 
@@ -216,7 +242,7 @@ void MNetMovementComponent::Client_ResolveMove(
 
   OwnerActor->SetActorLocation(ServerLocation);
   OwnerActor->SetActorRotation(ServerRotation);
-  SetWorldForce(ServerVelocity);
+  MMovementComponent::SetWorldForce(ServerVelocity);
   std::erase_if(InFlightMoves, [AckedSequence](const FMovePredictionData& Move) {
     return Move.Sequence <= AckedSequence;
   });
@@ -233,6 +259,5 @@ void MNetMovementComponent::Client_ResolveMove(
 }
 
 bool MNetMovementComponent::ShouldSimulate() const {
-  return CurrentInputAxis.SizeSquared() > 0.0001f || CurrentActions != EMoveAction::None ||
-         GetVelocitySizeSquared() > 0.001f;
+  return CurrentDesiredVelocity.SizeSquared() > 0.0001f || GetVelocitySizeSquared() > 0.001f;
 }

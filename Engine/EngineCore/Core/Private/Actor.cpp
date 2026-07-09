@@ -151,13 +151,16 @@ void AActor::AssignNetworkComponentIds() {
 }
 
 void AActor::Update(float DeltaTime) {
+
+  this->OnUpdate(DeltaTime);
+
   for (size_t i = 0; i < Components.size(); ++i) {
     if (Components[i] && !Components[i]->IsPendingDestroy()) {
       Components[i]->Update(DeltaTime);
     }
   }
 
-  this->OnUpdate(DeltaTime);
+  
   std::erase_if(Components, [](const std::unique_ptr<MActorComponent>& comp) {
     return !comp || comp->IsPendingDestroy();
   });

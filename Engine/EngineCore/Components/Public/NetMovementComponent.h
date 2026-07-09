@@ -15,14 +15,18 @@ class MNetMovementComponent : public MMovementComponent {
   void OnUpdate(float DeltaTime) override;
 
   void AddMovementInput(const FVector2D& Input);
-  void AddMovementAction(FMoveActionState Action);
-  void SetMovementActions(FMoveActionState Actions);
+  void AddWorldForce(const FVector2D& Force) override;
+  void AddLocalForce(const FVector2D& Force) override;
+  void SetWorldForce(const FVector2D& Force) override;
+  void SetLocalForce(const FVector2D& Force) override;
+  void AddVelocityRotation(const FRotator& Rotation) override;
+  void SetVelocityRotation(const FRotator& Rotation) override;
 
   void SetMaxSpeed(float NewMaxSpeed) { MaxSpeed = NewMaxSpeed; }
   float GetMaxSpeed() const { return MaxSpeed; }
   void SetAcceleration(float NewAcceleration) { Acceleration = NewAcceleration; }
   float GetAcceleration() const { return Acceleration; }
-  virtual float GetMaxSpeedForActions(FMoveActionState Actions) const;
+  virtual float GetMaxSpeedForDesiredVelocity(const FVector2D& DesiredVelocity) const;
 
  protected:
   virtual void SimulateMovement(const FMovePredictionData& Move);
@@ -38,8 +42,7 @@ class MNetMovementComponent : public MMovementComponent {
   );
   bool ShouldSimulate() const;
 
-  FVector2D CurrentInputAxis = FVector2D::ZeroVector;
-  FMoveActionState CurrentActions = EMoveAction::None;
+  FVector2D CurrentDesiredVelocity = FVector2D::ZeroVector;
 
   std::vector<FMovePredictionData> InFlightMoves;
   std::vector<FMovePredictionData> ServerPendingMoves;

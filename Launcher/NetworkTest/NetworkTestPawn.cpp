@@ -17,12 +17,6 @@ enum : FNetworkRPCId {
   RPC_ComponentServerTest = 101,
   RPC_ComponentMulticastTest = 102
 };
-
-namespace NetworkTestActions {
-enum : FMoveActionState {
-  Interact = 1 << 0,
-};
-}
 }
 
 MNetworkTestRepComponent::MNetworkTestRepComponent() {
@@ -209,11 +203,9 @@ void ANetworkTestPawn::OnMove(const FInputActionValue& Value) {
 void ANetworkTestPawn::OnInteract(const FInputActionValue& Value) {
   (void)Value;
 
-  if (!bIsLocallyControlled || !Movement) {
+  if (!bIsLocallyControlled) {
     return;
   }
-
-  Movement->AddMovementAction(NetworkTestActions::Interact);
 }
 
 int ANetworkTestPawn::GetDisplayColor() const {
