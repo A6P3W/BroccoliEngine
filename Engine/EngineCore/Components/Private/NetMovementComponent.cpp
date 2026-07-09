@@ -76,6 +76,7 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
     NewMove.Sequence = ++CurrentSequence;
     NewMove.DeltaTime = DeltaTime;
     NewMove.InputAxis = CurrentInputAxis;
+    NewMove.StartRotation = OwnerActor->GetActorRotation();
     NewMove.Actions = CurrentActions;
 
     InFlightMoves.push_back(NewMove);
@@ -94,6 +95,7 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
     LocalMove.Sequence = ++CurrentSequence;
     LocalMove.DeltaTime = DeltaTime;
     LocalMove.InputAxis = CurrentInputAxis;
+    LocalMove.StartRotation = OwnerActor->GetActorRotation();
     LocalMove.Actions = CurrentActions;
     SimulateMovement(LocalMove);
   }
@@ -115,11 +117,12 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
 
   bool bProcessedMove = false;
   uint32_t ProcessedSequence = LastConfirmedSequence;
-  for (const FMovePredictionData& Move : ServerPendingMoves) {
+  for (FMovePredictionData& Move : ServerPendingMoves) {
     if (Move.Sequence <= ProcessedSequence) {
       continue;
     }
 
+    Move.StartRotation = OwnerActor->GetActorRotation();
     SimulateMovement(Move);
     ProcessedSequence = Move.Sequence;
     bProcessedMove = true;
@@ -134,6 +137,7 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
         ENetPacketReliability::Unreliable,
         LastConfirmedSequence,
         OwnerActor->GetActorLocation(),
+        OwnerActor->GetActorRotation(),
         GetVelocity()
     );
   }
@@ -192,7 +196,10 @@ void MNetMovementComponent::Server_UploadMove(FMovePredictionData Move) {
 }
 
 void MNetMovementComponent::Client_ResolveMove(
-    uint32_t AckedSequence, FVector2D ServerLocation, FVector2D ServerVelocity
+    uint32_t AckedSequence,
+    FVector2D ServerLocation,
+    FRotator ServerRotation,
+    FVector2D ServerVelocity
 ) {
   AActor* OwnerActor = GetOwner();
   if (!OwnerActor || OwnerActor->bHasAuthority) {
@@ -208,12 +215,14 @@ void MNetMovementComponent::Client_ResolveMove(
   const FVector2D PredictedLocation = OwnerActor->GetActorLocation();
 
   OwnerActor->SetActorLocation(ServerLocation);
+  OwnerActor->SetActorRotation(ServerRotation);
   SetWorldForce(ServerVelocity);
   std::erase_if(InFlightMoves, [AckedSequence](const FMovePredictionData& Move) {
     return Move.Sequence <= AckedSequence;
   });
 
-  for (const FMovePredictionData& Move : InFlightMoves) {
+  for (FMovePredictionData& Move : InFlightMoves) {
+    Move.StartRotation = OwnerActor->GetActorRotation();
     SimulateMovement(Move);
   }
 

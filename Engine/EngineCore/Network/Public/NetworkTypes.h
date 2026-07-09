@@ -24,5 +24,6 @@ struct FMovePredictionData {
   uint32_t Sequence = 0;
   float DeltaTime = 0.0f;
   FVector2D InputAxis = {0.0f, 0.0f};
+  FRotator StartRotation = FRotator(0.0f);
   FMoveActionState Actions = EMoveAction::None;
 };

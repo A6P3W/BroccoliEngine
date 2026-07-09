@@ -31,7 +31,10 @@ class MNetMovementComponent : public MMovementComponent {
  private:
   void Server_UploadMove(FMovePredictionData Move);
   void Client_ResolveMove(
-      uint32_t AckedSequence, FVector2D ServerLocation, FVector2D ServerVelocity
+      uint32_t AckedSequence,
+      FVector2D ServerLocation,
+      FRotator ServerRotation,
+      FVector2D ServerVelocity
   );
   bool ShouldSimulate() const;
 
