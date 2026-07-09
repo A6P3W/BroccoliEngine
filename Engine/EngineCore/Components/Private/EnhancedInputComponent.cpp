@@ -8,10 +8,6 @@ void MEnhancedInputComponent::ProcessInputBindings(
   constexpr float EpsilonSq = 0.0001f;
 
   for (const auto& b : Bindings) {
-    bool bIsUIAction = b.IsUIAction;
-    if (bIsUIAction && !AllowUI) continue;
-    if (!bIsUIAction && !AllowGame) continue;
-
     bool is2DAxis = false;
     FVector2D currentAxis2D = FVector2D::ZeroVector;
     float currentAxis1D = mapper.GetAxisValue(b.ActionName);
@@ -32,9 +28,11 @@ void MEnhancedInputComponent::ProcessInputBindings(
     } else {
       currentFrameAxis1D[b.ActionName] = currentAxis1D;
     }
+    bool bIsUIAction = b.IsUIAction;
+    if (bIsUIAction && !AllowUI) continue;
+    if (!bIsUIAction && !AllowGame) continue;
 
     bool trigger = false;
-
     switch (b.Event) {
       case ETriggerEvent::Started:
         if (is2DAxis) {
@@ -73,10 +71,8 @@ void MEnhancedInputComponent::ProcessInputBindings(
     value.bIsPressed = true;
     value.Axis1D = currentAxis1D;
     value.Axis2D = currentAxis2D;
-
     b.Callback(value);
   }
-
   LastAxis2DValues = currentFrameAxis2D;
   LastAxis1DValues = currentFrameAxis1D;
 }
