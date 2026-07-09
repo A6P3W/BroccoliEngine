@@ -26,7 +26,6 @@ class MNetMovementComponent : public MMovementComponent {
   float GetMaxSpeed() const { return MaxSpeed; }
   void SetAcceleration(float NewAcceleration) { Acceleration = NewAcceleration; }
   float GetAcceleration() const { return Acceleration; }
-  virtual float GetMaxSpeedForDesiredVelocity(const FVector2D& DesiredVelocity) const;
 
  protected:
   virtual void SimulateMovement(const FMovePredictionData& Move);
@@ -41,9 +40,12 @@ class MNetMovementComponent : public MMovementComponent {
       FVector2D ServerVelocity
   );
   bool ShouldSimulate() const;
+  void ClearFrameMovementData();
 
-  FVector2D CurrentDesiredVelocity = FVector2D::ZeroVector;
-
+  FVector2D CurrentForce = FVector2D::ZeroVector;
+  FRotator VelocityRotation = FRotator(0.0f);
+  FVector2D FrameVelocityOverride = FVector2D::ZeroVector;
+  bool bFrameVelocityOverride = false;
   std::vector<FMovePredictionData> InFlightMoves;
   std::vector<FMovePredictionData> ServerPendingMoves;
   uint32_t CurrentSequence = 0;
