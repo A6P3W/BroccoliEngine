@@ -6,6 +6,7 @@
 #include "Actor.h"
 #include "CollisionSystem.h"
 #include "World.h"
+#include "EngineDefine.h"
 
 namespace {
 enum : FNetworkRPCId {
@@ -192,11 +193,11 @@ void MNetMovementComponent::SimulateMovement(const FMovePredictionData& Move) {
     OwnerActor->SetActorRotation(Move.StartRotation);
   }
 
-  const float FrameScale = Move.DeltaTime * 60.0f;
+  const float FrameScale = Move.DeltaTime * ReferenceFrameRate;
   FVector2D NewVelocity = Move.Velocity;
   NewVelocity += Move.CurrentForce * FrameScale;
   NewVelocity = NewVelocity.RotateVector(FRotator(Move.VelocityRotation.Rotation * FrameScale));
-  NewVelocity *= std::pow(Friction, Move.DeltaTime * 60.0f);
+  NewVelocity *= std::pow(Friction, Move.DeltaTime * ReferenceFrameRate);
 
   if (NewVelocity.SizeSquared() <= 0.001f) {
     NewVelocity = FVector2D::ZeroVector;
