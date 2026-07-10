@@ -100,6 +100,26 @@ bool OnlineSessionManager::CreateLobby(
   return true;
 }
 
+bool OnlineSessionManager::UpdateCurrentLobbyAttributes(
+    const std::vector<FLobbyAttribute>& Attributes,
+    std::function<void(bool)> OnComplete
+) {
+  if (!CanShowLeaveSession() || !BeginOperation()) {
+    M_LOG("[OnlineSession] UpdateCurrentLobbyAttributes rejected.");
+    CompleteBoolCallback(OnComplete, false);
+    return false;
+  }
+
+  EOSLobbyManager::Get().UpdateCurrentLobbyAttributes(
+      Attributes,
+      [this, OnComplete = std::move(OnComplete)](bool bSuccess) mutable {
+        EndOperation();
+        CompleteBoolCallback(OnComplete, bSuccess);
+      }
+  );
+  return true;
+}
+
 bool OnlineSessionManager::SearchLobbies(
     const FLobbySearchRequest& Request,
     std::function<void(bool, const std::vector<FLobbyInfo>&)> OnComplete
@@ -118,6 +138,26 @@ bool OnlineSessionManager::SearchLobbies(
       ) mutable {
         EndOperation();
         CompleteSearchCallback(OnComplete, bSuccess, Results);
+      }
+  );
+  return true;
+}
+
+bool OnlineSessionManager::FetchLobbyInfoById(
+    const std::string& LobbyId,
+    std::function<void(bool, const FLobbyInfo&)> OnComplete
+) {
+  if (!CanShowJoinLobby() || !BeginOperation()) {
+    M_LOG("[OnlineSession] FetchLobbyInfoById rejected.");
+    CompleteCreateCallback(OnComplete, false, {});
+    return false;
+  }
+
+  EOSLobbyManager::Get().FetchLobbyInfoById(
+      LobbyId,
+      [this, OnComplete = std::move(OnComplete)](bool bSuccess, const FLobbyInfo& LobbyInfo) mutable {
+        EndOperation();
+        CompleteCreateCallback(OnComplete, bSuccess, LobbyInfo);
       }
   );
   return true;

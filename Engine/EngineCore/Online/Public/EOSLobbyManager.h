@@ -13,10 +13,18 @@ class EOSLobbyManager {
   static EOSLobbyManager& Get();
 
   void CreateLobby(const FCreateLobbyRequest& Request, std::function<void(bool, const FLobbyInfo&)> OnComplete);
+  void UpdateCurrentLobbyAttributes(
+      const std::vector<FLobbyAttribute>& Attributes,
+      std::function<void(bool)> OnComplete
+  );
   void LeaveLobby(std::function<void(bool)> OnComplete);
   void SearchLobbies(
       const FLobbySearchRequest& Request,
       std::function<void(bool, const std::vector<FLobbyInfo>&)> OnComplete
+  );
+  void FetchLobbyInfoById(
+      const std::string& LobbyId,
+      std::function<void(bool, const FLobbyInfo&)> OnComplete
   );
   void JoinLobby(const FLobbyInfo& LobbyInfo, std::function<void(bool)> OnComplete);
   void ForceLocalDisconnect(ELobbyDisconnectReason Reason);
