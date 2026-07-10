@@ -39,6 +39,21 @@ void World::Draw() {
   if (ActorManager) ActorManager->Draw();
 }
 
+void World::SetTargetFps(int NewTargetFps) {
+  if (NewTargetFps <= 0) {
+    return;
+  }
+  TargetFps = NewTargetFps;
+}
+
+void World::UpdateCurrentFps(float DeltaTime) {
+  if (DeltaTime <= 0.0f) {
+    return;
+  }
+  CurrentFps = 1.0f / DeltaTime;
+  M_LOG("Current FPS: {:.2f}", CurrentFps);
+}
+
 void World::SetGameMode(AGameModeBase* mode) { GameMode = mode; }
 ENetMode World::GetNetMode() const { return NetMode; }
 void World::SetNetMode(ENetMode NewNetMode) { NetMode = NewNetMode; }
