@@ -21,6 +21,7 @@ class EOSLobbyManager {
   void JoinLobby(const FLobbyInfo& LobbyInfo, std::function<void(bool)> OnComplete);
   void ForceLocalDisconnect(ELobbyDisconnectReason Reason);
   void SetOnLobbyDisconnected(std::function<void(ELobbyDisconnectReason)> Callback);
+  void Shutdown();
 
   bool IsInLobby() const;
   std::string GetCurrentLobbyId() const;

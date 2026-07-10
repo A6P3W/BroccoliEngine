@@ -24,6 +24,7 @@ class SceneManager {
   World* GetCurrentScene() { return CurrentScene.get(); }
 
   void ProcessSceneChanges();
+  void Shutdown();
 
   void RegisterLevelPath(FNetworkSceneId SceneId, const std::string& LevelPath);
   bool OpenLevelById(FNetworkSceneId SceneId);

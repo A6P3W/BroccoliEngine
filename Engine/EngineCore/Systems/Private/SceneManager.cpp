@@ -135,3 +135,13 @@ void SceneManager::ProcessSceneChanges() {
     );
   }
 }
+
+void SceneManager::Shutdown() {
+  RenderSystem::GetInstance().SetCameraView(nullptr);
+  PendingSceneFactory = nullptr;
+  PendingSceneId = 0;
+  PendingLevelPath.clear();
+  CurrentScene.reset();
+  CurrentSceneId = 0;
+  CurrentLevelPath.clear();
+}

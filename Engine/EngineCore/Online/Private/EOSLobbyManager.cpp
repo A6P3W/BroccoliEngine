@@ -421,9 +421,14 @@ EOSLobbyManager& EOSLobbyManager::Get() {
   return Instance;
 }
 
-EOSLobbyManager::~EOSLobbyManager() {
+EOSLobbyManager::~EOSLobbyManager() = default;
+
+void EOSLobbyManager::Shutdown() {
   UnregisterLobbyNotifications();
   ClearCachedLobbyDetails();
+  OnLobbyDisconnected = nullptr;
+  CurrentLobbyId.clear();
+  bInLobby = false;
 }
 
 void EOSLobbyManager::CreateLobby(
@@ -878,21 +883,26 @@ void EOSLobbyManager::RegisterLobbyNotifications() {
 }
 
 void EOSLobbyManager::UnregisterLobbyNotifications() {
-  EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
-  if (!LobbyHandle) {
-    MemberStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
-    LobbyUpdateNotificationId = EOS_INVALID_NOTIFICATIONID;
+  const EOS_NotificationId MemberStatusId = MemberStatusNotificationId;
+  const EOS_NotificationId LobbyUpdateId = LobbyUpdateNotificationId;
+  MemberStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+  LobbyUpdateNotificationId = EOS_INVALID_NOTIFICATIONID;
+
+  if (MemberStatusId == EOS_INVALID_NOTIFICATIONID && LobbyUpdateId == EOS_INVALID_NOTIFICATIONID) {
     return;
   }
 
-  if (MemberStatusNotificationId != EOS_INVALID_NOTIFICATIONID) {
-    EOS_Lobby_RemoveNotifyLobbyMemberStatusReceived(LobbyHandle, MemberStatusNotificationId);
-    MemberStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+  EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
+  if (!LobbyHandle) {
+    return;
   }
 
-  if (LobbyUpdateNotificationId != EOS_INVALID_NOTIFICATIONID) {
-    EOS_Lobby_RemoveNotifyLobbyUpdateReceived(LobbyHandle, LobbyUpdateNotificationId);
-    LobbyUpdateNotificationId = EOS_INVALID_NOTIFICATIONID;
+  if (MemberStatusId != EOS_INVALID_NOTIFICATIONID) {
+    EOS_Lobby_RemoveNotifyLobbyMemberStatusReceived(LobbyHandle, MemberStatusId);
+  }
+
+  if (LobbyUpdateId != EOS_INVALID_NOTIFICATIONID) {
+    EOS_Lobby_RemoveNotifyLobbyUpdateReceived(LobbyHandle, LobbyUpdateId);
   }
 }
 
@@ -904,8 +914,8 @@ void EOSLobbyManager::HandleLocalDisconnect(ELobbyDisconnectReason Reason, bool 
   M_LOG("[EOSLobby] Local lobby disconnected: reason={}", LobbyDisconnectReasonToString(Reason));
   bInLobby = false;
   CurrentLobbyId.clear();
-  ClearCachedLobbyDetails();
   UnregisterLobbyNotifications();
+  ClearCachedLobbyDetails();
 
   if (bNotify && OnLobbyDisconnected) {
     OnLobbyDisconnected(Reason);
