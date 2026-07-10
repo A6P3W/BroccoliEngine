@@ -518,15 +518,18 @@ void FCollisionSystem::CollisionResolution(
   auto* moveA = moveComponentA.empty() ? nullptr : moveComponentA.front();
   auto* moveB = moveComponentB.empty() ? nullptr : moveComponentB.front();
 
-  if (moveA && moveB) {
+  bool bCanMoveA = moveA && (ActorA->bHasAuthority || ActorA->bIsLocallyControlled);
+  bool bCanMoveB = moveB && (ActorB->bHasAuthority || ActorB->bIsLocallyControlled);
+
+  if (bCanMoveA && bCanMoveB) {
     ActorA->AddActorWorldOffset(normal * (-overlapDepth * 0.5f));
     ActorB->AddActorWorldOffset(normal * (overlapDepth * 0.5f));
     CancelNormalVelocity(moveA, normal);
     CancelNormalVelocity(moveB, {-normal.X, -normal.Y});
-  } else if (moveA) {
+  } else if (bCanMoveA) {
     ActorA->AddActorWorldOffset(normal * (-overlapDepth));
     CancelNormalVelocity(moveA, normal);
-  } else if (moveB) {
+  } else if (bCanMoveB) {
     ActorB->AddActorWorldOffset(normal * (overlapDepth));
     CancelNormalVelocity(moveB, {-normal.X, -normal.Y});
   }

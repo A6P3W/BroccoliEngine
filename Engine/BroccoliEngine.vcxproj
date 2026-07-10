@@ -245,6 +245,7 @@
     <ClCompile Include="EngineCore\Components\Private\CircleCollisionComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\CollisionComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\MovementComponent.cpp" />
+    <ClCompile Include="EngineCore\Components\Private\NetMovementComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\SceneComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\SoundComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\SpriteComponent.cpp" />
@@ -320,6 +321,7 @@
     <ClInclude Include="EngineCore\Components\Public\CircleCollisionComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\CollisionComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\MovementComponent.h" />
+    <ClInclude Include="EngineCore\Components\Public\NetMovementComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\SceneComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\SoundComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\SpriteComponent.h" />
