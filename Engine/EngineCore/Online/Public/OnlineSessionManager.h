@@ -22,6 +22,7 @@ class OnlineSessionManager {
   bool JoinLobby(const FLobbyInfo& LobbyInfo, uint16_t Port, std::function<void(bool)> OnComplete);
   bool LeaveSession(std::function<void(bool)> OnComplete);
   bool LeaveLobby(std::function<void(bool)> OnComplete);
+  void Shutdown();
 
   bool IsEOSInitialized() const;
   bool IsLoggedIn() const;

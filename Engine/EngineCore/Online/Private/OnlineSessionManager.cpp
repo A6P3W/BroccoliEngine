@@ -52,8 +52,18 @@ OnlineSessionManager::OnlineSessionManager() {
   );
 }
 
-OnlineSessionManager::~OnlineSessionManager() {
-  NetworkManager::GetInstance().RemoveOnDisconnected(NetworkDisconnectedCallbackHandle);
+OnlineSessionManager::~OnlineSessionManager() = default;
+
+void OnlineSessionManager::Shutdown() {
+  if (NetworkDisconnectedCallbackHandle != 0) {
+    NetworkManager::GetInstance().RemoveOnDisconnected(NetworkDisconnectedCallbackHandle);
+    NetworkDisconnectedCallbackHandle = 0;
+  }
+
+  EOSLobbyManager::Get().SetOnLobbyDisconnected(nullptr);
+  EOSAuthManager::Get().SetOnAuthLost(nullptr);
+  bOperationPending = false;
+  bIsLeavingSession = false;
 }
 
 bool OnlineSessionManager::LoginWithDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete) {

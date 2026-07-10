@@ -15,9 +15,13 @@
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "KeyboardDevice.h"
+#include "Log.h"
 #include "MouseDevice.h"
 #include "NetworkManager.h"
+#include "OnlineSessionManager.h"
 #include "EOSCoreManager.h"
+#include "EOSAuthManager.h"
+#include "EOSLobbyManager.h"
 #include "ActorManager.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
@@ -46,12 +50,30 @@ LRESULT CALLBACK ImGuiHookProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 Application::Application() {}
 
 Application::~Application() {
+  Shutdown();
+}
+
+void Application::Shutdown() {
+  if (bImGuiInitialized) {
+    SetHookWinProc(nullptr);
+    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
+    bImGuiInitialized = false;
+    M_LOG("Application ImGui shutdown completed.");
+  }
+
   if (OffscreenBuffer != -1) {
     DeleteGraph(OffscreenBuffer);
+    OffscreenBuffer = -1;
+    M_LOG("Application offscreen buffer released.");
   }
-  ImGui_ImplDX11_Shutdown();
-  ImGui_ImplWin32_Shutdown();
-  ImGui::DestroyContext();
+
+  if (bDxLibInitialized) {
+    DxLib_End();
+    bDxLibInitialized = false;
+    M_LOG("DxLib_End completed.");
+  }
 }
 
 void Application::InitOffscreenBuffer() {
@@ -89,7 +111,11 @@ bool Application::Run() {
   const LONGLONG TargetFrameTime = 1000000 / 60;
   LONGLONG LastTime = GetNowHiPerformanceCount();
 
-  DxLib_Init();
+  if (DxLib_Init() == -1) {
+    M_LOG("DxLib_Init failed.");
+    return false;
+  }
+  bDxLibInitialized = true;
 
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -103,6 +129,7 @@ bool Application::Run() {
       reinterpret_cast<ID3D11DeviceContext*>(const_cast<void*>(GetUseDirect3D11DeviceContext()))
   );
   SetHookWinProc(ImGuiHookProc);
+  bImGuiInitialized = true;
 
   InitOffscreenBuffer();
 
@@ -141,7 +168,15 @@ bool Application::Run() {
     Draw();
   }
 
+  SceneManager::GetInstance().Shutdown();
+  OnlineSessionManager::Get().Shutdown();
+  EOSLobbyManager::Get().Shutdown();
+  EOSAuthManager::Get().Shutdown();
+  for (int TickIndex = 0; TickIndex < 3; ++TickIndex) {
+    EOSCoreManager::Get().Tick();
+  }
   EOSCoreManager::Get().Shutdown();
+  Shutdown();
 
   return true;
 }

@@ -51,7 +51,15 @@ EOSAuthManager& EOSAuthManager::Get() {
   return Instance;
 }
 
-EOSAuthManager::~EOSAuthManager() { UnregisterLoginStatusNotification(); }
+EOSAuthManager::~EOSAuthManager() = default;
+
+void EOSAuthManager::Shutdown() {
+  UnregisterLoginStatusNotification();
+
+  OnAuthLost = nullptr;
+  LocalUserId = nullptr;
+  State = EEOSAuthState::NotLoggedIn;
+}
 
 void EOSAuthManager::LoginWithDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete) {
   if (!EOSCoreManager::Get().IsInitialized()) {
@@ -233,16 +241,19 @@ void EOSAuthManager::RegisterLoginStatusNotification() {
 }
 
 void EOSAuthManager::UnregisterLoginStatusNotification() {
-  EOS_HConnect ConnectHandle = EOSCoreManager::Get().GetConnectHandle();
-  if (!ConnectHandle) {
-    LoginStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+  const EOS_NotificationId Id = LoginStatusNotificationId;
+  LoginStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+
+  if (Id == EOS_INVALID_NOTIFICATIONID) {
     return;
   }
 
-  if (LoginStatusNotificationId != EOS_INVALID_NOTIFICATIONID) {
-    EOS_Connect_RemoveNotifyLoginStatusChanged(ConnectHandle, LoginStatusNotificationId);
-    LoginStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+  EOS_HConnect ConnectHandle = EOSCoreManager::Get().GetConnectHandle();
+  if (!ConnectHandle) {
+    return;
   }
+
+  EOS_Connect_RemoveNotifyLoginStatusChanged(ConnectHandle, Id);
 }
 
 void EOSAuthManager::HandleLoginStatusChanged(const EOS_Connect_LoginStatusChangedCallbackInfo* Data) {

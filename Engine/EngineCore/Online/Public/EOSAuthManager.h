@@ -22,6 +22,7 @@ class EOSAuthManager {
 
   void LoginWithDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete);
   void SetOnAuthLost(std::function<void(EAuthLossReason)> Callback);
+  void Shutdown();
 
   bool IsLoggedIn() const;
   EOS_ProductUserId GetLocalUserId() const;

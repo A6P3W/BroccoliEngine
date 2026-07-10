@@ -271,6 +271,10 @@ NetworkManager::CallbackHandle NetworkManager::AddOnPacketReceived(
 }
 
 void NetworkManager::RemoveOnConnected(CallbackHandle Handle) {
+  if (Handle == 0) {
+    return;
+  }
+
   OnConnectedCallbacks.erase(
       std::remove_if(
           OnConnectedCallbacks.begin(),
@@ -282,6 +286,10 @@ void NetworkManager::RemoveOnConnected(CallbackHandle Handle) {
 }
 
 void NetworkManager::RemoveOnDisconnected(CallbackHandle Handle) {
+  if (Handle == 0) {
+    return;
+  }
+
   OnDisconnectedCallbacks.erase(
       std::remove_if(
           OnDisconnectedCallbacks.begin(),
@@ -293,6 +301,10 @@ void NetworkManager::RemoveOnDisconnected(CallbackHandle Handle) {
 }
 
 void NetworkManager::RemoveOnPacketReceived(CallbackHandle Handle) {
+  if (Handle == 0) {
+    return;
+  }
+
   OnPacketReceivedCallbacks.erase(
       std::remove_if(
           OnPacketReceivedCallbacks.begin(),

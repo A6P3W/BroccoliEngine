@@ -14,9 +14,12 @@ class Application {
  private:
   bool Update(float DeltaTime);
   bool Draw();
+  void Shutdown();
 
   float DeltaTime = 0.0f;
   bool bPosed = false;
+  bool bDxLibInitialized = false;
+  bool bImGuiInitialized = false;
 
   void InitOffscreenBuffer();
   int OffscreenBuffer = -1;
