@@ -96,7 +96,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   startText->SetText("Start");
   startText->SetColor(GetColor(255, 255, 255));
   startText->SetFontSize(24);
-  startText->SetParentComponent(StartBtnPtr);  // ボタンの子要素にするだけで中央に配置される
+  startText->AttachToComponent(StartBtnPtr);  // ボタンの子要素にするだけで中央に配置される
   startText->RegisterComponent();
 
   auto* toggleText = NewObject<UITextComponent>(this);
@@ -104,21 +104,21 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   ToggleTextPtr->SetText("Toggle: OFF");
   ToggleTextPtr->SetColor(GetColor(255, 255, 255));
   ToggleTextPtr->SetFontSize(24);
-  ToggleTextPtr->SetParentComponent(ToggleBtnPtr);
+  ToggleTextPtr->AttachToComponent(ToggleBtnPtr);
   toggleText->RegisterComponent();
 
   auto* leftNavText = NewObject<UITextComponent>(this);
   leftNavText->SetText("Left");
   leftNavText->SetColor(GetColor(255, 255, 255));
   leftNavText->SetFontSize(24);
-  leftNavText->SetParentComponent(LeftNavBtnPtr);
+  leftNavText->AttachToComponent(LeftNavBtnPtr);
   leftNavText->RegisterComponent();
 
   auto* rightNavText = NewObject<UITextComponent>(this);
   rightNavText->SetText("Right");
   rightNavText->SetColor(GetColor(255, 255, 255));
   rightNavText->SetFontSize(24);
-  rightNavText->SetParentComponent(RightNavBtnPtr);
+  rightNavText->AttachToComponent(RightNavBtnPtr);
   rightNavText->RegisterComponent();
 
   auto* committedText = NewObject<UITextComponent>(this);

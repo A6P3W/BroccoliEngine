@@ -18,7 +18,7 @@ REGISTER_ACTOR(AWidgetTestPawn)
 AWidgetTestPawn::AWidgetTestPawn() {
   auto* col = NewObject<MCircleCollisionComponent>(this);
   col->SetRadius(32.0f);
-  col->SetParentComponent(GetRootComponent());
+  col->AttachToComponent(GetRootComponent());
   col->RegisterComponent();
 
   Movement = NewObject<MMovementComponent>(this);

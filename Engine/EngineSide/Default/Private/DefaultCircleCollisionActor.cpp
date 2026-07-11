@@ -8,7 +8,7 @@ REGISTER_ACTOR(ADefaultCircleCollisionActor);
 ADefaultCircleCollisionActor::ADefaultCircleCollisionActor() {
   auto* Col = NewObject<MCircleCollisionComponent>(this);
   if (Col) {
-    Col->SetParentComponent(GetRootComponent());
+    Col->AttachToComponent(GetRootComponent());
     Col->RegisterComponent();
   }
 }

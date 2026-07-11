@@ -134,7 +134,7 @@ ANetworkTestPawn::ANetworkTestPawn() {
 
   auto* CollisionComponent = NewObject<MRectangleCollisionComponent>(this);
   CollisionComponent->SetSize(48.0f, 48.0f);
-  CollisionComponent->SetParentComponent(GetRootComponent());
+  CollisionComponent->AttachToComponent(GetRootComponent());
   CollisionComponent->SetStatic(false);
   CollisionComponent->RegisterComponent();
 

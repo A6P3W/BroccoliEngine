@@ -19,7 +19,7 @@ void EditorSelectPointComponent::OnRegister() {
     return;
   }
   SelectPointSprite->SetRenderSettings(100, RenderSpace::World);
-  SelectPointSprite->SetParentComponent(this);
+  SelectPointSprite->AttachToComponent(this);
   SelectPointSprite->SubmitCircle(8.0f, GetColor(255, 0, 0), true);
   SelectPointSprite->RegisterComponent();
 }

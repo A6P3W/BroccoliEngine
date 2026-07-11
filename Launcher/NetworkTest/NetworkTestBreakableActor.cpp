@@ -22,7 +22,7 @@ ANetworkTestBreakableActor::ANetworkTestBreakableActor() {
 
   auto* Collision = NewObject<MRectangleCollisionComponent>(this);
   Collision->SetSize(40.0f, 40.0f);
-  Collision->SetParentComponent(GetRootComponent());
+  Collision->AttachToComponent(GetRootComponent());
   Collision->SetCollisionType(ECollisionType::Overlap);
   Collision->RegisterComponent();
 }

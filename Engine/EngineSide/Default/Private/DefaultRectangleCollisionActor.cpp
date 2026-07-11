@@ -8,7 +8,7 @@ REGISTER_ACTOR(ADefaultRectangleCollisionActor);
 ADefaultRectangleCollisionActor::ADefaultRectangleCollisionActor() {
   auto* Col = NewObject<MRectangleCollisionComponent>(this);
   if (Col) {
-    Col->SetParentComponent(GetRootComponent());
+    Col->AttachToComponent(GetRootComponent());
     Col->RegisterComponent();
   }
 }

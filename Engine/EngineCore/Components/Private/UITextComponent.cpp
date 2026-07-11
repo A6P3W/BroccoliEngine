@@ -19,7 +19,7 @@ void UITextComponent::OnRegister() {
     return;
   }
   TextSprite->SetRenderSettings(GetFinalPriority() + 1, RenderSpace::Screen);
-  TextSprite->SetParentComponent(this);
+  TextSprite->AttachToComponent(this);
 
   // フォントハンドルを取得
   FontHandle = ResourceManager::GetInstance().GetFont(FontSize, 5);

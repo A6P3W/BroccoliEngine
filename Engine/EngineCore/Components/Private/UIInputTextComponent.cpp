@@ -50,13 +50,13 @@ void UIInputTextComponent::OnRegister() {
   }
 
   BoxSprite->SetRenderSettings(GetFinalPriority(), RenderSpace::Screen);
-  BoxSprite->SetParentComponent(this);
+  BoxSprite->AttachToComponent(this);
   TextSprite->SetRenderSettings(GetFinalPriority() + 1, RenderSpace::Screen);
-  TextSprite->SetParentComponent(this);
+  TextSprite->AttachToComponent(this);
   BorderSprite->SetRenderSettings(GetFinalPriority() + 2, RenderSpace::Screen);
-  BorderSprite->SetParentComponent(this);
+  BorderSprite->AttachToComponent(this);
   ActionHintSprite->SetRenderSettings(GetFinalPriority() + 3, RenderSpace::Screen);
-  ActionHintSprite->SetParentComponent(this);
+  ActionHintSprite->AttachToComponent(this);
 
   BoxSprite->RegisterComponent();
   TextSprite->RegisterComponent();

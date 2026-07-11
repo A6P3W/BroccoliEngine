@@ -19,7 +19,7 @@ void UIToggleButtonComponent::OnRegister() {
     return;
   }
   BoxSprite->SetRenderSettings(GetFinalPriority(), RenderSpace::Screen);
-  BoxSprite->SetParentComponent(this);
+  BoxSprite->AttachToComponent(this);
   UpdateVisuals();
   BoxSprite->RegisterComponent();
 }

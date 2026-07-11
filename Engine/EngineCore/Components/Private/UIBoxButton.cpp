@@ -18,7 +18,7 @@ void UIBoxButtonComponent::OnRegister() {
     return;
   }
   BoxSprite->SetRenderSettings(GetFinalPriority(), RenderSpace::Screen);
-  BoxSprite->SetParentComponent(this);
+  BoxSprite->AttachToComponent(this);
   UpdateBox();
   BoxSprite->RegisterComponent();
 }

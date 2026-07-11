@@ -31,7 +31,7 @@ void MSceneComponent::OnComponentDestroy() {
   }
 }
 
-void MSceneComponent::SetParentComponent(MSceneComponent* Parent) {
+void MSceneComponent::AttachToComponent(MSceneComponent* Parent) {
   if (ParentComponent == Parent || Parent == this) {
     return;
   }
@@ -39,7 +39,7 @@ void MSceneComponent::SetParentComponent(MSceneComponent* Parent) {
   for (MSceneComponent* Current = Parent; Current != nullptr;
        Current = Current->GetParentComponent()) {
     if (Current == this) {
-      M_LOG("SetParentComponent rejected: cyclic component hierarchy.");
+      M_LOG("AttachToComponent rejected: cyclic component hierarchy.");
       return;
     }
   }

@@ -8,7 +8,7 @@ REGISTER_ACTOR(ADefaultLineCollisionActor);
 ADefaultLineCollisionActor::ADefaultLineCollisionActor() {
   auto* Col = NewObject<MLineCollisionComponent>(this);
   if (Col) {
-    Col->SetParentComponent(GetRootComponent());
+    Col->AttachToComponent(GetRootComponent());
     Col->RegisterComponent();
   }
 }

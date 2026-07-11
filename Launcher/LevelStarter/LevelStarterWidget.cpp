@@ -33,7 +33,7 @@ ALevelStarterWidget::ALevelStarterWidget() {
   text->SetText("Select .BLevel to Play");
   text->SetColor(GetColor(255, 255, 255));
   text->SetFontSize(24);
-  text->SetParentComponent(buttonPtr);
+  text->AttachToComponent(buttonPtr);
   text->SetAnchor(EUIAnchor::MiddleCenter);
 
   OpenButton = buttonPtr;

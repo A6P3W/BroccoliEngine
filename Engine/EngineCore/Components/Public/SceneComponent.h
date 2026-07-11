@@ -15,7 +15,7 @@ class MSceneComponent : public MActorComponent {
 
   virtual void OnMessage(const std::string& message);
 
-  void SetParentComponent(MSceneComponent* parent);
+  void AttachToComponent(MSceneComponent* parent);
   auto GetParentComponent() const { return ParentComponent; }
 
   bool SetWorldLocation(const FVector2D& NewWorldLocation);

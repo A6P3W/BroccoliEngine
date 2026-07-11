@@ -85,7 +85,7 @@ MActorComponent* AActor::AcceptNewObjectComponent(std::unique_ptr<MActorComponen
     if (auto gameObject = dynamic_cast<AActor*>(this)) {
       if (gameObject->GetRootComponent() && gameObject->GetRootComponent() != sceneComp &&
           sceneComp->GetParentComponent() == nullptr) {
-        sceneComp->SetParentComponent(GetRootComponent());
+        sceneComp->AttachToComponent(GetRootComponent());
       }
     }
   }
@@ -417,10 +417,10 @@ void AActor::SetRootComponent(MSceneComponent* Component) {
   EnsureNetComponentName(Component);
 
   MSceneComponent* OldRoot = RootComponent;
-  Component->SetParentComponent(nullptr);
+  Component->AttachToComponent(nullptr);
 
   if (OldRoot != nullptr) {
-    OldRoot->SetParentComponent(Component);
+    OldRoot->AttachToComponent(Component);
   }
 
   RootComponent = Component;
