@@ -2,8 +2,7 @@
 
 #include <algorithm>
 
-MUIVerticalBoxComponent::MUIVerticalBoxComponent(int basePriority)
-    : MUIWidgetComponent(basePriority) {}
+MUIVerticalBoxComponent::MUIVerticalBoxComponent() {}
 
 void MUIVerticalBoxComponent::AddItem(MUIWidgetComponent* Item) {
   if (Item == nullptr) {

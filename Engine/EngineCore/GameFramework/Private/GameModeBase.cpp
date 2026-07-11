@@ -15,10 +15,11 @@ REGISTER_GAME_MODE(AGameModeBase)
 AGameModeBase::AGameModeBase()
     : DefaultPawnClass(APawn::StaticClassName()),
       DefaultPlayerControllerClass(APlayerController::StaticClassName()) {
-  auto camera = std::make_unique<MCameraComponent>();
-  auto* camPtr = camera.get();
-  this->AddComponent(std::move(camera));
-  camPtr->SetActiveCamera();
+  auto* CameraComponent = NewObject<MCameraComponent>(this);
+  if (CameraComponent) {
+    CameraComponent->RegisterComponent();
+    CameraComponent->SetActiveCamera();
+  }
 }
 
 void AGameModeBase::BeginPlay() {

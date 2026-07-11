@@ -6,7 +6,9 @@
 
 REGISTER_ACTOR(ADefaultRectangleCollisionActor);
 ADefaultRectangleCollisionActor::ADefaultRectangleCollisionActor() {
-  auto col = std::make_unique<MRectangleCollisionComponent>();
-  col->SetParentComponent(GetRootComponent());
-  AddComponent(std::move(col));
+  auto* Col = NewObject<MRectangleCollisionComponent>(this);
+  if (Col) {
+    Col->SetParentComponent(GetRootComponent());
+    Col->RegisterComponent();
+  }
 }

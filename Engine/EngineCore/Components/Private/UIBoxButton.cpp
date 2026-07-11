@@ -5,26 +5,22 @@
 #include "Actor.h"
 #include "SpriteComponent.h"
 
-UIBoxButtonComponent::UIBoxButtonComponent(
-    float width, float height, int normalColor, int hoveredColor, int pressedColor
-)
-    : Width(width),
-      Height(height),
-      NormalColor(normalColor),
-      HoveredColor(hoveredColor),
-      PressedColor(pressedColor) {
-  SetWidgetSize({width, height});
+UIBoxButtonComponent::UIBoxButtonComponent() {
+  SetWidgetSize({Width, Height});
 }
 
-void UIBoxButtonComponent::RegisterComponent() {
+void UIBoxButtonComponent::OnRegister() {
   if (BoxSprite != nullptr || GetOwner() == nullptr) {
     return;
   }
-  auto boxSprite = std::make_unique<MSpriteComponent>(GetFinalPriority(), RenderSpace::Screen);
-  BoxSprite = boxSprite.get();
+  BoxSprite = NewObject<MSpriteComponent>(GetOwner());
+  if (BoxSprite == nullptr) {
+    return;
+  }
+  BoxSprite->SetRenderSettings(GetFinalPriority(), RenderSpace::Screen);
   BoxSprite->SetParentComponent(this);
   UpdateBox();
-  GetOwner()->AddComponent(std::move(boxSprite));
+  BoxSprite->RegisterComponent();
 }
 
 void UIBoxButtonComponent::OnStateChanged(EButtonState NewState) {

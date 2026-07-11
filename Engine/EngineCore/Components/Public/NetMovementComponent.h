@@ -11,7 +11,7 @@ class MNetMovementComponent : public MMovementComponent {
  public:
   MNetMovementComponent();
 
-  void RegisterComponent() override;
+  void OnRegister() override;
   void OnUpdate(float DeltaTime) override;
 
   void AddMovementInput(const FVector2D& Input);

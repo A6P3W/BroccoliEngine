@@ -16,13 +16,13 @@
 REGISTER_ACTOR(AWidgetTestPawn)
 
 AWidgetTestPawn::AWidgetTestPawn() {
-  auto col = std::make_unique<MCircleCollisionComponent>(32.0f);
+  auto* col = NewObject<MCircleCollisionComponent>(this);
+  col->SetRadius(32.0f);
   col->SetParentComponent(GetRootComponent());
-  AddComponent(std::move(col));
+  col->RegisterComponent();
 
-  auto movement = std::make_unique<MMovementComponent>();
-  Movement = movement.get();
-  AddComponent(std::move(movement));
+  Movement = NewObject<MMovementComponent>(this);
+  Movement->RegisterComponent();
 }
 void AWidgetTestPawn::BeginPlay() {}
 void AWidgetTestPawn::OnPossessedBy(APlayerController* NewController) {

@@ -7,7 +7,7 @@
 
 class MUIVerticalBoxComponent : public MUIWidgetComponent {
  public:
-  MUIVerticalBoxComponent(int basePriority = 0);
+  MUIVerticalBoxComponent();
 
   void AddItem(MUIWidgetComponent* Item);
   void RemoveItem(MUIWidgetComponent* Item);

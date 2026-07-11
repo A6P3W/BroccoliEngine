@@ -17,21 +17,32 @@
 
 class AActor;
 
+enum class EActorComponentRegistrationState {
+  Created,
+  RegistrationPending,
+  Registering,
+  Registered,
+  PendingDestroy,
+  Destroyed,
+};
+
 class MActorComponent : public MBaseObject {
  public:
   virtual ~MActorComponent() override;
-  virtual void BeginPlay() {}
+  void BeginPlay();
   bool Update(float DeltaTime);
   virtual void Draw() {}
-
-  void SetOwner(AActor* owner) { Owner = owner; }
   AActor* GetOwner() const { return Owner; }
 
   void DestroyComponent();
   bool IsPendingDestroy() const { return bPendingDestroy; }
+  bool IsRegistered() const { return RegistrationState == EActorComponentRegistrationState::Registered; }
+  bool IsRegistrationPending() const {
+    return RegistrationState == EActorComponentRegistrationState::RegistrationPending;
+  }
 
-  virtual void RegisterComponent() {}
-  virtual void UnRegisterComponent() {}
+  void RegisterComponent();
+  void UnRegisterComponent();
 
   FNetworkComponentId ComponentNetworkId = 0;
   bool bReplicates = false;
@@ -138,13 +149,23 @@ class MActorComponent : public MBaseObject {
   }
 
  protected:
+  virtual void OnBeginPlay() {}
+  virtual void OnRegister() {}
+  virtual void OnUnregister() {}
   virtual void OnComponentDestroy() {}
 
   AActor* Owner = nullptr;
   virtual void OnUpdate(float DeltaTime) {}
 
  private:
+  friend class AActor;
+
+  void SetOwner(AActor* NewOwner) { Owner = NewOwner; }
+  bool CompleteRegistration();
+
   bool bPendingDestroy = false;
+  bool bHasBegunPlay = false;
+  EActorComponentRegistrationState RegistrationState = EActorComponentRegistrationState::Created;
   bool bReplicatedStateDirty = false;
   std::string NetComponentName;
   std::vector<std::unique_ptr<IReplicatedProperty>> ReplicatedProperties;

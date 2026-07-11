@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <cstdint>
 #include <unordered_map>
 #include <unordered_set>
@@ -33,8 +33,8 @@ class MCollisionComponent : public MSceneComponent {
   void MarkCheckedThisFrame(AActor* OtherActor);
   void FlushOverlapState();
 
-  virtual void RegisterComponent() override;
-  virtual void UnRegisterComponent() override;
+  void OnRegister() override;
+  void OnUnregister() override;
 
  protected:
   void OnComponentDestroy() override;

@@ -13,9 +13,10 @@
 REGISTER_ACTOR(APlayerController)
 
 APlayerController::APlayerController() {
-  auto InputComp = std::make_unique<MEnhancedInputComponent>();
-  InputComponent = InputComp.get();
-  AddComponent(std::move(InputComp));
+  InputComponent = NewObject<MEnhancedInputComponent>(this);
+  if (InputComponent) {
+    InputComponent->RegisterComponent();
+  }
   InputMapperPtr = std::make_unique<InputMapper>();
   SetUpdateableAnytime(true);
   SetPlayerId(0);

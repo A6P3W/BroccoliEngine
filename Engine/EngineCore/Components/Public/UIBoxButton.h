@@ -5,11 +5,9 @@ class MSpriteComponent;
 
 class UIBoxButtonComponent : public MUIButtonComponent {
  public:
-  UIBoxButtonComponent(
-      float width, float height, int normalColor, int hoveredColor, int pressedColor
-  );
+  UIBoxButtonComponent();
 
-  void RegisterComponent() override;
+  void OnRegister() override;
   void OnStateChanged(EButtonState NewState) override;
 
   void SetSize(float width, float height);

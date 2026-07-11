@@ -28,40 +28,40 @@ bool IsAlphaNumeric(char Character) {
 }
 }  // namespace
 
-UIInputTextComponent::UIInputTextComponent(
-    float width, float height, const std::string& hintText
-)
-    : HintText(hintText), Width(width), Height(height) {
-  SetWidgetSize({width, height});
+UIInputTextComponent::UIInputTextComponent() {
+  SetWidgetSize({Width, Height});
   NormalColor = GetColor(80, 80, 80);
   HoveredColor = GetColor(120, 120, 120);
   EditingColor = GetColor(45, 105, 170);
 }
 
-void UIInputTextComponent::RegisterComponent() {
+void UIInputTextComponent::OnRegister() {
   if (BoxSprite != nullptr || TextSprite != nullptr || GetOwner() == nullptr) {
     return;
   }
 
-  auto boxSprite = std::make_unique<MSpriteComponent>(GetFinalPriority(), RenderSpace::Screen);
-  BoxSprite = boxSprite.get();
+  BoxSprite = NewObject<MSpriteComponent>(GetOwner());
+  TextSprite = NewObject<MSpriteComponent>(GetOwner());
+  BorderSprite = NewObject<MSpriteComponent>(GetOwner());
+  ActionHintSprite = NewObject<MSpriteComponent>(GetOwner());
+  if (BoxSprite == nullptr || TextSprite == nullptr || BorderSprite == nullptr ||
+      ActionHintSprite == nullptr) {
+    return;
+  }
+
+  BoxSprite->SetRenderSettings(GetFinalPriority(), RenderSpace::Screen);
   BoxSprite->SetParentComponent(this);
-  GetOwner()->AddComponent(std::move(boxSprite));
-
-  auto textSprite = std::make_unique<MSpriteComponent>(GetFinalPriority() + 1, RenderSpace::Screen);
-  TextSprite = textSprite.get();
+  TextSprite->SetRenderSettings(GetFinalPriority() + 1, RenderSpace::Screen);
   TextSprite->SetParentComponent(this);
-  GetOwner()->AddComponent(std::move(textSprite));
-
-  auto borderSprite = std::make_unique<MSpriteComponent>(GetFinalPriority() + 2, RenderSpace::Screen);
-  BorderSprite = borderSprite.get();
+  BorderSprite->SetRenderSettings(GetFinalPriority() + 2, RenderSpace::Screen);
   BorderSprite->SetParentComponent(this);
-  GetOwner()->AddComponent(std::move(borderSprite));
-
-  auto actionHintSprite = std::make_unique<MSpriteComponent>(GetFinalPriority() + 3, RenderSpace::Screen);
-  ActionHintSprite = actionHintSprite.get();
+  ActionHintSprite->SetRenderSettings(GetFinalPriority() + 3, RenderSpace::Screen);
   ActionHintSprite->SetParentComponent(this);
-  GetOwner()->AddComponent(std::move(actionHintSprite));
+
+  BoxSprite->RegisterComponent();
+  TextSprite->RegisterComponent();
+  BorderSprite->RegisterComponent();
+  ActionHintSprite->RegisterComponent();
 
   FontHandle = ResourceManager::GetInstance().GetFont(FontSize, 5);
   HintFontHandle = ResourceManager::GetInstance().GetFont(ActionHintFontSize, 5);

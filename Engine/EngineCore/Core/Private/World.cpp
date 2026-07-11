@@ -51,7 +51,6 @@ void World::UpdateCurrentFps(float DeltaTime) {
     return;
   }
   CurrentFps = 1.0f / DeltaTime;
-  M_LOG("Current FPS: {:.2f}", CurrentFps);
 }
 
 void World::SetGameMode(AGameModeBase* mode) { GameMode = mode; }

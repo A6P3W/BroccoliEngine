@@ -1,4 +1,4 @@
-#include "CollisionComponent.h"
+﻿#include "CollisionComponent.h"
 
 #include <CollisionSystem.h>
 
@@ -30,13 +30,13 @@ void MCollisionComponent::FlushOverlapState() {
   CheckedThisFrame.clear();
   IntersectingThisFrame.clear();
 }
-void MCollisionComponent::RegisterComponent() {
+void MCollisionComponent::OnRegister() {
   if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetCollisionSystem()) {
     GetOwner()->GetWorld()->GetCollisionSystem()->RegisterCollision(this);
   }
 }
 
-void MCollisionComponent::UnRegisterComponent() {
+void MCollisionComponent::OnUnregister() {
   if (GetOwner() && GetOwner()->GetWorld()) {
     if (auto CS = GetOwner()->GetWorld()->GetCollisionSystem()) {
       CS->UnRegisterCollision(this);

@@ -5,30 +5,23 @@
 #include "Actor.h"
 #include "SpriteComponent.h"
 
-UIToggleButtonComponent::UIToggleButtonComponent(
-    float width, float height, int onNormalColor, int offNormalColor
-)
-    : Width(width),
-      Height(height),
-      OnNormalColor(onNormalColor),
-      OnHoveredColor(onNormalColor),
-      OnPressedColor(onNormalColor),
-      OffNormalColor(offNormalColor),
-      OffHoveredColor(offNormalColor),
-      OffPressedColor(offNormalColor) {
-  SetWidgetSize({width, height});
+UIToggleButtonComponent::UIToggleButtonComponent() {
+  SetWidgetSize({Width, Height});
 }
 
-void UIToggleButtonComponent::RegisterComponent() {
+void UIToggleButtonComponent::OnRegister() {
   if (BoxSprite != nullptr || GetOwner() == nullptr) {
     return;
   }
 
-  auto boxSprite = std::make_unique<MSpriteComponent>(GetFinalPriority(), RenderSpace::Screen);
-  BoxSprite = boxSprite.get();
+  BoxSprite = NewObject<MSpriteComponent>(GetOwner());
+  if (BoxSprite == nullptr) {
+    return;
+  }
+  BoxSprite->SetRenderSettings(GetFinalPriority(), RenderSpace::Screen);
   BoxSprite->SetParentComponent(this);
   UpdateVisuals();
-  GetOwner()->AddComponent(std::move(boxSprite));
+  BoxSprite->RegisterComponent();
 }
 
 void UIToggleButtonComponent::Press() {

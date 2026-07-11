@@ -23,16 +23,21 @@ AStressTestActor::AStressTestActor() {
       float posX = x * size - offsetX;
       float posY = y * size - offsetY;
 
-      auto sprite = std::make_unique<MSpriteComponent>();
-      sprite->SubmitGraph(texHandle);
-      sprite->SetRelativeLocation({posX, posY});
-      sprite->SetWorldScale(FScale(0.9f));
-      AddComponent(std::move(sprite));
+      auto* Sprite = NewObject<MSpriteComponent>(this);
+      if (Sprite) {
+        Sprite->SubmitGraph(texHandle);
+        Sprite->SetRelativeLocation({posX, posY});
+        Sprite->SetWorldScale(FScale(0.9f));
+        Sprite->RegisterComponent();
+      }
 
-      auto collision = std::make_unique<MRectangleCollisionComponent>(size, size);
-      collision->SetStatic(true);
-      collision->SetRelativeLocation({posX, posY});
-      AddComponent(std::move(collision));
+      auto* Collision = NewObject<MRectangleCollisionComponent>(this);
+      if (Collision) {
+        Collision->SetSize(size, size);
+        Collision->SetStatic(true);
+        Collision->SetRelativeLocation({posX, posY});
+        Collision->RegisterComponent();
+      }
     }
   }
 }

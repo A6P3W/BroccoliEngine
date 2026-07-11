@@ -20,28 +20,27 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   int pressedColor = GetColor(50, 50, 50);
   int inputEditingColor = GetColor(40, 100, 170);
 
-  auto VerticalBox = std::make_unique<MUIVerticalBoxComponent>();
-  auto VerticalBoxPtr = VerticalBox.get();
+  auto* VerticalBox = NewObject<MUIVerticalBoxComponent>(this);
+  auto* VerticalBoxPtr = VerticalBox;
   VerticalBoxPtr->SetAnchor(EUIAnchor::MiddleCenter);
   VerticalBoxPtr->SetPivot({0.5f, 0.5f});
   VerticalBoxPtr->SetWidgetSize({btnWidth, 0.0f});
   VerticalBoxPtr->SetSpacing(24.0f);
   VerticalBoxPtr->SetAutoResize(true);
-  AddComponent(std::move(VerticalBox));
+  VerticalBox->RegisterComponent();
 
   // Startボタン
-  auto StartBtn = std::make_unique<UIBoxButtonComponent>(
-      btnWidth, btnHeight, normalColor, hoveredColor, pressedColor
-  );
-  auto StartBtnPtr = StartBtn.get();
+  auto* StartBtn = NewObject<UIBoxButtonComponent>(this);
+  auto* StartBtnPtr = StartBtn;
+  StartBtnPtr->SetSize(btnWidth, btnHeight);
+  StartBtnPtr->SetColors(normalColor, hoveredColor, pressedColor);
   VerticalBoxPtr->AddItem(StartBtnPtr);
-  AddComponent(std::move(StartBtn));
+  StartBtn->RegisterComponent();
 
   // Toggleボタン
-  auto ToggleBtn = std::make_unique<UIToggleButtonComponent>(
-      btnWidth, btnHeight, GetColor(46, 160, 67), GetColor(90, 90, 90)
-  );
-  auto ToggleBtnPtr = ToggleBtn.get();
+  auto* ToggleBtn = NewObject<UIToggleButtonComponent>(this);
+  auto* ToggleBtnPtr = ToggleBtn;
+  ToggleBtnPtr->SetSize(btnWidth, btnHeight);
   ToggleBtnPtr->SetColors(
       GetColor(46, 160, 67),
       GetColor(61, 184, 82),
@@ -51,69 +50,85 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
       GetColor(60, 60, 60)
   );
   VerticalBoxPtr->AddItem(ToggleBtnPtr);
-  AddComponent(std::move(ToggleBtn));
+  ToggleBtn->RegisterComponent();
 
   // Configボタン
-  auto ConfigBtn = std::make_unique<UIBoxButtonComponent>(
-      btnWidth, btnHeight, normalColor, hoveredColor, pressedColor
-  );
-  auto ConfigBtnPtr = ConfigBtn.get();
+  auto* ConfigBtn = NewObject<UIBoxButtonComponent>(this);
+  auto* ConfigBtnPtr = ConfigBtn;
+  ConfigBtnPtr->SetSize(btnWidth, btnHeight);
+  ConfigBtnPtr->SetColors(normalColor, hoveredColor, pressedColor);
   VerticalBoxPtr->AddItem(ConfigBtnPtr);
-  AddComponent(std::move(ConfigBtn));
+  ConfigBtn->RegisterComponent();
 
   // 入力可能テキスト欄
-  auto NameInput = std::make_unique<UIInputTextComponent>(btnWidth, btnHeight, "Name...");
-  auto NameInputPtr = NameInput.get();
+  auto* NameInput = NewObject<UIInputTextComponent>(this);
+  auto* NameInputPtr = NameInput;
+  NameInputPtr->SetSize(btnWidth, btnHeight);
+  NameInputPtr->SetHintText("Name...");
   NameInputPtr->SetMaxLength(12);
   NameInputPtr->SetColors(normalColor, hoveredColor, inputEditingColor);
   VerticalBoxPtr->AddItem(NameInputPtr);
-  AddComponent(std::move(NameInput));
+  NameInput->RegisterComponent();
 
   // Exitボタン
-  auto ExitBtn = std::make_unique<UIBoxButtonComponent>(
-      btnWidth, btnHeight, normalColor, hoveredColor, pressedColor
-  );
-  auto ExitBtnPtr = ExitBtn.get();
+  auto* ExitBtn = NewObject<UIBoxButtonComponent>(this);
+  auto* ExitBtnPtr = ExitBtn;
+  ExitBtnPtr->SetSize(btnWidth, btnHeight);
+  ExitBtnPtr->SetColors(normalColor, hoveredColor, pressedColor);
   VerticalBoxPtr->AddItem(ExitBtnPtr);
-  AddComponent(std::move(ExitBtn));
+  ExitBtn->RegisterComponent();
 
-  auto LeftNavBtn = std::make_unique<UIBoxButtonComponent>(
-      sideBtnWidth, sideBtnHeight, normalColor, hoveredColor, pressedColor
-  );
-  auto LeftNavBtnPtr = LeftNavBtn.get();
+  auto* LeftNavBtn = NewObject<UIBoxButtonComponent>(this);
+  auto* LeftNavBtnPtr = LeftNavBtn;
+  LeftNavBtnPtr->SetSize(sideBtnWidth, sideBtnHeight);
+  LeftNavBtnPtr->SetColors(normalColor, hoveredColor, pressedColor);
   LeftNavBtnPtr->SetAnchoredPosition({-260.0f, 0.0f});
-  AddComponent(std::move(LeftNavBtn));
+  LeftNavBtn->RegisterComponent();
 
-  auto RightNavBtn = std::make_unique<UIBoxButtonComponent>(
-      sideBtnWidth, sideBtnHeight, normalColor, hoveredColor, pressedColor
-  );
-  auto RightNavBtnPtr = RightNavBtn.get();
+  auto* RightNavBtn = NewObject<UIBoxButtonComponent>(this);
+  auto* RightNavBtnPtr = RightNavBtn;
+  RightNavBtnPtr->SetSize(sideBtnWidth, sideBtnHeight);
+  RightNavBtnPtr->SetColors(normalColor, hoveredColor, pressedColor);
   RightNavBtnPtr->SetAnchoredPosition({260.0f, 0.0f});
-  AddComponent(std::move(RightNavBtn));
+  RightNavBtn->RegisterComponent();
 
-  auto startText = std::make_unique<UITextComponent>("Start", GetColor(255, 255, 255), 24);
+  auto* startText = NewObject<UITextComponent>(this);
+  startText->SetText("Start");
+  startText->SetColor(GetColor(255, 255, 255));
+  startText->SetFontSize(24);
   startText->SetParentComponent(StartBtnPtr);  // ボタンの子要素にするだけで中央に配置される
-  AddComponent(std::move(startText));
+  startText->RegisterComponent();
 
-  auto toggleText = std::make_unique<UITextComponent>("Toggle: OFF", GetColor(255, 255, 255), 24);
-  auto ToggleTextPtr = toggleText.get();
+  auto* toggleText = NewObject<UITextComponent>(this);
+  auto* ToggleTextPtr = toggleText;
+  ToggleTextPtr->SetText("Toggle: OFF");
+  ToggleTextPtr->SetColor(GetColor(255, 255, 255));
+  ToggleTextPtr->SetFontSize(24);
   ToggleTextPtr->SetParentComponent(ToggleBtnPtr);
-  AddComponent(std::move(toggleText));
+  toggleText->RegisterComponent();
 
-  auto leftNavText = std::make_unique<UITextComponent>("Left", GetColor(255, 255, 255), 24);
+  auto* leftNavText = NewObject<UITextComponent>(this);
+  leftNavText->SetText("Left");
+  leftNavText->SetColor(GetColor(255, 255, 255));
+  leftNavText->SetFontSize(24);
   leftNavText->SetParentComponent(LeftNavBtnPtr);
-  AddComponent(std::move(leftNavText));
+  leftNavText->RegisterComponent();
 
-  auto rightNavText = std::make_unique<UITextComponent>("Right", GetColor(255, 255, 255), 24);
+  auto* rightNavText = NewObject<UITextComponent>(this);
+  rightNavText->SetText("Right");
+  rightNavText->SetColor(GetColor(255, 255, 255));
+  rightNavText->SetFontSize(24);
   rightNavText->SetParentComponent(RightNavBtnPtr);
-  AddComponent(std::move(rightNavText));
+  rightNavText->RegisterComponent();
 
-  auto committedText =
-      std::make_unique<UITextComponent>("Input: <empty>", GetColor(210, 230, 255), 20);
-  auto CommittedTextPtr = committedText.get();
+  auto* committedText = NewObject<UITextComponent>(this);
+  auto* CommittedTextPtr = committedText;
   CommittedTextPtr->SetAnchor(EUIAnchor::MiddleCenter);
   CommittedTextPtr->SetAnchoredPosition({0.0f, 210.0f});
-  AddComponent(std::move(committedText));
+  committedText->SetText("Input: <empty>");
+  committedText->SetColor(GetColor(210, 230, 255));
+  committedText->SetFontSize(20);
+  committedText->RegisterComponent();
 
   // ボタン押下時の処理
   StartBtnPtr->OnPressed = []() { M_LOG("Start Game!"); };

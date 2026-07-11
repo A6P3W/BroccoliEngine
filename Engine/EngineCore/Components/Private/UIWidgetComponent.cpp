@@ -5,7 +5,7 @@
 #include "EngineDefine.h"
 #include "UIVerticalBoxComponent.h"
 
-MUIWidgetComponent::MUIWidgetComponent(int basePriority) : BasePriority(basePriority) {}
+MUIWidgetComponent::MUIWidgetComponent() {}
 
 void MUIWidgetComponent::SetZOrderOffset(int offset) {
   ZOrderOffset = offset;

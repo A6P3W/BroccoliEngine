@@ -6,24 +6,26 @@
 #include "ResourceManager.h"
 #include "SpriteComponent.h"
 
-UITextComponent::UITextComponent(const std::string& text, int color, int fontSize)
-    : Text(text), Color(color), FontSize(fontSize) {}
+UITextComponent::UITextComponent() {}
 
-void UITextComponent::RegisterComponent() {
+void UITextComponent::OnRegister() {
   if (TextSprite != nullptr || GetOwner() == nullptr) {
     return;
   }
 
   // 描画空間をScreenにし、親(ボタン等)よりもZオーダーを1つ上に設定
-  auto sprite = std::make_unique<MSpriteComponent>(GetFinalPriority() + 1, RenderSpace::Screen);
-  TextSprite = sprite.get();
+  TextSprite = NewObject<MSpriteComponent>(GetOwner());
+  if (TextSprite == nullptr) {
+    return;
+  }
+  TextSprite->SetRenderSettings(GetFinalPriority() + 1, RenderSpace::Screen);
   TextSprite->SetParentComponent(this);
 
   // フォントハンドルを取得
   FontHandle = ResourceManager::GetInstance().GetFont(FontSize, 5);
 
   UpdateText();
-  GetOwner()->AddComponent(std::move(sprite));
+  TextSprite->RegisterComponent();
 }
 
 void UITextComponent::SetText(const std::string& text) {
@@ -33,6 +35,14 @@ void UITextComponent::SetText(const std::string& text) {
 
 void UITextComponent::SetColor(int color) {
   Color = color;
+  UpdateText();
+}
+
+void UITextComponent::SetFontSize(int fontSize) {
+  FontSize = fontSize;
+  if (TextSprite != nullptr) {
+    FontHandle = ResourceManager::GetInstance().GetFont(FontSize, 5);
+  }
   UpdateText();
 }
 

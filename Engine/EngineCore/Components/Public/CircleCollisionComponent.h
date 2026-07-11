@@ -3,13 +3,14 @@
 
 class MCircleCollisionComponent : public MCollisionComponent {
  public:
-  MCircleCollisionComponent(float radius = 50.0f) { Radius = radius; }
+  MCircleCollisionComponent() = default;
   ECollisionShape GetShapeType() const override { return ECollisionShape::Circle; }
   float GetRadius() const { return Radius; };
+  void SetRadius(float NewRadius) { Radius = NewRadius; }
   void Draw() override;
 
   FAABB GetAABB() const override;
 
  private:
-  float Radius;
+  float Radius = 50.0f;
 };

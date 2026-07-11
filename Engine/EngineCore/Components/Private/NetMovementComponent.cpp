@@ -24,8 +24,8 @@ MNetMovementComponent::MNetMovementComponent() {
   RegisterReplicatedProperty(&Acceleration);
 }
 
-void MNetMovementComponent::RegisterComponent() {
-  MMovementComponent::RegisterComponent();
+void MNetMovementComponent::OnRegister() {
+  MMovementComponent::OnRegister();
 
   RegisterRPC(
       RPC_ServerReceiveMove,

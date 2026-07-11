@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "Actor.h"
+#include "Log.h"
 #include "UMath.h"
 
 MSceneComponent::MSceneComponent() = default;
@@ -30,16 +31,24 @@ void MSceneComponent::OnComponentDestroy() {
   }
 }
 
-void MSceneComponent::SetParentComponent(MSceneComponent* parent) {
-  if (ParentComponent == parent || parent == this) {
+void MSceneComponent::SetParentComponent(MSceneComponent* Parent) {
+  if (ParentComponent == Parent || Parent == this) {
     return;
+  }
+
+  for (MSceneComponent* Current = Parent; Current != nullptr;
+       Current = Current->GetParentComponent()) {
+    if (Current == this) {
+      M_LOG("SetParentComponent rejected: cyclic component hierarchy.");
+      return;
+    }
   }
 
   if (ParentComponent != nullptr) {
     std::erase(ParentComponent->ChildComponents, this);
   }
 
-  ParentComponent = parent;
+  ParentComponent = Parent;
 
   if (ParentComponent != nullptr &&
       std::find(ParentComponent->ChildComponents.begin(), ParentComponent->ChildComponents.end(),
