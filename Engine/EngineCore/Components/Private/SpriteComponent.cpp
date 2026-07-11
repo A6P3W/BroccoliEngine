@@ -4,12 +4,17 @@
 #include "ResourceManager.h"
 #include "UMath.h"
 
-MSpriteComponent::MSpriteComponent(int priority, RenderSpace space) {
-  CommonData.priority = priority;
-  CommonData.space = space;
+MSpriteComponent::MSpriteComponent() {
+  CommonData.priority = 0;
+  CommonData.space = RenderSpace::World;
   CommonData.alpha = 255;
   // デフォルトは空のグラフ
   FeatureData = GraphData{};
+}
+
+void MSpriteComponent::SetRenderSettings(int Priority, RenderSpace Space) {
+  CommonData.priority = Priority;
+  CommonData.space = Space;
 }
 
 void MSpriteComponent::SubmitGraph(int handle, FScale scale, int alpha) {

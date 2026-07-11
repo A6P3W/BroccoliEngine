@@ -16,7 +16,7 @@ enum class EUIAnchor {
 
 class MUIWidgetComponent : public MSceneComponent {
  public:
-  MUIWidgetComponent(int basePriority = 0);
+  MUIWidgetComponent();
 
   void SetZOrderOffset(int offset);
   int GetFinalPriority() const;

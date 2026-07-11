@@ -23,3 +23,5 @@ constexpr bool IsRelease =
 
 constexpr int VirtualWidth = 1920;
 constexpr int VirtualHeight = 1080;
+
+constexpr float ReferenceFrameRate = 60.0f;

@@ -8,11 +8,12 @@ class MSpriteComponent;
 class UITextComponent : public MUIWidgetComponent {
  public:
   // デフォルトで白文字、サイズ24
-  UITextComponent(const std::string& text = "", int color = 0xFFFFFF, int fontSize = 24);
+  UITextComponent();
 
-  void RegisterComponent() override;
+  void OnRegister() override;
   void SetText(const std::string& text);
   void SetColor(int color);
+  void SetFontSize(int fontSize);
 
  private:
   void UpdateText();

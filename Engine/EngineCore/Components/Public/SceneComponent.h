@@ -6,6 +6,29 @@
 #include "UMath.h"
 class AActor;
 
+enum class EAttachmentRule {
+  KeepRelative,
+  KeepWorld,
+  SnapToTarget,
+};
+
+struct FAttachmentTransformRules {
+  EAttachmentRule LocationRule;
+  EAttachmentRule RotationRule;
+  EAttachmentRule ScaleRule;
+
+  constexpr FAttachmentTransformRules(
+      EAttachmentRule InLocationRule,
+      EAttachmentRule InRotationRule,
+      EAttachmentRule InScaleRule
+  )
+      : LocationRule(InLocationRule), RotationRule(InRotationRule), ScaleRule(InScaleRule) {}
+
+  static const FAttachmentTransformRules KeepRelativeTransform;
+  static const FAttachmentTransformRules KeepWorldTransform;
+  static const FAttachmentTransformRules SnapToTargetIncludingScale;
+};
+
 class MSceneComponent : public MActorComponent {
  public:
   MSceneComponent();
@@ -15,7 +38,8 @@ class MSceneComponent : public MActorComponent {
 
   virtual void OnMessage(const std::string& message);
 
-  void SetParentComponent(MSceneComponent* parent);
+  void AttachToComponent(MSceneComponent* Parent);
+  bool AttachToComponent(MSceneComponent* Parent, const FAttachmentTransformRules& AttachmentRules);
   auto GetParentComponent() const { return ParentComponent; }
 
   bool SetWorldLocation(const FVector2D& NewWorldLocation);

@@ -7,9 +7,9 @@ class MSpriteComponent;
 
 class UIToggleButtonComponent : public MUIButtonComponent {
  public:
-  UIToggleButtonComponent(float width, float height, int onNormalColor, int offNormalColor);
+  UIToggleButtonComponent();
 
-  void RegisterComponent() override;
+  void OnRegister() override;
   void Press() override;
   void OnStateChanged(EButtonState NewState) override;
 

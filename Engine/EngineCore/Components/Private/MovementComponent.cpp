@@ -5,6 +5,8 @@
 
 #include "Log.h"
 #include "UMath.h"
+#include "EngineDefine.h"
+
 void MMovementComponent::AddWorldForce(const FVector2D& Force) { Velocity = Velocity + Force; }
 
 void MMovementComponent::AddLocalForce(const FVector2D& Force) {
@@ -33,7 +35,7 @@ void MMovementComponent::OnUpdate(float DeltaTime) {
   }
   if (!GetOwner()) return;
   AActor* owner = GetOwner();
-  Velocity *= std::pow(Friction, DeltaTime * 60);
+  Velocity *= std::pow(Friction, DeltaTime * ReferenceFrameRate);
 
   owner->AddActorWorldOffset(Velocity);
 }

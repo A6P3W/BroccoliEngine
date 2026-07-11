@@ -15,14 +15,76 @@ MActorComponent::~MActorComponent() {
   HttpManager::GetInstance().CancelAllRequestsForObject(this);
 }
 
+
+void MActorComponent::BeginPlay() {
+  if (bHasBegunPlay || !IsRegistered() || IsPendingDestroy()) {
+    return;
+  }
+
+  bHasBegunPlay = true;
+  OnBeginPlay();
+}
 bool MActorComponent::Update(float DeltaTime) {
-  if (IsPendingDestroy()) {
+  if (IsPendingDestroy() || !IsRegistered()) {
     return false;
   }
   OnUpdate(DeltaTime);
   return true;
 }
+void MActorComponent::RegisterComponent() {
+  if (bPendingDestroy ||
+      RegistrationState == EActorComponentRegistrationState::Registered ||
+      RegistrationState == EActorComponentRegistrationState::Registering) {
+    return;
+  }
 
+  if (Owner == nullptr) {
+    M_LOG("RegisterComponent ignored: Owner is null");
+    return;
+  }
+
+  if (Owner->GetWorld() == nullptr) {
+    RegistrationState = EActorComponentRegistrationState::RegistrationPending;
+    return;
+  }
+
+  CompleteRegistration();
+}
+
+void MActorComponent::UnRegisterComponent() {
+  if (RegistrationState != EActorComponentRegistrationState::Registered &&
+      RegistrationState != EActorComponentRegistrationState::Registering &&
+      RegistrationState != EActorComponentRegistrationState::RegistrationPending) {
+    return;
+  }
+
+  OnUnregister();
+  RegistrationState = bPendingDestroy ? EActorComponentRegistrationState::PendingDestroy
+                                      : EActorComponentRegistrationState::Created;
+}
+
+bool MActorComponent::CompleteRegistration() {
+  if (bPendingDestroy ||
+      RegistrationState == EActorComponentRegistrationState::Registered ||
+      RegistrationState == EActorComponentRegistrationState::Registering) {
+    return false;
+  }
+
+  if (Owner == nullptr || Owner->GetWorld() == nullptr) {
+    RegistrationState = EActorComponentRegistrationState::RegistrationPending;
+    return false;
+  }
+
+  RegistrationState = EActorComponentRegistrationState::Registering;
+  OnRegister();
+  RegistrationState = EActorComponentRegistrationState::Registered;
+
+  if (Owner->HasBegunPlay()) {
+    BeginPlay();
+  }
+
+  return true;
+}
 void MActorComponent::DestroyComponent() {
   if (bPendingDestroy) {
     return;
@@ -46,6 +108,7 @@ void MActorComponent::DestroyComponent() {
   UnRegisterComponent();
 
   OnComponentDestroy();
+  RegistrationState = EActorComponentRegistrationState::PendingDestroy;
 }
 
 void MActorComponent::SetNetComponentName(std::string Name) { NetComponentName = std::move(Name); }

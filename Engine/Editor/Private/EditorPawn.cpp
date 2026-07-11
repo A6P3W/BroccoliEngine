@@ -12,10 +12,12 @@
 #include "World.h"
 REGISTER_ACTOR(EditorPawn);
 EditorPawn::EditorPawn() {
-  auto GameScreenComp = std::make_unique<MSpriteComponent>(999);
-  GameScreenComp->SubmitBox(1920, 1080, GetColor(255, 255, 255), 0);
-  GameScreenView = GameScreenComp.get();
-  AddComponent(std::move(GameScreenComp));
+  GameScreenView = NewObject<MSpriteComponent>(this);
+  if (GameScreenView) {
+    GameScreenView->SetRenderSettings(999, RenderSpace::World);
+    GameScreenView->SubmitBox(1920, 1080, GetColor(255, 255, 255), 0);
+    GameScreenView->RegisterComponent();
+  }
   bEditorActor = true;
 }
 

@@ -6,7 +6,9 @@
 
 REGISTER_ACTOR(ADefaultCircleCollisionActor);
 ADefaultCircleCollisionActor::ADefaultCircleCollisionActor() {
-  auto col = std::make_unique<MCircleCollisionComponent>();
-  col->SetParentComponent(GetRootComponent());
-  AddComponent(std::move(col));
+  auto* Col = NewObject<MCircleCollisionComponent>(this);
+  if (Col) {
+    Col->AttachToComponent(GetRootComponent());
+    Col->RegisterComponent();
+  }
 }

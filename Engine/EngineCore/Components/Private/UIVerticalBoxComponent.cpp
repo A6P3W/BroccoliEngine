@@ -2,8 +2,7 @@
 
 #include <algorithm>
 
-MUIVerticalBoxComponent::MUIVerticalBoxComponent(int basePriority)
-    : MUIWidgetComponent(basePriority) {}
+MUIVerticalBoxComponent::MUIVerticalBoxComponent() {}
 
 void MUIVerticalBoxComponent::AddItem(MUIWidgetComponent* Item) {
   if (Item == nullptr) {
@@ -14,7 +13,7 @@ void MUIVerticalBoxComponent::AddItem(MUIWidgetComponent* Item) {
     return;
   }
 
-  Item->SetParentComponent(this);
+  Item->AttachToComponent(this);
   ListItems.push_back(Item);
   bNeedsLayoutUpdate = true;
 }
@@ -25,7 +24,7 @@ void MUIVerticalBoxComponent::RemoveItem(MUIWidgetComponent* Item) {
     return;
   }
 
-  (*it)->SetParentComponent(nullptr);
+  (*it)->AttachToComponent(nullptr);
   ListItems.erase(it);
   bNeedsLayoutUpdate = true;
 }
@@ -33,7 +32,7 @@ void MUIVerticalBoxComponent::RemoveItem(MUIWidgetComponent* Item) {
 void MUIVerticalBoxComponent::ClearItems() {
   for (MUIWidgetComponent* Item : ListItems) {
     if (Item != nullptr) {
-      Item->SetParentComponent(nullptr);
+      Item->AttachToComponent(nullptr);
     }
   }
 

@@ -3,18 +3,21 @@
 
 class MRectangleCollisionComponent : public MCollisionComponent {
  public:
-  MRectangleCollisionComponent(float width = 100.0f, float height = 100.0f)
-      : Width(width), Height(height) {}
+  MRectangleCollisionComponent() = default;
 
   ECollisionShape GetShapeType() const override { return ECollisionShape::Rectangle; }
 
   float GetWidth() const { return Width; }
   float GetHeight() const { return Height; }
+  void SetSize(float NewWidth, float NewHeight) {
+    Width = NewWidth;
+    Height = NewHeight;
+  }
 
   void Draw() override;
   FAABB GetAABB() const override;
 
  private:
-  float Width;
-  float Height;
+  float Width = 100.0f;
+  float Height = 100.0f;
 };

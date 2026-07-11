@@ -29,9 +29,10 @@ bool IsReplicationSequenceNewer(uint32_t IncomingSequence, uint32_t CurrentSeque
 }  // namespace
 
 AActor::AActor() {
-  auto root = std::make_unique<MSceneComponent>();
-  RootComponent = root.get();
-  AddComponent(std::move(root));
+  RootComponent = NewObject<MSceneComponent>(this);
+  if (RootComponent) {
+    RootComponent->RegisterComponent();
+  }
 }
 
 AActor::~AActor() {
@@ -42,10 +43,11 @@ AActor::~AActor() {
 }
 
 void AActor::Spawned() {
+  bHasBegunPlay = true;
   BeginPlay();
 
   for (size_t i = 0; i < Components.size(); ++i) {
-    if (Components[i] && !Components[i]->IsPendingDestroy()) {
+    if (Components[i] && Components[i]->IsRegistered() && !Components[i]->IsPendingDestroy()) {
       Components[i]->BeginPlay();
     }
   }
@@ -55,14 +57,12 @@ void AActor::SetWorld(World* world) {
   if (OwnerWorld == world) return;
   OwnerWorld = world;
 
-  for (size_t i = 0; i < Components.size(); ++i) {
-    if (Components[i]) {
-      Components[i]->RegisterComponent();
-    }
-  }
+  CompletePendingComponentRegistrations();
 #ifdef _EDITOR
-  auto selectPoint = std::make_unique<EditorSelectPointComponent>();
-  AddComponent(std::move(selectPoint));
+  auto* SelectPoint = NewObject<EditorSelectPointComponent>(this);
+  if (SelectPoint) {
+    SelectPoint->RegisterComponent();
+  }
 #endif
 }
 
@@ -72,9 +72,9 @@ const std::vector<std::unique_ptr<MActorComponent>>& AActor::GetComponents() con
   return Components;
 }
 
-void AActor::AddComponent(std::unique_ptr<MActorComponent> NewComponent) {
+MActorComponent* AActor::AcceptNewObjectComponent(std::unique_ptr<MActorComponent> NewComponent) {
   if (!NewComponent) {
-    return;
+    return nullptr;
   }
 
   MActorComponent* NewComponentPtr = NewComponent.get();
@@ -85,15 +85,20 @@ void AActor::AddComponent(std::unique_ptr<MActorComponent> NewComponent) {
     if (auto gameObject = dynamic_cast<AActor*>(this)) {
       if (gameObject->GetRootComponent() && gameObject->GetRootComponent() != sceneComp &&
           sceneComp->GetParentComponent() == nullptr) {
-        sceneComp->SetParentComponent(GetRootComponent());
+        sceneComp->AttachToComponent(GetRootComponent());
       }
     }
   }
 
   Components.push_back(std::move(NewComponent));
+  return NewComponentPtr;
+}
 
-  if (OwnerWorld) {
-    NewComponentPtr->RegisterComponent();
+void AActor::CompletePendingComponentRegistrations() {
+  for (size_t i = 0; i < Components.size(); ++i) {
+    if (Components[i] && Components[i]->IsRegistrationPending()) {
+      Components[i]->CompleteRegistration();
+    }
   }
 }
 
@@ -137,7 +142,7 @@ void AActor::AssignNetworkComponentIds() {
   }
 
   for (const auto& comp : Components) {
-    if (!comp || !comp->bReplicates || comp->IsPendingDestroy()) {
+    if (!comp || !comp->bReplicates || comp->IsPendingDestroy() || !comp->IsRegistered()) {
       continue;
     }
 
@@ -155,7 +160,7 @@ void AActor::Update(float DeltaTime) {
   this->OnUpdate(DeltaTime);
 
   for (size_t i = 0; i < Components.size(); ++i) {
-    if (Components[i] && !Components[i]->IsPendingDestroy()) {
+    if (Components[i] && Components[i]->IsRegistered() && !Components[i]->IsPendingDestroy()) {
       Components[i]->Update(DeltaTime);
     }
   }
@@ -168,7 +173,7 @@ void AActor::Update(float DeltaTime) {
 
 void AActor::Draw() {
   for (size_t i = 0; i < Components.size(); ++i) {
-    if (Components[i] && !Components[i]->IsPendingDestroy()) {
+    if (Components[i] && Components[i]->IsRegistered() && !Components[i]->IsPendingDestroy()) {
       Components[i]->Draw();
     }
   }
@@ -267,7 +272,7 @@ bool AActor::HasReplicatedStateChanged(float Tolerance) const {
 
   return std::any_of(
       Components.begin(), Components.end(), [](const std::unique_ptr<MActorComponent>& comp) {
-        return comp && comp->bReplicates && !comp->IsPendingDestroy() &&
+        return comp && comp->bReplicates && comp->IsRegistered() && !comp->IsPendingDestroy() &&
                comp->HasReplicatedStateChanged();
       }
   );
@@ -283,7 +288,7 @@ void AActor::UpdateReplicatedStateCache() {
     }
   }
   for (const auto& comp : Components) {
-    if (comp && comp->bReplicates && !comp->IsPendingDestroy()) {
+    if (comp && comp->bReplicates && comp->IsRegistered() && !comp->IsPendingDestroy()) {
       comp->UpdateReplicatedStateCache();
     }
   }
@@ -404,13 +409,18 @@ bool AActor::InvokeComponentRPCWithPayload(
 }
 
 void AActor::SetRootComponent(MSceneComponent* Component) {
-  if (!Component) return;
+  if (Component == nullptr || Component == RootComponent) {
+    return;
+  }
 
   Component->SetOwner(this);
   EnsureNetComponentName(Component);
 
-  if (RootComponent && RootComponent != Component) {
-    RootComponent->SetParentComponent(Component);
+  MSceneComponent* OldRoot = RootComponent;
+  Component->AttachToComponent(nullptr);
+
+  if (OldRoot != nullptr) {
+    OldRoot->AttachToComponent(Component);
   }
 
   RootComponent = Component;
@@ -453,7 +463,7 @@ void AActor::EnsureNetComponentName(MActorComponent* Component) {
 std::vector<MActorComponent*> AActor::GetReplicatedNetworkComponents() const {
   std::vector<MActorComponent*> replicatedComponents;
   for (const auto& comp : Components) {
-    if (comp && comp->bReplicates && !comp->IsPendingDestroy() && comp->ComponentNetworkId != 0) {
+    if (comp && comp->bReplicates && comp->IsRegistered() && !comp->IsPendingDestroy() && comp->ComponentNetworkId != 0) {
       replicatedComponents.push_back(comp.get());
     }
   }

@@ -9,9 +9,9 @@ class MSpriteComponent;
 
 class UIInputTextComponent : public MUIButtonComponent {
  public:
-  UIInputTextComponent(float width, float height, const std::string& hintText = "");
+  UIInputTextComponent();
 
-  void RegisterComponent() override;
+  void OnRegister() override;
   void Press() override;
   void OnUpdate(float DeltaTime) override;
   void OnStateChanged(EButtonState NewState) override;

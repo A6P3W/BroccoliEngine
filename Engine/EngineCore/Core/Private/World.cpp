@@ -51,7 +51,9 @@ void World::UpdateCurrentFps(float DeltaTime) {
     return;
   }
   CurrentFps = 1.0f / DeltaTime;
-  M_LOG("Current FPS: {:.2f}", CurrentFps);
+  if (CurrentFps < TargetFps * 0.90f) {
+    M_LOG("Warning: Current FPS ({}) is below 90% of target FPS ({}).", CurrentFps, TargetFps);
+  }
 }
 
 void World::SetGameMode(AGameModeBase* mode) { GameMode = mode; }

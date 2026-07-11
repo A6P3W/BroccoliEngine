@@ -10,6 +10,6 @@ class EditorSelectPointComponent : public MSceneComponent {
   void Selected(bool bSelected);
 
  private:
-  void RegisterComponent() override;
+  void OnRegister() override;
   MSpriteComponent* SelectPointSprite = nullptr;
 };

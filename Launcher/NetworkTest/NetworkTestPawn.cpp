@@ -126,24 +126,23 @@ ANetworkTestPawn::ANetworkTestPawn() {
   bReplicates = true;
   NetworkTestUI = std::make_unique<FNetworkTestUI>(*this);
 
-  auto Sprite = std::make_unique<MSpriteComponent>(10, RenderSpace::World);
-  BodySprite = Sprite.get();
+  BodySprite = NewObject<MSpriteComponent>(this);
+  BodySprite->SetRenderSettings(10, RenderSpace::World);
   BodySprite->SubmitBox(48.0f, 48.0f, GetDisplayColor(), true);
   BodySprite->SetRelativeLocation({-24.0f, -24.0f});
-  AddComponent(std::move(Sprite));
+  BodySprite->RegisterComponent();
 
-  auto CollisionComponent = std::make_unique<MRectangleCollisionComponent>(48.0f, 48.0f);
-  CollisionComponent->SetParentComponent(GetRootComponent());
+  auto* CollisionComponent = NewObject<MRectangleCollisionComponent>(this);
+  CollisionComponent->SetSize(48.0f, 48.0f);
+  CollisionComponent->AttachToComponent(GetRootComponent());
   CollisionComponent->SetStatic(false);
-  AddComponent(std::move(CollisionComponent));
+  CollisionComponent->RegisterComponent();
 
-  auto MovementComponent = std::make_unique<MNetMovementComponent>();
-  Movement = MovementComponent.get();
-  AddComponent(std::move(MovementComponent));
+  Movement = NewObject<MNetMovementComponent>(this);
+  Movement->RegisterComponent();
 
-  auto ReplicationTestComponent = std::make_unique<MNetworkTestRepComponent>();
-  ReplicationTest = ReplicationTestComponent.get();
-  AddComponent(std::move(ReplicationTestComponent));
+  ReplicationTest = NewObject<MNetworkTestRepComponent>(this);
+  ReplicationTest->RegisterComponent();
 }
 
 ANetworkTestPawn::~ANetworkTestPawn() = default;

@@ -17,10 +17,9 @@ ALevelStarterWidget::ALevelStarterWidget() {
   constexpr float ButtonWidth = 300.0f;
   constexpr float ButtonHeight = 60.0f;
 
-  auto button = std::make_unique<UIBoxButtonComponent>(
-      ButtonWidth, ButtonHeight, GetColor(85, 85, 85), GetColor(119, 119, 119), GetColor(51, 51, 51)
-  );
-  UIBoxButtonComponent* buttonPtr = button.get();
+  auto* buttonPtr = NewObject<UIBoxButtonComponent>(this);
+  buttonPtr->SetSize(ButtonWidth, ButtonHeight);
+  buttonPtr->SetColors(GetColor(85, 85, 85), GetColor(119, 119, 119), GetColor(51, 51, 51));
   buttonPtr->SetAnchor(EUIAnchor::MiddleCenter);
   buttonPtr->OnPressed = []() {
     const std::string filepath =
@@ -30,15 +29,17 @@ ALevelStarterWidget::ALevelStarterWidget() {
     }
   };
 
-  auto text =
-      std::make_unique<UITextComponent>("Select .BLevel to Play", GetColor(255, 255, 255), 24);
-  text->SetParentComponent(buttonPtr);
+  auto* text = NewObject<UITextComponent>(this);
+  text->SetText("Select .BLevel to Play");
+  text->SetColor(GetColor(255, 255, 255));
+  text->SetFontSize(24);
+  text->AttachToComponent(buttonPtr);
   text->SetAnchor(EUIAnchor::MiddleCenter);
 
   OpenButton = buttonPtr;
 
-  AddComponent(std::move(button));
-  AddComponent(std::move(text));
+  buttonPtr->RegisterComponent();
+  text->RegisterComponent();
 }
 
 void ALevelStarterWidget::BeginPlay() {

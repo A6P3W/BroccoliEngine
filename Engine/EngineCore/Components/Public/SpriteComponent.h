@@ -4,7 +4,8 @@
 
 class MSpriteComponent : public MSceneComponent {
  public:
-  MSpriteComponent(int priority = 0, RenderSpace space = RenderSpace::World);
+   MSpriteComponent();
+  void SetRenderSettings(int Priority, RenderSpace Space);
 
   void SubmitGraph(int handle, FScale scale = FScale(1.0f), int alpha = 255);
   void SubmitBox(float width, float height, int color, bool fill, int alpha = 255);

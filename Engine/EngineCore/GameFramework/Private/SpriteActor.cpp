@@ -7,11 +7,11 @@
 REGISTER_ACTOR(ASpriteActor);
 
 ASpriteActor::ASpriteActor() {
-  auto spriteComp = std::make_unique<MSpriteComponent>();
-  SpriteComponent = spriteComp.get();
-
+  SpriteComponent = NewObject<MSpriteComponent>(this);
   SetRootComponent(SpriteComponent);
-  AddComponent(std::move(spriteComp));
+  if (SpriteComponent) {
+    SpriteComponent->RegisterComponent();
+  }
 }
 
 void ASpriteActor::SetImagePath(const std::string& path) {

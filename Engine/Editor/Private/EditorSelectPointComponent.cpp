@@ -13,11 +13,13 @@ void EditorSelectPointComponent::Selected(bool bSelected) {
   SelectPointSprite->SubmitCircle(10, color, 1);
 }
 
-void EditorSelectPointComponent::RegisterComponent() {
-  auto sprite = std::make_unique<MSpriteComponent>(100);
-  sprite->SubmitCircle(10, GetColor(255, 0, 0), 1);
-  SelectPointSprite = sprite.get();
-
-  GetOwner()->AddComponent(std::move(sprite));
-  SelectPointSprite->SetParentComponent(this);
+void EditorSelectPointComponent::OnRegister() {
+  SelectPointSprite = NewObject<MSpriteComponent>(GetOwner());
+  if (SelectPointSprite == nullptr) {
+    return;
+  }
+  SelectPointSprite->SetRenderSettings(100, RenderSpace::World);
+  SelectPointSprite->AttachToComponent(this);
+  SelectPointSprite->SubmitCircle(8.0f, GetColor(255, 0, 0), true);
+  SelectPointSprite->RegisterComponent();
 }

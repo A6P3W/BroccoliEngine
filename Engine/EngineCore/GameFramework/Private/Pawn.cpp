@@ -17,10 +17,11 @@
 REGISTER_ACTOR(APawn)
 
 APawn::APawn() {
-  auto camera = std::make_unique<MCameraComponent>();
-  Camera = camera.get();
-  AddComponent(std::move(camera));
-  Camera->SetFOV(1);
+  Camera = NewObject<MCameraComponent>(this);
+  if (Camera) {
+    Camera->SetFOV(1);
+    Camera->RegisterComponent();
+  }
 }
 void APawn::OnPossessedBy(APlayerController* NewController) {
   Controller = NewController;

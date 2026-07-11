@@ -64,8 +64,6 @@ class AActor : public MBaseObject
 
   const std::vector<std::unique_ptr<MActorComponent>>& GetComponents() const;
 
-  void AddComponent(std::unique_ptr<MActorComponent> comp);
-
   MActorComponent* FindReplicatedComponent(FNetworkComponentId ComponentNetworkId) const;
   MActorComponent* FindReplicatedComponentByName(std::string_view NetComponentName) const;
   void AssignNetworkComponentIds();
@@ -213,6 +211,7 @@ class AActor : public MBaseObject
   }
   World* GetWorld() { return OwnerWorld; }
   void SetWorld(World* world);
+  bool HasBegunPlay() const { return bHasBegunPlay; }
 
   bool IsEditorActor() const { return bEditorActor; }
   bool CanUpdateAnytime() const { return bUpdateableAnytime; }
@@ -228,8 +227,15 @@ class AActor : public MBaseObject
   bool bUpdateableAnytime = false;
 
  private:
+  template <class T>
+  friend T* NewObject(AActor* Owner);
+
+  MActorComponent* AcceptNewObjectComponent(std::unique_ptr<MActorComponent> NewComponent);
+  void CompletePendingComponentRegistrations();
+
   std::vector<AActor*> ChildObjects;
   bool bPendingDestroy = false;
+  bool bHasBegunPlay = false;
   std::vector<std::unique_ptr<MActorComponent>> Components;
   World* OwnerWorld = nullptr;
   FVector2D LastReplicatedLocation = FVector2D::ZeroVector;
@@ -295,3 +301,17 @@ class AActor : public MBaseObject
     }
   }
 };
+template <class T>
+T* NewObject(AActor* Owner) {
+  static_assert(std::is_base_of_v<MActorComponent, T>, "NewObject<T> requires MActorComponent.");
+  static_assert(std::is_default_constructible_v<T>, "NewObject<T> requires default construction.");
+
+  if (Owner == nullptr) {
+    return nullptr;
+  }
+
+  auto NewComponent = std::make_unique<T>();
+  T* Result = NewComponent.get();
+  Owner->AcceptNewObjectComponent(std::move(NewComponent));
+  return Result;
+}

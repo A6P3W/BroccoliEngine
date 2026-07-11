@@ -14,16 +14,17 @@ REGISTER_ACTOR(ANetworkTestBreakableActor)
 ANetworkTestBreakableActor::ANetworkTestBreakableActor() {
   bReplicates = true;
 
-  auto Sprite = std::make_unique<MSpriteComponent>(9, RenderSpace::World);
-  BodySprite = Sprite.get();
+  BodySprite = NewObject<MSpriteComponent>(this);
+  BodySprite->SetRenderSettings(9, RenderSpace::World);
   BodySprite->SubmitBox(40.0f, 40.0f, GetColor(255, 150, 40), true);
   BodySprite->SetRelativeLocation({-20.0f, -20.0f});
-  AddComponent(std::move(Sprite));
+  BodySprite->RegisterComponent();
 
-  auto Collision = std::make_unique<MRectangleCollisionComponent>(40.0f, 40.0f);
-  Collision->SetParentComponent(GetRootComponent());
+  auto* Collision = NewObject<MRectangleCollisionComponent>(this);
+  Collision->SetSize(40.0f, 40.0f);
+  Collision->AttachToComponent(GetRootComponent());
   Collision->SetCollisionType(ECollisionType::Overlap);
-  AddComponent(std::move(Collision));
+  Collision->RegisterComponent();
 }
 
 void ANetworkTestBreakableActor::BeginOverlap(AActor* OtherActor) {
