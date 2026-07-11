@@ -2,7 +2,7 @@
 
 #include "Actor.h"
 
-class MAttachmentRuleTestComponent;
+class MSceneComponent;
 class MSpriteComponent;
 
 class AAttachmentRuleTestActor : public AActor {
@@ -11,9 +11,14 @@ class AAttachmentRuleTestActor : public AActor {
 
   AAttachmentRuleTestActor();
 
+  void OnUpdate(float DeltaTime) override;
+
  private:
-  MAttachmentRuleTestComponent* RotatingParent = nullptr;
+  MSceneComponent* RotatingParent = nullptr;
+
   MSpriteComponent* KeepRelativeSprite = nullptr;
   MSpriteComponent* KeepWorldSprite = nullptr;
   MSpriteComponent* SnapSprite = nullptr;
+
+  float RotationSpeed = 45.0f;
 };

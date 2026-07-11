@@ -247,7 +247,6 @@
     <ClCompile Include="NetworkTest\NetworkTestPawn.cpp" />
     <ClCompile Include="NetworkTest\NetworkTestUI.cpp" />
     <ClCompile Include="SceneTest\AttachmentRuleTestActor.cpp" />
-    <ClCompile Include="SceneTest\AttachmentRuleTestComponent.cpp" />
     <ClCompile Include="WidgetTest\WidgetTestUIMain.cpp" />
     <ClCompile Include="WidgetTest\WidgetTestPawn.cpp" />
     <ClCompile Include="WidgetTest\WidgetTestGameMode.cpp" />
@@ -261,7 +260,6 @@
     <ClInclude Include="NetworkTest\NetworkTestPawn.h" />
     <ClInclude Include="NetworkTest\NetworkTestUI.h" />
     <ClInclude Include="SceneTest\AttachmentRuleTestActor.h" />
-    <ClInclude Include="SceneTest\AttachmentRuleTestComponent.h" />
     <ClInclude Include="WidgetTest\WidgetTestUIMain.h" />
     <ClInclude Include="WidgetTest\WidgetTestPawn.h" />
     <ClInclude Include="WidgetTest\WidgetTestGameMode.h" />
