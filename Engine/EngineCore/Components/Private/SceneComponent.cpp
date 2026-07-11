@@ -7,6 +7,18 @@
 #include "Log.h"
 #include "UMath.h"
 
+const FAttachmentTransformRules FAttachmentTransformRules::KeepRelativeTransform(
+    EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative
+);
+
+const FAttachmentTransformRules FAttachmentTransformRules::KeepWorldTransform(
+    EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld
+);
+
+const FAttachmentTransformRules FAttachmentTransformRules::SnapToTargetIncludingScale(
+    EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget
+);
+
 MSceneComponent::MSceneComponent() = default;
 MSceneComponent::~MSceneComponent() = default;
 
@@ -32,31 +44,99 @@ void MSceneComponent::OnComponentDestroy() {
 }
 
 void MSceneComponent::AttachToComponent(MSceneComponent* Parent) {
-  if (ParentComponent == Parent || Parent == this) {
-    return;
+  (void)AttachToComponent(Parent, FAttachmentTransformRules::KeepRelativeTransform);
+}
+
+bool MSceneComponent::AttachToComponent(
+    MSceneComponent* Parent, const FAttachmentTransformRules& Rules
+) {
+  if (Parent == this) {
+    M_LOG("AttachToComponent rejected: parent is self.");
+    return false;
   }
 
   for (MSceneComponent* Current = Parent; Current != nullptr;
        Current = Current->GetParentComponent()) {
     if (Current == this) {
       M_LOG("AttachToComponent rejected: cyclic component hierarchy.");
-      return;
+      return false;
     }
   }
 
-  if (ParentComponent != nullptr) {
-    std::erase(ParentComponent->ChildComponents, this);
+  const FVector2D OldRelativeLocation = GetRelativeLocation();
+  const FRotator OldRelativeRotation = GetRelativeRotation();
+  const FScale OldRelativeScale = GetRelativeScale();
+
+  const FVector2D OldWorldLocation = GetWorldLocation();
+  const FRotator OldWorldRotation = GetWorldRotation();
+  const FScale OldWorldScale = GetWorldScale();
+
+  FVector2D NewRelativeLocation = OldRelativeLocation;
+  FRotator NewRelativeRotation = OldRelativeRotation;
+  FScale NewRelativeScale = OldRelativeScale;
+
+  if (Rules.LocationRule == EAttachmentRule::KeepWorld) {
+    if (Parent == nullptr) {
+      NewRelativeLocation = OldWorldLocation;
+    } else {
+      const FScale ParentScale = Parent->GetWorldScale();
+      if (std::abs(ParentScale.Scale) < 1e-6f) {
+        M_LOG("AttachToComponent rejected: parent scale is zero.");
+        return false;
+      }
+
+      const FVector2D Difference = OldWorldLocation - Parent->GetWorldLocation();
+      const FRotator InverseParentRotation(-Parent->GetWorldRotation().Rotation);
+      NewRelativeLocation = Difference.RotateVector(InverseParentRotation) / ParentScale;
+    }
+  } else if (Rules.LocationRule == EAttachmentRule::SnapToTarget) {
+    NewRelativeLocation = FVector2D::ZeroVector;
   }
 
-  ParentComponent = Parent;
-
-  if (ParentComponent != nullptr &&
-      std::find(ParentComponent->ChildComponents.begin(), ParentComponent->ChildComponents.end(),
-                this) == ParentComponent->ChildComponents.end()) {
-    ParentComponent->ChildComponents.push_back(this);
+  if (Rules.RotationRule == EAttachmentRule::KeepWorld) {
+    NewRelativeRotation =
+        Parent != nullptr ? OldWorldRotation - Parent->GetWorldRotation() : OldWorldRotation;
+  } else if (Rules.RotationRule == EAttachmentRule::SnapToTarget) {
+    NewRelativeRotation = FRotator(0.0f);
   }
+
+  if (Rules.ScaleRule == EAttachmentRule::KeepWorld) {
+    if (Parent == nullptr) {
+      NewRelativeScale = OldWorldScale;
+    } else {
+      const FScale ParentScale = Parent->GetWorldScale();
+      if (std::abs(ParentScale.Scale) < 1e-6f) {
+        M_LOG("AttachToComponent rejected: parent scale is zero.");
+        return false;
+      }
+
+      NewRelativeScale = OldWorldScale / ParentScale;
+    }
+  } else if (Rules.ScaleRule == EAttachmentRule::SnapToTarget) {
+    NewRelativeScale = FScale(1.0f);
+  }
+
+  if (ParentComponent != Parent) {
+    if (ParentComponent != nullptr) {
+      std::erase(ParentComponent->ChildComponents, this);
+    }
+
+    ParentComponent = Parent;
+
+    if (ParentComponent != nullptr &&
+        std::find(
+            ParentComponent->ChildComponents.begin(), ParentComponent->ChildComponents.end(), this
+        ) == ParentComponent->ChildComponents.end()) {
+      ParentComponent->ChildComponents.push_back(this);
+    }
+  }
+
+  RelativeLocation = NewRelativeLocation;
+  RelativeRotation = NewRelativeRotation;
+  RelativeScale = NewRelativeScale;
 
   MakeTransformDirty();
+  return true;
 }
 
 bool MSceneComponent::SetWorldLocation(const FVector2D& NewWorldLocation) {
@@ -65,6 +145,11 @@ bool MSceneComponent::SetWorldLocation(const FVector2D& NewWorldLocation) {
     // ワールド座標はそのまま相対座標（RelativeLocation）になる
     RelativeLocation = NewWorldLocation;
   } else {
+    const FScale ParentWorldScale = ParentComponent->GetWorldScale();
+    if (std::abs(ParentWorldScale.Scale) < 1e-6f) {
+      return false;
+    }
+
     // 親がいる場合、ワールド座標を親のローカル座標系に変換する必要がある
     FVector2D ParentWorldLoc = ParentComponent->GetWorldLocation();
     float ParentWorldRotRad = UMath::DegToRad(ParentComponent->GetWorldRotation().Rotation);
@@ -81,6 +166,7 @@ bool MSceneComponent::SetWorldLocation(const FVector2D& NewWorldLocation) {
 
     RelativeLocation.X = diffX * c + diffY * s;
     RelativeLocation.Y = -diffX * s + diffY * c;
+    RelativeLocation /= ParentWorldScale;
   }
   MakeTransformDirty();
   return true;
