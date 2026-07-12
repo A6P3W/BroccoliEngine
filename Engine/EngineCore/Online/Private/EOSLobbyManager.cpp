@@ -1,4 +1,4 @@
-﻿#include "EOSLobbyManager.h"
+#include "EOSLobbyManager.h"
 
 #include <algorithm>
 #include <array>
@@ -438,19 +438,35 @@ void CompleteFetchCallback(
 }
 }  // namespace
 
+struct FCachedLobbyDetails {
+  std::string LobbyId;
+  EOS_HLobbyDetails DetailsHandle = nullptr;
+};
+
+struct EOSLobbyManager::Impl {
+  std::string CurrentLobbyId;
+  bool bInLobby = false;
+  std::vector<FCachedLobbyDetails> CachedLobbyDetails;
+  EOS_NotificationId MemberStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+  EOS_NotificationId LobbyUpdateNotificationId = EOS_INVALID_NOTIFICATIONID;
+  std::function<void(ELobbyDisconnectReason)> OnLobbyDisconnected;
+};
+
 EOSLobbyManager& EOSLobbyManager::Get() {
   static EOSLobbyManager Instance;
   return Instance;
 }
 
-EOSLobbyManager::~EOSLobbyManager() = default;
+EOSLobbyManager::EOSLobbyManager() : ImplPtr(new Impl()) {}
+
+EOSLobbyManager::~EOSLobbyManager() { delete ImplPtr; }
 
 void EOSLobbyManager::Shutdown() {
   UnregisterLobbyNotifications();
   ClearCachedLobbyDetails();
-  OnLobbyDisconnected = nullptr;
-  CurrentLobbyId.clear();
-  bInLobby = false;
+  ImplPtr->OnLobbyDisconnected = nullptr;
+  ImplPtr->CurrentLobbyId.clear();
+  ImplPtr->bInLobby = false;
 }
 
 void EOSLobbyManager::CreateLobby(
@@ -496,8 +512,8 @@ void EOSLobbyManager::CreateLobby(
 
         if (!Data || !Context) {
           M_LOG("[EOSLobby] CreateLobby failed: callback data is null.");
-          LobbyManager.CurrentLobbyId.clear();
-          LobbyManager.bInLobby = false;
+          LobbyManager.ImplPtr->CurrentLobbyId.clear();
+          LobbyManager.ImplPtr->bInLobby = false;
           return;
         }
 
@@ -509,12 +525,12 @@ void EOSLobbyManager::CreateLobby(
           LobbyInfo.MaxMembers = (std::max)(1, Context->Request.MaxMembers);
           LobbyInfo.bValid = true;
 
-          LobbyManager.CurrentLobbyId = LobbyInfo.LobbyId;
-          LobbyManager.bInLobby = true;
+          LobbyManager.ImplPtr->CurrentLobbyId = LobbyInfo.LobbyId;
+          LobbyManager.ImplPtr->bInLobby = true;
           LobbyManager.RegisterLobbyNotifications();
 
           M_LOG("[EOSLobby] CreateLobby success");
-          M_LOG("[EOSLobby] LobbyId = {}", LobbyManager.CurrentLobbyId);
+          M_LOG("[EOSLobby] LobbyId = {}", LobbyManager.ImplPtr->CurrentLobbyId);
 
           LobbyInfo.Attributes = Context->Request.Attributes;
           if (!Context->Request.HostIPAddress.empty()) {
@@ -604,8 +620,8 @@ void EOSLobbyManager::CreateLobby(
         }
 
         M_LOG("[EOSLobby] CreateLobby failed: {}", SafeEOSResult(Data->ResultCode));
-        LobbyManager.CurrentLobbyId.clear();
-        LobbyManager.bInLobby = false;
+        LobbyManager.ImplPtr->CurrentLobbyId.clear();
+        LobbyManager.ImplPtr->bInLobby = false;
         CompleteCreateCallback(Context->OnComplete, false, {});
         delete Context;
       }
@@ -618,7 +634,7 @@ void EOSLobbyManager::UpdateCurrentLobbyAttributes(
 ) {
   EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
   EOS_ProductUserId LocalUserId = GetLoggedInUserId();
-  if (!LobbyHandle || !LocalUserId || !bInLobby || CurrentLobbyId.empty()) {
+  if (!LobbyHandle || !LocalUserId || !ImplPtr->bInLobby || ImplPtr->CurrentLobbyId.empty()) {
     M_LOG("[EOSLobby] UpdateCurrentLobbyAttributes failed: current lobby state is invalid.");
     CompleteBoolCallback(OnComplete, false);
     return;
@@ -628,7 +644,7 @@ void EOSLobbyManager::UpdateCurrentLobbyAttributes(
   EOS_Lobby_UpdateLobbyModificationOptions ModificationOptions = {};
   ModificationOptions.ApiVersion = EOS_LOBBY_UPDATELOBBYMODIFICATION_API_LATEST;
   ModificationOptions.LocalUserId = LocalUserId;
-  ModificationOptions.LobbyId = CurrentLobbyId.c_str();
+  ModificationOptions.LobbyId = ImplPtr->CurrentLobbyId.c_str();
 
   EOS_EResult ModificationResult =
       EOS_Lobby_UpdateLobbyModification(LobbyHandle, &ModificationOptions, &ModificationHandle);
@@ -692,13 +708,13 @@ void EOSLobbyManager::UpdateCurrentLobbyAttributes(
 void EOSLobbyManager::LeaveLobby(std::function<void(bool)> OnComplete) {
   EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
   EOS_ProductUserId LocalUserId = GetLoggedInUserId();
-  if (!LobbyHandle || !LocalUserId || !bInLobby || CurrentLobbyId.empty()) {
+  if (!LobbyHandle || !LocalUserId || !ImplPtr->bInLobby || ImplPtr->CurrentLobbyId.empty()) {
     M_LOG("[EOSLobby] LeaveLobby failed: current lobby state is invalid.");
     CompleteBoolCallback(OnComplete, false);
     return;
   }
 
-  auto* Context = new FLeaveLobbyContext{CurrentLobbyId, std::move(OnComplete)};
+  auto* Context = new FLeaveLobbyContext{ImplPtr->CurrentLobbyId, std::move(OnComplete)};
   UnregisterLobbyNotifications();
 
   EOS_Lobby_LeaveLobbyOptions Options = {};
@@ -720,8 +736,8 @@ void EOSLobbyManager::LeaveLobby(std::function<void(bool)> OnComplete) {
 
         if (Data->ResultCode == EOS_EResult::EOS_Success ||
             Data->ResultCode == EOS_EResult::EOS_NotFound) {
-          LobbyManager.CurrentLobbyId.clear();
-          LobbyManager.bInLobby = false;
+          LobbyManager.ImplPtr->CurrentLobbyId.clear();
+          LobbyManager.ImplPtr->bInLobby = false;
           LobbyManager.ClearCachedLobbyDetails();
           if (Data->ResultCode == EOS_EResult::EOS_Success) {
             M_LOG("[EOSLobby] LeaveLobby success");
@@ -824,7 +840,7 @@ void EOSLobbyManager::SearchLobbies(
         uint32_t ResultCount = EOS_LobbySearch_GetSearchResultCount(Context->SearchHandle, &CountOptions);
 
         Results.reserve(ResultCount);
-        LobbyManager.CachedLobbyDetails.reserve(ResultCount);
+        LobbyManager.ImplPtr->CachedLobbyDetails.reserve(ResultCount);
 
         for (uint32_t Index = 0; Index < ResultCount; ++Index) {
           EOS_LobbySearch_CopySearchResultByIndexOptions CopyOptions = {};
@@ -846,7 +862,7 @@ void EOSLobbyManager::SearchLobbies(
           }
 
           Results.push_back(LobbyInfo);
-          LobbyManager.CachedLobbyDetails.push_back({LobbyInfo.LobbyId, DetailsHandle});
+          LobbyManager.ImplPtr->CachedLobbyDetails.push_back({LobbyInfo.LobbyId, DetailsHandle});
         }
 
         EOS_LobbySearch_Release(Context->SearchHandle);
@@ -958,7 +974,7 @@ void EOSLobbyManager::FetchLobbyInfoById(
         }
 
         LobbyManager.ClearCachedLobbyDetails();
-        LobbyManager.CachedLobbyDetails.push_back({LobbyInfo.LobbyId, DetailsHandle});
+        LobbyManager.ImplPtr->CachedLobbyDetails.push_back({LobbyInfo.LobbyId, DetailsHandle});
         EOS_LobbySearch_Release(Context->SearchHandle);
         CompleteFetchCallback(Context->OnComplete, true, LobbyInfo);
         delete Context;
@@ -1001,11 +1017,11 @@ void EOSLobbyManager::JoinLobby(const FLobbyInfo& LobbyInfo, std::function<void(
         }
 
         if (Data->ResultCode == EOS_EResult::EOS_Success) {
-          LobbyManager.CurrentLobbyId = !Context->LobbyId.empty() ? Context->LobbyId : SafeText(Data->LobbyId);
-          LobbyManager.bInLobby = true;
+          LobbyManager.ImplPtr->CurrentLobbyId = !Context->LobbyId.empty() ? Context->LobbyId : SafeText(Data->LobbyId);
+          LobbyManager.ImplPtr->bInLobby = true;
           LobbyManager.RegisterLobbyNotifications();
           M_LOG("[EOSLobby] JoinLobby success");
-          M_LOG("[EOSLobby] LobbyId = {}", LobbyManager.CurrentLobbyId);
+          M_LOG("[EOSLobby] LobbyId = {}", LobbyManager.ImplPtr->CurrentLobbyId);
           CompleteBoolCallback(Context->OnComplete, true);
           delete Context;
           return;
@@ -1018,9 +1034,9 @@ void EOSLobbyManager::JoinLobby(const FLobbyInfo& LobbyInfo, std::function<void(
   );
 }
 
-bool EOSLobbyManager::IsInLobby() const { return bInLobby; }
+bool EOSLobbyManager::IsInLobby() const { return ImplPtr->bInLobby; }
 
-std::string EOSLobbyManager::GetCurrentLobbyId() const { return CurrentLobbyId; }
+std::string EOSLobbyManager::GetCurrentLobbyId() const { return ImplPtr->CurrentLobbyId; }
 
 void EOSLobbyManager::ForceLocalDisconnect(ELobbyDisconnectReason Reason) {
   HandleLocalDisconnect(Reason, true);
@@ -1029,30 +1045,30 @@ void EOSLobbyManager::ForceLocalDisconnect(ELobbyDisconnectReason Reason) {
 void EOSLobbyManager::SetOnLobbyDisconnected(
     std::function<void(ELobbyDisconnectReason)> Callback
 ) {
-  OnLobbyDisconnected = std::move(Callback);
+  ImplPtr->OnLobbyDisconnected = std::move(Callback);
 }
 
 void EOSLobbyManager::ClearCachedLobbyDetails() {
-  for (FCachedLobbyDetails& CachedLobbyDetail : CachedLobbyDetails) {
+  for (FCachedLobbyDetails& CachedLobbyDetail : ImplPtr->CachedLobbyDetails) {
     if (CachedLobbyDetail.DetailsHandle) {
       EOS_LobbyDetails_Release(CachedLobbyDetail.DetailsHandle);
       CachedLobbyDetail.DetailsHandle = nullptr;
     }
   }
 
-  CachedLobbyDetails.clear();
+  ImplPtr->CachedLobbyDetails.clear();
 }
 
 EOS_HLobbyDetails EOSLobbyManager::FindCachedLobbyDetails(const std::string& LobbyId) const {
   auto It = std::find_if(
-      CachedLobbyDetails.begin(),
-      CachedLobbyDetails.end(),
+      ImplPtr->CachedLobbyDetails.begin(),
+      ImplPtr->CachedLobbyDetails.end(),
       [&LobbyId](const FCachedLobbyDetails& CachedLobbyDetail) {
         return CachedLobbyDetail.LobbyId == LobbyId;
       }
   );
 
-  return It != CachedLobbyDetails.end() ? It->DetailsHandle : nullptr;
+  return It != ImplPtr->CachedLobbyDetails.end() ? It->DetailsHandle : nullptr;
 }
 
 void EOSLobbyManager::RegisterLobbyNotifications() {
@@ -1066,34 +1082,34 @@ void EOSLobbyManager::RegisterLobbyNotifications() {
 
   EOS_Lobby_AddNotifyLobbyMemberStatusReceivedOptions MemberStatusOptions = {};
   MemberStatusOptions.ApiVersion = EOS_LOBBY_ADDNOTIFYLOBBYMEMBERSTATUSRECEIVED_API_LATEST;
-  MemberStatusNotificationId = EOS_Lobby_AddNotifyLobbyMemberStatusReceived(
+  ImplPtr->MemberStatusNotificationId = EOS_Lobby_AddNotifyLobbyMemberStatusReceived(
       LobbyHandle,
       &MemberStatusOptions,
       this,
       &EOSLobbyManager::OnLobbyMemberStatusReceived
   );
-  if (MemberStatusNotificationId == EOS_INVALID_NOTIFICATIONID) {
+  if (ImplPtr->MemberStatusNotificationId == EOS_INVALID_NOTIFICATIONID) {
     M_LOG("[EOSLobby] AddNotifyLobbyMemberStatusReceived failed.");
   }
 
   EOS_Lobby_AddNotifyLobbyUpdateReceivedOptions LobbyUpdateOptions = {};
   LobbyUpdateOptions.ApiVersion = EOS_LOBBY_ADDNOTIFYLOBBYUPDATERECEIVED_API_LATEST;
-  LobbyUpdateNotificationId = EOS_Lobby_AddNotifyLobbyUpdateReceived(
+  ImplPtr->LobbyUpdateNotificationId = EOS_Lobby_AddNotifyLobbyUpdateReceived(
       LobbyHandle,
       &LobbyUpdateOptions,
       this,
       &EOSLobbyManager::OnLobbyUpdateReceived
   );
-  if (LobbyUpdateNotificationId == EOS_INVALID_NOTIFICATIONID) {
+  if (ImplPtr->LobbyUpdateNotificationId == EOS_INVALID_NOTIFICATIONID) {
     M_LOG("[EOSLobby] AddNotifyLobbyUpdateReceived failed.");
   }
 }
 
 void EOSLobbyManager::UnregisterLobbyNotifications() {
-  const EOS_NotificationId MemberStatusId = MemberStatusNotificationId;
-  const EOS_NotificationId LobbyUpdateId = LobbyUpdateNotificationId;
-  MemberStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
-  LobbyUpdateNotificationId = EOS_INVALID_NOTIFICATIONID;
+  const EOS_NotificationId MemberStatusId = ImplPtr->MemberStatusNotificationId;
+  const EOS_NotificationId LobbyUpdateId = ImplPtr->LobbyUpdateNotificationId;
+  ImplPtr->MemberStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+  ImplPtr->LobbyUpdateNotificationId = EOS_INVALID_NOTIFICATIONID;
 
   if (MemberStatusId == EOS_INVALID_NOTIFICATIONID && LobbyUpdateId == EOS_INVALID_NOTIFICATIONID) {
     return;
@@ -1114,25 +1130,25 @@ void EOSLobbyManager::UnregisterLobbyNotifications() {
 }
 
 void EOSLobbyManager::HandleLocalDisconnect(ELobbyDisconnectReason Reason, bool bNotify) {
-  if (!bInLobby) {
+  if (!ImplPtr->bInLobby) {
     return;
   }
 
   M_LOG("[EOSLobby] Local lobby disconnected: reason={}", LobbyDisconnectReasonToString(Reason));
-  bInLobby = false;
-  CurrentLobbyId.clear();
+  ImplPtr->bInLobby = false;
+  ImplPtr->CurrentLobbyId.clear();
   UnregisterLobbyNotifications();
   ClearCachedLobbyDetails();
 
-  if (bNotify && OnLobbyDisconnected) {
-    OnLobbyDisconnected(Reason);
+  if (bNotify && ImplPtr->OnLobbyDisconnected) {
+    ImplPtr->OnLobbyDisconnected(Reason);
   }
 }
 
 void EOSLobbyManager::HandleMemberStatusReceived(
     const EOS_Lobby_LobbyMemberStatusReceivedCallbackInfo* Data
 ) {
-  if (!Data || !bInLobby) {
+  if (!Data || !ImplPtr->bInLobby) {
     return;
   }
 
@@ -1142,7 +1158,7 @@ void EOSLobbyManager::HandleMemberStatusReceived(
       LobbyMemberStatusToString(Data->CurrentStatus)
   );
 
-  if (CurrentLobbyId != SafeText(Data->LobbyId)) {
+  if (ImplPtr->CurrentLobbyId != SafeText(Data->LobbyId)) {
     return;
   }
 
@@ -1165,7 +1181,7 @@ void EOSLobbyManager::HandleMemberStatusReceived(
 void EOSLobbyManager::HandleLobbyUpdateReceived(
     const EOS_Lobby_LobbyUpdateReceivedCallbackInfo* Data
 ) {
-  if (!Data || !bInLobby || CurrentLobbyId != SafeText(Data->LobbyId)) {
+  if (!Data || !ImplPtr->bInLobby || ImplPtr->CurrentLobbyId != SafeText(Data->LobbyId)) {
     return;
   }
 

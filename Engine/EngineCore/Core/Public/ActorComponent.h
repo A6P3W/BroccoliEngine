@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -26,20 +27,21 @@ enum class EActorComponentRegistrationState {
   Destroyed,
 };
 
-class MActorComponent : public MBaseObject {
+class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
  public:
+  MActorComponent();
   virtual ~MActorComponent() override;
+  MActorComponent(const MActorComponent&) = delete;
+  MActorComponent& operator=(const MActorComponent&) = delete;
   void BeginPlay();
   bool Update(float DeltaTime);
   virtual void Draw() {}
   AActor* GetOwner() const { return Owner; }
 
   void DestroyComponent();
-  bool IsPendingDestroy() const { return bPendingDestroy; }
-  bool IsRegistered() const { return RegistrationState == EActorComponentRegistrationState::Registered; }
-  bool IsRegistrationPending() const {
-    return RegistrationState == EActorComponentRegistrationState::RegistrationPending;
-  }
+  bool IsPendingDestroy() const;
+  bool IsRegistered() const;
+  bool IsRegistrationPending() const;
 
   void RegisterComponent();
   void UnRegisterComponent();
@@ -48,7 +50,7 @@ class MActorComponent : public MBaseObject {
   bool bReplicates = false;
 
   void SetNetComponentName(std::string Name);
-  const std::string& GetNetComponentName() const { return NetComponentName; }
+  const std::string& GetNetComponentName() const;
 
   virtual void SerializeNetworkState(FNetBuffer& OutBuffer);
   virtual bool DeserializeNetworkState(FNetBuffer& InBuffer);
@@ -59,8 +61,8 @@ class MActorComponent : public MBaseObject {
   void UpdateReplicatedStateCache();
   void MarkReplicatedStateDirty();
   uint32_t IncrementReplicationSequence();
-  uint32_t GetReplicationSequence() const { return ReplicationSequence; }
-  uint32_t GetLastReceivedReplicationSequence() const { return LastReceivedReplicationSequence; }
+  uint32_t GetReplicationSequence() const;
+  uint32_t GetLastReceivedReplicationSequence() const;
   void SetLastReceivedReplicationSequence(uint32_t Sequence);
 
   template <class T>
@@ -69,8 +71,7 @@ class MActorComponent : public MBaseObject {
       return;
     }
 
-    ReplicatedProperties.push_back(std::make_unique<TReplicatedProperty<T>>(Property));
-    MarkReplicatedStateDirty();
+    AddReplicatedProperty(std::make_unique<TReplicatedProperty<T>>(Property));
   }
 
   template <class T, class TObject>
@@ -79,10 +80,9 @@ class MActorComponent : public MBaseObject {
       return;
     }
 
-    ReplicatedProperties.push_back(
+    AddReplicatedProperty(
         std::make_unique<TReplicatedProperty<T, TObject>>(Property, Object, OnRep)
     );
-    MarkReplicatedStateDirty();
   }
 
   using FRPCHandler = std::function<void(FNetBuffer&)>;
@@ -163,19 +163,13 @@ class MActorComponent : public MBaseObject {
   void SetOwner(AActor* NewOwner) { Owner = NewOwner; }
   bool CompleteRegistration();
 
-  bool bPendingDestroy = false;
-  bool bHasBegunPlay = false;
-  EActorComponentRegistrationState RegistrationState = EActorComponentRegistrationState::Created;
-  bool bReplicatedStateDirty = false;
-  std::string NetComponentName;
-  std::vector<std::unique_ptr<IReplicatedProperty>> ReplicatedProperties;
-  uint32_t ReplicationSequence = 0;
-  uint32_t LastReceivedReplicationSequence = 0;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
   struct FRPCEntry {
     ENetRPCType Type = ENetRPCType::Server;
     FRPCHandler Handler;
   };
-  std::unordered_map<FNetworkRPCId, FRPCEntry> RPCHandlers;
+  void AddReplicatedProperty(std::unique_ptr<IReplicatedProperty> Property);
 
   template <class T>
   static void WriteRPCArgument(FNetBuffer& Payload, const T& Value) {

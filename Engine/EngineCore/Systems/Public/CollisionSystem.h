@@ -1,11 +1,6 @@
 ﻿#pragma once
-#include <map>
-#include <memory>
-#include <unordered_map>
-#include <utility>
-#include <vector>
+#include "BroccoliEngineAPI.h"
 
-#include "CollisionComponent.h"
 #include "UMath.h"
 
 class MCollisionComponent;
@@ -15,16 +10,12 @@ class MLineCollisionComponent;
 class MMovementComponent;
 class AActor;
 
-struct pair_hash {
-  inline std::size_t operator()(const std::pair<int, int>& v) const {
-    return v.first * 31 + v.second;
-  }
-};
-
-class FCollisionSystem {
+class BROCCOLI_ENGINE_API FCollisionSystem {
  public:
   FCollisionSystem();
   ~FCollisionSystem();
+  FCollisionSystem(const FCollisionSystem&) = delete;
+  FCollisionSystem& operator=(const FCollisionSystem&) = delete;
 
   void RegisterCollision(MCollisionComponent* component);
   void UnRegisterCollision(MCollisionComponent* component);
@@ -36,7 +27,7 @@ class FCollisionSystem {
   void UpdateCollisionMap();
   void CheckCollisions();
 
-  float GetCollisionCellSize() { return CollisionCellSize; }
+  float GetCollisionCellSize() const;
 
  private:
   void CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b);
@@ -52,27 +43,8 @@ class FCollisionSystem {
   );
 
   void CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B);
-
-  static std::unique_ptr<FCollisionSystem> s_Instance;
-
-  std::vector<MCollisionComponent*> CollisionComponents;
-
-  std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash>
-      StaticCollisionMap;
-  std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash>
-      DynamicCollisionMap;
-
-  std::vector<std::pair<int, int>> ActiveStaticCells;
-  std::vector<std::pair<int, int>> ActiveDynamicCells;
-
-  std::unordered_map<MCollisionComponent*, FAABB> CachedAABBs;
-
-  float CollisionCellSize = 100;
-  std::uint64_t FrameId = 0;
-
-  bool bDeferStaticRebuild = false;
-  bool bPendingStaticRebuild = false;
-  std::vector<MCollisionComponent*> PendingStaticRegistrations;
-
   void RegisterToStaticMap(MCollisionComponent* component);
+
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

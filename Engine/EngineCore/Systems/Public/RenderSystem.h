@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <map>
 #include <string>
 #include <variant>
@@ -62,10 +63,14 @@ struct RenderCommand {
 };
 
 class MCameraComponent;
+class RenderSystemImpl;
 
-class RenderSystem {
+class BROCCOLI_ENGINE_API RenderSystem {
  public:
   RenderSystem();
+  ~RenderSystem();
+  RenderSystem(const RenderSystem&) = delete;
+  RenderSystem& operator=(const RenderSystem&) = delete;
   static RenderSystem& GetInstance();
 
   void SubmitLine(
@@ -127,6 +132,5 @@ class RenderSystem {
   MCameraComponent* GetCamera();
 
  private:
-  std::vector<RenderCommand> CommandBuffer;
-  MCameraComponent* MainCamera = nullptr;
+  RenderSystemImpl* Impl = nullptr;
 };

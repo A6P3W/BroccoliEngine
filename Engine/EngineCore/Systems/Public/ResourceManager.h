@@ -1,16 +1,19 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <map>
 #include <string>
-class ResourceManager {
+class BROCCOLI_ENGINE_API ResourceManager {
  public:
   ResourceManager();
+  ~ResourceManager();
+  ResourceManager(const ResourceManager&) = delete;
+  ResourceManager& operator=(const ResourceManager&) = delete;
   static ResourceManager& GetInstance();
   int LoadResourceGraph(const std::string& path);
   int GetFont(int size, int thickness);
   void ReleaseResourceGraph();
 
  private:
-  std::map<std::string, int> GraphMap;
-  std::map<std::string, int> FontMap;
-  int DefaultGraph;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

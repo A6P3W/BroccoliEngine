@@ -4,9 +4,12 @@
 // アナログ軸の識別ID
 enum class AxisID { LeftX, LeftY, RightX, RightY, LeftTrigger, RightTrigger };
 
-class GamepadDevice : public InputDevice {
+class BROCCOLI_ENGINE_API GamepadDevice : public InputDevice {
  public:
   GamepadDevice(int padIndex);
+  ~GamepadDevice() override;
+  GamepadDevice(const GamepadDevice&) = delete;
+  GamepadDevice& operator=(const GamepadDevice&) = delete;
 
   void Update() override;
   bool GetPressStart(int code) const override;
@@ -17,8 +20,6 @@ class GamepadDevice : public InputDevice {
  private:
   float ApplyDeadzone(int val, float deadzone);
 
-  int PadInputType;
-  int Buttons = 0;
-  int PrevButtons = 0;
-  float Axes[6] = {};
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

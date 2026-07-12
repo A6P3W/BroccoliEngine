@@ -1,9 +1,10 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include "UIButtonComponent.h"
 
 class MSpriteComponent;
 
-class UIBoxButtonComponent : public MUIButtonComponent {
+class BROCCOLI_ENGINE_API UIBoxButtonComponent : public MUIButtonComponent {
  public:
   UIBoxButtonComponent();
 

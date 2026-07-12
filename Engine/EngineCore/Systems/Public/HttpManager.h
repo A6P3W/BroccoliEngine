@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <functional>
 #include <memory>
 #include <string>
@@ -12,7 +13,7 @@ struct HttpResponse {
 
 using HttpCallback = std::function<void(const HttpResponse&)>;
 
-class HttpManager {
+class BROCCOLI_ENGINE_API HttpManager {
  public:
   static HttpManager& GetInstance();
   void Update();
@@ -36,5 +37,5 @@ class HttpManager {
   HttpManager& operator=(const HttpManager&) = delete;
 
   struct Impl;
-  std::shared_ptr<Impl> ImplPtr;
+  Impl* ImplPtr = nullptr;
 };

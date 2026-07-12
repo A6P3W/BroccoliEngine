@@ -1,15 +1,18 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <memory>
 #include <vector>
 class AGameModeBase;
-class Application {
+class BROCCOLI_ENGINE_API Application {
  public:
   Application();
   ~Application();
   bool Run();
 
   static void SetWindowResolution(int width, int height);
-  static void QuitGame();
+   static void SetGameSetupCallback(void (*Callback)());
+   static void QuitGame();
+   static void* GetImGuiContext();
 
  private:
   bool Update(float DeltaTime);

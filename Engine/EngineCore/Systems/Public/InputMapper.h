@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -45,9 +46,12 @@ struct UIActionLower {
   static constexpr auto MoveY = "UI_MoveY";
 };
 
-class InputMapper {
+class BROCCOLI_ENGINE_API InputMapper {
  public:
-  InputMapper() = default;
+  InputMapper();
+  ~InputMapper();
+  InputMapper(const InputMapper&) = delete;
+  InputMapper& operator=(const InputMapper&) = delete;
 
   void AddMapping(
       const std::string& actionName,
@@ -81,6 +85,6 @@ class InputMapper {
     int AxisId;
     float Scale;
   };
-  std::unordered_map<std::string, std::vector<FButtonBinding>> ButtonBindings;
-  std::unordered_map<std::string, std::vector<FAxisBinding>> AxisBindings;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

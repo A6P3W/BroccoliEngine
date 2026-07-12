@@ -1,10 +1,19 @@
 ﻿#include "SoundComponent.h"
 
 #include <algorithm>
+#include <vector>
 
 #include "Actor.h"
 #include "SoundManager.h"
 #include "World.h"
+
+struct MSoundComponent::Impl {
+  std::vector<int> PlayingHandles;
+};
+
+MSoundComponent::MSoundComponent() : ImplPtr(new Impl()) {}
+
+MSoundComponent::~MSoundComponent() { delete ImplPtr; }
 
 int MSoundComponent::PlaySE(const std::string& path, bool loop) {
   FSoundManager* soundManager = GetSoundManager();
@@ -12,7 +21,7 @@ int MSoundComponent::PlaySE(const std::string& path, bool loop) {
 
   int handle = soundManager->PlaySE(path, loop);
   if (handle != -1) {
-    PlayingHandles.push_back(handle);
+    ImplPtr->PlayingHandles.push_back(handle);
   }
 
   return handle;
@@ -24,7 +33,7 @@ int MSoundComponent::PlayBGM(const std::string& path, bool loop) {
 
   int handle = soundManager->PlayBGM(path, loop);
   if (handle != -1) {
-    PlayingHandles.push_back(handle);
+    ImplPtr->PlayingHandles.push_back(handle);
   }
 
   return handle;
@@ -42,20 +51,20 @@ void MSoundComponent::Stop(int handle) {
   if (!soundManager) return;
 
   soundManager->Stop(handle);
-  std::erase(PlayingHandles, handle);
+  std::erase(ImplPtr->PlayingHandles, handle);
 }
 
 void MSoundComponent::StopAll() {
   FSoundManager* soundManager = GetSoundManager();
   if (!soundManager) {
-    PlayingHandles.clear();
+    ImplPtr->PlayingHandles.clear();
     return;
   }
 
-  for (int handle : PlayingHandles) {
+  for (int handle : ImplPtr->PlayingHandles) {
     soundManager->Stop(handle);
   }
-  PlayingHandles.clear();
+  ImplPtr->PlayingHandles.clear();
 }
 
 void MSoundComponent::SetMasterVolume(float volume) {

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="Editor\Private\EditorMode.cpp" />
@@ -20,7 +20,6 @@
     <ClCompile Include="EngineCore\Core\Private\ActorComponent.cpp" />
     <ClCompile Include="EngineCore\Core\Private\Application.cpp" />
     <ClCompile Include="EngineCore\Core\Private\BaseObject.cpp" />
-    <ClCompile Include="EngineCore\Core\Private\EngineEntry.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\Pawn.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\PlayerStart.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\GameModeBase.cpp" />
@@ -28,6 +27,7 @@
     <ClCompile Include="EngineCore\Systems\Private\CollisionSystem.cpp" />
     <ClCompile Include="EngineCore\Systems\Private\InputManager.cpp" />
     <ClCompile Include="EngineCore\Systems\Private\InputMapper.cpp" />
+    <ClCompile Include="EngineCore\Systems\Private\InputDevice.cpp" />
     <ClCompile Include="EngineCore\Systems\Private\MouseDevice.cpp" />
     <ClCompile Include="EngineCore\Systems\Private\ActorManager.cpp" />
     <ClCompile Include="EngineCore\Systems\Private\RenderSystem.cpp" />
@@ -73,6 +73,7 @@
     <ClCompile Include="EngineCore\Online\Private\EOSCoreManager.cpp" />
     <ClCompile Include="EngineCore\Online\Private\EOSLobbyManager.cpp" />
     <ClCompile Include="EngineCore\Online\Private\OnlineSessionManager.cpp" />
+    <ClCompile Include="EngineCore\Systems\Private\ActorRegistry.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore\Systems\Public\ActorRegistry.h" />
@@ -161,9 +162,9 @@
     <ClInclude Include="EngineCore\Online\Public\EOSTypes.h" />
     <ClInclude Include="EngineCore\Online\Public\OnlineSessionManager.h" />
     <ClInclude Include="PrivateConfig\EOS_ProductCredentials.h" />
+    <ClInclude Include="EngineCore\Core\Public\BroccoliEngineAPI.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\vcpkg.json" />
     <None Include="..\README.md" />
     <None Include="setup-vcpkg.md" />
   </ItemGroup>

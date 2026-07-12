@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <random>
+#include <vector>
 
 namespace {
 constexpr float ShakeFadePortion = 0.2f;
@@ -43,6 +44,27 @@ FVector2D RandomOffsetInRange(const FVector2D& strengthXY) {
 }
 }  // namespace
 
+struct FShakeInstance {
+  uint64_t Id = 0;
+  FVector2D StrengthXY = FVector2D::ZeroVector();
+  float DurationSeconds = 0.0f;
+  float ElapsedSeconds = 0.0f;
+  bool bFadeIn = false;
+  bool bFadeOut = false;
+};
+
+struct MEasyShakeComponent::Impl {
+  std::vector<FShakeInstance> ActiveShakes;
+  uint64_t NextShakeId = 1;
+  FVector2D LastAppliedLocalOffset = FVector2D::ZeroVector();
+  FVector2D BaseLocalLocation = FVector2D::ZeroVector();
+  bool HasBaseLocalLocation = false;
+};
+
+MEasyShakeComponent::MEasyShakeComponent() : ImplPtr(new Impl()) {}
+
+MEasyShakeComponent::~MEasyShakeComponent() { delete ImplPtr; }
+
 void MEasyShakeComponent::ApplyShake(
     const FVector2D& StrengthXY, float DurationSeconds, bool bEnableFadeIn, bool bEnableFadeOut
 ) {
@@ -55,7 +77,7 @@ void MEasyShakeComponent::ApplyShake(
   inst.ElapsedSeconds = 0.0f;
   inst.bFadeIn = bEnableFadeIn;
   inst.bFadeOut = bEnableFadeOut;
-  ActiveShakes.push_back(inst);
+  ImplPtr->ActiveShakes.push_back(inst);
 }
 
 void MEasyShakeComponent::StartShake(
@@ -70,7 +92,7 @@ void MEasyShakeComponent::StartShake(
     EndShake(Handle);
   }
 
-  uint64_t NewId = ++NextShakeId;
+  uint64_t NewId = ++ImplPtr->NextShakeId;
   Handle = FShakeHandle(NewId);
 
   FShakeInstance inst;
@@ -80,17 +102,17 @@ void MEasyShakeComponent::StartShake(
   inst.ElapsedSeconds = 0.0f;
   inst.bFadeIn = false;
   inst.bFadeOut = false;
-  ActiveShakes.push_back(inst);
+  ImplPtr->ActiveShakes.push_back(inst);
 }
 
 void MEasyShakeComponent::EndShake(FShakeHandle& Handle, bool bEnableFadeOut) {
   if (!Handle.IsValid()) return;
 
   const uint64_t Id = Handle.GetId();
-  for (auto it = ActiveShakes.begin(); it != ActiveShakes.end(); ++it) {
+  for (auto it = ImplPtr->ActiveShakes.begin(); it != ImplPtr->ActiveShakes.end(); ++it) {
     if (it->Id == Id) {
       if (!bEnableFadeOut) {
-        ActiveShakes.erase(it);
+        ImplPtr->ActiveShakes.erase(it);
         Handle.Invalidate();
       } else {
         float originalDuration = it->DurationSeconds;
@@ -107,7 +129,7 @@ void MEasyShakeComponent::EndShake(FShakeHandle& Handle, bool bEnableFadeOut) {
 bool MEasyShakeComponent::IsShakeActive(const FShakeHandle& Handle) const {
   if (!Handle.IsValid()) return false;
   const uint64_t Id = Handle.GetId();
-  for (const auto& inst : ActiveShakes) {
+  for (const auto& inst : ImplPtr->ActiveShakes) {
     if (inst.Id == Id) return true;
   }
   return false;
@@ -117,20 +139,20 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime) {
   MSceneComponent* target = this;
   if (!target) return;
 
-  if (LastAppliedLocalOffset.SizeSquared() > 1e-8f) {
-    target->AddLocalOffset(LastAppliedLocalOffset * -1.0f);
-    LastAppliedLocalOffset = FVector2D::ZeroVector;
+  if (ImplPtr->LastAppliedLocalOffset.SizeSquared() > 1e-8f) {
+    target->AddLocalOffset(ImplPtr->LastAppliedLocalOffset * -1.0f);
+    ImplPtr->LastAppliedLocalOffset = FVector2D::ZeroVector();
   }
 
-  if (ActiveShakes.empty()) {
+  if (ImplPtr->ActiveShakes.empty()) {
     return;
   }
 
-  FVector2D totalOffset = FVector2D::ZeroVector;
-  for (auto it = ActiveShakes.begin(); it != ActiveShakes.end();) {
+  FVector2D totalOffset = FVector2D::ZeroVector();
+  for (auto it = ImplPtr->ActiveShakes.begin(); it != ImplPtr->ActiveShakes.end();) {
     it->ElapsedSeconds += DeltaTime;
     if (it->ElapsedSeconds >= it->DurationSeconds) {
-      it = ActiveShakes.erase(it);
+      it = ImplPtr->ActiveShakes.erase(it);
       continue;
     }
 
@@ -142,6 +164,6 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime) {
 
   if (totalOffset.SizeSquared() > 1e-8f) {
     target->AddLocalOffset(totalOffset);
-    LastAppliedLocalOffset = totalOffset;
+    ImplPtr->LastAppliedLocalOffset = totalOffset;
   }
 }

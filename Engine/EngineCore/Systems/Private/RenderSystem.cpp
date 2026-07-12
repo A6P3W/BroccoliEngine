@@ -7,7 +7,15 @@
 #include "DxLib.h"
 #include "EngineDefine.h"
 
-RenderSystem::RenderSystem() {}
+class RenderSystemImpl {
+ public:
+  std::vector<RenderCommand> CommandBuffer;
+  MCameraComponent* MainCamera = nullptr;
+};
+
+RenderSystem::RenderSystem() : Impl(new RenderSystemImpl()) {}
+
+RenderSystem::~RenderSystem() { delete Impl; }
 
 RenderSystem& RenderSystem::GetInstance() {
   static RenderSystem instance;
@@ -23,7 +31,9 @@ void RenderSystem::SubmitGraph(
     int Priority,
     int Alpha
 ) {
-  CommandBuffer.push_back({{Priority, Alpha, Space}, GraphData{Location, Rotation, Scale, Handle}});
+  Impl->CommandBuffer.push_back(
+      {{Priority, Alpha, Space}, GraphData{Location, Rotation, Scale, Handle}}
+  );
 }
 
 void RenderSystem::SubmitCircle(
@@ -35,7 +45,9 @@ void RenderSystem::SubmitCircle(
     int Priority,
     int Alpha
 ) {
-  CommandBuffer.push_back({{Priority, Alpha, Space}, CircleData{Location, Radius, Color, Fill}});
+  Impl->CommandBuffer.push_back(
+      {{Priority, Alpha, Space}, CircleData{Location, Radius, Color, Fill}}
+  );
 }
 
 void RenderSystem::SubmitBox(
@@ -48,7 +60,7 @@ void RenderSystem::SubmitBox(
     int Priority,
     int Alpha
 ) {
-  CommandBuffer.push_back(
+  Impl->CommandBuffer.push_back(
       {{Priority, Alpha, Space}, BoxData{Location, WidthHeight, Rotation, Color, Fill}}
   );
 }
@@ -62,13 +74,15 @@ void RenderSystem::SubmitText(
     int Priority,
     int Alpha
 ) {
-  CommandBuffer.push_back({{Priority, Alpha, Space}, TextData{Location, Text, Color, Handle}});
+  Impl->CommandBuffer.push_back(
+      {{Priority, Alpha, Space}, TextData{Location, Text, Color, Handle}}
+  );
 }
 
 void RenderSystem::SubmitLine(
     FVector2D Start, FVector2D End, int Color, RenderSpace Space, int Priority, int Alpha
 ) {
-  CommandBuffer.push_back({{Priority, Alpha, Space}, LineData{Start, End, Color}});
+  Impl->CommandBuffer.push_back({{Priority, Alpha, Space}, LineData{Start, End, Color}});
 }
 
 void RenderSystem::SubmitRectGraph(
@@ -80,17 +94,19 @@ void RenderSystem::SubmitRectGraph(
     int Priority,
     int Alpha
 ) {
-  CommandBuffer.push_back({{Priority, Alpha, Space}, RectGraphData{Dest, SrcLoc, SrcSize, Handle}});
+  Impl->CommandBuffer.push_back(
+      {{Priority, Alpha, Space}, RectGraphData{Dest, SrcLoc, SrcSize, Handle}}
+  );
 }
 
 FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
-  FVector2D camPos = FVector2D::ZeroVector;
+  FVector2D camPos = FVector2D::ZeroVector();
   float camRot = 0.0f;
   float camFOV = 1.0f;
-  if (MainCamera) {
-    camPos = MainCamera->GetWorldLocation();
-    camRot = MainCamera->GetWorldRotation().Rotation;
-    camFOV = MainCamera->GetFOV();
+  if (Impl->MainCamera) {
+    camPos = Impl->MainCamera->GetWorldLocation();
+    camRot = Impl->MainCamera->GetWorldRotation().Rotation;
+    camFOV = Impl->MainCamera->GetFOV();
   }
   const float centerX = VirtualWidth * 0.5f;
   const float centerY = VirtualHeight * 0.5f;
@@ -105,13 +121,13 @@ FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
 }
 
 FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPos) const {
-  FVector2D camPos = FVector2D::ZeroVector;
+  FVector2D camPos = FVector2D::ZeroVector();
   float camRot = 0.0f;
   float camFOV = 1.0f;
-  if (MainCamera) {
-    camPos = MainCamera->GetWorldLocation();
-    camRot = MainCamera->GetWorldRotation().Rotation;
-    camFOV = MainCamera->GetFOV();
+  if (Impl->MainCamera) {
+    camPos = Impl->MainCamera->GetWorldLocation();
+    camRot = Impl->MainCamera->GetWorldRotation().Rotation;
+    camFOV = Impl->MainCamera->GetFOV();
   }
   const float centerX = VirtualWidth * 0.5f;
   const float centerY = VirtualHeight * 0.5f;
@@ -124,25 +140,25 @@ FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPos) const {
 }
 
 void RenderSystem::Draw() {
-  if (CommandBuffer.empty()) {
+  if (Impl->CommandBuffer.empty()) {
     return;
   }
 
   std::stable_sort(
-      CommandBuffer.begin(),
-      CommandBuffer.end(),
+      Impl->CommandBuffer.begin(),
+      Impl->CommandBuffer.end(),
       [](const RenderCommand& a, const RenderCommand& b) {
         return a.common.priority < b.common.priority;
       }
   );
 
-  FVector2D camPos = FVector2D::ZeroVector;
+  FVector2D camPos = FVector2D::ZeroVector();
   float camRot = 0.0f;
   float camFOV = 1.0f;
-  if (MainCamera) {
-    camPos = MainCamera->GetWorldLocation();
-    camRot = MainCamera->GetWorldRotation().Rotation;
-    camFOV = MainCamera->GetFOV();
+  if (Impl->MainCamera) {
+    camPos = Impl->MainCamera->GetWorldLocation();
+    camRot = Impl->MainCamera->GetWorldRotation().Rotation;
+    camFOV = Impl->MainCamera->GetFOV();
   }
 
   const float centerX = VirtualWidth * 0.5f;
@@ -165,7 +181,7 @@ void RenderSystem::Draw() {
   GetDrawBlendMode(&curBlend, &curAlpha);
 
   // 3. 描画処理実行
-  for (const auto& cmd : CommandBuffer) {
+  for (const auto& cmd : Impl->CommandBuffer) {
     // アルファ値更新
     if (cmd.common.alpha != curAlpha) {
       curAlpha = std::clamp(cmd.common.alpha, 0, 255);
@@ -286,8 +302,8 @@ void RenderSystem::Draw() {
     );
   }
 
-  CommandBuffer.clear();
+  Impl->CommandBuffer.clear();
 }
 
-void RenderSystem::SetCameraView(MCameraComponent* m) { MainCamera = m; }
-MCameraComponent* RenderSystem::GetCamera() { return MainCamera; }
+void RenderSystem::SetCameraView(MCameraComponent* m) { Impl->MainCamera = m; }
+MCameraComponent* RenderSystem::GetCamera() { return Impl->MainCamera; }

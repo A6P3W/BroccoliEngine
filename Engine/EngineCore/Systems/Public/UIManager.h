@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <vector>
 
 #include "UMath.h"
@@ -6,12 +7,9 @@
 struct FInputActionValue;
 class AWidgetBase;
 
-class UIManager {
+class BROCCOLI_ENGINE_API UIManager {
  public:
-  static UIManager* GetInstance() {
-    static UIManager instance;
-    return &instance;
-  }
+  static UIManager* GetInstance();
 
   void AddWidget(AWidgetBase* Widget);
   void RemoveWidget(AWidgetBase* Widget);
@@ -20,16 +18,17 @@ class UIManager {
   void Submit();
   void Cancel();
 
-  void SetTextInputActive(bool bActive) { bTextInputActive = bActive; }
-  bool IsTextInputActive() const { return bTextInputActive; }
+  void SetTextInputActive(bool bActive);
+  bool IsTextInputActive() const;
 
-  void SetFocusedWidget(AWidgetBase* Widget) { CurrentFocusedWidget = Widget; }
-  AWidgetBase* GetFocusedWidget() const { return CurrentFocusedWidget; }
+  void SetFocusedWidget(AWidgetBase* Widget);
+  AWidgetBase* GetFocusedWidget() const;
 
  private:
+  UIManager();
+  ~UIManager();
   void RefreshZOrder();
 
-  AWidgetBase* CurrentFocusedWidget = nullptr;
-  std::vector<AWidgetBase*> ActiveWidgets;
-  bool bTextInputActive = false;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

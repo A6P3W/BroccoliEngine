@@ -1,10 +1,11 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <functional>
 
 #include "UIWidgetComponent.h"
 enum class EButtonState { Normal, Hovered, Pressed, Disabled };
 
-class MUIButtonComponent : public MUIWidgetComponent {
+class BROCCOLI_ENGINE_API MUIButtonComponent : public MUIWidgetComponent {
  public:
   struct FNavigationLinks {
     MUIButtonComponent* Up = nullptr;
@@ -13,8 +14,11 @@ class MUIButtonComponent : public MUIWidgetComponent {
     MUIButtonComponent* Right = nullptr;
   };
 
+  MUIButtonComponent();
+  ~MUIButtonComponent() override;
+
   void OnUpdate(float DeltaTime) override;
-  std::function<void()> OnPressed;
+  void SetOnPressed(std::function<void()> Callback);
 
   virtual void Press();
   virtual void OnStateChanged(EButtonState NewState) {}
@@ -23,5 +27,6 @@ class MUIButtonComponent : public MUIWidgetComponent {
   FNavigationLinks Navigation;
 
  private:
-  EButtonState ButtonState = EButtonState::Normal;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

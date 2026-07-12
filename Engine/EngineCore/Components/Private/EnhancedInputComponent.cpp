@@ -1,5 +1,40 @@
 ﻿#include "EnhancedInputComponent.h"
 
+#include <unordered_map>
+#include <vector>
+
+struct MEnhancedInputComponent::Impl {
+  struct FInputBinding {
+    std::string ActionName;
+    ETriggerEvent Event;
+    std::function<void(const FInputActionValue&)> Callback;
+    bool bIsUIAction = false;
+  };
+
+  std::vector<FInputBinding> Bindings;
+  std::unordered_map<std::string, FVector2D> LastAxis2DValues;
+  std::unordered_map<std::string, float> LastAxis1DValues;
+};
+
+MEnhancedInputComponent::MEnhancedInputComponent() : ImplPtr(new Impl()) {}
+
+MEnhancedInputComponent::~MEnhancedInputComponent() { delete ImplPtr; }
+
+void MEnhancedInputComponent::ClearBindings() {
+  ImplPtr->Bindings.clear();
+  ImplPtr->LastAxis2DValues.clear();
+  ImplPtr->LastAxis1DValues.clear();
+}
+
+void MEnhancedInputComponent::AddBinding(
+    const std::string& ActionName,
+    ETriggerEvent Event,
+    std::function<void(const FInputActionValue&)> Callback,
+    bool bIsUIAction
+) {
+  ImplPtr->Bindings.push_back({ActionName, Event, std::move(Callback), bIsUIAction});
+}
+
 void MEnhancedInputComponent::ProcessInputBindings(
     const InputMapper& mapper, bool AllowUI, bool AllowGame
 ) {
@@ -7,9 +42,9 @@ void MEnhancedInputComponent::ProcessInputBindings(
   std::unordered_map<std::string, float> currentFrameAxis1D;
   constexpr float EpsilonSq = 0.0001f;
 
-  for (const auto& b : Bindings) {
+  for (const auto& b : ImplPtr->Bindings) {
     bool is2DAxis = false;
-    FVector2D currentAxis2D = FVector2D::ZeroVector;
+    FVector2D currentAxis2D = FVector2D::ZeroVector();
     float currentAxis1D = mapper.GetAxisValue(b.ActionName);
 
     if (b.ActionName == InputAction::Move) {
@@ -28,7 +63,7 @@ void MEnhancedInputComponent::ProcessInputBindings(
     } else {
       currentFrameAxis1D[b.ActionName] = currentAxis1D;
     }
-    bool bIsUIAction = b.IsUIAction;
+    bool bIsUIAction = b.bIsUIAction;
     if (bIsUIAction && !AllowUI) continue;
     if (!bIsUIAction && !AllowGame) continue;
 
@@ -36,11 +71,11 @@ void MEnhancedInputComponent::ProcessInputBindings(
     switch (b.Event) {
       case ETriggerEvent::Started:
         if (is2DAxis) {
-          const float lastSq = LastAxis2DValues[b.ActionName].SizeSquared();
+          const float lastSq = ImplPtr->LastAxis2DValues[b.ActionName].SizeSquared();
           trigger = (lastSq <= EpsilonSq) && (currentAxis2D.SizeSquared() > EpsilonSq);
         } else {
           const bool isButtonStart = mapper.GetPressStart(b.ActionName);
-          const bool isAxisStart = (std::abs(LastAxis1DValues[b.ActionName]) <= EpsilonSq) &&
+          const bool isAxisStart = (std::abs(ImplPtr->LastAxis1DValues[b.ActionName]) <= EpsilonSq) &&
                                    (std::abs(currentAxis1D) > EpsilonSq);
           trigger = isButtonStart || isAxisStart;
         }
@@ -54,11 +89,11 @@ void MEnhancedInputComponent::ProcessInputBindings(
         break;
       case ETriggerEvent::Completed:
         if (is2DAxis) {
-          const float lastSq = LastAxis2DValues[b.ActionName].SizeSquared();
+          const float lastSq = ImplPtr->LastAxis2DValues[b.ActionName].SizeSquared();
           trigger = (lastSq > EpsilonSq) && (currentAxis2D.SizeSquared() <= EpsilonSq);
         } else {
           const bool isButtonRelease = mapper.GetRelease(b.ActionName);
-          const bool isAxisRelease = (std::abs(LastAxis1DValues[b.ActionName]) > EpsilonSq) &&
+          const bool isAxisRelease = (std::abs(ImplPtr->LastAxis1DValues[b.ActionName]) > EpsilonSq) &&
                                      (std::abs(currentAxis1D) <= EpsilonSq);
           trigger = isButtonRelease || isAxisRelease;
         }
@@ -73,6 +108,6 @@ void MEnhancedInputComponent::ProcessInputBindings(
     value.Axis2D = currentAxis2D;
     b.Callback(value);
   }
-  LastAxis2DValues = currentFrameAxis2D;
-  LastAxis1DValues = currentFrameAxis1D;
+  ImplPtr->LastAxis2DValues = currentFrameAxis2D;
+  ImplPtr->LastAxis1DValues = currentFrameAxis1D;
 }

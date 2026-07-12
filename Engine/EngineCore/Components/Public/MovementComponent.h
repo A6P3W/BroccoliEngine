@@ -1,7 +1,8 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include "ActorComponent.h"
 #include "UMath.h"
-class MMovementComponent : public MActorComponent {
+class BROCCOLI_ENGINE_API MMovementComponent : public MActorComponent {
  public:
   virtual void AddWorldForce(const FVector2D& Force);
   virtual void AddLocalForce(const FVector2D& Force);

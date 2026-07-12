@@ -1,64 +1,76 @@
 ﻿#include "UIVerticalBoxComponent.h"
 
 #include <algorithm>
+#include <vector>
 
-MUIVerticalBoxComponent::MUIVerticalBoxComponent() {}
+struct MUIVerticalBoxComponent::Impl {
+  std::vector<MUIWidgetComponent*> ListItems;
+  float Spacing = 10.0f;
+  bool bAutoResize = true;
+  bool bNeedsLayoutUpdate = false;
+};
+
+MUIVerticalBoxComponent::MUIVerticalBoxComponent() : ImplPtr(new Impl()) {}
+
+MUIVerticalBoxComponent::~MUIVerticalBoxComponent() { delete ImplPtr; }
+
+void MUIVerticalBoxComponent::MarkLayoutDirty() { ImplPtr->bNeedsLayoutUpdate = true; }
 
 void MUIVerticalBoxComponent::AddItem(MUIWidgetComponent* Item) {
   if (Item == nullptr) {
     return;
   }
 
-  if (std::find(ListItems.begin(), ListItems.end(), Item) != ListItems.end()) {
+  if (std::find(ImplPtr->ListItems.begin(), ImplPtr->ListItems.end(), Item) != ImplPtr->ListItems.end()) {
     return;
   }
 
   Item->AttachToComponent(this);
-  ListItems.push_back(Item);
-  bNeedsLayoutUpdate = true;
+  ImplPtr->ListItems.push_back(Item);
+  ImplPtr->bNeedsLayoutUpdate = true;
 }
 
 void MUIVerticalBoxComponent::RemoveItem(MUIWidgetComponent* Item) {
-  const auto it = std::find(ListItems.begin(), ListItems.end(), Item);
-  if (it == ListItems.end()) {
+  const auto it = std::find(ImplPtr->ListItems.begin(), ImplPtr->ListItems.end(), Item);
+  if (it == ImplPtr->ListItems.end()) {
     return;
   }
 
   (*it)->AttachToComponent(nullptr);
-  ListItems.erase(it);
-  bNeedsLayoutUpdate = true;
+  ImplPtr->ListItems.erase(it);
+  ImplPtr->bNeedsLayoutUpdate = true;
 }
 
 void MUIVerticalBoxComponent::ClearItems() {
-  for (MUIWidgetComponent* Item : ListItems) {
+  for (MUIWidgetComponent* Item : ImplPtr->ListItems) {
     if (Item != nullptr) {
       Item->AttachToComponent(nullptr);
     }
   }
 
-  ListItems.clear();
-  bNeedsLayoutUpdate = true;
+  ImplPtr->ListItems.clear();
+  ImplPtr->bNeedsLayoutUpdate = true;
 }
 
 void MUIVerticalBoxComponent::SetSpacing(float InSpacing) {
-  Spacing = InSpacing;
-  bNeedsLayoutUpdate = true;
+  ImplPtr->Spacing = InSpacing;
+  ImplPtr->bNeedsLayoutUpdate = true;
 }
 
 void MUIVerticalBoxComponent::SetAutoResize(bool bInAutoResize) {
-  bAutoResize = bInAutoResize;
-  bNeedsLayoutUpdate = true;
+  ImplPtr->bAutoResize = bInAutoResize;
+  ImplPtr->bNeedsLayoutUpdate = true;
 }
 
 void MUIVerticalBoxComponent::OnUpdate(float DeltaTime) {
   MUIWidgetComponent::OnUpdate(DeltaTime);
 
-  if (!bNeedsLayoutUpdate) {
+  if (!ImplPtr->bNeedsLayoutUpdate) {
     return;
   }
 
   UpdateLayout();
-  bNeedsLayoutUpdate = false;
+  ImplPtr->bNeedsLayoutUpdate = false;
 }
 
 void MUIVerticalBoxComponent::UpdateLayout() {
@@ -68,7 +80,7 @@ void MUIVerticalBoxComponent::UpdateLayout() {
   float maxItemWidth = 0.0f;
   bool bPlacedAnyItem = false;
 
-  for (MUIWidgetComponent* Item : ListItems) {
+  for (MUIWidgetComponent* Item : ImplPtr->ListItems) {
     if (Item == nullptr || !Item->IsVisible()) {
       continue;
     }
@@ -79,13 +91,13 @@ void MUIVerticalBoxComponent::UpdateLayout() {
     Item->SetAnchor(EUIAnchor::TopCenter);
     Item->SetAnchoredPosition({0.0f, currentY + itemSize.Y * itemPivot.Y});
 
-    currentY += itemSize.Y + Spacing;
+    currentY += itemSize.Y + ImplPtr->Spacing;
     maxItemWidth = std::max(maxItemWidth, itemSize.X);
     bPlacedAnyItem = true;
   }
 
-  if (bAutoResize) {
-    const float totalHeight = bPlacedAnyItem ? currentY - startY - Spacing : 0.0f;
+  if (ImplPtr->bAutoResize) {
+    const float totalHeight = bPlacedAnyItem ? currentY - startY - ImplPtr->Spacing : 0.0f;
     SetWidgetSize({std::max(currentSize.X, maxItemWidth), totalHeight});
   }
 }
@@ -93,7 +105,7 @@ void MUIVerticalBoxComponent::UpdateLayout() {
 void MUIVerticalBoxComponent::BuildNavigation() {
   MUIButtonComponent* previousButton = nullptr;
 
-  for (MUIWidgetComponent* Item : ListItems) {
+  for (MUIWidgetComponent* Item : ImplPtr->ListItems) {
     if (Item == nullptr || !Item->IsVisible()) {
       continue;
     }
@@ -115,7 +127,7 @@ void MUIVerticalBoxComponent::BuildNavigation() {
 }
 
 void MUIVerticalBoxComponent::SetNavigationLeft(MUIButtonComponent* LeftButton) {
-  for (MUIWidgetComponent* Item : ListItems) {
+  for (MUIWidgetComponent* Item : ImplPtr->ListItems) {
     auto* currentButton = dynamic_cast<MUIButtonComponent*>(Item);
     if (currentButton != nullptr) {
       currentButton->Navigation.Left = LeftButton;
@@ -124,7 +136,7 @@ void MUIVerticalBoxComponent::SetNavigationLeft(MUIButtonComponent* LeftButton) 
 }
 
 void MUIVerticalBoxComponent::SetNavigationRight(MUIButtonComponent* RightButton) {
-  for (MUIWidgetComponent* Item : ListItems) {
+  for (MUIWidgetComponent* Item : ImplPtr->ListItems) {
     auto* currentButton = dynamic_cast<MUIButtonComponent*>(Item);
     if (currentButton != nullptr) {
       currentButton->Navigation.Right = RightButton;

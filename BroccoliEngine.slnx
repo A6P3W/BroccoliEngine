@@ -4,11 +4,9 @@
     <BuildType Name="Editor" />
     <BuildType Name="Release" />
     <Platform Name="x64" />
-    <Platform Name="x86" />
   </Configurations>
-  <Project Path="Engine/BroccoliEngine.vcxproj" Id="118bd4ba-a816-42c0-95d2-aeafcd33bac5" />
-  <Project Path="Launcher/Launcher.vcxproj" Id="63559843-ba7d-46f1-82ad-c6ab716b1cd1">
-    <BuildDependency Project="Engine/BroccoliEngine.vcxproj" />
-    <BuildType Solution="Editor|x86" Project="Release" />
+  <Project Path="Engine/BroccoliEngine.vcxproj" Id="118bd4ba-a816-42c0-95d2-aeafcd33bac5">
+    <Build Project="false" />
   </Project>
+  <Project Path="Launcher/Launcher.vcxproj" Id="63559843-ba7d-46f1-82ad-c6ab716b1cd1" />
 </Solution>

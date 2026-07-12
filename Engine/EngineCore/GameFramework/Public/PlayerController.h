@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <InputMapper.h>
 
 #include <memory>
@@ -8,28 +9,26 @@
 
 enum class EInputMode { GameOnly, UIOnly, GameAndUI };
 class MEnhancedInputComponent;
-class APlayerController : public AActor {
+class BROCCOLI_ENGINE_API APlayerController : public AActor {
  public:
   DEFINE_ACTOR_CLASS(APlayerController)
   APlayerController();
+  ~APlayerController() override;
   virtual void Possess(APawn* NewPawn);
 
   void OnUpdate(float DeltaTime) override;
   void SetPlayerId(int id);
-  int GetPlayerId() const { return PlayerId; }
+  int GetPlayerId() const;
   virtual void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent);
   virtual void SetupInputMappings();
-  InputMapper* GetInputMapper() { return InputMapperPtr.get(); }
-  MEnhancedInputComponent* GetInputComponent() { return InputComponent; }
-  APawn* GetPawn() const { return TargetPawn; }
+  InputMapper* GetInputMapper();
+  MEnhancedInputComponent* GetInputComponent();
+  APawn* GetPawn() const;
 
-  void SetInputMode(EInputMode NewInputMode) { InputMode = NewInputMode; }
-  EInputMode GetInputMode() const { return InputMode; }
+  void SetInputMode(EInputMode NewInputMode);
+  EInputMode GetInputMode() const;
 
  private:
-  APawn* TargetPawn = nullptr;
-  MEnhancedInputComponent* InputComponent;
-  std::unique_ptr<InputMapper> InputMapperPtr;
-  int PlayerId = 0;
-  EInputMode InputMode = EInputMode::GameAndUI;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

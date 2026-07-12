@@ -14,8 +14,8 @@
 
 REGISTER_GAME_MODE(AWidgetTestGameMode)
 AWidgetTestGameMode::AWidgetTestGameMode() {
-  DefaultPawnClass = AWidgetTestPawn::StaticClassName();
-  DefaultPlayerControllerClass = APlayerController::StaticClassName();
+  SetDefaultPawnClass(AWidgetTestPawn::StaticClassName());
+  SetDefaultPlayerControllerClass(APlayerController::StaticClassName());
 }
 
 void AWidgetTestGameMode::BeginPlay() {

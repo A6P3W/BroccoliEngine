@@ -1,11 +1,20 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 
-class InputDevice {
+class BROCCOLI_ENGINE_API InputDevice {
  public:
-  virtual ~InputDevice() = default;
+  InputDevice();
+  virtual ~InputDevice();
+  InputDevice(const InputDevice&) = delete;
+  InputDevice& operator=(const InputDevice&) = delete;
+
   virtual void Update() = 0;
   virtual bool GetPressStart(int code) const = 0;
   virtual bool GetPressing(int code) const = 0;
   virtual bool GetRelease(int code) const = 0;
   virtual float GetAxis(int axisID) const { return 0.0f; }
+
+ private:
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

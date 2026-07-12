@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -8,22 +9,24 @@
 #include "UMath.h"
 class AActor;
 class World;
-class FActorManager {
+class BROCCOLI_ENGINE_API FActorManager {
  public:
   FActorManager();
   ~FActorManager();
+  FActorManager(const FActorManager&) = delete;
+  FActorManager& operator=(const FActorManager&) = delete;
 
   void Update(float DeltaTime);
   void Draw();
 
-  void SetWorld(World* world) { World = world; }
-  World* GetWorld() const { return World; }
+  void SetWorld(World* world);
+  World* GetWorld() const;
 
-  const std::vector<std::unique_ptr<AActor>>& GetAllActors() const { return Actors; }
+  const std::vector<std::unique_ptr<AActor>>& GetAllActors() const;
 
   template <class T, std::enable_if_t<std::is_base_of_v<AActor, T>, int> = 0>
   T* SpawnObject(
-      const FVector2D& location = FVector2D::ZeroVector,
+      const FVector2D& location = FVector2D::ZeroVector(),
       FRotator rotation = FRotator(0),
       bool DeferBeginPlay = false
   ) {
@@ -35,12 +38,12 @@ class FActorManager {
       obj = std::make_unique<T>();
     }
     T* ptr = obj.get();
-    ptr->SetWorld(World);
+    ptr->SetWorld(GetWorld());
     ptr->SetActorLocation(location);
     ptr->SetActorRotation(rotation);
 
     if (!DeferBeginPlay) ptr->Spawned();
-    PendingActors.push_back(std::move(obj));
+    AddPendingActor(std::move(obj));
     return ptr;
   }
   void RemovePendingDestroy();
@@ -48,7 +51,8 @@ class FActorManager {
   void ClearAllObjects();
 
  private:
-  std::vector<std::unique_ptr<AActor>> Actors;
-  std::vector<std::unique_ptr<AActor>> PendingActors;
-  World* World = nullptr;
+  void AddPendingActor(std::unique_ptr<AActor> Actor);
+
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

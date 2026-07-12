@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -17,7 +18,7 @@ using ENetPeer = _ENetPeer;
 
 enum class ENetPacketReliability { Reliable, Unreliable };
 
-class NetworkManager {
+class BROCCOLI_ENGINE_API NetworkManager {
  public:
   using ConnectedCallback = std::function<void(FNetworkConnectionId)>;
   using DisconnectedCallback = std::function<void(FNetworkConnectionId)>;
@@ -95,8 +96,5 @@ class NetworkManager {
   struct Impl;
   Impl* ImplPtr = nullptr;
 
-  CallbackHandle NextCallbackHandle = 1;
-  std::vector<std::pair<CallbackHandle, ConnectedCallback>> OnConnectedCallbacks;
-  std::vector<std::pair<CallbackHandle, DisconnectedCallback>> OnDisconnectedCallbacks;
-  std::vector<std::pair<CallbackHandle, PacketReceivedCallback>> OnPacketReceivedCallbacks;
+
 };

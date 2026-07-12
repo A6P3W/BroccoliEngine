@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 #include "Actor.h"
 #include "ActorRegistry.h"
@@ -41,15 +42,25 @@ void WriteServerTravelPayload(FNetBuffer& Buffer, const std::string& LevelPath) 
 }
 }  // namespace
 
-FReplicationSystem::FReplicationSystem(World* InWorld) : OwnerWorld(InWorld) {
+
+struct FReplicationSystem::Impl {
+  World* OwnerWorld = nullptr;
+  NetworkManager::CallbackHandle ConnectedCallbackHandle = 0;
+  NetworkManager::CallbackHandle DisconnectedCallbackHandle = 0;
+  NetworkManager::CallbackHandle PacketReceivedCallbackHandle = 0;
+  std::unordered_map<FNetworkActorId, AActor*> ActorsByNetworkId;
+  std::unordered_map<FNetworkConnectionId, std::string> LastReadyTravelByConnection;
+};
+FReplicationSystem::FReplicationSystem(World* InWorld) : ImplPtr(new Impl()) {
+  ImplPtr->OwnerWorld = InWorld;
   NetworkManager& network = NetworkManager::GetInstance();
-  ConnectedCallbackHandle = network.AddOnConnected([this](FNetworkConnectionId ConnectionId) {
+  ImplPtr->ConnectedCallbackHandle = network.AddOnConnected([this](FNetworkConnectionId ConnectionId) {
     HandleConnected(ConnectionId);
   });
-  DisconnectedCallbackHandle = network.AddOnDisconnected([this](FNetworkConnectionId ConnectionId) {
+  ImplPtr->DisconnectedCallbackHandle = network.AddOnDisconnected([this](FNetworkConnectionId ConnectionId) {
     HandleDisconnected(ConnectionId);
   });
-  PacketReceivedCallbackHandle =
+  ImplPtr->PacketReceivedCallbackHandle =
       network.AddOnPacketReceived([this](FNetworkConnectionId ConnectionId, FNetBuffer& Buffer) {
         HandlePacketReceived(ConnectionId, Buffer);
       });
@@ -57,16 +68,17 @@ FReplicationSystem::FReplicationSystem(World* InWorld) : OwnerWorld(InWorld) {
 
 FReplicationSystem::~FReplicationSystem() {
   NetworkManager& network = NetworkManager::GetInstance();
-  network.RemoveOnConnected(ConnectedCallbackHandle);
-  network.RemoveOnDisconnected(DisconnectedCallbackHandle);
-  network.RemoveOnPacketReceived(PacketReceivedCallbackHandle);
+  network.RemoveOnConnected(ImplPtr->ConnectedCallbackHandle);
+  network.RemoveOnDisconnected(ImplPtr->DisconnectedCallbackHandle);
+  network.RemoveOnPacketReceived(ImplPtr->PacketReceivedCallbackHandle);
+  delete ImplPtr;
 }
 
 void FReplicationSystem::Update() {
-  if (!OwnerWorld || !OwnerWorld->IsServer() || !OwnerWorld->GetObjectManager()) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() || !ImplPtr->OwnerWorld->GetObjectManager()) {
     return;
   }
-  const auto& actors = OwnerWorld->GetObjectManager()->GetAllActors();
+  const auto& actors = ImplPtr->OwnerWorld->GetObjectManager()->GetAllActors();
   for (const auto& actorPtr : actors) {
     AActor* actor = actorPtr.get();
     if (!actor || !actor->bReplicates) {
@@ -97,8 +109,8 @@ void FReplicationSystem::Update() {
 }
 
 AActor* FReplicationSystem::FindActor(FNetworkActorId NetworkId) const {
-  auto it = ActorsByNetworkId.find(NetworkId);
-  if (it == ActorsByNetworkId.end()) {
+  auto it = ImplPtr->ActorsByNetworkId.find(NetworkId);
+  if (it == ImplPtr->ActorsByNetworkId.end()) {
     return nullptr;
   }
   return it->second;
@@ -108,17 +120,17 @@ void FReplicationSystem::RegisterActor(AActor* Actor) {
   if (!Actor || Actor->NetworkId == 0) {
     return;
   }
-  ActorsByNetworkId[Actor->NetworkId] = Actor;
+  ImplPtr->ActorsByNetworkId[Actor->NetworkId] = Actor;
 }
 
 void FReplicationSystem::UnregisterActor(FNetworkActorId NetworkId) {
   if (NetworkId == 0) {
     return;
   }
-  ActorsByNetworkId.erase(NetworkId);
+  ImplPtr->ActorsByNetworkId.erase(NetworkId);
 }
 
-void FReplicationSystem::Clear() { ActorsByNetworkId.clear(); }
+void FReplicationSystem::Clear() { ImplPtr->ActorsByNetworkId.clear(); }
 
 bool FReplicationSystem::SendActorRPC(
     AActor* Actor,
@@ -128,7 +140,7 @@ bool FReplicationSystem::SendActorRPC(
     const FNetBuffer& Payload,
     FNetworkComponentId ComponentNetworkId
 ) {
-  if (!OwnerWorld || !Actor || Actor->NetworkId == 0 || RPCId == 0) {
+  if (!ImplPtr->OwnerWorld || !Actor || Actor->NetworkId == 0 || RPCId == 0) {
     return false;
   }
   FNetBuffer buffer;
@@ -143,16 +155,16 @@ bool FReplicationSystem::SendActorRPC(
   NetworkManager& network = NetworkManager::GetInstance();
   switch (RPCType) {
     case ENetRPCType::Server:
-      if (OwnerWorld->IsServer() && Actor->bHasAuthority) {
+      if (ImplPtr->OwnerWorld->IsServer() && Actor->bHasAuthority) {
         FNetBuffer localPayload(Payload.GetData());
         return Actor->DispatchRPC(ComponentNetworkId, RPCId, RPCType, localPayload);
       }
-      if (!OwnerWorld->IsClient() || !Actor->bIsLocallyControlled) {
+      if (!ImplPtr->OwnerWorld->IsClient() || !Actor->bIsLocallyControlled) {
         return false;
       }
       return network.SendToServer(buffer, Reliability);
     case ENetRPCType::Client:
-      if (!OwnerWorld->IsServer() || !Actor->bHasAuthority) {
+      if (!ImplPtr->OwnerWorld->IsServer() || !Actor->bHasAuthority) {
         return false;
       }
       if (Actor->OwnerConnectionId == 0) {
@@ -161,7 +173,7 @@ bool FReplicationSystem::SendActorRPC(
       }
       return network.SendToClient(Actor->OwnerConnectionId, buffer, Reliability);
     case ENetRPCType::Multicast:
-      if (!OwnerWorld->IsServer() || !Actor->bHasAuthority) {
+      if (!ImplPtr->OwnerWorld->IsServer() || !Actor->bHasAuthority) {
         return false;
       }
       {
@@ -175,7 +187,7 @@ bool FReplicationSystem::SendActorRPC(
 }
 
 bool FReplicationSystem::BroadcastServerTravel(FNetworkSceneId SceneId) {
-  if (!OwnerWorld || !OwnerWorld->IsListenServer() || SceneId == 0) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsListenServer() || SceneId == 0) {
     return false;
   }
   FNetBuffer buffer;
@@ -185,7 +197,7 @@ bool FReplicationSystem::BroadcastServerTravel(FNetworkSceneId SceneId) {
 }
 
 bool FReplicationSystem::BroadcastServerTravel(const std::string& LevelPath) {
-  if (!OwnerWorld || !OwnerWorld->IsListenServer() || LevelPath.empty()) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsListenServer() || LevelPath.empty()) {
     return false;
   }
   FNetBuffer buffer;
@@ -195,7 +207,7 @@ bool FReplicationSystem::BroadcastServerTravel(const std::string& LevelPath) {
 }
 
 void FReplicationSystem::NotifySceneLoaded() {
-  if (!OwnerWorld || !OwnerWorld->IsClient()) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsClient()) {
     return;
   }
 
@@ -210,14 +222,14 @@ void FReplicationSystem::NotifySceneLoaded() {
 }
 
 void FReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId) {
-  if (!OwnerWorld) {
+  if (!ImplPtr->OwnerWorld) {
     return;
   }
   if (NetworkManager::GetInstance().IsClient()) {
-    OwnerWorld->SetNetMode(ENetMode::Client);
+    ImplPtr->OwnerWorld->SetNetMode(ENetMode::Client);
     return;
   }
-  if (!OwnerWorld->IsServer()) {
+  if (!ImplPtr->OwnerWorld->IsServer()) {
     return;
   }
   const FNetworkSceneId currentSceneId = SceneManager::GetInstance().GetCurrentSceneId();
@@ -234,9 +246,9 @@ void FReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId) {
 }
 
 void FReplicationSystem::HandleDisconnected(FNetworkConnectionId ConnectionId) {
-  LastReadyTravelByConnection.erase(ConnectionId);
-  if (OwnerWorld && OwnerWorld->IsServer()) {
-    if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
+  ImplPtr->LastReadyTravelByConnection.erase(ConnectionId);
+  if (ImplPtr->OwnerWorld && ImplPtr->OwnerWorld->IsServer()) {
+    if (AGameModeBase* gameMode = ImplPtr->OwnerWorld->GetGameMode()) {
       gameMode->OnClientDisconnected(ConnectionId);
     }
   }
@@ -245,7 +257,7 @@ void FReplicationSystem::HandleDisconnected(FNetworkConnectionId ConnectionId) {
 void FReplicationSystem::HandlePacketReceived(
     FNetworkConnectionId ConnectionId, FNetBuffer& Buffer
 ) {
-  if (!OwnerWorld) {
+  if (!ImplPtr->OwnerWorld) {
     return;
   }
   ENetPacketType packetType = ENetPacketType::None;
@@ -254,25 +266,25 @@ void FReplicationSystem::HandlePacketReceived(
   }
   switch (packetType) {
     case ENetPacketType::AssignNetId:
-      if (!OwnerWorld->IsClient()) {
+      if (!ImplPtr->OwnerWorld->IsClient()) {
         break;
       }
       HandleAssignNetId(Buffer);
       break;
     case ENetPacketType::ActorSpawn:
-      if (!OwnerWorld->IsClient()) {
+      if (!ImplPtr->OwnerWorld->IsClient()) {
         break;
       }
       HandleActorSpawn(Buffer);
       break;
     case ENetPacketType::ActorState:
-      if (!OwnerWorld->IsClient()) {
+      if (!ImplPtr->OwnerWorld->IsClient()) {
         break;
       }
       HandleActorState(Buffer);
       break;
     case ENetPacketType::ActorDestroy:
-      if (!OwnerWorld->IsClient()) {
+      if (!ImplPtr->OwnerWorld->IsClient()) {
         break;
       }
       HandleActorDestroy(Buffer);
@@ -281,13 +293,13 @@ void FReplicationSystem::HandlePacketReceived(
       HandleActorRPC(ConnectionId, Buffer);
       break;
     case ENetPacketType::ServerTravel:
-      if (!OwnerWorld->IsClient()) {
+      if (!ImplPtr->OwnerWorld->IsClient()) {
         break;
       }
       HandleServerTravel(Buffer);
       break;
     case ENetPacketType::ClientTravelReady:
-      if (!OwnerWorld->IsServer()) {
+      if (!ImplPtr->OwnerWorld->IsServer()) {
         break;
       }
       HandleClientTravelReady(ConnectionId, Buffer);
@@ -308,7 +320,7 @@ void FReplicationSystem::HandleActorSpawn(FNetBuffer& Buffer) {
   AActor* actor = FindActor(networkId);
   const bool bAlreadyExists = (actor != nullptr);
   if (!actor) {
-    actor = ActorRegistry::GetInstance().Spawn(OwnerWorld, className);
+    actor = ActorRegistry::GetInstance().Spawn(ImplPtr->OwnerWorld, className);
     if (!actor) {
       return;
     }
@@ -335,10 +347,10 @@ void FReplicationSystem::HandleActorSpawn(FNetBuffer& Buffer) {
     if (APlayerController* pc = dynamic_cast<APlayerController*>(actor)) {
       // サーバーからレプリケートされてきたのが PlayerController
       // の場合、自分のコントローラーとして登録する
-      OwnerWorld->SetLocalPlayerController(pc);
+      ImplPtr->OwnerWorld->SetLocalPlayerController(pc);
     } else if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
       // Pawnの場合はPossessする
-      OwnerWorld->PossessLocalPawn(pawn);
+      ImplPtr->OwnerWorld->PossessLocalPawn(pawn);
     }
   }
 
@@ -395,12 +407,12 @@ void FReplicationSystem::HandleActorRPC(FNetworkConnectionId ConnectionId, FNetB
   if (!actor) {
     return;
   }
-  if (OwnerWorld->IsServer()) {
+  if (ImplPtr->OwnerWorld->IsServer()) {
     if (rpcType != ENetRPCType::Server || !actor->bHasAuthority || actor->OwnerConnectionId == 0 ||
         actor->OwnerConnectionId != ConnectionId) {
       return;
     }
-  } else if (!OwnerWorld->IsClient() || rpcType == ENetRPCType::Server) {
+  } else if (!ImplPtr->OwnerWorld->IsClient() || rpcType == ENetRPCType::Server) {
     return;
   }
   actor->DispatchRPC(componentNetworkId, rpcId, rpcType, payload);
@@ -467,16 +479,16 @@ void FReplicationSystem::HandleClientTravelReady(
     travelKey = MakeSceneIdTravelKey(sceneId);
   }
 
-  auto readyIt = LastReadyTravelByConnection.find(ConnectionId);
-  if (readyIt != LastReadyTravelByConnection.end() && readyIt->second == travelKey) {
+  auto readyIt = ImplPtr->LastReadyTravelByConnection.find(ConnectionId);
+  if (readyIt != ImplPtr->LastReadyTravelByConnection.end() && readyIt->second == travelKey) {
     return;
   }
-  LastReadyTravelByConnection[ConnectionId] = travelKey;
+  ImplPtr->LastReadyTravelByConnection[ConnectionId] = travelKey;
   InitializeClientForCurrentScene(ConnectionId);
 }
 
 void FReplicationSystem::SendAssignedConnectionId(FNetworkConnectionId ConnectionId) {
-  if (!OwnerWorld || !OwnerWorld->IsServer() || ConnectionId == 0) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() || ConnectionId == 0) {
     return;
   }
   FNetBuffer buffer;
@@ -488,7 +500,7 @@ void FReplicationSystem::SendAssignedConnectionId(FNetworkConnectionId Connectio
 bool FReplicationSystem::SendServerTravelToClient(
     FNetworkConnectionId ConnectionId, FNetworkSceneId SceneId
 ) {
-  if (!OwnerWorld || !OwnerWorld->IsServer() || ConnectionId == 0 || SceneId == 0) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() || ConnectionId == 0 || SceneId == 0) {
     return false;
   }
   FNetBuffer buffer;
@@ -502,7 +514,7 @@ bool FReplicationSystem::SendServerTravelToClient(
 bool FReplicationSystem::SendServerTravelToClient(
     FNetworkConnectionId ConnectionId, const std::string& LevelPath
 ) {
-  if (!OwnerWorld || !OwnerWorld->IsServer() || ConnectionId == 0 || LevelPath.empty()) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() || ConnectionId == 0 || LevelPath.empty()) {
     return false;
   }
   FNetBuffer buffer;
@@ -514,7 +526,7 @@ bool FReplicationSystem::SendServerTravelToClient(
 }
 
 bool FReplicationSystem::SendClientTravelReady(FNetworkSceneId SceneId) {
-  if (!OwnerWorld || !OwnerWorld->IsClient() || SceneId == 0) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsClient() || SceneId == 0) {
     return false;
   }
   FNetBuffer buffer;
@@ -524,7 +536,7 @@ bool FReplicationSystem::SendClientTravelReady(FNetworkSceneId SceneId) {
 }
 
 bool FReplicationSystem::SendClientTravelReady(const std::string& LevelPath) {
-  if (!OwnerWorld || !OwnerWorld->IsClient() || LevelPath.empty()) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsClient() || LevelPath.empty()) {
     return false;
   }
   FNetBuffer buffer;
@@ -534,10 +546,10 @@ bool FReplicationSystem::SendClientTravelReady(const std::string& LevelPath) {
 }
 
 void FReplicationSystem::SendInitialStateToClient(FNetworkConnectionId ConnectionId) {
-  if (!OwnerWorld || !OwnerWorld->GetObjectManager()) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->GetObjectManager()) {
     return;
   }
-  const auto& actors = OwnerWorld->GetObjectManager()->GetAllActors();
+  const auto& actors = ImplPtr->OwnerWorld->GetObjectManager()->GetAllActors();
   for (const auto& actorPtr : actors) {
     AActor* actor = actorPtr.get();
     if (!actor || !actor->bReplicates || actor->IsPendingDestroy()) {
@@ -598,11 +610,11 @@ void FReplicationSystem::SendActorDestroy(FNetworkActorId NetworkId) {
 }
 
 bool FReplicationSystem::EnsureServerActorRegistered(AActor* Actor) {
-  if (!OwnerWorld || !Actor || !OwnerWorld->IsServer()) {
+  if (!ImplPtr->OwnerWorld || !Actor || !ImplPtr->OwnerWorld->IsServer()) {
     return false;
   }
   if (Actor->NetworkId == 0) {
-    Actor->NetworkId = OwnerWorld->AllocateNetworkActorId();
+    Actor->NetworkId = ImplPtr->OwnerWorld->AllocateNetworkActorId();
     Actor->bHasAuthority = true;
   }
   if (Actor->NetworkId == 0) {
@@ -614,7 +626,7 @@ bool FReplicationSystem::EnsureServerActorRegistered(AActor* Actor) {
 }
 
 void FReplicationSystem::RefreshLocalControl() {
-  if (!OwnerWorld || !OwnerWorld->IsClient()) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsClient()) {
     return;
   }
   const FNetworkConnectionId localConnectionId =
@@ -622,7 +634,7 @@ void FReplicationSystem::RefreshLocalControl() {
   if (localConnectionId == 0) {
     return;
   }
-  for (const auto& pair : ActorsByNetworkId) {
+  for (const auto& pair : ImplPtr->ActorsByNetworkId) {
     AActor* actor = pair.second;
     if (!actor) {
       continue;
@@ -635,9 +647,9 @@ void FReplicationSystem::RefreshLocalControl() {
 
     if (bShouldBeLocallyControlled) {
       if (APlayerController* pc = dynamic_cast<APlayerController*>(actor)) {
-        OwnerWorld->SetLocalPlayerController(pc);
+        ImplPtr->OwnerWorld->SetLocalPlayerController(pc);
       } else if (APawn* pawn = dynamic_cast<APawn*>(actor)) {
-        OwnerWorld->PossessLocalPawn(pawn);
+        ImplPtr->OwnerWorld->PossessLocalPawn(pawn);
       }
     }
   }
@@ -645,7 +657,7 @@ void FReplicationSystem::RefreshLocalControl() {
 
 void FReplicationSystem::InitializeClientForCurrentScene(FNetworkConnectionId ConnectionId) {
   SendAssignedConnectionId(ConnectionId);
-  if (AGameModeBase* gameMode = OwnerWorld->GetGameMode()) {
+  if (AGameModeBase* gameMode = ImplPtr->OwnerWorld->GetGameMode()) {
     gameMode->OnClientConnected(ConnectionId);
   }
   SendInitialStateToClient(ConnectionId);

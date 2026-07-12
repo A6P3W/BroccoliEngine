@@ -5,38 +5,57 @@
 #include "EngineDefine.h"
 #include "UIVerticalBoxComponent.h"
 
-MUIWidgetComponent::MUIWidgetComponent() {}
+struct MUIWidgetComponent::Impl {
+  int BasePriority = 0;
+  int ZOrderOffset = 0;
+  EUIAnchor Anchor = EUIAnchor::MiddleCenter;
+  FVector2D Pivot = FVector2D(0.5f, 0.5f);
+  FVector2D WidgetSize = FVector2D::ZeroVector();
+  FVector2D AnchoredPosition = FVector2D::ZeroVector();
+};
+
+MUIWidgetComponent::MUIWidgetComponent() : ImplPtr(new Impl()) {}
+
+MUIWidgetComponent::~MUIWidgetComponent() { delete ImplPtr; }
 
 void MUIWidgetComponent::SetZOrderOffset(int offset) {
-  ZOrderOffset = offset;
-  for (auto* child : ChildComponents) {
+  ImplPtr->ZOrderOffset = offset;
+  for (auto* child : GetChildComponents()) {
     if (auto* childWidget = dynamic_cast<MUIWidgetComponent*>(child)) {
       childWidget->SetZOrderOffset(offset);
     }
   }
 }
 
-int MUIWidgetComponent::GetFinalPriority() const { return BasePriority + ZOrderOffset; }
+int MUIWidgetComponent::GetFinalPriority() const { return ImplPtr->BasePriority + ImplPtr->ZOrderOffset; }
 
 void MUIWidgetComponent::SetAnchor(EUIAnchor anchor) {
-  Anchor = anchor;
+  ImplPtr->Anchor = anchor;
   UpdateAnchoredLocation();
 }
+
+EUIAnchor MUIWidgetComponent::GetAnchor() const { return ImplPtr->Anchor; }
 
 void MUIWidgetComponent::SetPivot(const FVector2D& pivot) {
-  Pivot = pivot;
+  ImplPtr->Pivot = pivot;
   UpdateAnchoredLocation();
 }
+
+FVector2D MUIWidgetComponent::GetPivot() const { return ImplPtr->Pivot; }
 
 void MUIWidgetComponent::SetWidgetSize(const FVector2D& size) {
-  WidgetSize = size;
+  ImplPtr->WidgetSize = size;
   UpdateAnchoredLocation();
 }
 
+FVector2D MUIWidgetComponent::GetWidgetSize() const { return ImplPtr->WidgetSize; }
+
 void MUIWidgetComponent::SetAnchoredPosition(const FVector2D& pos) {
-  AnchoredPosition = pos;
+  ImplPtr->AnchoredPosition = pos;
   UpdateAnchoredLocation();
 }
+
+FVector2D MUIWidgetComponent::GetAnchoredPosition() const { return ImplPtr->AnchoredPosition; }
 
 void MUIWidgetComponent::OnUpdate(float DeltaTime) {
   MSceneComponent::OnUpdate(DeltaTime);
@@ -45,15 +64,15 @@ void MUIWidgetComponent::OnUpdate(float DeltaTime) {
 
 void MUIWidgetComponent::UpdateAnchoredLocation() {
   FVector2D parentSize = {static_cast<float>(VirtualWidth), static_cast<float>(VirtualHeight)};
-  FVector2D parentTopLeft = FVector2D::ZeroVector;
+  FVector2D parentTopLeft = FVector2D::ZeroVector();
 
   if (auto parentWidget = dynamic_cast<MUIWidgetComponent*>(GetParentComponent())) {
     parentSize = parentWidget->GetWidgetSize();
     parentTopLeft = {-parentSize.X * 0.5f, -parentSize.Y * 0.5f};
   }
 
-  FVector2D anchorOffset = FVector2D::ZeroVector;
-  switch (Anchor) {
+  FVector2D anchorOffset = FVector2D::ZeroVector();
+  switch (ImplPtr->Anchor) {
     case EUIAnchor::TopLeft:
       anchorOffset = {0.0f, 0.0f};
       break;
@@ -83,11 +102,15 @@ void MUIWidgetComponent::UpdateAnchoredLocation() {
       break;
   }
 
-  FVector2D pivotOffset = {WidgetSize.X * Pivot.X, WidgetSize.Y * Pivot.Y};
+  FVector2D pivotOffset = {
+      ImplPtr->WidgetSize.X * ImplPtr->Pivot.X, ImplPtr->WidgetSize.Y * ImplPtr->Pivot.Y
+  };
 
-  FVector2D topLeft = parentTopLeft + anchorOffset + AnchoredPosition - pivotOffset;
+  FVector2D topLeft = parentTopLeft + anchorOffset + ImplPtr->AnchoredPosition - pivotOffset;
 
-  FVector2D newRelativeLoc = {topLeft.X + WidgetSize.X * 0.5f, topLeft.Y + WidgetSize.Y * 0.5f};
+  FVector2D newRelativeLoc = {
+      topLeft.X + ImplPtr->WidgetSize.X * 0.5f, topLeft.Y + ImplPtr->WidgetSize.Y * 0.5f
+  };
 
   if (std::abs(newRelativeLoc.X - GetRelativeLocation().X) > 0.001f ||
       std::abs(newRelativeLoc.Y - GetRelativeLocation().Y) > 0.001f) {

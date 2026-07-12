@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 
 #include "EOSTypes.h"
 #include "NetworkTypes.h"
@@ -9,7 +10,7 @@
 #include <string>
 #include <vector>
 
-class OnlineSessionManager {
+class BROCCOLI_ENGINE_API OnlineSessionManager {
  public:
   static OnlineSessionManager& Get();
 

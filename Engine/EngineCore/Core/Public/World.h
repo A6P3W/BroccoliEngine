@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <memory>
 #include <string>
 
@@ -17,21 +18,23 @@ class FReplicationSystem;
 class APlayerController;
 class APawn;
 
-class World {
+class BROCCOLI_ENGINE_API World {
  public:
   World();
   ~World();
+  World(const World&) = delete;
+  World& operator=(const World&) = delete;
 
   void Update(float DeltaTime);
   void Draw();
 
-  FActorManager* GetObjectManager() { return ActorManager.get(); }
-  FCollisionSystem* GetCollisionSystem() { return CollisionSystem.get(); }
-  FSoundManager* GetSoundManager() { return SoundManager.get(); }
-  FTimerManager* GetTimerManager() { return TimerManager.get(); }
-  FReplicationSystem* GetReplicationSystem() { return ReplicationSystem.get(); }
+  FActorManager* GetObjectManager();
+  FCollisionSystem* GetCollisionSystem();
+  FSoundManager* GetSoundManager();
+  FTimerManager* GetTimerManager();
+  FReplicationSystem* GetReplicationSystem();
 
-  AGameModeBase* GetGameMode() const { return GameMode; }
+  AGameModeBase* GetGameMode() const;
 
   template <class T>
   T* SpawnGameMode() {
@@ -45,15 +48,15 @@ class World {
   T* SpawnActor(
       const FVector2D& Loc = {0, 0}, FRotator Rot = FRotator(0), bool DeferBeginPlay = false
   ) {
-    return ActorManager->SpawnObject<T>(Loc, Rot, DeferBeginPlay);
+    return GetActorManager()->SpawnObject<T>(Loc, Rot, DeferBeginPlay);
   }
 
-  void SetSimulating(bool bRunning) { bSimulating = bRunning; }
-  bool IsSimulating() const { return bSimulating; }
-  bool IsTearingDown() const { return bTearingDown; }
+  void SetSimulating(bool bRunning);
+  bool IsSimulating() const;
+  bool IsTearingDown() const;
   void SetTargetFps(int NewTargetFps);
-  int GetTargetFps() const { return TargetFps; }
-  float GetCurrentFps() const { return CurrentFps; }
+  int GetTargetFps() const;
+  float GetCurrentFps() const;
   void UpdateCurrentFps(float DeltaTime);
 
   ENetMode GetNetMode() const;
@@ -76,20 +79,7 @@ class World {
   void SetLocalPlayerControllerClass(const std::string& ClassName);
 
  private:
-  std::unique_ptr<FCollisionSystem> CollisionSystem = nullptr;
-  std::unique_ptr<FSoundManager> SoundManager = nullptr;
-  std::unique_ptr<FTimerManager> TimerManager = nullptr;
-  std::unique_ptr<FReplicationSystem> ReplicationSystem = nullptr;
-  std::unique_ptr<FActorManager> ActorManager = nullptr;
-
-  AGameModeBase* GameMode = nullptr;
-  bool bSimulating = true;
-  bool bTearingDown = false;
-  int TargetFps = 60;
-  float CurrentFps = 0.0f;
-  ENetMode NetMode = ENetMode::Standalone;
-  FNetworkActorId NextNetworkActorId = 1;
-
-  APlayerController* LocalPlayerController = nullptr;
-  std::string LocalPlayerControllerClass;
+  FActorManager* GetActorManager();
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

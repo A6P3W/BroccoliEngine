@@ -488,7 +488,7 @@ $RECYCLE.BIN/
 /.antigravitycli
 /Launcher/imgui.ini
 /Launcher/Log.txt
-/vcpkg_installed/
+**vcpkg_installed/
 *..repoignore
 *Build/
 !Engine/ThirdParty/EOS/SDK/Bin/
@@ -496,3 +496,4 @@ $RECYCLE.BIN/
 /PrivateConfig
 
 **.repomixignore
+

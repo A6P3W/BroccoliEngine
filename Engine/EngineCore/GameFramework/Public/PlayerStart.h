@@ -1,8 +1,9 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 
 #include "Actor.h"
 
-class APlayerStart : public AActor {
+class BROCCOLI_ENGINE_API APlayerStart : public AActor {
  public:
   DEFINE_ACTOR_CLASS(APlayerStart)
 

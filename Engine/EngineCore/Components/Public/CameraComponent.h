@@ -1,7 +1,8 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include "SceneComponent.h"
 
-class MCameraComponent : public MSceneComponent {
+class BROCCOLI_ENGINE_API MCameraComponent : public MSceneComponent {
  public:
   ~MCameraComponent();
   float GetFOV() const { return Fov; }

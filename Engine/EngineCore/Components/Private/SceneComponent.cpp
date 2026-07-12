@@ -7,21 +7,36 @@
 #include "Log.h"
 #include "UMath.h"
 
-const FAttachmentTransformRules FAttachmentTransformRules::KeepRelativeTransform(
-    EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative
-);
+struct MSceneComponent::Impl {
+  MSceneComponent* ParentComponent = nullptr;
+  std::vector<MSceneComponent*> ChildComponents;
+  FVector2D RelativeLocation;
+  FRotator RelativeRotation;
+  FScale RelativeScale;
+  FVector2D WorldLocation;
+  FRotator WorldRotation;
+  FScale WorldScale;
+  bool Visible = true;
+  bool TransformDirty = true;
+  bool GridDirty = true;
+};
+MSceneComponent::MSceneComponent() : ImplPtr(new Impl()) {}
 
-const FAttachmentTransformRules FAttachmentTransformRules::KeepWorldTransform(
-    EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld
-);
+MSceneComponent::~MSceneComponent() {
+  delete ImplPtr;
+}
 
-const FAttachmentTransformRules FAttachmentTransformRules::SnapToTargetIncludingScale(
-    EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget
-);
+MSceneComponent* MSceneComponent::GetParentComponent() const { return ImplPtr->ParentComponent; }
 
-MSceneComponent::MSceneComponent() = default;
-MSceneComponent::~MSceneComponent() = default;
+bool MSceneComponent::IsVisible() const { return ImplPtr->Visible; }
 
+bool MSceneComponent::bGridDirty() const { return ImplPtr->GridDirty; }
+
+void MSceneComponent::SetGridClean() { ImplPtr->GridDirty = true; }
+
+const std::vector<MSceneComponent*>& MSceneComponent::GetChildComponents() const {
+  return ImplPtr->ChildComponents;
+}
 void MSceneComponent::OnUpdate(float DeltaTime) {}
 
 void MSceneComponent::Draw() {}
@@ -29,17 +44,17 @@ void MSceneComponent::Draw() {}
 void MSceneComponent::OnMessage(const std::string& message) {}
 
 void MSceneComponent::OnComponentDestroy() {
-  const auto children = ChildComponents;
+  const auto children = ImplPtr->ChildComponents;
   for (auto* child : children) {
     if (child != nullptr) {
       child->DestroyComponent();
     }
   }
-  ChildComponents.clear();
+  ImplPtr->ChildComponents.clear();
 
-  if (ParentComponent != nullptr) {
-    std::erase(ParentComponent->ChildComponents, this);
-    ParentComponent = nullptr;
+  if (ImplPtr->ParentComponent != nullptr) {
+    std::erase(ImplPtr->ParentComponent->ImplPtr->ChildComponents, this);
+    ImplPtr->ParentComponent = nullptr;
   }
 }
 
@@ -90,7 +105,7 @@ bool MSceneComponent::AttachToComponent(
       NewRelativeLocation = Difference.RotateVector(InverseParentRotation) / ParentScale;
     }
   } else if (Rules.LocationRule == EAttachmentRule::SnapToTarget) {
-    NewRelativeLocation = FVector2D::ZeroVector;
+    NewRelativeLocation = FVector2D::ZeroVector();
   }
 
   if (Rules.RotationRule == EAttachmentRule::KeepWorld) {
@@ -116,43 +131,43 @@ bool MSceneComponent::AttachToComponent(
     NewRelativeScale = FScale(1.0f);
   }
 
-  if (ParentComponent != Parent) {
-    if (ParentComponent != nullptr) {
-      std::erase(ParentComponent->ChildComponents, this);
+  if (ImplPtr->ParentComponent != Parent) {
+    if (ImplPtr->ParentComponent != nullptr) {
+      std::erase(ImplPtr->ParentComponent->ImplPtr->ChildComponents, this);
     }
 
-    ParentComponent = Parent;
+    ImplPtr->ParentComponent = Parent;
 
-    if (ParentComponent != nullptr &&
+    if (ImplPtr->ParentComponent != nullptr &&
         std::find(
-            ParentComponent->ChildComponents.begin(), ParentComponent->ChildComponents.end(), this
-        ) == ParentComponent->ChildComponents.end()) {
-      ParentComponent->ChildComponents.push_back(this);
+            ImplPtr->ParentComponent->ImplPtr->ChildComponents.begin(), ImplPtr->ParentComponent->ImplPtr->ChildComponents.end(), this
+        ) == ImplPtr->ParentComponent->ImplPtr->ChildComponents.end()) {
+      ImplPtr->ParentComponent->ImplPtr->ChildComponents.push_back(this);
     }
   }
 
-  RelativeLocation = NewRelativeLocation;
-  RelativeRotation = NewRelativeRotation;
-  RelativeScale = NewRelativeScale;
+  ImplPtr->RelativeLocation = NewRelativeLocation;
+  ImplPtr->RelativeRotation = NewRelativeRotation;
+  ImplPtr->RelativeScale = NewRelativeScale;
 
   MakeTransformDirty();
   return true;
 }
 
 bool MSceneComponent::SetWorldLocation(const FVector2D& NewWorldLocation) {
-  if (!ParentComponent) {
+  if (!ImplPtr->ParentComponent) {
     // 親がいない（RootComponentである）場合、
-    // ワールド座標はそのまま相対座標（RelativeLocation）になる
-    RelativeLocation = NewWorldLocation;
+    // ワールド座標はそのまま相対座標（ImplPtr->RelativeLocation）になる
+    ImplPtr->RelativeLocation = NewWorldLocation;
   } else {
-    const FScale ParentWorldScale = ParentComponent->GetWorldScale();
+    const FScale ParentWorldScale = ImplPtr->ParentComponent->GetWorldScale();
     if (std::abs(ParentWorldScale.Scale) < 1e-6f) {
       return false;
     }
 
     // 親がいる場合、ワールド座標を親のローカル座標系に変換する必要がある
-    FVector2D ParentWorldLoc = ParentComponent->GetWorldLocation();
-    float ParentWorldRotRad = UMath::DegToRad(ParentComponent->GetWorldRotation().Rotation);
+    FVector2D ParentWorldLoc = ImplPtr->ParentComponent->GetWorldLocation();
+    float ParentWorldRotRad = UMath::DegToRad(ImplPtr->ParentComponent->GetWorldRotation().Rotation);
 
     // 1. 親との差分を取る
     float diffX = NewWorldLocation.X - ParentWorldLoc.X;
@@ -164,16 +179,16 @@ bool MSceneComponent::SetWorldLocation(const FVector2D& NewWorldLocation) {
     float s = std::sin(ParentWorldRotRad);
     float c = std::cos(ParentWorldRotRad);
 
-    RelativeLocation.X = diffX * c + diffY * s;
-    RelativeLocation.Y = -diffX * s + diffY * c;
-    RelativeLocation /= ParentWorldScale;
+    ImplPtr->RelativeLocation.X = diffX * c + diffY * s;
+    ImplPtr->RelativeLocation.Y = -diffX * s + diffY * c;
+    ImplPtr->RelativeLocation /= ParentWorldScale;
   }
   MakeTransformDirty();
   return true;
 }
 
 bool MSceneComponent::SetRelativeLocation(const FVector2D& NewRelativeLocation) {
-  RelativeLocation = NewRelativeLocation;
+  ImplPtr->RelativeLocation = NewRelativeLocation;
   MakeTransformDirty();
   return true;
 }
@@ -199,52 +214,52 @@ bool MSceneComponent::AddLocalOffset(const FVector2D& Offset) {
 }
 
 bool MSceneComponent::SetWorldRotation(FRotator NewRotation) {
-  if (!ParentComponent) {
-    RelativeRotation = NewRotation;
+  if (!ImplPtr->ParentComponent) {
+    ImplPtr->RelativeRotation = NewRotation;
   } else {
-    FRotator parentWorldRot = ParentComponent->GetWorldRotation();
-    RelativeRotation = NewRotation - parentWorldRot;
+    FRotator parentWorldRot = ImplPtr->ParentComponent->GetWorldRotation();
+    ImplPtr->RelativeRotation = NewRotation - parentWorldRot;
   }
   MakeTransformDirty();
   return true;
 }
 
 bool MSceneComponent::AddWorldRotation(FRotator DeltaRotation) {
-  RelativeRotation += DeltaRotation;
+  ImplPtr->RelativeRotation += DeltaRotation;
   MakeTransformDirty();
   return true;
 }
 
 FVector2D MSceneComponent::GetWorldLocation() const {
   UpdateTransform();
-  return WorldLocation;
+  return ImplPtr->WorldLocation;
 }
 
-FVector2D MSceneComponent::GetRelativeLocation() const { return RelativeLocation; }
+FVector2D MSceneComponent::GetRelativeLocation() const { return ImplPtr->RelativeLocation; }
 
 FRotator MSceneComponent::GetWorldRotation() const {
   UpdateTransform();
-  return WorldRotation;
+  return ImplPtr->WorldRotation;
 }
 
-FRotator MSceneComponent::GetRelativeRotation() const { return RelativeRotation; }
+FRotator MSceneComponent::GetRelativeRotation() const { return ImplPtr->RelativeRotation; }
 
 bool MSceneComponent::SetRelativeScale(FScale NewScale) {
-  RelativeScale = NewScale;
+  ImplPtr->RelativeScale = NewScale;
   MakeTransformDirty();
   return true;
 }
 
-FScale MSceneComponent::GetRelativeScale() const { return RelativeScale; }
+FScale MSceneComponent::GetRelativeScale() const { return ImplPtr->RelativeScale; }
 
 bool MSceneComponent::SetWorldScale(FScale NewScale) {
-  if (!ParentComponent) {
+  if (!ImplPtr->ParentComponent) {
     // 親がいなければワールドスケール = 相対スケール
     return SetRelativeScale(NewScale);
   }
 
   // 親がいる場合： 自分の相対 = 目標ワールド / 親のワールド
-  FScale parentWorldScale = ParentComponent->GetWorldScale();
+  FScale parentWorldScale = ImplPtr->ParentComponent->GetWorldScale();
   if (std::abs(parentWorldScale.Scale) < 1e-6f) return false;
 
   return SetRelativeScale(NewScale / parentWorldScale);
@@ -252,46 +267,46 @@ bool MSceneComponent::SetWorldScale(FScale NewScale) {
 
 FScale MSceneComponent::GetWorldScale() const {
   UpdateTransform();
-  return WorldScale;
+  return ImplPtr->WorldScale;
 }
 
 void MSceneComponent::SetVisibility(bool bNewVisibility) {
-  bVisible = bNewVisibility;
-  for (MSceneComponent* child : ChildComponents) {
+  ImplPtr->Visible = bNewVisibility;
+  for (MSceneComponent* child : ImplPtr->ChildComponents) {
     child->SetVisibility(bNewVisibility);
   }
 }
 
 void MSceneComponent::MakeTransformDirty() {
-  if (bIsTransformDirty) {
+  if (ImplPtr->TransformDirty) {
     return;
   }
-  bIsTransformDirty = true;
-  bIsGridDirty = true;
-  for (MSceneComponent* child : ChildComponents) {
+  ImplPtr->TransformDirty = true;
+  ImplPtr->GridDirty = true;
+  for (MSceneComponent* child : ImplPtr->ChildComponents) {
     child->MakeTransformDirty();
   }
 }
 
 void MSceneComponent::UpdateTransform() const {
-  if (!bIsTransformDirty) return;
+  if (!ImplPtr->TransformDirty) return;
 
-  if (!ParentComponent) {
+  if (!ImplPtr->ParentComponent) {
     // 親がいない場合は相対値がそのままワールド値
-    WorldLocation = RelativeLocation;
-    WorldRotation = RelativeRotation;
-    WorldScale = RelativeScale;
+    ImplPtr->WorldLocation = ImplPtr->RelativeLocation;
+    ImplPtr->WorldRotation = ImplPtr->RelativeRotation;
+    ImplPtr->WorldScale = ImplPtr->RelativeScale;
   } else {
     // 親の最新トランスフォームを先に確定させる（再帰）
-    FScale pScale = ParentComponent->GetWorldScale();
-    FRotator pRot = ParentComponent->GetWorldRotation();
-    FVector2D pLoc = ParentComponent->GetWorldLocation();
+    FScale pScale = ImplPtr->ParentComponent->GetWorldScale();
+    FRotator pRot = ImplPtr->ParentComponent->GetWorldRotation();
+    FVector2D pLoc = ImplPtr->ParentComponent->GetWorldLocation();
 
     // 1. スケールの計算
-    WorldScale = RelativeScale * pScale;
+    ImplPtr->WorldScale = ImplPtr->RelativeScale * pScale;
 
     // 2. 回転の計算
-    WorldRotation = pRot + RelativeRotation;
+    ImplPtr->WorldRotation = pRot + ImplPtr->RelativeRotation;
 
     // 3. 座標の計算（親の回転とスケールを考慮）
     float parentRad = UMath::DegToRad(pRot.Rotation);
@@ -299,15 +314,15 @@ void MSceneComponent::UpdateTransform() const {
     float c = std::cos(parentRad);
 
     // 自分の相対座標に親のスケールを適用
-    FVector2D scaledLocation = RelativeLocation * pScale;
+    FVector2D scaledLocation = ImplPtr->RelativeLocation * pScale;
 
     // 親の回転に合わせて回転させる
     float rotatedX = scaledLocation.X * c - scaledLocation.Y * s;
     float rotatedY = scaledLocation.X * s + scaledLocation.Y * c;
 
-    WorldLocation.X = pLoc.X + rotatedX;
-    WorldLocation.Y = pLoc.Y + rotatedY;
+    ImplPtr->WorldLocation.X = pLoc.X + rotatedX;
+    ImplPtr->WorldLocation.Y = pLoc.Y + rotatedY;
   }
 
-  bIsTransformDirty = false;
+  ImplPtr->TransformDirty = false;
 }

@@ -12,9 +12,16 @@
 
 REGISTER_GAME_MODE(AGameModeBase)
 
-AGameModeBase::AGameModeBase()
-    : DefaultPawnClass(APawn::StaticClassName()),
-      DefaultPlayerControllerClass(APlayerController::StaticClassName()) {
+struct AGameModeBase::Impl {
+  std::string DefaultPawnClass;
+  std::string DefaultPlayerControllerClass;
+  APawn* PlayerPawn = nullptr;
+  bool HostPlayerSpawned = false;
+};
+
+AGameModeBase::AGameModeBase() : ImplPtr(new Impl()) {
+  ImplPtr->DefaultPawnClass = APawn::StaticClassName();
+  ImplPtr->DefaultPlayerControllerClass = APlayerController::StaticClassName();
   auto* CameraComponent = NewObject<MCameraComponent>(this);
   if (CameraComponent) {
     CameraComponent->RegisterComponent();
@@ -22,10 +29,17 @@ AGameModeBase::AGameModeBase()
   }
 }
 
+AGameModeBase::~AGameModeBase() { delete ImplPtr; }
+APawn* AGameModeBase::GetPlayerPawn() const { return ImplPtr->PlayerPawn; }
+const std::string& AGameModeBase::GetDefaultPlayerControllerClass() const { return ImplPtr->DefaultPlayerControllerClass; }
+bool AGameModeBase::IsHostPlayerSpawned() const { return ImplPtr->HostPlayerSpawned; }
+void AGameModeBase::SetPlayerPawn(APawn* Pawn) { ImplPtr->PlayerPawn = Pawn; }
+void AGameModeBase::SetDefaultPawnClass(const std::string& ClassName) { ImplPtr->DefaultPawnClass = ClassName; }
+void AGameModeBase::SetDefaultPlayerControllerClass(const std::string& ClassName) { ImplPtr->DefaultPlayerControllerClass = ClassName; }
 void AGameModeBase::BeginPlay() {
   AActor::BeginPlay();
-  if (GetWorld() && GetWorld()->IsServer() && !bHostPlayerSpawned) {
-    bHostPlayerSpawned = SpawnDefaultPlayer(0) != nullptr;
+  if (GetWorld() && GetWorld()->IsServer() && !ImplPtr->HostPlayerSpawned) {
+    ImplPtr->HostPlayerSpawned = SpawnDefaultPlayer(0) != nullptr;
   }
 }
 
@@ -89,7 +103,7 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
   }
   AActor* playerStart = FindPlayerStart(ConnectionId);
   const FVector2D spawnLocation =
-      playerStart ? playerStart->GetActorLocation() : FVector2D::ZeroVector;
+      playerStart ? playerStart->GetActorLocation() : FVector2D::ZeroVector();
   const FRotator spawnRotation = playerStart ? playerStart->GetActorRotation() : FRotator(0.0f);
   ActorRegistry& registry = ActorRegistry::GetInstance();
   APlayerController* controller = nullptr;
@@ -98,10 +112,10 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
     controller = GetWorld()->GetOrCreateLocalPlayerController();
   } else {
     AActor* controllerActor =
-        registry.Spawn(GetWorld(), DefaultPlayerControllerClass, spawnLocation, spawnRotation);
+        registry.Spawn(GetWorld(), ImplPtr->DefaultPlayerControllerClass, spawnLocation, spawnRotation);
     controller = dynamic_cast<APlayerController*>(controllerActor);
     if (!controller) {
-      M_LOG("SpawnDefaultPlayer failed: {} is not APlayerController", DefaultPlayerControllerClass);
+      M_LOG("SpawnDefaultPlayer failed: {} is not APlayerController", ImplPtr->DefaultPlayerControllerClass);
       if (controllerActor) {
         controllerActor->Destroy();
       }
@@ -109,10 +123,10 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
     }
   }
 
-  AActor* pawnActor = registry.Spawn(GetWorld(), DefaultPawnClass, spawnLocation, spawnRotation);
+  AActor* pawnActor = registry.Spawn(GetWorld(), ImplPtr->DefaultPawnClass, spawnLocation, spawnRotation);
   auto* pawn = dynamic_cast<APawn*>(pawnActor);
   if (!pawn) {
-    M_LOG("SpawnDefaultPlayer failed: {} is not APawn", DefaultPawnClass);
+    M_LOG("SpawnDefaultPlayer failed: {} is not APawn", ImplPtr->DefaultPawnClass);
     if (pawnActor) {
       pawnActor->Destroy();
     }
@@ -138,7 +152,7 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
     controller->Spawned();
   }
   pawn->Spawned();
-  PlayerPawn = pawn;
+  ImplPtr->PlayerPawn = pawn;
 
   controller->Possess(pawn);
 

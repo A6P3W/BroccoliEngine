@@ -1,7 +1,8 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include "CollisionComponent.h"
 
-class MLineCollisionComponent : public MCollisionComponent {
+class BROCCOLI_ENGINE_API MLineCollisionComponent : public MCollisionComponent {
  public:
   MLineCollisionComponent() = default;
 
@@ -25,6 +26,6 @@ class MLineCollisionComponent : public MCollisionComponent {
   FAABB GetAABB() const override;
 
  private:
-  FVector2D LocalStart = FVector2D::ZeroVector;
+  FVector2D LocalStart = FVector2D::ZeroVector();
   FVector2D LocalEnd = FVector2D(100.0f, 0.0f);
 };

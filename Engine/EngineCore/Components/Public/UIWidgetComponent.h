@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include "SceneComponent.h"
 #include "UMath.h"
 
@@ -14,42 +15,33 @@ enum class EUIAnchor {
   BottomRight
 };
 
-class MUIWidgetComponent : public MSceneComponent {
+class BROCCOLI_ENGINE_API MUIWidgetComponent : public MSceneComponent {
  public:
   MUIWidgetComponent();
+  ~MUIWidgetComponent() override;
 
   void SetZOrderOffset(int offset);
   int GetFinalPriority() const;
 
-  // アンカー（親要素のどの位置を基準とするか）を設定
   void SetAnchor(EUIAnchor anchor);
-  EUIAnchor GetAnchor() const { return Anchor; }
+  EUIAnchor GetAnchor() const;
 
-  // ピボット（自身の要素のどの位置を原点とするか、0.0~1.0）を設定
   void SetPivot(const FVector2D& pivot);
-  FVector2D GetPivot() const { return Pivot; }
+  FVector2D GetPivot() const;
 
-  // UIのサイズを設定
   void SetWidgetSize(const FVector2D& size);
-  FVector2D GetWidgetSize() const { return WidgetSize; }
+  FVector2D GetWidgetSize() const;
 
-  // アンカー基準点からの相対的な表示位置を設定
   void SetAnchoredPosition(const FVector2D& pos);
-  FVector2D GetAnchoredPosition() const { return AnchoredPosition; }
+  FVector2D GetAnchoredPosition() const;
 
   void OnUpdate(float DeltaTime) override;
-  // 可視性変更時、親のVerticalBoxに再レイアウトを通知する
   void SetVisibility(bool bNewVisibility) override;
 
  protected:
-  // アンカーとピボットを基に実際の相対座標(RelativeLocation)を計算
   void UpdateAnchoredLocation();
 
-  int BasePriority = 0;
-  int ZOrderOffset = 0;
-
-  EUIAnchor Anchor = EUIAnchor::MiddleCenter;
-  FVector2D Pivot = FVector2D(0.5f, 0.5f);
-  FVector2D WidgetSize = FVector2D::ZeroVector;
-  FVector2D AnchoredPosition = FVector2D::ZeroVector;
+ private:
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

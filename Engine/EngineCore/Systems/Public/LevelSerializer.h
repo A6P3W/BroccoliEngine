@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -23,7 +24,7 @@ struct FActorSaveData {
 
 class World;
 
-class LevelSerializer {
+class BROCCOLI_ENGINE_API LevelSerializer {
  public:
   // 現在ObjectManagerにいるActorRegistryに登録されている全アクタを保存
   static bool Save(World* world, const std::string& filePath, const std::string& gameModeClassName);

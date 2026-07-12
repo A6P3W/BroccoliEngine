@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 #include "Actor.h"
 #include "CollisionSystem.h"
@@ -16,13 +17,33 @@ enum : FNetworkRPCId {
 
 }
 
-MNetMovementComponent::MNetMovementComponent() {
+struct MNetMovementComponent::Impl {
+  FVector2D CurrentForce = FVector2D::ZeroVector();
+  FRotator VelocityRotation = FRotator(0.0f);
+  FVector2D FrameVelocityOverride = FVector2D::ZeroVector();
+  bool bFrameVelocityOverride = false;
+  std::vector<FMovePredictionData> InFlightMoves;
+  std::vector<FMovePredictionData> ServerPendingMoves;
+  uint32_t CurrentSequence = 0;
+  uint32_t LastConfirmedSequence = 0;
+  float MaxSpeed = 320.0f;
+  float Acceleration = 2800.0f;
+};
+
+MNetMovementComponent::MNetMovementComponent() : ImplPtr(new Impl()) {
   bReplicates = true;
   SetNetComponentName("NetMovementComponent");
   RegisterReplicatedProperty(&Friction);
-  RegisterReplicatedProperty(&MaxSpeed);
-  RegisterReplicatedProperty(&Acceleration);
+  RegisterReplicatedProperty(&ImplPtr->MaxSpeed);
+  RegisterReplicatedProperty(&ImplPtr->Acceleration);
 }
+
+MNetMovementComponent::~MNetMovementComponent() { delete ImplPtr; }
+
+void MNetMovementComponent::SetMaxSpeed(float NewMaxSpeed) { ImplPtr->MaxSpeed = NewMaxSpeed; }
+float MNetMovementComponent::GetMaxSpeed() const { return ImplPtr->MaxSpeed; }
+void MNetMovementComponent::SetAcceleration(float NewAcceleration) { ImplPtr->Acceleration = NewAcceleration; }
+float MNetMovementComponent::GetAcceleration() const { return ImplPtr->Acceleration; }
 
 void MNetMovementComponent::OnRegister() {
   MMovementComponent::OnRegister();
@@ -51,15 +72,15 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
   if (OwnerActor->bIsLocallyControlled && !OwnerActor->bHasAuthority) {
     if (ShouldSimulate()) {
       FMovePredictionData NewMove;
-      NewMove.Sequence = ++CurrentSequence;
+      NewMove.Sequence = ++ImplPtr->CurrentSequence;
       NewMove.DeltaTime = DeltaTime;
-      NewMove.CurrentForce = CurrentForce;
-      NewMove.Velocity = bFrameVelocityOverride ? FrameVelocityOverride : GetVelocity();
-      NewMove.bUseVelocityOverride = bFrameVelocityOverride;
+      NewMove.CurrentForce = ImplPtr->CurrentForce;
+      NewMove.Velocity = ImplPtr->bFrameVelocityOverride ? ImplPtr->FrameVelocityOverride : GetVelocity();
+      NewMove.bUseVelocityOverride = ImplPtr->bFrameVelocityOverride;
       NewMove.StartRotation = OwnerActor->GetActorRotation();
-      NewMove.VelocityRotation = VelocityRotation;
+      NewMove.VelocityRotation = ImplPtr->VelocityRotation;
 
-      InFlightMoves.push_back(NewMove);
+      ImplPtr->InFlightMoves.push_back(NewMove);
       SimulateMovement(NewMove);
       InvokeRPC(
           RPC_ServerReceiveMove, ENetRPCType::Server, ENetPacketReliability::Unreliable, NewMove
@@ -71,18 +92,18 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
   }
 
   const bool bHasAuthorityFrameInput =
-      CurrentForce.SizeSquared() > 0.0001f || VelocityRotation.Rotation != 0.0f ||
-      bFrameVelocityOverride;
-  if (OwnerActor->bHasAuthority && (bHasAuthorityFrameInput || ServerPendingMoves.empty()) &&
+      ImplPtr->CurrentForce.SizeSquared() > 0.0001f || ImplPtr->VelocityRotation.Rotation != 0.0f ||
+      ImplPtr->bFrameVelocityOverride;
+  if (OwnerActor->bHasAuthority && (bHasAuthorityFrameInput || ImplPtr->ServerPendingMoves.empty()) &&
       ShouldSimulate()) {
     FMovePredictionData LocalMove;
-    LocalMove.Sequence = ++CurrentSequence;
+    LocalMove.Sequence = ++ImplPtr->CurrentSequence;
     LocalMove.DeltaTime = DeltaTime;
-    LocalMove.CurrentForce = CurrentForce;
-    LocalMove.Velocity = bFrameVelocityOverride ? FrameVelocityOverride : GetVelocity();
-    LocalMove.bUseVelocityOverride = bFrameVelocityOverride;
+    LocalMove.CurrentForce = ImplPtr->CurrentForce;
+    LocalMove.Velocity = ImplPtr->bFrameVelocityOverride ? ImplPtr->FrameVelocityOverride : GetVelocity();
+    LocalMove.bUseVelocityOverride = ImplPtr->bFrameVelocityOverride;
     LocalMove.StartRotation = OwnerActor->GetActorRotation();
-    LocalMove.VelocityRotation = VelocityRotation;
+    LocalMove.VelocityRotation = ImplPtr->VelocityRotation;
     SimulateMovement(LocalMove);
   }
 
@@ -93,21 +114,21 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
   }
 
   if (bHasAuthorityFrameInput) {
-    ServerPendingMoves.clear();
+    ImplPtr->ServerPendingMoves.clear();
     return;
   }
 
   std::stable_sort(
-      ServerPendingMoves.begin(),
-      ServerPendingMoves.end(),
+      ImplPtr->ServerPendingMoves.begin(),
+      ImplPtr->ServerPendingMoves.end(),
       [](const FMovePredictionData& Lhs, const FMovePredictionData& Rhs) {
         return Lhs.Sequence < Rhs.Sequence;
       }
   );
 
   bool bProcessedMove = false;
-  uint32_t ProcessedSequence = LastConfirmedSequence;
-  for (FMovePredictionData& Move : ServerPendingMoves) {
+  uint32_t ProcessedSequence = ImplPtr->LastConfirmedSequence;
+  for (FMovePredictionData& Move : ImplPtr->ServerPendingMoves) {
     if (Move.Sequence <= ProcessedSequence) {
       continue;
     }
@@ -119,15 +140,15 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
     ProcessedSequence = Move.Sequence;
     bProcessedMove = true;
   }
-  ServerPendingMoves.clear();
+  ImplPtr->ServerPendingMoves.clear();
 
   if (bProcessedMove) {
-    LastConfirmedSequence = ProcessedSequence;
+    ImplPtr->LastConfirmedSequence = ProcessedSequence;
     InvokeRPC(
         RPC_ClientReceiveAck,
         ENetRPCType::Client,
         ENetPacketReliability::Unreliable,
-        LastConfirmedSequence,
+        ImplPtr->LastConfirmedSequence,
         OwnerActor->GetActorLocation(),
         OwnerActor->GetActorRotation(),
         GetVelocity()
@@ -136,11 +157,11 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
 }
 
 void MNetMovementComponent::AddMovementInput(const FVector2D& Input) {
-  AddWorldForce(Input * -(MaxSpeed * (1.0f - Friction)));
+  AddWorldForce(Input * -(ImplPtr->MaxSpeed * (1.0f - Friction)));
 }
 
 void MNetMovementComponent::AddWorldForce(const FVector2D& Force) {
-  CurrentForce = CurrentForce + Force;
+  ImplPtr->CurrentForce = ImplPtr->CurrentForce + Force;
 }
 
 void MNetMovementComponent::AddLocalForce(const FVector2D& Force) {
@@ -155,8 +176,8 @@ void MNetMovementComponent::AddLocalForce(const FVector2D& Force) {
 
 void MNetMovementComponent::SetWorldForce(const FVector2D& Force) {
   MMovementComponent::SetWorldForce(Force);
-  FrameVelocityOverride = Force;
-  bFrameVelocityOverride = true;
+  ImplPtr->FrameVelocityOverride = Force;
+  ImplPtr->bFrameVelocityOverride = true;
 }
 
 void MNetMovementComponent::SetLocalForce(const FVector2D& Force) {
@@ -170,7 +191,7 @@ void MNetMovementComponent::SetLocalForce(const FVector2D& Force) {
 }
 
 void MNetMovementComponent::AddVelocityRotation(const FRotator& Rotation) {
-  VelocityRotation = VelocityRotation + Rotation;
+  ImplPtr->VelocityRotation = ImplPtr->VelocityRotation + Rotation;
 }
 
 void MNetMovementComponent::SetVelocityRotation(const FRotator& Rotation) {
@@ -180,7 +201,7 @@ void MNetMovementComponent::SetVelocityRotation(const FRotator& Rotation) {
   }
 
   const FRotator CurrentRotation = OwnerActor->GetActorRotation();
-  VelocityRotation = Rotation - CurrentRotation;
+  ImplPtr->VelocityRotation = Rotation - CurrentRotation;
 }
 
 void MNetMovementComponent::SimulateMovement(const FMovePredictionData& Move) {
@@ -200,7 +221,7 @@ void MNetMovementComponent::SimulateMovement(const FMovePredictionData& Move) {
   NewVelocity *= std::pow(Friction, Move.DeltaTime * ReferenceFrameRate);
 
   if (NewVelocity.SizeSquared() <= 0.001f) {
-    NewVelocity = FVector2D::ZeroVector;
+    NewVelocity = FVector2D::ZeroVector();
   }
 
   MMovementComponent::SetWorldForce(NewVelocity);
@@ -222,7 +243,7 @@ void MNetMovementComponent::Server_UploadMove(FMovePredictionData Move) {
     return;
   }
 
-  ServerPendingMoves.push_back(Move);
+  ImplPtr->ServerPendingMoves.push_back(Move);
 }
 
 void MNetMovementComponent::Client_ResolveMove(
@@ -236,32 +257,32 @@ void MNetMovementComponent::Client_ResolveMove(
     return;
   }
 
-  if (AckedSequence <= LastConfirmedSequence) {
+  if (AckedSequence <= ImplPtr->LastConfirmedSequence) {
     return;
   }
 
-  LastConfirmedSequence = AckedSequence;
+  ImplPtr->LastConfirmedSequence = AckedSequence;
 
   OwnerActor->SetActorLocation(ServerLocation);
   OwnerActor->SetActorRotation(ServerRotation);
   MMovementComponent::SetWorldForce(ServerVelocity);
-  std::erase_if(InFlightMoves, [AckedSequence](const FMovePredictionData& Move) {
+  std::erase_if(ImplPtr->InFlightMoves, [AckedSequence](const FMovePredictionData& Move) {
     return Move.Sequence <= AckedSequence;
   });
 
-  for (FMovePredictionData& Move : InFlightMoves) {
+  for (FMovePredictionData& Move : ImplPtr->InFlightMoves) {
     SimulateMovement(Move);
   }
 }
 
 bool MNetMovementComponent::ShouldSimulate() const {
-  return CurrentForce.SizeSquared() > 0.0001f || VelocityRotation.Rotation != 0.0f ||
-         bFrameVelocityOverride || GetVelocitySizeSquared() > 0.001f;
+  return ImplPtr->CurrentForce.SizeSquared() > 0.0001f || ImplPtr->VelocityRotation.Rotation != 0.0f ||
+         ImplPtr->bFrameVelocityOverride || GetVelocitySizeSquared() > 0.001f;
 }
 
 void MNetMovementComponent::ClearFrameMovementData() {
-  CurrentForce = FVector2D::ZeroVector;
-  VelocityRotation = FRotator(0.0f);
-  FrameVelocityOverride = FVector2D::ZeroVector;
-  bFrameVelocityOverride = false;
+  ImplPtr->CurrentForce = FVector2D::ZeroVector();
+  ImplPtr->VelocityRotation = FRotator(0.0f);
+  ImplPtr->FrameVelocityOverride = FVector2D::ZeroVector();
+  ImplPtr->bFrameVelocityOverride = false;
 }

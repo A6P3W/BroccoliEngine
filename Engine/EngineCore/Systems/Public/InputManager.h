@@ -1,26 +1,27 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <memory>
 #include <vector>
 
 #include "InputDevice.h"
 
 class KeyboardDevice;
-class InputManager {
+class BROCCOLI_ENGINE_API InputManager {
  private:
   InputManager();
   ~InputManager();
 
  public:
-  static InputManager& GetInstance() {
-    static InputManager instance;
-    return instance;
-  }
-  void AddDevice(std::unique_ptr<InputDevice> device);
+  static InputManager& GetInstance();
+  InputManager(const InputManager&) = delete;
+  InputManager& operator=(const InputManager&) = delete;
+  void AddDevice(std::unique_ptr<InputDevice> Device);
+  std::vector<InputDevice*> GetDevices() const;
 
   template <class T>
   T* GetDevice() const {
-    for (const auto& d : Devices) {
-      if (auto* p = dynamic_cast<T*>(d.get())) return p;
+    for (InputDevice* Device : GetDevices()) {
+      if (auto* Result = dynamic_cast<T*>(Device)) return Result;
     }
     return nullptr;
   }
@@ -28,5 +29,6 @@ class InputManager {
   void Update();
 
  private:
-  std::vector<std::unique_ptr<InputDevice>> Devices;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

@@ -4,54 +4,64 @@
 #include "ResourceManager.h"
 #include "UMath.h"
 
-MSpriteComponent::MSpriteComponent() {
-  CommonData.priority = 0;
-  CommonData.space = RenderSpace::World;
-  CommonData.alpha = 255;
+class SpriteRenderState {
+ public:
+  RenderCommon CommonData;
+  RenderCommandData FeatureData;
+};
+
+MSpriteComponent::MSpriteComponent() : RenderState(new SpriteRenderState()) {
+  RenderState->CommonData.priority = 0;
+  RenderState->CommonData.space = RenderSpace::World;
+  RenderState->CommonData.alpha = 255;
   // デフォルトは空のグラフ
-  FeatureData = GraphData{};
+  RenderState->FeatureData = GraphData{};
+}
+
+MSpriteComponent::~MSpriteComponent() {
+  delete RenderState;
 }
 
 void MSpriteComponent::SetRenderSettings(int Priority, RenderSpace Space) {
-  CommonData.priority = Priority;
-  CommonData.space = Space;
+  RenderState->CommonData.priority = Priority;
+  RenderState->CommonData.space = Space;
 }
 
 void MSpriteComponent::SubmitGraph(int handle, FScale scale, int alpha) {
-  FeatureData = GraphData{{0, 0}, FRotator(0), scale, handle};
-  CommonData.alpha = alpha;
+  RenderState->FeatureData = GraphData{{0, 0}, FRotator(0), scale, handle};
+  RenderState->CommonData.alpha = alpha;
 }
 
 void MSpriteComponent::SubmitBox(float width, float height, int color, bool fill, int alpha) {
-  FeatureData = BoxData{{0, 0}, {width, height}, FRotator(0), color, fill};
-  CommonData.alpha = alpha;
+  RenderState->FeatureData = BoxData{{0, 0}, {width, height}, FRotator(0), color, fill};
+  RenderState->CommonData.alpha = alpha;
 }
 
 void MSpriteComponent::SubmitText(const std::string& text, int color, int handle, int alpha) {
   int fontHandle = (handle != -1) ? handle : ResourceManager::GetInstance().GetFont(120, 5);
-  FeatureData = TextData{{0, 0}, text, color, fontHandle};
-  CommonData.alpha = alpha;
+  RenderState->FeatureData = TextData{{0, 0}, text, color, fontHandle};
+  RenderState->CommonData.alpha = alpha;
 }
 
 void MSpriteComponent::SubmitLine(const FVector2D& relativeEnd, int color, int alpha) {
-  FeatureData = LineData{{0, 0}, relativeEnd, color};
-  CommonData.alpha = alpha;
+  RenderState->FeatureData = LineData{{0, 0}, relativeEnd, color};
+  RenderState->CommonData.alpha = alpha;
 }
 
 void MSpriteComponent::SubmitRectGraph(
     float srcX, float srcY, float srcW, float srcH, int handle, int alpha
 ) {
-  FeatureData = RectGraphData{{0, 0}, {srcX, srcY}, {srcW, srcH}, handle};
-  CommonData.alpha = alpha;
+  RenderState->FeatureData = RectGraphData{{0, 0}, {srcX, srcY}, {srcW, srcH}, handle};
+  RenderState->CommonData.alpha = alpha;
 }
 
 void MSpriteComponent::SubmitCircle(float radius, int color, bool fill, int alpha) {
-  FeatureData = CircleData{{0, 0}, radius, color, fill};
-  CommonData.alpha = alpha;
+  RenderState->FeatureData = CircleData{{0, 0}, radius, color, fill};
+  RenderState->CommonData.alpha = alpha;
 }
 
 void MSpriteComponent::Draw() {
-  if (!bVisible) return;
+  if (!IsVisible()) return;
 
   // 現在のワールドトランスフォームを取得
   FVector2D worldPos = GetWorldLocation();
@@ -71,9 +81,9 @@ void MSpriteComponent::Draw() {
               d.Handle,
               d.Scale * worldScale,
               worldRot + d.Rotation,
-              CommonData.space,
-              CommonData.priority,
-              CommonData.alpha
+              RenderState->CommonData.space,
+              RenderState->CommonData.priority,
+              RenderState->CommonData.alpha
           );
         } else if constexpr (std::is_same_v<T, BoxData>) {
           // Boxは左上座標(worldPos)とサイズ、回転を送信
@@ -83,9 +93,9 @@ void MSpriteComponent::Draw() {
               worldRot,
               d.Color,
               d.Fill,
-              CommonData.space,
-              CommonData.priority,
-              CommonData.alpha
+              RenderState->CommonData.space,
+              RenderState->CommonData.priority,
+              RenderState->CommonData.alpha
           );
         } else if constexpr (std::is_same_v<T, CircleData>) {
           rs.SubmitCircle(
@@ -93,9 +103,9 @@ void MSpriteComponent::Draw() {
               d.Radius * worldScale.Scale,
               d.Color,
               d.Fill,
-              CommonData.space,
-              CommonData.priority,
-              CommonData.alpha
+              RenderState->CommonData.space,
+              RenderState->CommonData.priority,
+              RenderState->CommonData.alpha
           );
         } else if constexpr (std::is_same_v<T, TextData>) {
           rs.SubmitText(
@@ -103,9 +113,9 @@ void MSpriteComponent::Draw() {
               d.Text,
               d.Handle,
               d.Color,
-              CommonData.space,
-              CommonData.priority,
-              CommonData.alpha
+              RenderState->CommonData.space,
+              RenderState->CommonData.priority,
+              RenderState->CommonData.alpha
           );
         } else if constexpr (std::is_same_v<T, LineData>) {
           // LineData.EndLocation は相対座標として保持しているので、ワールド回転を考慮して終点を計算
@@ -114,9 +124,9 @@ void MSpriteComponent::Draw() {
               worldPos,
               worldPos + rotatedEnd,
               d.Color,
-              CommonData.space,
-              CommonData.priority,
-              CommonData.alpha
+              RenderState->CommonData.space,
+              RenderState->CommonData.priority,
+              RenderState->CommonData.alpha
           );
         } else if constexpr (std::is_same_v<T, RectGraphData>) {
           rs.SubmitRectGraph(
@@ -124,12 +134,12 @@ void MSpriteComponent::Draw() {
               d.SrcLocation,
               d.SrcSize,
               d.Handle,
-              CommonData.space,
-              CommonData.priority,
-              CommonData.alpha
+              RenderState->CommonData.space,
+              RenderState->CommonData.priority,
+              RenderState->CommonData.alpha
           );
         }
       },
-      FeatureData
+      RenderState->FeatureData
   );
 }
