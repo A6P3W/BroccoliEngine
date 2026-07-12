@@ -52,7 +52,7 @@ class BROCCOLI_ENGINE_API AGameModeBase : public AActor {
   void SetDefaultPlayerControllerClass(const std::string& ClassName);
 
   template <class TPawn, class TController = APlayerController>
-  TController* SpawnPlayer(const FVector2D& Location = FVector2D::ZeroVector, int PlayerId = 0) {
+  TController* SpawnPlayer(const FVector2D& Location = FVector2D::ZeroVector(), int PlayerId = 0) {
     auto* Controller = GetWorld()->SpawnActor<TController>(Location);
     Controller->SetPlayerId(PlayerId);
     Controller->SetupInputMappings();

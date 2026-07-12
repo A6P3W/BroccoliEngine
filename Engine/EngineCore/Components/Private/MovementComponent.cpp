@@ -30,7 +30,7 @@ void MMovementComponent::SetVelocityRotation(const FRotator& Rotation) {
 
 void MMovementComponent::OnUpdate(float DeltaTime) {
   if (Velocity.SizeSquared() < 0.001f) {
-    Velocity = FVector2D::ZeroVector;
+    Velocity = FVector2D::ZeroVector();
     return;
   }
   if (!GetOwner()) return;

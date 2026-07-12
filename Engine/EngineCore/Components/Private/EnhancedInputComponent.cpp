@@ -1,4 +1,4 @@
-#include "EnhancedInputComponent.h"
+﻿#include "EnhancedInputComponent.h"
 
 #include <unordered_map>
 #include <vector>
@@ -44,7 +44,7 @@ void MEnhancedInputComponent::ProcessInputBindings(
 
   for (const auto& b : ImplPtr->Bindings) {
     bool is2DAxis = false;
-    FVector2D currentAxis2D = FVector2D::ZeroVector;
+    FVector2D currentAxis2D = FVector2D::ZeroVector();
     float currentAxis1D = mapper.GetAxisValue(b.ActionName);
 
     if (b.ActionName == InputAction::Move) {

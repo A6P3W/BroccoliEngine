@@ -84,7 +84,7 @@ float InputMapper::GetAxisValue(const std::string& actionName) const {
 FVector2D InputMapper::GetAxis2DValue(
     const std::string& actionNameX, const std::string& actionNameY
 ) const {
-  FVector2D result = FVector2D::ZeroVector;
+  FVector2D result = FVector2D::ZeroVector();
   result.X = GetAxisValue(actionNameX);
   result.Y = GetAxisValue(actionNameY);
   return result;

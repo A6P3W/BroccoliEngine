@@ -1,4 +1,4 @@
-#include "EasyShakeComponent.h"
+﻿#include "EasyShakeComponent.h"
 
 #include <algorithm>
 #include <cmath>
@@ -46,7 +46,7 @@ FVector2D RandomOffsetInRange(const FVector2D& strengthXY) {
 
 struct FShakeInstance {
   uint64_t Id = 0;
-  FVector2D StrengthXY = FVector2D::ZeroVector;
+  FVector2D StrengthXY = FVector2D::ZeroVector();
   float DurationSeconds = 0.0f;
   float ElapsedSeconds = 0.0f;
   bool bFadeIn = false;
@@ -56,8 +56,8 @@ struct FShakeInstance {
 struct MEasyShakeComponent::Impl {
   std::vector<FShakeInstance> ActiveShakes;
   uint64_t NextShakeId = 1;
-  FVector2D LastAppliedLocalOffset = FVector2D::ZeroVector;
-  FVector2D BaseLocalLocation = FVector2D::ZeroVector;
+  FVector2D LastAppliedLocalOffset = FVector2D::ZeroVector();
+  FVector2D BaseLocalLocation = FVector2D::ZeroVector();
   bool HasBaseLocalLocation = false;
 };
 
@@ -141,14 +141,14 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime) {
 
   if (ImplPtr->LastAppliedLocalOffset.SizeSquared() > 1e-8f) {
     target->AddLocalOffset(ImplPtr->LastAppliedLocalOffset * -1.0f);
-    ImplPtr->LastAppliedLocalOffset = FVector2D::ZeroVector;
+    ImplPtr->LastAppliedLocalOffset = FVector2D::ZeroVector();
   }
 
   if (ImplPtr->ActiveShakes.empty()) {
     return;
   }
 
-  FVector2D totalOffset = FVector2D::ZeroVector;
+  FVector2D totalOffset = FVector2D::ZeroVector();
   for (auto it = ImplPtr->ActiveShakes.begin(); it != ImplPtr->ActiveShakes.end();) {
     it->ElapsedSeconds += DeltaTime;
     if (it->ElapsedSeconds >= it->DurationSeconds) {

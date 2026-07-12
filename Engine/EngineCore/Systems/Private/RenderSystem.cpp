@@ -15,9 +15,7 @@ class RenderSystemImpl {
 
 RenderSystem::RenderSystem() : Impl(new RenderSystemImpl()) {}
 
-RenderSystem::~RenderSystem() {
-  delete Impl;
-}
+RenderSystem::~RenderSystem() { delete Impl; }
 
 RenderSystem& RenderSystem::GetInstance() {
   static RenderSystem instance;
@@ -33,7 +31,9 @@ void RenderSystem::SubmitGraph(
     int Priority,
     int Alpha
 ) {
-  Impl->CommandBuffer.push_back({{Priority, Alpha, Space}, GraphData{Location, Rotation, Scale, Handle}});
+  Impl->CommandBuffer.push_back(
+      {{Priority, Alpha, Space}, GraphData{Location, Rotation, Scale, Handle}}
+  );
 }
 
 void RenderSystem::SubmitCircle(
@@ -45,7 +45,9 @@ void RenderSystem::SubmitCircle(
     int Priority,
     int Alpha
 ) {
-  Impl->CommandBuffer.push_back({{Priority, Alpha, Space}, CircleData{Location, Radius, Color, Fill}});
+  Impl->CommandBuffer.push_back(
+      {{Priority, Alpha, Space}, CircleData{Location, Radius, Color, Fill}}
+  );
 }
 
 void RenderSystem::SubmitBox(
@@ -72,7 +74,9 @@ void RenderSystem::SubmitText(
     int Priority,
     int Alpha
 ) {
-  Impl->CommandBuffer.push_back({{Priority, Alpha, Space}, TextData{Location, Text, Color, Handle}});
+  Impl->CommandBuffer.push_back(
+      {{Priority, Alpha, Space}, TextData{Location, Text, Color, Handle}}
+  );
 }
 
 void RenderSystem::SubmitLine(
@@ -90,11 +94,13 @@ void RenderSystem::SubmitRectGraph(
     int Priority,
     int Alpha
 ) {
-  Impl->CommandBuffer.push_back({{Priority, Alpha, Space}, RectGraphData{Dest, SrcLoc, SrcSize, Handle}});
+  Impl->CommandBuffer.push_back(
+      {{Priority, Alpha, Space}, RectGraphData{Dest, SrcLoc, SrcSize, Handle}}
+  );
 }
 
 FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
-  FVector2D camPos = FVector2D::ZeroVector;
+  FVector2D camPos = FVector2D::ZeroVector();
   float camRot = 0.0f;
   float camFOV = 1.0f;
   if (Impl->MainCamera) {
@@ -115,7 +121,7 @@ FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
 }
 
 FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPos) const {
-  FVector2D camPos = FVector2D::ZeroVector;
+  FVector2D camPos = FVector2D::ZeroVector();
   float camRot = 0.0f;
   float camFOV = 1.0f;
   if (Impl->MainCamera) {
@@ -146,7 +152,7 @@ void RenderSystem::Draw() {
       }
   );
 
-  FVector2D camPos = FVector2D::ZeroVector;
+  FVector2D camPos = FVector2D::ZeroVector();
   float camRot = 0.0f;
   float camFOV = 1.0f;
   if (Impl->MainCamera) {

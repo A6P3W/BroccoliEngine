@@ -1,4 +1,4 @@
-#include "FileUtils.h"
+﻿#include "FileUtils.h"
 #include "UMath.h"
 
 #include <algorithm>
@@ -26,4 +26,10 @@ std::string FileUtils::GetProjectRelativePath(const std::string& fullPath) {
   return fs::relative(p, fs::current_path()).generic_string();
 }
 
-const FVector2D FVector2D::ZeroVector{0.0f, 0.0f};
+BROCCOLI_ENGINE_API void DummyForceExport() {
+  FVector2D V(1.0f, 1.0f);
+  FVector2D V2 = V * 1.0f;
+  FVector2D V3 = FVector2D::ZeroVector();
+  (void)V2;
+  (void)V3;
+}

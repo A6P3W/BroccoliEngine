@@ -1,4 +1,4 @@
-#include "NetMovementComponent.h"
+﻿#include "NetMovementComponent.h"
 
 #include <algorithm>
 #include <cmath>
@@ -18,9 +18,9 @@ enum : FNetworkRPCId {
 }
 
 struct MNetMovementComponent::Impl {
-  FVector2D CurrentForce = FVector2D::ZeroVector;
+  FVector2D CurrentForce = FVector2D::ZeroVector();
   FRotator VelocityRotation = FRotator(0.0f);
-  FVector2D FrameVelocityOverride = FVector2D::ZeroVector;
+  FVector2D FrameVelocityOverride = FVector2D::ZeroVector();
   bool bFrameVelocityOverride = false;
   std::vector<FMovePredictionData> InFlightMoves;
   std::vector<FMovePredictionData> ServerPendingMoves;
@@ -221,7 +221,7 @@ void MNetMovementComponent::SimulateMovement(const FMovePredictionData& Move) {
   NewVelocity *= std::pow(Friction, Move.DeltaTime * ReferenceFrameRate);
 
   if (NewVelocity.SizeSquared() <= 0.001f) {
-    NewVelocity = FVector2D::ZeroVector;
+    NewVelocity = FVector2D::ZeroVector();
   }
 
   MMovementComponent::SetWorldForce(NewVelocity);
@@ -281,8 +281,8 @@ bool MNetMovementComponent::ShouldSimulate() const {
 }
 
 void MNetMovementComponent::ClearFrameMovementData() {
-  ImplPtr->CurrentForce = FVector2D::ZeroVector;
+  ImplPtr->CurrentForce = FVector2D::ZeroVector();
   ImplPtr->VelocityRotation = FRotator(0.0f);
-  ImplPtr->FrameVelocityOverride = FVector2D::ZeroVector;
+  ImplPtr->FrameVelocityOverride = FVector2D::ZeroVector();
   ImplPtr->bFrameVelocityOverride = false;
 }

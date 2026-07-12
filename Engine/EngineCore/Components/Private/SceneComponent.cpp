@@ -7,18 +7,6 @@
 #include "Log.h"
 #include "UMath.h"
 
-const FAttachmentTransformRules FAttachmentTransformRules::KeepRelativeTransform(
-    EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative
-);
-
-const FAttachmentTransformRules FAttachmentTransformRules::KeepWorldTransform(
-    EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld
-);
-
-const FAttachmentTransformRules FAttachmentTransformRules::SnapToTargetIncludingScale(
-    EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget
-);
-
 struct MSceneComponent::Impl {
   MSceneComponent* ParentComponent = nullptr;
   std::vector<MSceneComponent*> ChildComponents;
@@ -117,7 +105,7 @@ bool MSceneComponent::AttachToComponent(
       NewRelativeLocation = Difference.RotateVector(InverseParentRotation) / ParentScale;
     }
   } else if (Rules.LocationRule == EAttachmentRule::SnapToTarget) {
-    NewRelativeLocation = FVector2D::ZeroVector;
+    NewRelativeLocation = FVector2D::ZeroVector();
   }
 
   if (Rules.RotationRule == EAttachmentRule::KeepWorld) {

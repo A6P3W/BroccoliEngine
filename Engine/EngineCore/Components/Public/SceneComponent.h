@@ -13,7 +13,7 @@ enum class EAttachmentRule {
   SnapToTarget,
 };
 
-struct BROCCOLI_ENGINE_API FAttachmentTransformRules {
+struct FAttachmentTransformRules {
   EAttachmentRule LocationRule;
   EAttachmentRule RotationRule;
   EAttachmentRule ScaleRule;
@@ -29,6 +29,13 @@ struct BROCCOLI_ENGINE_API FAttachmentTransformRules {
   static const FAttachmentTransformRules KeepWorldTransform;
   static const FAttachmentTransformRules SnapToTargetIncludingScale;
 };
+
+inline constexpr FAttachmentTransformRules FAttachmentTransformRules::KeepRelativeTransform{
+    EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative};
+inline constexpr FAttachmentTransformRules FAttachmentTransformRules::KeepWorldTransform{
+    EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld};
+inline constexpr FAttachmentTransformRules FAttachmentTransformRules::SnapToTargetIncludingScale{
+    EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget};
 
 class BROCCOLI_ENGINE_API MSceneComponent : public MActorComponent {
  public:

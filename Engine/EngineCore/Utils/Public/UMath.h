@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "BroccoliEngineAPI.h"
 
@@ -93,11 +93,11 @@ struct BROCCOLI_ENGINE_API FVector2D {
   float X = 0.0f;
   float Y = 0.0f;
 
-  FVector2D() = default;
+  inline constexpr FVector2D() = default;
 
-  FVector2D(float InX, float InY) : X(InX), Y(InY) {}
+  inline constexpr FVector2D(float InX, float InY) : X(InX), Y(InY) {}
 
-  static const FVector2D ZeroVector;
+  inline static constexpr FVector2D ZeroVector() { return FVector2D(0.0f, 0.0f); }
 
   float SizeSquared() const { return X * X + Y * Y; }
 
@@ -135,7 +135,7 @@ struct BROCCOLI_ENGINE_API FVector2D {
 
   FVector2D operator-(float Value) const { return {X - Value, Y - Value}; }
 
-  FVector2D operator*(float Value) const { return {X * Value, Y * Value}; }
+  inline FVector2D operator*(float Value) const { return {X * Value, Y * Value}; }
 
   FVector2D operator/(float Value) const { return {X / Value, Y / Value}; }
 

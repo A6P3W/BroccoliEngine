@@ -34,7 +34,7 @@ struct AActor::Impl {
   bool HasBegunPlay = false;
   std::vector<std::unique_ptr<MActorComponent>> Components;
   World* OwnerWorld = nullptr;
-  FVector2D LastReplicatedLocation = FVector2D::ZeroVector;
+  FVector2D LastReplicatedLocation = FVector2D::ZeroVector();
   FRotator LastReplicatedRotation;
   FScale LastReplicatedScale;
   bool HasReplicatedStateCache = false;

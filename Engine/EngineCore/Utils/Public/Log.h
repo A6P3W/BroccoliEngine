@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <Windows.h>
 
-#include <chrono>
+#include <ctime>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -13,10 +13,14 @@ class MLog {
   static inline std::filesystem::path log_filepath = []() {
     std::filesystem::create_directories("Logs");
 
-    auto now = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
-    std::string filename = std::format("{:%Y-%m-%d_%H-%M-%S}.log", now);
+    std::time_t T = std::time(nullptr);
+    std::tm LocalTime;
+    localtime_s(&LocalTime, &T);
+    char Buf[64];
+    std::strftime(Buf, sizeof(Buf), "%Y-%m-%d_%H-%M-%S", &LocalTime);
+    std::string Filename = std::string(Buf) + ".log";
 
-    return std::filesystem::path("Logs") / filename;
+    return std::filesystem::path("Logs") / Filename;
   }();
 
  public:

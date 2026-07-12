@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "BroccoliEngineAPI.h"
 #include <memory>
 #include <string>
@@ -26,7 +26,7 @@ class BROCCOLI_ENGINE_API FActorManager {
 
   template <class T, std::enable_if_t<std::is_base_of_v<AActor, T>, int> = 0>
   T* SpawnObject(
-      const FVector2D& location = FVector2D::ZeroVector,
+      const FVector2D& location = FVector2D::ZeroVector(),
       FRotator rotation = FRotator(0),
       bool DeferBeginPlay = false
   ) {

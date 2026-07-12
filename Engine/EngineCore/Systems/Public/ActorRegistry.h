@@ -31,7 +31,7 @@ class BROCCOLI_ENGINE_API ActorRegistry {
   AActor* Spawn(
       World* WorldPtr,
       const std::string& ClassName,
-      const FVector2D& Location = FVector2D::ZeroVector,
+      const FVector2D& Location = FVector2D::ZeroVector(),
       FRotator Rotation = FRotator(0)
   );
 

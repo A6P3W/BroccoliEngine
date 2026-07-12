@@ -10,8 +10,8 @@ struct MUIWidgetComponent::Impl {
   int ZOrderOffset = 0;
   EUIAnchor Anchor = EUIAnchor::MiddleCenter;
   FVector2D Pivot = FVector2D(0.5f, 0.5f);
-  FVector2D WidgetSize = FVector2D::ZeroVector;
-  FVector2D AnchoredPosition = FVector2D::ZeroVector;
+  FVector2D WidgetSize = FVector2D::ZeroVector();
+  FVector2D AnchoredPosition = FVector2D::ZeroVector();
 };
 
 MUIWidgetComponent::MUIWidgetComponent() : ImplPtr(new Impl()) {}
@@ -64,14 +64,14 @@ void MUIWidgetComponent::OnUpdate(float DeltaTime) {
 
 void MUIWidgetComponent::UpdateAnchoredLocation() {
   FVector2D parentSize = {static_cast<float>(VirtualWidth), static_cast<float>(VirtualHeight)};
-  FVector2D parentTopLeft = FVector2D::ZeroVector;
+  FVector2D parentTopLeft = FVector2D::ZeroVector();
 
   if (auto parentWidget = dynamic_cast<MUIWidgetComponent*>(GetParentComponent())) {
     parentSize = parentWidget->GetWidgetSize();
     parentTopLeft = {-parentSize.X * 0.5f, -parentSize.Y * 0.5f};
   }
 
-  FVector2D anchorOffset = FVector2D::ZeroVector;
+  FVector2D anchorOffset = FVector2D::ZeroVector();
   switch (ImplPtr->Anchor) {
     case EUIAnchor::TopLeft:
       anchorOffset = {0.0f, 0.0f};
