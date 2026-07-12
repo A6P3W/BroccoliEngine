@@ -1,7 +1,7 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 
 #include <string>
-#include <unordered_map>
 
 #include "NetworkManager.h"
 #include "NetworkTypes.h"
@@ -10,10 +10,12 @@ class AActor;
 class FNetBuffer;
 class World;
 
-class FReplicationSystem {
+class BROCCOLI_ENGINE_API FReplicationSystem {
  public:
   explicit FReplicationSystem(World* InWorld);
   ~FReplicationSystem();
+  FReplicationSystem(const FReplicationSystem&) = delete;
+  FReplicationSystem& operator=(const FReplicationSystem&) = delete;
 
   void Update();
 
@@ -63,10 +65,6 @@ class FReplicationSystem {
 
   void InitializeClientForCurrentScene(FNetworkConnectionId ConnectionId);
 
-  World* OwnerWorld = nullptr;
-  NetworkManager::CallbackHandle ConnectedCallbackHandle = 0;
-  NetworkManager::CallbackHandle DisconnectedCallbackHandle = 0;
-  NetworkManager::CallbackHandle PacketReceivedCallbackHandle = 0;
-  std::unordered_map<FNetworkActorId, AActor*> ActorsByNetworkId;
-  std::unordered_map<FNetworkConnectionId, std::string> LastReadyTravelByConnection;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

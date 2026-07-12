@@ -7,7 +7,9 @@
 #include <type_traits>
 #include <vector>
 
-class FNetBuffer {
+#include "BroccoliEngineAPI.h"
+
+class BROCCOLI_ENGINE_API FNetBuffer {
  public:
   FNetBuffer() = default;
   explicit FNetBuffer(const std::vector<uint8_t>& InData);

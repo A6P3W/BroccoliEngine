@@ -7,8 +7,9 @@
 #include <vector>
 
 #include "TimerHandle.h"
+#include "BroccoliEngineAPI.h"
 
-class FTimerManager {
+class BROCCOLI_ENGINE_API FTimerManager {
  public:
   FTimerManager();
   ~FTimerManager();

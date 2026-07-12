@@ -1,9 +1,13 @@
 ﻿#pragma once
 #include "InputDevice.h"
 
-class MouseDevice : public InputDevice {
+class BROCCOLI_ENGINE_API MouseDevice : public InputDevice {
  public:
   MouseDevice();
+  ~MouseDevice() override;
+  MouseDevice(const MouseDevice&) = delete;
+  MouseDevice& operator=(const MouseDevice&) = delete;
+
   enum AxisID { Wheel = 0, MouseX, MouseY };
 
   void Update() override;
@@ -13,12 +17,6 @@ class MouseDevice : public InputDevice {
   float GetAxis(int axisID) const override;
 
  private:
-  int Buttons = 0;
-  int PrevButtons = 0;
-  float WheelDelta = 0.0f;
-
-  int CurrentMouseX = 0;
-  int CurrentMouseY = 0;
-  int PrevMouseX = 0;
-  int PrevMouseY = 0;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

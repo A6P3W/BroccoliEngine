@@ -2,7 +2,11 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
 #include <random>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "Actor.h"
 #include "CircleCollisionComponent.h"
@@ -10,91 +14,123 @@
 #include "MovementComponent.h"
 #include "RectangleCollisionComponent.h"
 
-FCollisionSystem::FCollisionSystem() {}
-FCollisionSystem::~FCollisionSystem() {}
+
+struct pair_hash {
+  inline std::size_t operator()(const std::pair<int, int>& v) const {
+    return v.first * 31 + v.second;
+  }
+};
+
+struct FCollisionSystem::Impl {
+  std::vector<MCollisionComponent*> CollisionComponents;
+
+  std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash>
+      StaticCollisionMap;
+  std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash>
+      DynamicCollisionMap;
+
+  std::vector<std::pair<int, int>> ActiveStaticCells;
+  std::vector<std::pair<int, int>> ActiveDynamicCells;
+
+  std::unordered_map<MCollisionComponent*, FAABB> CachedAABBs;
+
+  float CollisionCellSize = 100;
+  std::uint64_t FrameId = 0;
+
+  bool bDeferStaticRebuild = false;
+  bool bPendingStaticRebuild = false;
+  std::vector<MCollisionComponent*> PendingStaticRegistrations;
+};
+FCollisionSystem::FCollisionSystem() : ImplPtr(new Impl()) {}
+FCollisionSystem::~FCollisionSystem() {
+  delete ImplPtr;
+}
+
+
+float FCollisionSystem::GetCollisionCellSize() const { return ImplPtr->CollisionCellSize; }
 
 void FCollisionSystem::RegisterCollision(MCollisionComponent* component) {
-  CollisionComponents.push_back(component);
+  ImplPtr->CollisionComponents.push_back(component);
   if (component->IsStatic()) {
     if (std::find(
-            PendingStaticRegistrations.begin(), PendingStaticRegistrations.end(), component
-        ) == PendingStaticRegistrations.end()) {
-      PendingStaticRegistrations.push_back(component);
+            ImplPtr->PendingStaticRegistrations.begin(), ImplPtr->PendingStaticRegistrations.end(), component
+        ) == ImplPtr->PendingStaticRegistrations.end()) {
+      ImplPtr->PendingStaticRegistrations.push_back(component);
     }
   }
 }
 
 void FCollisionSystem::UnRegisterCollision(MCollisionComponent* component) {
-  auto it = std::find(CollisionComponents.begin(), CollisionComponents.end(), component);
-  if (it != CollisionComponents.end()) {
-    *it = CollisionComponents.back();
-    CollisionComponents.pop_back();
+  auto it = std::find(ImplPtr->CollisionComponents.begin(), ImplPtr->CollisionComponents.end(), component);
+  if (it != ImplPtr->CollisionComponents.end()) {
+    *it = ImplPtr->CollisionComponents.back();
+    ImplPtr->CollisionComponents.pop_back();
   }
 
-  PendingStaticRegistrations.erase(
-      std::remove(PendingStaticRegistrations.begin(), PendingStaticRegistrations.end(), component),
-      PendingStaticRegistrations.end()
+  ImplPtr->PendingStaticRegistrations.erase(
+      std::remove(ImplPtr->PendingStaticRegistrations.begin(), ImplPtr->PendingStaticRegistrations.end(), component),
+      ImplPtr->PendingStaticRegistrations.end()
   );
 
-  CachedAABBs.erase(component);
+  ImplPtr->CachedAABBs.erase(component);
 
   if (component->IsStatic()) {
-    if (bDeferStaticRebuild) {
-      bPendingStaticRebuild = true;
+    if (ImplPtr->bDeferStaticRebuild) {
+      ImplPtr->bPendingStaticRebuild = true;
     } else {
       RebuildStaticCollisionMap();
     }
   }
 }
 
-void FCollisionSystem::BeginSceneTransition() { bDeferStaticRebuild = true; }
+void FCollisionSystem::BeginSceneTransition() { ImplPtr->bDeferStaticRebuild = true; }
 
 void FCollisionSystem::EndSceneTransition() {
-  bDeferStaticRebuild = false;
-  if (bPendingStaticRebuild) {
+  ImplPtr->bDeferStaticRebuild = false;
+  if (ImplPtr->bPendingStaticRebuild) {
     RebuildStaticCollisionMap();
-    bPendingStaticRebuild = false;
+    ImplPtr->bPendingStaticRebuild = false;
   }
 }
 
 void FCollisionSystem::RebuildStaticCollisionMap() {
-  for (const auto& loc : ActiveStaticCells) {
-    StaticCollisionMap[loc].clear();
+  for (const auto& loc : ImplPtr->ActiveStaticCells) {
+    ImplPtr->StaticCollisionMap[loc].clear();
   }
-  ActiveStaticCells.clear();
+  ImplPtr->ActiveStaticCells.clear();
 
-  for (auto* comp : CollisionComponents) {
+  for (auto* comp : ImplPtr->CollisionComponents) {
     if (!comp->IsStatic()) continue;
-    CachedAABBs[comp] = comp->GetAABB(); 
+    ImplPtr->CachedAABBs[comp] = comp->GetAABB();
     RegisterToStaticMap(comp);
     comp->SetGridClean();
   }
 }
 
 void FCollisionSystem::UpdateCollisionMap() {
-  for (const auto& loc : ActiveDynamicCells) {
-    DynamicCollisionMap[loc].clear();
+  for (const auto& loc : ImplPtr->ActiveDynamicCells) {
+    ImplPtr->DynamicCollisionMap[loc].clear();
   }
-  ActiveDynamicCells.clear();
+  ImplPtr->ActiveDynamicCells.clear();
 
-  for (auto collision : CollisionComponents) {
+  for (auto collision : ImplPtr->CollisionComponents) {
     if (collision->IsStatic()) {
       continue;
     }
 
-    const FAABB& box = CachedAABBs[collision];
-    int minX = static_cast<int>(std::floor(box.MinX / CollisionCellSize));
-    int maxX = static_cast<int>(std::floor(box.MaxX / CollisionCellSize));
-    int minY = static_cast<int>(std::floor(box.MinY / CollisionCellSize));
-    int maxY = static_cast<int>(std::floor(box.MaxY / CollisionCellSize));
+    const FAABB& box = ImplPtr->CachedAABBs[collision];
+    int minX = static_cast<int>(std::floor(box.MinX / ImplPtr->CollisionCellSize));
+    int maxX = static_cast<int>(std::floor(box.MaxX / ImplPtr->CollisionCellSize));
+    int minY = static_cast<int>(std::floor(box.MinY / ImplPtr->CollisionCellSize));
+    int maxY = static_cast<int>(std::floor(box.MaxY / ImplPtr->CollisionCellSize));
 
     for (int x = minX; x <= maxX; ++x) {
       for (int y = minY; y <= maxY; ++y) {
         auto loc = std::make_pair(x, y);
-        if (DynamicCollisionMap[loc].empty()) {
-          ActiveDynamicCells.push_back(loc);
+        if (ImplPtr->DynamicCollisionMap[loc].empty()) {
+          ImplPtr->ActiveDynamicCells.push_back(loc);
         }
-        DynamicCollisionMap[loc].push_back(collision);
+        ImplPtr->DynamicCollisionMap[loc].push_back(collision);
       }
     }
     collision->SetGridClean();
@@ -102,26 +138,26 @@ void FCollisionSystem::UpdateCollisionMap() {
 }
 
 void FCollisionSystem::CheckCollisions() {
-  for (auto* comp : CollisionComponents) {
-    CachedAABBs[comp] = comp->GetAABB();
+  for (auto* comp : ImplPtr->CollisionComponents) {
+    ImplPtr->CachedAABBs[comp] = comp->GetAABB();
   }
 
-  for (auto* comp : PendingStaticRegistrations) {
+  for (auto* comp : ImplPtr->PendingStaticRegistrations) {
     RegisterToStaticMap(comp);
   }
-  PendingStaticRegistrations.clear();
+  ImplPtr->PendingStaticRegistrations.clear();
 
   UpdateCollisionMap();
-  ++FrameId;
+  ++ImplPtr->FrameId;
 
-  for (const auto& loc : ActiveDynamicCells) {
-    const auto& vec = DynamicCollisionMap[loc];
-    auto staticIter = StaticCollisionMap.find(loc);
-    const auto* staticVec = staticIter != StaticCollisionMap.end() ? &staticIter->second : nullptr;
+  for (const auto& loc : ImplPtr->ActiveDynamicCells) {
+    const auto& vec = ImplPtr->DynamicCollisionMap[loc];
+    auto staticIter = ImplPtr->StaticCollisionMap.find(loc);
+    const auto* staticVec = staticIter != ImplPtr->StaticCollisionMap.end() ? &staticIter->second : nullptr;
 
     for (size_t i = 0; i < vec.size(); ++i) {
       auto* A = vec[i];
-      const FAABB& aabbA = CachedAABBs[A];
+      const FAABB& aabbA = ImplPtr->CachedAABBs[A];
 
       if (staticVec) {
         for (auto* B : *staticVec) {
@@ -129,16 +165,16 @@ void FCollisionSystem::CheckCollisions() {
             continue;
           }
 
-          const FAABB& aabbB = CachedAABBs[B];
+          const FAABB& aabbB = ImplPtr->CachedAABBs[B];
           if (aabbA.MaxX < aabbB.MinX || aabbA.MinX > aabbB.MaxX || aabbA.MaxY < aabbB.MinY ||
               aabbA.MinY > aabbB.MaxY) {
             continue;
           }
 
           if (A > B) {
-            if (!B->ShouldProcessPair(A, FrameId)) continue;
+            if (!B->ShouldProcessPair(A, ImplPtr->FrameId)) continue;
           } else {
-            if (!A->ShouldProcessPair(B, FrameId)) continue;
+            if (!A->ShouldProcessPair(B, ImplPtr->FrameId)) continue;
           }
           CheckCollisionPair(A, B);
         }
@@ -146,23 +182,23 @@ void FCollisionSystem::CheckCollisions() {
 
       for (size_t j = i + 1; j < vec.size(); ++j) {
         auto* B = vec[j];
-        const FAABB& aabbB = CachedAABBs[B];
+        const FAABB& aabbB = ImplPtr->CachedAABBs[B];
         if (aabbA.MaxX < aabbB.MinX || aabbA.MinX > aabbB.MaxX || aabbA.MaxY < aabbB.MinY ||
             aabbA.MinY > aabbB.MaxY) {
           continue;
         }
 
         if (A > B) {
-          if (!B->ShouldProcessPair(A, FrameId)) continue;
+          if (!B->ShouldProcessPair(A, ImplPtr->FrameId)) continue;
         } else {
-          if (!A->ShouldProcessPair(B, FrameId)) continue;
+          if (!A->ShouldProcessPair(B, ImplPtr->FrameId)) continue;
         }
         CheckCollisionPair(A, B);
       }
     }
   }
 
-  for (auto* comp : CollisionComponents) {
+  for (auto* comp : ImplPtr->CollisionComponents) {
     comp->FlushOverlapState();
   }
 }
@@ -592,19 +628,19 @@ void FCollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComp
 }
 
 void FCollisionSystem::RegisterToStaticMap(MCollisionComponent* component) {
-  const FAABB& box = CachedAABBs[component];
-  int minX = static_cast<int>(std::floor(box.MinX / CollisionCellSize));
-  int maxX = static_cast<int>(std::floor(box.MaxX / CollisionCellSize));
-  int minY = static_cast<int>(std::floor(box.MinY / CollisionCellSize));
-  int maxY = static_cast<int>(std::floor(box.MaxY / CollisionCellSize));
+  const FAABB& box = ImplPtr->CachedAABBs[component];
+  int minX = static_cast<int>(std::floor(box.MinX / ImplPtr->CollisionCellSize));
+  int maxX = static_cast<int>(std::floor(box.MaxX / ImplPtr->CollisionCellSize));
+  int minY = static_cast<int>(std::floor(box.MinY / ImplPtr->CollisionCellSize));
+  int maxY = static_cast<int>(std::floor(box.MaxY / ImplPtr->CollisionCellSize));
 
   for (int x = minX; x <= maxX; ++x) {
     for (int y = minY; y <= maxY; ++y) {
       auto loc = std::make_pair(x, y);
-      if (StaticCollisionMap[loc].empty()) {
-        ActiveStaticCells.push_back(loc);
+      if (ImplPtr->StaticCollisionMap[loc].empty()) {
+        ImplPtr->ActiveStaticCells.push_back(loc);
       }
-      StaticCollisionMap[loc].push_back(component);
+      ImplPtr->StaticCollisionMap[loc].push_back(component);
     }
   }
 }

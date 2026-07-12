@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		<BroccoliEngineImported>true</BroccoliEngineImported>
+	</PropertyGroup>
+
+	<PropertyGroup Label="UserMacros">
+		<BroccoliEngineDir>$(MSBuildThisFileDirectory)</BroccoliEngineDir>
+
+		<!-- BroccoliEngine.dll / BroccoliEngine.lib の出力先 -->
+		<BroccoliEngineBinDir>$(BroccoliEngineDir)Bin\$(Platform)\$(Configuration)\</BroccoliEngineBinDir>
+
+		<!-- vcpkg のライブラリ -->
+		<BroccoliVcpkgIncludeDir>$(BroccoliEngineDir)vcpkg_installed\x64-windows-static-md\include\</BroccoliVcpkgIncludeDir>
+		<BroccoliVcpkgLibDir Condition="'$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Editor'">$(BroccoliEngineDir)vcpkg_installed\x64-windows-static-md\debug\lib\</BroccoliVcpkgLibDir>
+		<BroccoliVcpkgLibDir Condition="'$(Configuration)' != 'Debug' And '$(Configuration)' != 'Editor'">$(BroccoliEngineDir)vcpkg_installed\x64-windows-static-md\lib\</BroccoliVcpkgLibDir>
+
+
+		<BroccoliImguiLib Condition="'$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Editor'">imguid.lib</BroccoliImguiLib>
+		<BroccoliImguiLib Condition="'$(Configuration)' != 'Debug' And '$(Configuration)' != 'Editor'">imgui.lib</BroccoliImguiLib>
+		
+		
+		<BroccoliProductName Condition="'$(BroccoliProductName)' == ''">$(ProjectName)</BroccoliProductName>
+		<BroccoliPublishRootDir>$(SolutionDir)Publish\$(Configuration)\</BroccoliPublishRootDir>
+		
+		<BroccoliBootstrapCpp>$(BroccoliEngineDir)Bootstrap\Bootstrap.cpp</BroccoliBootstrapCpp>
+		<BroccoliBootstrapExe>$(OutDir)Bootstrap_Tmp.exe</BroccoliBootstrapExe>
+	</PropertyGroup>
+
+	<ItemDefinitionGroup>
+		<ClCompile>
+			<DisableSpecificWarnings>4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+			<AdditionalIncludeDirectories>
+				$(DXLIB_DIR);
+				$(BroccoliVcpkgIncludeDir);
+				$(BroccoliEngineDir)EngineCore\;
+				$(BroccoliEngineDir)EngineCore\Core\Public;
+				$(BroccoliEngineDir)EngineCore\Systems\Public;
+				$(BroccoliEngineDir)EngineCore\Network\Public;
+				$(BroccoliEngineDir)EngineCore\Components\Public;
+				$(BroccoliEngineDir)EngineCore\GameFramework\Public;
+				$(BroccoliEngineDir)EngineCore\Utils\Public;
+				$(BroccoliEngineDir)EngineCore\Online\Public;
+				$(BroccoliEngineDir)EngineSide\;
+				$(BroccoliEngineDir)EngineSide\Default\Public;
+				$(BroccoliEngineDir)Editor\Public;
+				$(BroccoliEngineDir)ThirdParty;
+				$(BroccoliEngineDir)ThirdParty\EOS\SDK\Include;
+				%(AdditionalIncludeDirectories)
+			</AdditionalIncludeDirectories>
+		</ClCompile>
+
+		<Link>
+			<AdditionalDependencies>$(BroccoliImguiLib);BroccoliEngine.lib;enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalLibraryDirectories>
+				$(DXLIB_DIR);
+				$(BroccoliEngineBinDir);
+				$(BroccoliVcpkgLibDir);
+				$(BroccoliEngineDir)ThirdParty\EOS\SDK\Lib;
+				%(AdditionalLibraryDirectories)
+			</AdditionalLibraryDirectories>
+		</Link>
+	</ItemDefinitionGroup>
+
+	<Import Project="$(BroccoliEngineDir)BroccoliEngine.targets"
+			Condition="Exists('$(BroccoliEngineDir)BroccoliEngine.targets')" />
+</Project>

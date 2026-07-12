@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- ビルド完了後に自動実行 -->
+  <Target Name="BroccoliEngineAfterBuild" AfterTargets="Build">
+    <Message Importance="high" Text="[Broccoli Engine] --- Post-Build Processing ---" />
+
+    <!-- 1. DLLのコピー (OutDir直下へ) -->
+    <ItemGroup>
+      <EngineDLLs Include="$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration)\BroccoliEngine.dll" Condition="Exists('$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration)\BroccoliEngine.dll')" />
+      <EngineDLLs Include="$(MSBuildThisFileDirectory)ThirdParty\EOS\SDK\Bin\EOSSDK-Win64-Shipping.dll" Condition="Exists('$(MSBuildThisFileDirectory)ThirdParty\EOS\SDK\Bin\EOSSDK-Win64-Shipping.dll')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(EngineDLLs)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+
+    <!-- 2. ローカル実行用のResourcesコピー (OutDir\Resourcesへ) -->
+    <ItemGroup>
+      <ProjectResources Include="$(MSBuildProjectDirectory)\Resources\**\*.*" Condition="Exists('$(MSBuildProjectDirectory)\Resources\')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ProjectResources)" DestinationFolder="$(OutDir)Resources\%(RecursiveDir)" SkipUnchangedFiles="true" />
+
+    <!-- 3. EXEプロジェクトの場合のみ配布処理を実行 -->
+    <CallTarget Targets="BroccoliDeployApplication" Condition="'$(ConfigurationType)' == 'Application'" />
+  </Target>
+
+  <!-- 配布（Publish）パッケージ作成ロジック -->
+  <!-- 配布（Publish）パッケージ作成ロジック -->
+  <Target Name="BroccoliDeployApplication">
+    <!-- 1. 既存の配布フォルダを完全に削除 -->
+    <Message Importance="high" Text="[Broccoli Engine] Cleaning publish folder: $(BroccoliPublishRootDir)" />
+    <RemoveDir Directories="$(BroccoliPublishRootDir)" />
+
+    <!-- パスの解決：未定義の場合のデフォルト設定 -->
+    <PropertyGroup>
+      <ActualPublishBinDir>$(BroccoliPublishRootDir)Binaries</ActualPublishBinDir>
+    </PropertyGroup>
+
+    <Message Importance="high" Text="[Broccoli Engine] Organizing Publish folders..." />
+
+    <!-- 2. フォルダの再作成 -->
+    <MakeDir Directories="$(ActualPublishBinDir)" />
+    <MakeDir Directories="$(BroccoliPublishRootDir)Resources" />
+
+    <!-- ゲーム本体(EXE)をBinフォルダへ -->
+    <Copy SourceFiles="$(OutDir)$(TargetName)$(TargetExt)" 
+          DestinationFiles="$(ActualPublishBinDir)\$(BroccoliProductName)$(TargetExt)" 
+          SkipUnchangedFiles="true" />
+
+    <!-- 必要なDLLをBinフォルダへ -->
+    <ItemGroup>
+      <RuntimeDLLs Include="$(OutDir)BroccoliEngine.dll;$(OutDir)EOSSDK-Win64-Shipping.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RuntimeDLLs)" DestinationFolder="$(ActualPublishBinDir)" SkipUnchangedFiles="true" Condition="Exists('%(FullPath)')" />
+    
+    <!-- Resourcesを Publish\Resources へコピー -->
+    <ItemGroup>
+      <ResourcesToPublish Include="$(OutDir)Resources\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ResourcesToPublish)" DestinationFolder="$(BroccoliPublishRootDir)Resources\%(RecursiveDir)" SkipUnchangedFiles="true" />
+
+    <!-- Bootstrap (ランチャー) のコンパイル (前のターンのパス修正版) -->
+    <Exec Command="&quot;$(VC_ExecutablePath_x64_x64)\cl.exe&quot; /nologo /O2 /EHsc /std:c++17 /I &quot;$(VC_IncludePath.Split(';')[0].TrimEnd('\'))&quot; /I &quot;$(WindowsSDK_IncludePath.Split(';')[0].TrimEnd('\'))&quot; /Fo&quot;$(IntDir)\&quot; /Fe&quot;$(BroccoliBootstrapExe)&quot; &quot;$(BroccoliBootstrapCpp)&quot; /link /LIBPATH:&quot;$(VC_LibraryPath_x64.Split(';')[0].TrimEnd('\'))&quot; /LIBPATH:&quot;$(WindowsSDK_LibraryPath_x64.Split(';')[0].TrimEnd('\'))&quot; user32.lib shlwapi.lib shell32.lib" 
+          Condition="Exists('$(BroccoliBootstrapCpp)')" />
+
+    <!-- Bootstrap EXE を Publish直下(ルート)へ -->
+    <Copy SourceFiles="$(BroccoliBootstrapExe)" DestinationFiles="$(BroccoliPublishRootDir)\$(BroccoliProductName).exe" SkipUnchangedFiles="true" Condition="Exists('$(BroccoliBootstrapExe)')" />
+
+    <Message Importance="high" Text="[Broccoli Engine] Build and Deploy Successful: $(BroccoliPublishRootDir)" />
+  </Target>
+</Project>

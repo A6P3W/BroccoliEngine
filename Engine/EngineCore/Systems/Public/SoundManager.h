@@ -3,7 +3,9 @@
 #include <unordered_map>
 #include <vector>
 
-class FSoundManager {
+#include "BroccoliEngineAPI.h"
+
+class BROCCOLI_ENGINE_API FSoundManager {
  public:
   FSoundManager() = default;
   ~FSoundManager();

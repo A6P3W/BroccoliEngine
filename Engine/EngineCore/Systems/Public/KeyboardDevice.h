@@ -1,14 +1,19 @@
 ﻿#pragma once
 #include "InputDevice.h"
 
-class KeyboardDevice : public InputDevice {
+class BROCCOLI_ENGINE_API KeyboardDevice : public InputDevice {
  public:
+  KeyboardDevice();
+  ~KeyboardDevice() override;
+  KeyboardDevice(const KeyboardDevice&) = delete;
+  KeyboardDevice& operator=(const KeyboardDevice&) = delete;
+
   void Update() override;
   bool GetPressStart(int code) const override;
   bool GetPressing(int code) const override;
   bool GetRelease(int code) const override;
 
  private:
-  bool Key[256] = {};
-  bool PrevKey[256] = {};
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };
