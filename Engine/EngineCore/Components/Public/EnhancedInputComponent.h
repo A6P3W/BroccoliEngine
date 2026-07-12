@@ -2,8 +2,6 @@
 #include "BroccoliEngineAPI.h"
 #include <functional>
 #include <string>
-#include <unordered_map>
-#include <vector>
 
 #include "ActorComponent.h"
 #include "InputMapper.h"
@@ -18,23 +16,12 @@ struct FInputActionValue {
 };
 
 class BROCCOLI_ENGINE_API MEnhancedInputComponent : public MActorComponent {
- private:
-  struct FInputBinding {
-    std::string ActionName;
-    ETriggerEvent Event;
-    std::function<void(const FInputActionValue&)> Callback;
-    bool IsUIAction = false;
-  };
-  std::vector<FInputBinding> Bindings;
-  std::unordered_map<std::string, FVector2D> LastAxis2DValues;
-  std::unordered_map<std::string, float> LastAxis1DValues;
-
  public:
-  void ClearBindings() {
-    Bindings.clear();
-    LastAxis2DValues.clear();
-    LastAxis1DValues.clear();
-  }
+  MEnhancedInputComponent();
+  ~MEnhancedInputComponent() override;
+
+  void ClearBindings();
+
   template <class T>
   void BindAction(
       const std::string& actionName,
@@ -43,11 +30,11 @@ class BROCCOLI_ENGINE_API MEnhancedInputComponent : public MActorComponent {
       void (T::*func)(const FInputActionValue&),
       bool isUIAction = false
   ) {
-    Bindings.push_back(
-        {actionName,
-         event,
-         [obj, func](const FInputActionValue& v) { (obj->*func)(v); },
-         isUIAction}
+    AddBinding(
+        actionName,
+        event,
+        [obj, func](const FInputActionValue& v) { (obj->*func)(v); },
+        isUIAction
     );
   }
   template <class T>
@@ -58,10 +45,21 @@ class BROCCOLI_ENGINE_API MEnhancedInputComponent : public MActorComponent {
       void (T::*func)(),
       bool isUIAction = false
   ) {
-    Bindings.push_back(
-        {actionName, event, [obj, func](const FInputActionValue&) { (obj->*func)(); }, isUIAction}
+    AddBinding(
+        actionName, event, [obj, func](const FInputActionValue&) { (obj->*func)(); }, isUIAction
     );
   }
 
   void ProcessInputBindings(const InputMapper& mapper, bool AllowUI, bool AllowGame);
+
+ private:
+  void AddBinding(
+      const std::string& ActionName,
+      ETriggerEvent Event,
+      std::function<void(const FInputActionValue&)> Callback,
+      bool bIsUIAction
+  );
+
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

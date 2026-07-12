@@ -1,34 +1,57 @@
 ﻿#include "CollisionComponent.h"
 
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
 #include <CollisionSystem.h>
 
 #include "Actor.h"
 #include "World.h"
 
-MCollisionComponent::MCollisionComponent() {}
+struct MCollisionComponent::Impl {
+  std::unordered_set<AActor*> CheckedThisFrame;
+  std::unordered_set<AActor*> OverlappingActors;
+  std::unordered_map<MCollisionComponent*, std::uint64_t> LastCheckedFrame;
+  std::unordered_set<AActor*> IntersectingThisFrame;
+  ECollisionType CollisionType = ECollisionType::Block;
+  bool bIsStatic = true;
+};
+
+MCollisionComponent::MCollisionComponent() : ImplPtr(new Impl()) {}
 
 MCollisionComponent::~MCollisionComponent() {
   if (!GetOwner()->GetWorld()->IsTearingDown()) {
     UnRegisterComponent();
   }
+  delete ImplPtr;
 }
+
+ECollisionType MCollisionComponent::GetCollisionType() const { return ImplPtr->CollisionType; }
+
+void MCollisionComponent::SetCollisionType(ECollisionType NewType) {
+  ImplPtr->CollisionType = NewType;
+}
+
+bool MCollisionComponent::IsStatic() const { return ImplPtr->bIsStatic; }
+
 void MCollisionComponent::MarkCheckedThisFrame(AActor* OtherActor) {
-  CheckedThisFrame.insert(OtherActor);
+  ImplPtr->CheckedThisFrame.insert(OtherActor);
 }
 
 void MCollisionComponent::FlushOverlapState() {
   std::vector<AActor*> toRemove;
-  for (AActor* actor : OverlappingActors) {
-    if (IntersectingThisFrame.find(actor) == IntersectingThisFrame.end()) {
+  for (AActor* actor : ImplPtr->OverlappingActors) {
+    if (ImplPtr->IntersectingThisFrame.find(actor) == ImplPtr->IntersectingThisFrame.end()) {
       toRemove.push_back(actor);
     }
   }
   for (AActor* actor : toRemove) {
-    OverlappingActors.erase(actor);
+    ImplPtr->OverlappingActors.erase(actor);
     GetOwner()->EndOverlap(actor);
   }
-  CheckedThisFrame.clear();
-  IntersectingThisFrame.clear();
+  ImplPtr->CheckedThisFrame.clear();
+  ImplPtr->IntersectingThisFrame.clear();
 }
 void MCollisionComponent::OnRegister() {
   if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetCollisionSystem()) {
@@ -46,39 +69,39 @@ void MCollisionComponent::OnUnregister() {
 void MCollisionComponent::OnComponentDestroy() {}
 
 void MCollisionComponent::SetStatic(bool IsStatic) {
-  if (bIsStatic == IsStatic) {
+  if (ImplPtr->bIsStatic == IsStatic) {
     return;
   }
-  bIsStatic = IsStatic;
+  ImplPtr->bIsStatic = IsStatic;
   if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetCollisionSystem()) {
     GetOwner()->GetWorld()->GetCollisionSystem()->RebuildStaticCollisionMap();
   }
 }
 
 bool MCollisionComponent::IsOverlappingActor(AActor* OtherActor) const {
-  return OverlappingActors.contains(OtherActor);
+  return ImplPtr->OverlappingActors.contains(OtherActor);
 }
 
 bool MCollisionComponent::ShouldProcessPair(MCollisionComponent* OtherComponent, std::uint64_t FrameId) {
-  auto it = LastCheckedFrame.find(OtherComponent);
-  if (it != LastCheckedFrame.end() && it->second == FrameId) {
-    CheckedThisFrame.insert(OtherComponent->GetOwner());
+  auto it = ImplPtr->LastCheckedFrame.find(OtherComponent);
+  if (it != ImplPtr->LastCheckedFrame.end() && it->second == FrameId) {
+    ImplPtr->CheckedThisFrame.insert(OtherComponent->GetOwner());
     return false;
   }
 
-  LastCheckedFrame[OtherComponent] = FrameId;
+  ImplPtr->LastCheckedFrame[OtherComponent] = FrameId;
 
-  auto& otherFrame = OtherComponent->LastCheckedFrame;
+  auto& otherFrame = OtherComponent->ImplPtr->LastCheckedFrame;
   otherFrame[this] = FrameId;
 
   return true;
 }
 
 void MCollisionComponent::UpdateOverlapState(AActor* OtherActor, bool bIsIntersecting) {
-  CheckedThisFrame.insert(OtherActor);
+  ImplPtr->CheckedThisFrame.insert(OtherActor);
   if (bIsIntersecting) {
-    IntersectingThisFrame.insert(OtherActor);
-    if (OverlappingActors.insert(OtherActor).second) {
+    ImplPtr->IntersectingThisFrame.insert(OtherActor);
+    if (ImplPtr->OverlappingActors.insert(OtherActor).second) {
       GetOwner()->BeginOverlap(OtherActor);
     }
   }

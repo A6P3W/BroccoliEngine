@@ -96,8 +96,5 @@ class BROCCOLI_ENGINE_API NetworkManager {
   struct Impl;
   Impl* ImplPtr = nullptr;
 
-  CallbackHandle NextCallbackHandle = 1;
-  std::vector<std::pair<CallbackHandle, ConnectedCallback>> OnConnectedCallbacks;
-  std::vector<std::pair<CallbackHandle, DisconnectedCallback>> OnDisconnectedCallbacks;
-  std::vector<std::pair<CallbackHandle, PacketReceivedCallback>> OnPacketReceivedCallbacks;
+
 };

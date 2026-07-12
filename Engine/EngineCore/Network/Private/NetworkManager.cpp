@@ -11,6 +11,10 @@
 struct NetworkManager::Impl {
   std::unordered_map<FNetworkConnectionId, ENetPeer*> PeersByConnectionId;
   std::unordered_map<ENetPeer*, FNetworkConnectionId> ConnectionIdsByPeer;
+  CallbackHandle NextCallbackHandle = 1;
+  std::vector<std::pair<CallbackHandle, ConnectedCallback>> OnConnectedCallbacks;
+  std::vector<std::pair<CallbackHandle, DisconnectedCallback>> OnDisconnectedCallbacks;
+  std::vector<std::pair<CallbackHandle, PacketReceivedCallback>> OnPacketReceivedCallbacks;
 };
 
 NetworkManager& NetworkManager::GetInstance() {
@@ -243,8 +247,8 @@ NetworkManager::CallbackHandle NetworkManager::AddOnConnected(ConnectedCallback 
     return 0;
   }
 
-  const CallbackHandle handle = NextCallbackHandle++;
-  OnConnectedCallbacks.push_back({handle, std::move(Callback)});
+  const CallbackHandle handle = ImplPtr->NextCallbackHandle++;
+  ImplPtr->OnConnectedCallbacks.push_back({handle, std::move(Callback)});
   return handle;
 }
 
@@ -253,8 +257,8 @@ NetworkManager::CallbackHandle NetworkManager::AddOnDisconnected(DisconnectedCal
     return 0;
   }
 
-  const CallbackHandle handle = NextCallbackHandle++;
-  OnDisconnectedCallbacks.push_back({handle, std::move(Callback)});
+  const CallbackHandle handle = ImplPtr->NextCallbackHandle++;
+  ImplPtr->OnDisconnectedCallbacks.push_back({handle, std::move(Callback)});
   return handle;
 }
 
@@ -265,8 +269,8 @@ NetworkManager::CallbackHandle NetworkManager::AddOnPacketReceived(
     return 0;
   }
 
-  const CallbackHandle handle = NextCallbackHandle++;
-  OnPacketReceivedCallbacks.push_back({handle, std::move(Callback)});
+  const CallbackHandle handle = ImplPtr->NextCallbackHandle++;
+  ImplPtr->OnPacketReceivedCallbacks.push_back({handle, std::move(Callback)});
   return handle;
 }
 
@@ -275,13 +279,13 @@ void NetworkManager::RemoveOnConnected(CallbackHandle Handle) {
     return;
   }
 
-  OnConnectedCallbacks.erase(
+  ImplPtr->OnConnectedCallbacks.erase(
       std::remove_if(
-          OnConnectedCallbacks.begin(),
-          OnConnectedCallbacks.end(),
+          ImplPtr->OnConnectedCallbacks.begin(),
+          ImplPtr->OnConnectedCallbacks.end(),
           [Handle](const auto& CallbackEntry) { return CallbackEntry.first == Handle; }
       ),
-      OnConnectedCallbacks.end()
+      ImplPtr->OnConnectedCallbacks.end()
   );
 }
 
@@ -290,13 +294,13 @@ void NetworkManager::RemoveOnDisconnected(CallbackHandle Handle) {
     return;
   }
 
-  OnDisconnectedCallbacks.erase(
+  ImplPtr->OnDisconnectedCallbacks.erase(
       std::remove_if(
-          OnDisconnectedCallbacks.begin(),
-          OnDisconnectedCallbacks.end(),
+          ImplPtr->OnDisconnectedCallbacks.begin(),
+          ImplPtr->OnDisconnectedCallbacks.end(),
           [Handle](const auto& CallbackEntry) { return CallbackEntry.first == Handle; }
       ),
-      OnDisconnectedCallbacks.end()
+      ImplPtr->OnDisconnectedCallbacks.end()
   );
 }
 
@@ -305,13 +309,13 @@ void NetworkManager::RemoveOnPacketReceived(CallbackHandle Handle) {
     return;
   }
 
-  OnPacketReceivedCallbacks.erase(
+  ImplPtr->OnPacketReceivedCallbacks.erase(
       std::remove_if(
-          OnPacketReceivedCallbacks.begin(),
-          OnPacketReceivedCallbacks.end(),
+          ImplPtr->OnPacketReceivedCallbacks.begin(),
+          ImplPtr->OnPacketReceivedCallbacks.end(),
           [Handle](const auto& CallbackEntry) { return CallbackEntry.first == Handle; }
       ),
-      OnPacketReceivedCallbacks.end()
+      ImplPtr->OnPacketReceivedCallbacks.end()
   );
 }
 
@@ -393,7 +397,7 @@ void NetworkManager::ClearPeers() {
 }
 
 void NetworkManager::BroadcastConnected(FNetworkConnectionId ConnectionId) {
-  const auto callbacks = OnConnectedCallbacks;
+  const auto callbacks = ImplPtr->OnConnectedCallbacks;
   for (const auto& callbackEntry : callbacks) {
     if (callbackEntry.second) {
       callbackEntry.second(ConnectionId);
@@ -402,7 +406,7 @@ void NetworkManager::BroadcastConnected(FNetworkConnectionId ConnectionId) {
 }
 
 void NetworkManager::BroadcastDisconnected(FNetworkConnectionId ConnectionId) {
-  const auto callbacks = OnDisconnectedCallbacks;
+  const auto callbacks = ImplPtr->OnDisconnectedCallbacks;
   for (const auto& callbackEntry : callbacks) {
     if (callbackEntry.second) {
       callbackEntry.second(ConnectionId);
@@ -411,7 +415,7 @@ void NetworkManager::BroadcastDisconnected(FNetworkConnectionId ConnectionId) {
 }
 
 void NetworkManager::BroadcastPacketReceived(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer) {
-  const auto callbacks = OnPacketReceivedCallbacks;
+  const auto callbacks = ImplPtr->OnPacketReceivedCallbacks;
   for (const auto& callbackEntry : callbacks) {
     Buffer.ResetRead();
     if (callbackEntry.second) {

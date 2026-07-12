@@ -149,8 +149,8 @@ EditorMode::EditorMode() {
   }
   M_LOG("EditorMode initialized");
   bEditorActor = true;
-  DefaultPawnClass = EditorPawn::StaticClassName();
-  DefaultPlayerControllerClass = EditorController::StaticClassName();
+  SetDefaultPawnClass(EditorPawn::StaticClassName());
+  SetDefaultPlayerControllerClass(EditorController::StaticClassName());
 }
 
 void EditorMode::CopySelectedActor() {

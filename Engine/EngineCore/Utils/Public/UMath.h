@@ -1,4 +1,6 @@
-﻿#pragma once
+#pragma once
+
+#include "BroccoliEngineAPI.h"
 
 #include <cmath>
 #include <compare>
@@ -13,7 +15,7 @@ class UMath {
 
 struct FRotator;
 
-struct FScale {
+struct BROCCOLI_ENGINE_API FScale {
   float Scale = 1.0f;
 
   FScale() = default;
@@ -87,7 +89,7 @@ struct FScale {
   auto operator<=>(const FScale&) const = default;
 };
 
-struct FVector2D {
+struct BROCCOLI_ENGINE_API FVector2D {
   float X = 0.0f;
   float Y = 0.0f;
 
@@ -183,7 +185,7 @@ struct FVector2D {
   FVector2D RotateVector(const FRotator& Angle) const;
 };
 
-struct FRotator {
+struct BROCCOLI_ENGINE_API FRotator {
   float Rotation = 0.0f;
 
   FRotator() = default;
@@ -216,4 +218,4 @@ inline FVector2D FVector2D::RotateVector(const FRotator& Angle) const {
   return {X * CosTheta - Y * SinTheta, X * SinTheta + Y * CosTheta};
 }
 
-inline const FVector2D FVector2D::ZeroVector{0.0f, 0.0f};
+

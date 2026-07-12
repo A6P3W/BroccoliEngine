@@ -1,17 +1,24 @@
-﻿#include "ActorManager.h"
+#include "ActorManager.h"
 
 #include <algorithm>
+#include <vector>
 
 #include "Actor.h"
 
-FActorManager::FActorManager() {}
+struct FActorManager::Impl {
+  std::vector<std::unique_ptr<AActor>> Actors;
+  std::vector<std::unique_ptr<AActor>> PendingActors;
+  World* World = nullptr;
+};
 
-FActorManager::~FActorManager() = default;
+FActorManager::FActorManager() : ImplPtr(new Impl()) {}
+
+FActorManager::~FActorManager() { delete ImplPtr; }
 
 void FActorManager::Update(float DeltaTime) {
-  for (auto& object : Actors) {
+  for (auto& object : ImplPtr->Actors) {
     if (object && !object->IsPendingDestroy()) {
-      if (World->IsSimulating() || object->IsEditorActor() || object->CanUpdateAnytime()) {
+      if (ImplPtr->World->IsSimulating() || object->IsEditorActor() || object->CanUpdateAnytime()) {
         object->Update(DeltaTime);
       }
     }
@@ -19,9 +26,20 @@ void FActorManager::Update(float DeltaTime) {
 }
 
 void FActorManager::Draw() {
-  for (auto& object : Actors) {
+  for (auto& object : ImplPtr->Actors) {
     object->Draw();
   }
+}
+
+void FActorManager::SetWorld(World* world) { ImplPtr->World = world; }
+World* FActorManager::GetWorld() const { return ImplPtr->World; }
+
+const std::vector<std::unique_ptr<AActor>>& FActorManager::GetAllActors() const {
+  return ImplPtr->Actors;
+}
+
+void FActorManager::AddPendingActor(std::unique_ptr<AActor> Actor) {
+  ImplPtr->PendingActors.push_back(std::move(Actor));
 }
 
 void FActorManager::RemovePendingDestroy() {
@@ -29,23 +47,23 @@ void FActorManager::RemovePendingDestroy() {
     return !obj || obj->IsPendingDestroy();
   };
 
-  std::erase_if(Actors, shouldRemove);
-  std::erase_if(PendingActors, shouldRemove);
+  std::erase_if(ImplPtr->Actors, shouldRemove);
+  std::erase_if(ImplPtr->PendingActors, shouldRemove);
 }
 
 void FActorManager::FlushPendingActors() {
-  if (PendingActors.empty()) {
+  if (ImplPtr->PendingActors.empty()) {
     return;
   }
 
-  Actors.reserve(Actors.size() + PendingActors.size());
-  for (auto& pendingObj : PendingActors) {
-    Actors.push_back(std::move(pendingObj));
+  ImplPtr->Actors.reserve(ImplPtr->Actors.size() + ImplPtr->PendingActors.size());
+  for (auto& pendingObj : ImplPtr->PendingActors) {
+    ImplPtr->Actors.push_back(std::move(pendingObj));
   }
-  PendingActors.clear();
+  ImplPtr->PendingActors.clear();
 }
 
 void FActorManager::ClearAllObjects() {
-  Actors.clear();
-  PendingActors.clear();
+  ImplPtr->Actors.clear();
+  ImplPtr->PendingActors.clear();
 }

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cctype>
 #include <memory>
+#include <functional>
 #include <utility>
 
 #include "Actor.h"
@@ -28,52 +29,89 @@ bool IsAlphaNumeric(char Character) {
 }
 }  // namespace
 
-UIInputTextComponent::UIInputTextComponent() {
-  SetWidgetSize({Width, Height});
-  NormalColor = GetColor(80, 80, 80);
-  HoveredColor = GetColor(120, 120, 120);
-  EditingColor = GetColor(45, 105, 170);
+struct UIInputTextComponent::Impl {
+  MSpriteComponent* BoxSprite = nullptr;
+  MSpriteComponent* TextSprite = nullptr;
+  MSpriteComponent* BorderSprite = nullptr;
+  MSpriteComponent* ActionHintSprite = nullptr;
+
+  std::string Text;
+  std::string HintText;
+  std::string EditingText;
+  std::function<void(const std::string&)> OnTextChanged;
+  std::function<void(const std::string&)> OnTextCommitted;
+  int MaxLength = 16;
+  bool bIsPassword = false;
+  bool bIsEditing = false;
+  bool bCaretVisible = true;
+  float CaretBlinkTimer = 0.0f;
+
+  float Width = 0.0f;
+  float Height = 0.0f;
+  float TextOffsetY = 0.0f;
+  float ActionHintOffsetY = 3.0f;
+  int NormalColor = 0;
+  int HoveredColor = 0;
+  int EditingColor = 0;
+  int TextColor = 0xFFFFFF;
+  int HintColor = 0xA0A0A0;
+  int FontSize = 24;
+  int FontHandle = -1;
+  int HintFontHandle = -1;
+  EButtonState CurrentState = EButtonState::Normal;
+};
+UIInputTextComponent::UIInputTextComponent() : ImplPtr(new Impl()) {
+  SetWidgetSize({ImplPtr->Width, ImplPtr->Height});
+  ImplPtr->NormalColor = GetColor(80, 80, 80);
+  ImplPtr->HoveredColor = GetColor(120, 120, 120);
+  ImplPtr->EditingColor = GetColor(45, 105, 170);
 }
 
+UIInputTextComponent::~UIInputTextComponent() { delete ImplPtr; }
+
+const std::string& UIInputTextComponent::GetText() const { return ImplPtr->Text; }
+
+bool UIInputTextComponent::IsEditing() const { return ImplPtr->bIsEditing; }
+
 void UIInputTextComponent::OnRegister() {
-  if (BoxSprite != nullptr || TextSprite != nullptr || GetOwner() == nullptr) {
+  if (ImplPtr->BoxSprite != nullptr || ImplPtr->TextSprite != nullptr || GetOwner() == nullptr) {
     return;
   }
 
-  BoxSprite = NewObject<MSpriteComponent>(GetOwner());
-  TextSprite = NewObject<MSpriteComponent>(GetOwner());
-  BorderSprite = NewObject<MSpriteComponent>(GetOwner());
-  ActionHintSprite = NewObject<MSpriteComponent>(GetOwner());
-  if (BoxSprite == nullptr || TextSprite == nullptr || BorderSprite == nullptr ||
-      ActionHintSprite == nullptr) {
+  ImplPtr->BoxSprite = NewObject<MSpriteComponent>(GetOwner());
+  ImplPtr->TextSprite = NewObject<MSpriteComponent>(GetOwner());
+  ImplPtr->BorderSprite = NewObject<MSpriteComponent>(GetOwner());
+  ImplPtr->ActionHintSprite = NewObject<MSpriteComponent>(GetOwner());
+  if (ImplPtr->BoxSprite == nullptr || ImplPtr->TextSprite == nullptr || ImplPtr->BorderSprite == nullptr ||
+      ImplPtr->ActionHintSprite == nullptr) {
     return;
   }
 
-  BoxSprite->SetRenderSettings(GetFinalPriority(), RenderSpace::Screen);
-  BoxSprite->AttachToComponent(this);
-  TextSprite->SetRenderSettings(GetFinalPriority() + 1, RenderSpace::Screen);
-  TextSprite->AttachToComponent(this);
-  BorderSprite->SetRenderSettings(GetFinalPriority() + 2, RenderSpace::Screen);
-  BorderSprite->AttachToComponent(this);
-  ActionHintSprite->SetRenderSettings(GetFinalPriority() + 3, RenderSpace::Screen);
-  ActionHintSprite->AttachToComponent(this);
+  ImplPtr->BoxSprite->SetRenderSettings(GetFinalPriority(), RenderSpace::Screen);
+  ImplPtr->BoxSprite->AttachToComponent(this);
+  ImplPtr->TextSprite->SetRenderSettings(GetFinalPriority() + 1, RenderSpace::Screen);
+  ImplPtr->TextSprite->AttachToComponent(this);
+  ImplPtr->BorderSprite->SetRenderSettings(GetFinalPriority() + 2, RenderSpace::Screen);
+  ImplPtr->BorderSprite->AttachToComponent(this);
+  ImplPtr->ActionHintSprite->SetRenderSettings(GetFinalPriority() + 3, RenderSpace::Screen);
+  ImplPtr->ActionHintSprite->AttachToComponent(this);
 
-  BoxSprite->RegisterComponent();
-  TextSprite->RegisterComponent();
-  BorderSprite->RegisterComponent();
-  ActionHintSprite->RegisterComponent();
+  ImplPtr->BoxSprite->RegisterComponent();
+  ImplPtr->TextSprite->RegisterComponent();
+  ImplPtr->BorderSprite->RegisterComponent();
+  ImplPtr->ActionHintSprite->RegisterComponent();
 
-  FontHandle = ResourceManager::GetInstance().GetFont(FontSize, 5);
-  HintFontHandle = ResourceManager::GetInstance().GetFont(ActionHintFontSize, 5);
+  ImplPtr->FontHandle = ResourceManager::GetInstance().GetFont(ImplPtr->FontSize, 5);
+  ImplPtr->HintFontHandle = ResourceManager::GetInstance().GetFont(ActionHintFontSize, 5);
   UpdateVisuals();
 }
 
 void UIInputTextComponent::Press() {
-  if (CurrentState == EButtonState::Disabled) {
+  if (ImplPtr->CurrentState == EButtonState::Disabled) {
     return;
   }
 
-  if (!bIsEditing) {
+  if (!ImplPtr->bIsEditing) {
     BeginInput();
   }
 
@@ -83,14 +121,14 @@ void UIInputTextComponent::Press() {
 void UIInputTextComponent::OnUpdate(float DeltaTime) {
   MUIButtonComponent::OnUpdate(DeltaTime);
 
-  if (!bIsEditing) {
+  if (!ImplPtr->bIsEditing) {
     return;
   }
 
-  CaretBlinkTimer += DeltaTime;
-  if (CaretBlinkTimer >= 0.5f) {
-    CaretBlinkTimer = 0.0f;
-    bCaretVisible = !bCaretVisible;
+  ImplPtr->CaretBlinkTimer += DeltaTime;
+  if (ImplPtr->CaretBlinkTimer >= 0.5f) {
+    ImplPtr->CaretBlinkTimer = 0.0f;
+    ImplPtr->bCaretVisible = !ImplPtr->bCaretVisible;
     UpdateVisuals();
   }
 
@@ -98,80 +136,87 @@ void UIInputTextComponent::OnUpdate(float DeltaTime) {
 }
 
 void UIInputTextComponent::OnStateChanged(EButtonState NewState) {
-  CurrentState = NewState;
+  ImplPtr->CurrentState = NewState;
   UpdateVisuals();
 }
 
 void UIInputTextComponent::SetText(const std::string& text, bool bBroadcast) {
-  Text = text.substr(0, static_cast<size_t>((std::max)(0, MaxLength)));
-  if (bIsEditing) {
-    EditingText = Text;
+  ImplPtr->Text = text.substr(0, static_cast<size_t>((std::max)(0, ImplPtr->MaxLength)));
+  if (ImplPtr->bIsEditing) {
+    ImplPtr->EditingText = ImplPtr->Text;
   }
 
   UpdateVisuals();
 
-  if (bBroadcast && OnTextChanged) {
-    OnTextChanged(Text);
+  if (bBroadcast && ImplPtr->OnTextChanged) {
+    ImplPtr->OnTextChanged(ImplPtr->Text);
   }
 }
 
 void UIInputTextComponent::SetHintText(const std::string& hintText) {
-  HintText = hintText;
+  ImplPtr->HintText = hintText;
   UpdateVisuals();
 }
 
 void UIInputTextComponent::SetMaxLength(int maxLength) {
-  MaxLength = (std::max)(0, maxLength);
-  if (static_cast<int>(Text.size()) > MaxLength) {
-    Text.resize(MaxLength);
+  ImplPtr->MaxLength = (std::max)(0, maxLength);
+  if (static_cast<int>(ImplPtr->Text.size()) > ImplPtr->MaxLength) {
+    ImplPtr->Text.resize(ImplPtr->MaxLength);
   }
-  if (static_cast<int>(EditingText.size()) > MaxLength) {
-    EditingText.resize(MaxLength);
+  if (static_cast<int>(ImplPtr->EditingText.size()) > ImplPtr->MaxLength) {
+    ImplPtr->EditingText.resize(ImplPtr->MaxLength);
   }
   UpdateVisuals();
 }
 
 void UIInputTextComponent::SetPassword(bool bInIsPassword) {
-  bIsPassword = bInIsPassword;
+  ImplPtr->bIsPassword = bInIsPassword;
   UpdateVisuals();
 }
 
 void UIInputTextComponent::SetSize(float width, float height) {
-  Width = width;
-  Height = height;
+  ImplPtr->Width = width;
+  ImplPtr->Height = height;
   SetWidgetSize({width, height});
   UpdateVisuals();
 }
 
 void UIInputTextComponent::SetColors(int normalColor, int hoveredColor, int editingColor) {
-  NormalColor = normalColor;
-  HoveredColor = hoveredColor;
-  EditingColor = editingColor;
+  ImplPtr->NormalColor = normalColor;
+  ImplPtr->HoveredColor = hoveredColor;
+  ImplPtr->EditingColor = editingColor;
   UpdateVisuals();
 }
 
 void UIInputTextComponent::SetTextColor(int color) {
-  TextColor = color;
+  ImplPtr->TextColor = color;
   UpdateVisuals();
 }
 
 void UIInputTextComponent::SetHintColor(int color) {
-  HintColor = color;
+  ImplPtr->HintColor = color;
   UpdateVisuals();
 }
 
 void UIInputTextComponent::SetTextOffsetY(float offsetY) {
-  TextOffsetY = offsetY;
+  ImplPtr->TextOffsetY = offsetY;
   UpdateVisuals();
 }
 
 void UIInputTextComponent::SetActionHintOffsetY(float offsetY) {
-  ActionHintOffsetY = offsetY;
+  ImplPtr->ActionHintOffsetY = offsetY;
   UpdateVisuals();
 }
 
+void UIInputTextComponent::SetOnTextChanged(std::function<void(const std::string&)> Callback) {
+  ImplPtr->OnTextChanged = std::move(Callback);
+}
+
+void UIInputTextComponent::SetOnTextCommitted(std::function<void(const std::string&)> Callback) {
+  ImplPtr->OnTextCommitted = std::move(Callback);
+}
 void UIInputTextComponent::OnComponentDestroy() {
-  if (bIsEditing) {
+  if (ImplPtr->bIsEditing) {
     UIManager::GetInstance()->SetTextInputActive(false);
   }
 
@@ -179,26 +224,26 @@ void UIInputTextComponent::OnComponentDestroy() {
 }
 
 void UIInputTextComponent::BeginInput() {
-  bIsEditing = true;
-  EditingText = Text;
-  CaretBlinkTimer = 0.0f;
-  bCaretVisible = true;
+  ImplPtr->bIsEditing = true;
+  ImplPtr->EditingText = ImplPtr->Text;
+  ImplPtr->CaretBlinkTimer = 0.0f;
+  ImplPtr->bCaretVisible = true;
   UIManager::GetInstance()->SetTextInputActive(true);
   SetState(EButtonState::Pressed);
   UpdateVisuals();
 }
 
 void UIInputTextComponent::CommitInput() {
-  if (!bIsEditing) {
+  if (!ImplPtr->bIsEditing) {
     return;
   }
 
-  bIsEditing = false;
+  ImplPtr->bIsEditing = false;
   UIManager::GetInstance()->SetTextInputActive(false);
-  Text = EditingText;
+  ImplPtr->Text = ImplPtr->EditingText;
 
-  if (OnTextCommitted) {
-    OnTextCommitted(Text);
+  if (ImplPtr->OnTextCommitted) {
+    ImplPtr->OnTextCommitted(ImplPtr->Text);
   }
 
   SetState(EButtonState::Hovered);
@@ -206,13 +251,13 @@ void UIInputTextComponent::CommitInput() {
 }
 
 void UIInputTextComponent::CancelInput() {
-  if (!bIsEditing) {
+  if (!ImplPtr->bIsEditing) {
     return;
   }
 
-  bIsEditing = false;
+  ImplPtr->bIsEditing = false;
   UIManager::GetInstance()->SetTextInputActive(false);
-  EditingText = Text;
+  ImplPtr->EditingText = ImplPtr->Text;
   SetState(EButtonState::Hovered);
   UpdateVisuals();
 }
@@ -234,10 +279,10 @@ void UIInputTextComponent::HandleKeyboardInput() {
   }
 
   if (keyboard->GetPressStart(KEY_INPUT_BACK)) {
-    if (!EditingText.empty()) {
-      EditingText.pop_back();
-      if (OnTextChanged) {
-        OnTextChanged(EditingText);
+    if (!ImplPtr->EditingText.empty()) {
+      ImplPtr->EditingText.pop_back();
+      if (ImplPtr->OnTextChanged) {
+        ImplPtr->OnTextChanged(ImplPtr->EditingText);
       }
       UpdateVisuals();
     }
@@ -277,81 +322,81 @@ void UIInputTextComponent::HandleKeyboardInput() {
 }
 
 void UIInputTextComponent::AppendCharacter(char character) {
-  if (!IsAlphaNumeric(character) || static_cast<int>(EditingText.size()) >= MaxLength) {
+  if (!IsAlphaNumeric(character) || static_cast<int>(ImplPtr->EditingText.size()) >= ImplPtr->MaxLength) {
     return;
   }
 
-  EditingText.push_back(character);
-  CaretBlinkTimer = 0.0f;
-  bCaretVisible = true;
+  ImplPtr->EditingText.push_back(character);
+  ImplPtr->CaretBlinkTimer = 0.0f;
+  ImplPtr->bCaretVisible = true;
 
-  if (OnTextChanged) {
-    OnTextChanged(EditingText);
+  if (ImplPtr->OnTextChanged) {
+    ImplPtr->OnTextChanged(ImplPtr->EditingText);
   }
 
   UpdateVisuals();
 }
 
 void UIInputTextComponent::UpdateVisuals() {
-  if (BoxSprite != nullptr) {
-    BoxSprite->SetRelativeLocation({-Width * 0.5f, -Height * 0.5f});
-    BoxSprite->SubmitBox(Width, Height, GetCurrentBackgroundColor(), true);
+  if (ImplPtr->BoxSprite != nullptr) {
+    ImplPtr->BoxSprite->SetRelativeLocation({-ImplPtr->Width * 0.5f, -ImplPtr->Height * 0.5f});
+    ImplPtr->BoxSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, GetCurrentBackgroundColor(), true);
   }
 
-  if (BorderSprite != nullptr) {
-    BorderSprite->SetRelativeLocation({-Width * 0.5f, -Height * 0.5f});
-    if (bIsEditing) {
-      BorderSprite->SubmitBox(Width, Height, GetColor(0, 255, 0), false);
-    } else if (CurrentState == EButtonState::Hovered) {
-      BorderSprite->SubmitBox(Width, Height, GetColor(255, 255, 255), false);
+  if (ImplPtr->BorderSprite != nullptr) {
+    ImplPtr->BorderSprite->SetRelativeLocation({-ImplPtr->Width * 0.5f, -ImplPtr->Height * 0.5f});
+    if (ImplPtr->bIsEditing) {
+      ImplPtr->BorderSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, GetColor(0, 255, 0), false);
+    } else if (ImplPtr->CurrentState == EButtonState::Hovered) {
+      ImplPtr->BorderSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, GetColor(255, 255, 255), false);
     } else {
-      BorderSprite->SubmitBox(Width, Height, GetColor(255, 255, 255), false, 0);
+      ImplPtr->BorderSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, GetColor(255, 255, 255), false, 0);
     }
   }
 
-  if (ActionHintSprite != nullptr) {
-    if (CurrentState == EButtonState::Hovered && !bIsEditing) {
+  if (ImplPtr->ActionHintSprite != nullptr) {
+    if (ImplPtr->CurrentState == EButtonState::Hovered && !ImplPtr->bIsEditing) {
       const int hintWidth = GetDrawStringWidthToHandle(
-          ActionHintText.c_str(), static_cast<int>(ActionHintText.length()), HintFontHandle
+          ActionHintText.c_str(), static_cast<int>(ActionHintText.length()), ImplPtr->HintFontHandle
       );
-      ActionHintSprite->SetRelativeLocation({-hintWidth * 0.5f, Height * 0.5f + ActionHintOffsetY});
-      ActionHintSprite->SubmitText(ActionHintText, GetColor(255, 230, 64), HintFontHandle);
+      ImplPtr->ActionHintSprite->SetRelativeLocation({-hintWidth * 0.5f, ImplPtr->Height * 0.5f + ImplPtr->ActionHintOffsetY});
+      ImplPtr->ActionHintSprite->SubmitText(ActionHintText, GetColor(255, 230, 64), ImplPtr->HintFontHandle);
     } else {
-      ActionHintSprite->SubmitText("", GetColor(255, 230, 64), HintFontHandle, 0);
+      ImplPtr->ActionHintSprite->SubmitText("", GetColor(255, 230, 64), ImplPtr->HintFontHandle, 0);
     }
   }
 
-  if (TextSprite == nullptr) {
+  if (ImplPtr->TextSprite == nullptr) {
     return;
   }
 
   const std::string displayText = GetDisplayText();
-  const bool bShowHint = !bIsEditing && Text.empty() && !HintText.empty();
-  const int color = bShowHint ? HintColor : TextColor;
+  const bool bShowHint = !ImplPtr->bIsEditing && ImplPtr->Text.empty() && !ImplPtr->HintText.empty();
+  const int color = bShowHint ? ImplPtr->HintColor : ImplPtr->TextColor;
   const int textWidth =
-      GetDrawStringWidthToHandle(displayText.c_str(), static_cast<int>(displayText.length()), FontHandle);
+      GetDrawStringWidthToHandle(displayText.c_str(), static_cast<int>(displayText.length()), ImplPtr->FontHandle);
 
   const float leftPadding = 16.0f;
-  const float maxTextWidth = (std::max)(0.0f, Width - leftPadding * 2.0f);
-  const float textX = -Width * 0.5f + leftPadding;
-  const float textY = -FontSize * 0.5f + TextOffsetY;
-  TextSprite->SetRelativeLocation({textX, textY});
-  TextSprite->SubmitText(displayText, color, FontHandle, textWidth > maxTextWidth ? 220 : 255);
+  const float maxTextWidth = (std::max)(0.0f, ImplPtr->Width - leftPadding * 2.0f);
+  const float textX = -ImplPtr->Width * 0.5f + leftPadding;
+  const float textY = -ImplPtr->FontSize * 0.5f + ImplPtr->TextOffsetY;
+  ImplPtr->TextSprite->SetRelativeLocation({textX, textY});
+  ImplPtr->TextSprite->SubmitText(displayText, color, ImplPtr->FontHandle, textWidth > maxTextWidth ? 220 : 255);
 }
 
 std::string UIInputTextComponent::GetDisplayText() const {
-  const std::string& source = bIsEditing ? EditingText : Text;
+  const std::string& source = ImplPtr->bIsEditing ? ImplPtr->EditingText : ImplPtr->Text;
   std::string result;
 
-  if (source.empty() && !bIsEditing) {
-    result = HintText;
-  } else if (bIsPassword) {
+  if (source.empty() && !ImplPtr->bIsEditing) {
+    result = ImplPtr->HintText;
+  } else if (ImplPtr->bIsPassword) {
     result.assign(source.size(), '*');
   } else {
     result = source;
   }
 
-  if (bIsEditing && bCaretVisible) {
+  if (ImplPtr->bIsEditing && ImplPtr->bCaretVisible) {
     result.push_back('|');
   }
 
@@ -359,18 +404,18 @@ std::string UIInputTextComponent::GetDisplayText() const {
 }
 
 int UIInputTextComponent::GetCurrentBackgroundColor() const {
-  if (bIsEditing) {
-    return EditingColor;
+  if (ImplPtr->bIsEditing) {
+    return ImplPtr->EditingColor;
   }
 
-  switch (CurrentState) {
+  switch (ImplPtr->CurrentState) {
     case EButtonState::Hovered:
-      return HoveredColor;
+      return ImplPtr->HoveredColor;
     case EButtonState::Pressed:
-      return EditingColor;
+      return ImplPtr->EditingColor;
     case EButtonState::Normal:
     case EButtonState::Disabled:
     default:
-      return NormalColor;
+      return ImplPtr->NormalColor;
   }
 }

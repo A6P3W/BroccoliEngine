@@ -2,7 +2,6 @@
 #include "BroccoliEngineAPI.h"
 
 #include <string>
-#include <vector>
 
 #include "ActorComponent.h"
 
@@ -10,6 +9,9 @@ class FSoundManager;
 
 class BROCCOLI_ENGINE_API MSoundComponent : public MActorComponent {
  public:
+  MSoundComponent();
+  ~MSoundComponent() override;
+
   int PlaySE(const std::string& path, bool loop = false);
   int PlayBGM(const std::string& path, bool loop = true);
 
@@ -24,5 +26,6 @@ class BROCCOLI_ENGINE_API MSoundComponent : public MActorComponent {
  private:
   FSoundManager* GetSoundManager() const;
 
-  std::vector<int> PlayingHandles;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

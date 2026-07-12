@@ -262,3 +262,7 @@ bool Application::Draw() {
 
   return true;
 }
+
+void* Application::GetImGuiContext() {
+  return static_cast<void*>(ImGui::GetCurrentContext());
+}

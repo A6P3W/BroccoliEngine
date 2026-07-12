@@ -1,4 +1,4 @@
-﻿#include "LevelStarterWidget.h"
+#include "LevelStarterWidget.h"
 
 #include <DxLib.h>
 
@@ -21,13 +21,13 @@ ALevelStarterWidget::ALevelStarterWidget() {
   buttonPtr->SetSize(ButtonWidth, ButtonHeight);
   buttonPtr->SetColors(GetColor(85, 85, 85), GetColor(119, 119, 119), GetColor(51, 51, 51));
   buttonPtr->SetAnchor(EUIAnchor::MiddleCenter);
-  buttonPtr->OnPressed = []() {
+  buttonPtr->SetOnPressed([]() {
     const std::string filepath =
         FileDialog::OpenFile("Broccoli Level Files (*.BLevel)\0*.BLevel\0All Files (*.*)\0*.*\0");
     if (!filepath.empty()) {
       SceneManager::GetInstance().OpenLevelByPath(filepath);
     }
-  };
+  });
 
   auto* text = NewObject<UITextComponent>(this);
   text->SetText("Select .BLevel to Play");

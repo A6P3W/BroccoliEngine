@@ -8,8 +8,8 @@ REGISTER_GAME_MODE(ANetworkTestGameMode)
 REGISTER_GAME_MODE(ANetworkTestLevel2GameMode)
 
 ANetworkTestGameMode::ANetworkTestGameMode() {
-  DefaultPawnClass = ANetworkTestPawn::StaticClassName();
-  DefaultPlayerControllerClass = APlayerController::StaticClassName();
+  SetDefaultPawnClass(ANetworkTestPawn::StaticClassName());
+  SetDefaultPlayerControllerClass(APlayerController::StaticClassName());
 }
 
 void ANetworkTestGameMode::BeginPlay() { SetUpdateableAnytime(true); }

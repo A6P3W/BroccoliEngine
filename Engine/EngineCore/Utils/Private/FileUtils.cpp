@@ -1,4 +1,5 @@
-﻿#include "FileUtils.h"
+#include "FileUtils.h"
+#include "UMath.h"
 
 #include <algorithm>
 
@@ -24,3 +25,5 @@ std::string FileUtils::GetProjectRelativePath(const std::string& fullPath) {
   fs::path p(fullPath);
   return fs::relative(p, fs::current_path()).generic_string();
 }
+
+const FVector2D FVector2D::ZeroVector{0.0f, 0.0f};

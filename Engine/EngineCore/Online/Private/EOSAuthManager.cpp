@@ -1,4 +1,4 @@
-﻿#include "EOSAuthManager.h"
+#include "EOSAuthManager.h"
 
 #include <array>
 #include <utility>
@@ -46,34 +46,43 @@ void CompleteAuthCallback(std::function<void(bool)>& OnComplete, bool bSuccess) 
 }
 }  // namespace
 
+struct EOSAuthManager::Impl {
+  EOS_ProductUserId LocalUserId = nullptr;
+  EEOSAuthState State = EEOSAuthState::NotLoggedIn;
+  EOS_NotificationId LoginStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+  std::function<void(EAuthLossReason)> OnAuthLost;
+};
+
 EOSAuthManager& EOSAuthManager::Get() {
   static EOSAuthManager Instance;
   return Instance;
 }
 
-EOSAuthManager::~EOSAuthManager() = default;
+EOSAuthManager::EOSAuthManager() : ImplPtr(new Impl()) {}
+
+EOSAuthManager::~EOSAuthManager() { delete ImplPtr; }
 
 void EOSAuthManager::Shutdown() {
   UnregisterLoginStatusNotification();
 
-  OnAuthLost = nullptr;
-  LocalUserId = nullptr;
-  State = EEOSAuthState::NotLoggedIn;
+  ImplPtr->OnAuthLost = nullptr;
+  ImplPtr->LocalUserId = nullptr;
+  ImplPtr->State = EEOSAuthState::NotLoggedIn;
 }
 
 void EOSAuthManager::LoginWithDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete) {
   if (!EOSCoreManager::Get().IsInitialized()) {
     M_LOG("[EOSAuth] LoginWithDeviceId failed: EOSCoreManager is not initialized.");
-    LocalUserId = nullptr;
-    State = EEOSAuthState::Failed;
+    ImplPtr->LocalUserId = nullptr;
+    ImplPtr->State = EEOSAuthState::Failed;
     CompleteAuthCallback(OnComplete, false);
     return;
   }
 
   if (!EOSCoreManager::Get().GetConnectHandle()) {
     M_LOG("[EOSAuth] LoginWithDeviceId failed: ConnectHandle is null.");
-    LocalUserId = nullptr;
-    State = EEOSAuthState::Failed;
+    ImplPtr->LocalUserId = nullptr;
+    ImplPtr->State = EEOSAuthState::Failed;
     CompleteAuthCallback(OnComplete, false);
     return;
   }
@@ -81,22 +90,22 @@ void EOSAuthManager::LoginWithDeviceId(const char* DisplayName, std::function<vo
   CreateDeviceId(SafeDisplayName(DisplayName), std::move(OnComplete));
 }
 
-bool EOSAuthManager::IsLoggedIn() const { return State == EEOSAuthState::LoggedIn && LocalUserId != nullptr; }
+bool EOSAuthManager::IsLoggedIn() const { return ImplPtr->State == EEOSAuthState::LoggedIn && ImplPtr->LocalUserId != nullptr; }
 
 void EOSAuthManager::SetOnAuthLost(std::function<void(EAuthLossReason)> Callback) {
-  OnAuthLost = std::move(Callback);
+  ImplPtr->OnAuthLost = std::move(Callback);
 }
 
-EOS_ProductUserId EOSAuthManager::GetLocalUserId() const { return LocalUserId; }
+EOS_ProductUserId EOSAuthManager::GetLocalUserId() const { return ImplPtr->LocalUserId; }
 
 std::string EOSAuthManager::GetLocalUserIdString() const {
-  if (!LocalUserId) {
+  if (!ImplPtr->LocalUserId) {
     return {};
   }
 
   std::array<char, EOS_PRODUCTUSERID_MAX_LENGTH + 1> Buffer = {};
   int32_t BufferLength = static_cast<int32_t>(Buffer.size());
-  EOS_EResult Result = EOS_ProductUserId_ToString(LocalUserId, Buffer.data(), &BufferLength);
+  EOS_EResult Result = EOS_ProductUserId_ToString(ImplPtr->LocalUserId, Buffer.data(), &BufferLength);
   if (Result != EOS_EResult::EOS_Success) {
     M_LOG("[EOSAuth] ProductUserId stringify failed: {}", SafeEOSResult(Result));
     return {};
@@ -109,13 +118,13 @@ void EOSAuthManager::CreateDeviceId(const char* DisplayName, std::function<void(
   EOS_HConnect ConnectHandle = EOSCoreManager::Get().GetConnectHandle();
   if (!ConnectHandle) {
     M_LOG("[EOSAuth] CreateDeviceId failed: ConnectHandle is null.");
-    LocalUserId = nullptr;
-    State = EEOSAuthState::Failed;
+    ImplPtr->LocalUserId = nullptr;
+    ImplPtr->State = EEOSAuthState::Failed;
     CompleteAuthCallback(OnComplete, false);
     return;
   }
 
-  State = EEOSAuthState::CreatingDeviceId;
+  ImplPtr->State = EEOSAuthState::CreatingDeviceId;
 
   auto* Context = new FCreateDeviceIdContext{SafeDisplayName(DisplayName), std::move(OnComplete)};
 
@@ -132,8 +141,8 @@ void EOSAuthManager::CreateDeviceId(const char* DisplayName, std::function<void(
 
         if (!Data || !Context) {
           M_LOG("[EOSAuth] CreateDeviceId failed: callback data is null.");
-          AuthManager.LocalUserId = nullptr;
-          AuthManager.State = EEOSAuthState::Failed;
+          AuthManager.ImplPtr->LocalUserId = nullptr;
+          AuthManager.ImplPtr->State = EEOSAuthState::Failed;
           return;
         }
 
@@ -152,8 +161,8 @@ void EOSAuthManager::CreateDeviceId(const char* DisplayName, std::function<void(
         }
 
         M_LOG("[EOSAuth] CreateDeviceId failed: {}", SafeEOSResult(Data->ResultCode));
-        AuthManager.LocalUserId = nullptr;
-        AuthManager.State = EEOSAuthState::Failed;
+        AuthManager.ImplPtr->LocalUserId = nullptr;
+        AuthManager.ImplPtr->State = EEOSAuthState::Failed;
         CompleteAuthCallback(Context->OnComplete, false);
         delete Context;
       }
@@ -164,13 +173,13 @@ void EOSAuthManager::LoginAfterDeviceId(const char* DisplayName, std::function<v
   EOS_HConnect ConnectHandle = EOSCoreManager::Get().GetConnectHandle();
   if (!ConnectHandle) {
     M_LOG("[EOSAuth] Connect Login failed: ConnectHandle is null.");
-    LocalUserId = nullptr;
-    State = EEOSAuthState::Failed;
+    ImplPtr->LocalUserId = nullptr;
+    ImplPtr->State = EEOSAuthState::Failed;
     CompleteAuthCallback(OnComplete, false);
     return;
   }
 
-  State = EEOSAuthState::LoggingIn;
+  ImplPtr->State = EEOSAuthState::LoggingIn;
 
   EOS_Connect_Credentials Credentials = {};
   Credentials.ApiVersion = EOS_CONNECT_CREDENTIALS_API_LATEST;
@@ -197,14 +206,14 @@ void EOSAuthManager::LoginAfterDeviceId(const char* DisplayName, std::function<v
 
         if (!Data || !Context) {
           M_LOG("[EOSAuth] Connect Login failed: callback data is null.");
-          AuthManager.LocalUserId = nullptr;
-          AuthManager.State = EEOSAuthState::Failed;
+          AuthManager.ImplPtr->LocalUserId = nullptr;
+          AuthManager.ImplPtr->State = EEOSAuthState::Failed;
           return;
         }
 
         if (Data->ResultCode == EOS_EResult::EOS_Success && Data->LocalUserId) {
-          AuthManager.LocalUserId = Data->LocalUserId;
-          AuthManager.State = EEOSAuthState::LoggedIn;
+          AuthManager.ImplPtr->LocalUserId = Data->LocalUserId;
+          AuthManager.ImplPtr->State = EEOSAuthState::LoggedIn;
           AuthManager.RegisterLoginStatusNotification();
           M_LOG("[EOSAuth] Connect Login success");
           M_LOG("[EOSAuth] ProductUserId = {}", AuthManager.GetLocalUserIdString());
@@ -214,8 +223,8 @@ void EOSAuthManager::LoginAfterDeviceId(const char* DisplayName, std::function<v
         }
 
         M_LOG("[EOSAuth] Connect Login failed: {}", SafeEOSResult(Data->ResultCode));
-        AuthManager.LocalUserId = nullptr;
-        AuthManager.State = EEOSAuthState::Failed;
+        AuthManager.ImplPtr->LocalUserId = nullptr;
+        AuthManager.ImplPtr->State = EEOSAuthState::Failed;
         CompleteAuthCallback(Context->OnComplete, false);
         delete Context;
       }
@@ -233,16 +242,16 @@ void EOSAuthManager::RegisterLoginStatusNotification() {
 
   EOS_Connect_AddNotifyLoginStatusChangedOptions Options = {};
   Options.ApiVersion = EOS_CONNECT_ADDNOTIFYLOGINSTATUSCHANGED_API_LATEST;
-  LoginStatusNotificationId =
+  ImplPtr->LoginStatusNotificationId =
       EOS_Connect_AddNotifyLoginStatusChanged(ConnectHandle, &Options, this, &EOSAuthManager::OnLoginStatusChanged);
-  if (LoginStatusNotificationId == EOS_INVALID_NOTIFICATIONID) {
+  if (ImplPtr->LoginStatusNotificationId == EOS_INVALID_NOTIFICATIONID) {
     M_LOG("[EOSAuth] AddNotifyLoginStatusChanged failed.");
   }
 }
 
 void EOSAuthManager::UnregisterLoginStatusNotification() {
-  const EOS_NotificationId Id = LoginStatusNotificationId;
-  LoginStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
+  const EOS_NotificationId Id = ImplPtr->LoginStatusNotificationId;
+  ImplPtr->LoginStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
 
   if (Id == EOS_INVALID_NOTIFICATIONID) {
     return;
@@ -261,18 +270,18 @@ void EOSAuthManager::HandleLoginStatusChanged(const EOS_Connect_LoginStatusChang
     return;
   }
 
-  if (LocalUserId && Data->LocalUserId && LocalUserId != Data->LocalUserId) {
+  if (ImplPtr->LocalUserId && Data->LocalUserId && ImplPtr->LocalUserId != Data->LocalUserId) {
     return;
   }
 
   const EAuthLossReason Reason = EAuthLossReason::Unknown;
   M_LOG("[EOSAuth] Login status lost: reason={}", AuthLossReasonToString(Reason));
-  LocalUserId = nullptr;
-  State = EEOSAuthState::NotLoggedIn;
+  ImplPtr->LocalUserId = nullptr;
+  ImplPtr->State = EEOSAuthState::NotLoggedIn;
   UnregisterLoginStatusNotification();
 
-  if (OnAuthLost) {
-    OnAuthLost(Reason);
+  if (ImplPtr->OnAuthLost) {
+    ImplPtr->OnAuthLost(Reason);
   }
 }
 

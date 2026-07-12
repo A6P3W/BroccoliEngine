@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "BroccoliEngineAPI.h"
 
 #include "EOSTypes.h"
@@ -30,7 +30,7 @@ class BROCCOLI_ENGINE_API EOSAuthManager {
   std::string GetLocalUserIdString() const;
 
  private:
-  EOSAuthManager() = default;
+  EOSAuthManager();
   ~EOSAuthManager();
 
   EOSAuthManager(const EOSAuthManager&) = delete;
@@ -45,8 +45,6 @@ class BROCCOLI_ENGINE_API EOSAuthManager {
   static void EOS_CALL OnLoginStatusChanged(const EOS_Connect_LoginStatusChangedCallbackInfo* Data);
 
  private:
-  EOS_ProductUserId LocalUserId = nullptr;
-  EEOSAuthState State = EEOSAuthState::NotLoggedIn;
-  EOS_NotificationId LoginStatusNotificationId = EOS_INVALID_NOTIFICATIONID;
-  std::function<void(EAuthLossReason)> OnAuthLost;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

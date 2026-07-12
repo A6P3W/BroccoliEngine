@@ -14,8 +14,11 @@ class BROCCOLI_ENGINE_API MUIButtonComponent : public MUIWidgetComponent {
     MUIButtonComponent* Right = nullptr;
   };
 
+  MUIButtonComponent();
+  ~MUIButtonComponent() override;
+
   void OnUpdate(float DeltaTime) override;
-  std::function<void()> OnPressed;
+  void SetOnPressed(std::function<void()> Callback);
 
   virtual void Press();
   virtual void OnStateChanged(EButtonState NewState) {}
@@ -24,5 +27,6 @@ class BROCCOLI_ENGINE_API MUIButtonComponent : public MUIWidgetComponent {
   FNavigationLinks Navigation;
 
  private:
-  EButtonState ButtonState = EButtonState::Normal;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

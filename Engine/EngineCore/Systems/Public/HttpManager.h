@@ -37,5 +37,5 @@ class BROCCOLI_ENGINE_API HttpManager {
   HttpManager& operator=(const HttpManager&) = delete;
 
   struct Impl;
-  std::shared_ptr<Impl> ImplPtr;
+  Impl* ImplPtr = nullptr;
 };

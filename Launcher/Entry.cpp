@@ -1,4 +1,5 @@
 ﻿#include <Windows.h>
+#include <imgui.h>
 
 #include "Application.h"
 #include "EOSCoreManager.h"
@@ -7,6 +8,7 @@
 
 namespace {
 void SetupGame() {
+  ImGui::SetCurrentContext(static_cast<ImGuiContext*>(Application::GetImGuiContext()));
   EOSCoreManager::Get().InitializeOnlineServices();
 
   SceneManager::GetInstance().SetStartupLevelPath("LevelStarter/LevelStarter.BLevel");

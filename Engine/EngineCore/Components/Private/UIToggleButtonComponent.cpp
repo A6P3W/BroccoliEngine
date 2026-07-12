@@ -1,31 +1,51 @@
-﻿#include "UIToggleButtonComponent.h"
+#include "UIToggleButtonComponent.h"
 
 #include <memory>
 
 #include "Actor.h"
 #include "SpriteComponent.h"
 
-UIToggleButtonComponent::UIToggleButtonComponent() {
-  SetWidgetSize({Width, Height});
+struct UIToggleButtonComponent::Impl {
+  MSpriteComponent* BoxSprite = nullptr;
+  bool bIsOn = false;
+  float Width = 0.0f;
+  float Height = 0.0f;
+
+  int OnNormalColor = 0;
+  int OnHoveredColor = 0;
+  int OnPressedColor = 0;
+
+  int OffNormalColor = 0;
+  int OffHoveredColor = 0;
+  int OffPressedColor = 0;
+
+  EButtonState CurrentState = EButtonState::Normal;
+  std::function<void(bool)> OnToggled;
+};
+
+UIToggleButtonComponent::UIToggleButtonComponent() : ImplPtr(new Impl()) {
+  SetWidgetSize({ImplPtr->Width, ImplPtr->Height});
 }
 
+UIToggleButtonComponent::~UIToggleButtonComponent() { delete ImplPtr; }
+
 void UIToggleButtonComponent::OnRegister() {
-  if (BoxSprite != nullptr || GetOwner() == nullptr) {
+  if (ImplPtr->BoxSprite != nullptr || GetOwner() == nullptr) {
     return;
   }
 
-  BoxSprite = NewObject<MSpriteComponent>(GetOwner());
-  if (BoxSprite == nullptr) {
+  ImplPtr->BoxSprite = NewObject<MSpriteComponent>(GetOwner());
+  if (ImplPtr->BoxSprite == nullptr) {
     return;
   }
-  BoxSprite->SetRenderSettings(GetFinalPriority(), RenderSpace::Screen);
-  BoxSprite->AttachToComponent(this);
+  ImplPtr->BoxSprite->SetRenderSettings(GetFinalPriority(), RenderSpace::Screen);
+  ImplPtr->BoxSprite->AttachToComponent(this);
   UpdateVisuals();
-  BoxSprite->RegisterComponent();
+  ImplPtr->BoxSprite->RegisterComponent();
 }
 
 void UIToggleButtonComponent::Press() {
-  if (CurrentState == EButtonState::Disabled) {
+  if (ImplPtr->CurrentState == EButtonState::Disabled) {
     return;
   }
 
@@ -34,26 +54,32 @@ void UIToggleButtonComponent::Press() {
 }
 
 void UIToggleButtonComponent::OnStateChanged(EButtonState NewState) {
-  CurrentState = NewState;
+  ImplPtr->CurrentState = NewState;
   UpdateVisuals();
 }
 
 void UIToggleButtonComponent::SetIsOn(bool bNewIsOn, bool bBroadcast) {
-  if (bIsOn == bNewIsOn) {
+  if (ImplPtr->bIsOn == bNewIsOn) {
     return;
   }
 
-  bIsOn = bNewIsOn;
+  ImplPtr->bIsOn = bNewIsOn;
   UpdateVisuals();
 
-  if (bBroadcast && OnToggled) {
-    OnToggled(bIsOn);
+  if (bBroadcast && ImplPtr->OnToggled) {
+    ImplPtr->OnToggled(ImplPtr->bIsOn);
   }
 }
 
+bool UIToggleButtonComponent::GetIsOn() const { return ImplPtr->bIsOn; }
+
+void UIToggleButtonComponent::SetOnToggled(std::function<void(bool)> Callback) {
+  ImplPtr->OnToggled = std::move(Callback);
+}
+
 void UIToggleButtonComponent::SetSize(float width, float height) {
-  Width = width;
-  Height = height;
+  ImplPtr->Width = width;
+  ImplPtr->Height = height;
   SetWidgetSize({width, height});
   UpdateVisuals();
 }
@@ -61,54 +87,54 @@ void UIToggleButtonComponent::SetSize(float width, float height) {
 void UIToggleButtonComponent::SetColors(
     int onNormal, int onHovered, int onPressed, int offNormal, int offHovered, int offPressed
 ) {
-  OnNormalColor = onNormal;
-  OnHoveredColor = onHovered;
-  OnPressedColor = onPressed;
-  OffNormalColor = offNormal;
-  OffHoveredColor = offHovered;
-  OffPressedColor = offPressed;
+  ImplPtr->OnNormalColor = onNormal;
+  ImplPtr->OnHoveredColor = onHovered;
+  ImplPtr->OnPressedColor = onPressed;
+  ImplPtr->OffNormalColor = offNormal;
+  ImplPtr->OffHoveredColor = offHovered;
+  ImplPtr->OffPressedColor = offPressed;
   UpdateVisuals();
 }
 
 void UIToggleButtonComponent::Toggle() {
-  if (CurrentState == EButtonState::Disabled) {
+  if (ImplPtr->CurrentState == EButtonState::Disabled) {
     return;
   }
 
-  SetIsOn(!bIsOn, true);
+  SetIsOn(!ImplPtr->bIsOn, true);
 }
 
 void UIToggleButtonComponent::UpdateVisuals() {
-  if (BoxSprite == nullptr) {
+  if (ImplPtr->BoxSprite == nullptr) {
     return;
   }
 
-  BoxSprite->SetRelativeLocation({-Width * 0.5f, -Height * 0.5f});
-  BoxSprite->SubmitBox(Width, Height, GetCurrentColor(), true);
+  ImplPtr->BoxSprite->SetRelativeLocation({-ImplPtr->Width * 0.5f, -ImplPtr->Height * 0.5f});
+  ImplPtr->BoxSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, GetCurrentColor(), true);
 }
 
 int UIToggleButtonComponent::GetCurrentColor() const {
-  if (bIsOn) {
-    switch (CurrentState) {
+  if (ImplPtr->bIsOn) {
+    switch (ImplPtr->CurrentState) {
       case EButtonState::Hovered:
-        return OnHoveredColor;
+        return ImplPtr->OnHoveredColor;
       case EButtonState::Pressed:
-        return OnPressedColor;
+        return ImplPtr->OnPressedColor;
       case EButtonState::Normal:
       case EButtonState::Disabled:
       default:
-        return OnNormalColor;
+        return ImplPtr->OnNormalColor;
     }
   }
 
-  switch (CurrentState) {
+  switch (ImplPtr->CurrentState) {
     case EButtonState::Hovered:
-      return OffHoveredColor;
+      return ImplPtr->OffHoveredColor;
     case EButtonState::Pressed:
-      return OffPressedColor;
+      return ImplPtr->OffPressedColor;
     case EButtonState::Normal:
     case EButtonState::Disabled:
     default:
-      return OffNormalColor;
+      return ImplPtr->OffNormalColor;
   }
 }

@@ -131,25 +131,25 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   committedText->RegisterComponent();
 
   // ボタン押下時の処理
-  StartBtnPtr->OnPressed = []() { M_LOG("Start Game!"); };
-  ToggleBtnPtr->OnToggled = [ToggleTextPtr](bool bIsOn) {
+  StartBtnPtr->SetOnPressed([]() { M_LOG("Start Game!"); });
+  ToggleBtnPtr->SetOnToggled([ToggleTextPtr](bool bIsOn) {
     ToggleTextPtr->SetText(bIsOn ? "Toggle: ON" : "Toggle: OFF");
     M_LOG("Toggle Button: {}", bIsOn ? "ON" : "OFF");
-  };
-  NameInputPtr->OnTextChanged = [](const std::string& text) {
+  });
+  NameInputPtr->SetOnTextChanged([](const std::string& text) {
     M_LOG("Input changed: {}", text);
-  };
-  NameInputPtr->OnTextCommitted = [CommittedTextPtr](const std::string& text) {
+  });
+  NameInputPtr->SetOnTextCommitted([CommittedTextPtr](const std::string& text) {
     const std::string displayText = text.empty() ? "<empty>" : text;
     CommittedTextPtr->SetText("Input: " + displayText);
     M_LOG("Input committed: {}", displayText);
-  };
-  ExitBtnPtr->OnPressed = []() {
+  });
+  ExitBtnPtr->SetOnPressed([]() {
     M_LOG("Exit Game!");
     Application::QuitGame();
-  };
-  LeftNavBtnPtr->OnPressed = []() { M_LOG("Left navigation button pressed."); };
-  RightNavBtnPtr->OnPressed = []() { M_LOG("Right navigation button pressed."); };
+  });
+  LeftNavBtnPtr->SetOnPressed([]() { M_LOG("Left navigation button pressed."); });
+  RightNavBtnPtr->SetOnPressed([]() { M_LOG("Right navigation button pressed."); });
 
   VerticalBoxPtr->BuildNavigation();
   VerticalBoxPtr->SetNavigationLeft(LeftNavBtnPtr);

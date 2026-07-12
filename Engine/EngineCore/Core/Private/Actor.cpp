@@ -54,12 +54,14 @@ AActor::AActor() : ImplPtr(new Impl()) {
 }
 
 AActor::~AActor() {
-  if (ImplPtr->OwnerWorld && ImplPtr->OwnerWorld->GetTimerManager()) {
-    ImplPtr->OwnerWorld->GetTimerManager()->ClearAllTimersForObject(this);
+  if (ImplPtr) {
+    if (ImplPtr->OwnerWorld && ImplPtr->OwnerWorld->GetTimerManager()) {
+      ImplPtr->OwnerWorld->GetTimerManager()->ClearAllTimersForObject(this);
+    }
+    HttpManager::GetInstance().CancelAllRequestsForObject(this);
+    delete ImplPtr;
+    ImplPtr = nullptr;
   }
-  HttpManager::GetInstance().CancelAllRequestsForObject(this);
-  delete ImplPtr;
-  ImplPtr = nullptr;
 }
 
 const std::vector<std::string>& AActor::GetTags() const { return ImplPtr->Tags; }
@@ -244,13 +246,13 @@ void AActor::AddActorRotation(const FRotator& DeltaRotation) {
 }
 
 void AActor::Destroy() {
-  ImplPtr->PendingDestroy = true;
-  if (ImplPtr->OwnerWorld && ImplPtr->OwnerWorld->GetTimerManager()) {
-    ImplPtr->OwnerWorld->GetTimerManager()->ClearAllTimersForObject(this);
+  if (ImplPtr) {
+    ImplPtr->PendingDestroy = true;
+    if (ImplPtr->OwnerWorld && ImplPtr->OwnerWorld->GetTimerManager()) {
+      ImplPtr->OwnerWorld->GetTimerManager()->ClearAllTimersForObject(this);
+    }
+    HttpManager::GetInstance().CancelAllRequestsForObject(this);
   }
-  HttpManager::GetInstance().CancelAllRequestsForObject(this);
-  delete ImplPtr;
-  ImplPtr = nullptr;
 }
 
 bool AActor::IsPendingDestroy() const { return ImplPtr->PendingDestroy; }

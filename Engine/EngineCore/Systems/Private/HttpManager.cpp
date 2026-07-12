@@ -27,9 +27,9 @@ HttpManager& HttpManager::GetInstance() {
   return *instance;
 }
 
-HttpManager::HttpManager() { ImplPtr = std::make_shared<Impl>(); }
+HttpManager::HttpManager() : ImplPtr(new Impl()) {}
 
-HttpManager::~HttpManager() {}
+HttpManager::~HttpManager() { delete ImplPtr; }
 
 void HttpManager::Update() {
   std::vector<HttpResult> resultsToProcess;
@@ -61,7 +61,7 @@ void HttpManager::Update() {
 }
 
 void HttpManager::Get(const void* OwnerObject, const std::string& url, HttpCallback callback) {
-  auto impl = ImplPtr;
+  Impl* impl = ImplPtr;
   uint64_t reqId = 0;
 
   {
@@ -89,7 +89,7 @@ void HttpManager::PostJson(
     const std::string& jsonBody,
     HttpCallback callback
 ) {
-  auto impl = ImplPtr;
+  Impl* impl = ImplPtr;
   uint64_t reqId = 0;
 
   {

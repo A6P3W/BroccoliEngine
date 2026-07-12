@@ -48,7 +48,10 @@ struct UIActionLower {
 
 class BROCCOLI_ENGINE_API InputMapper {
  public:
-  InputMapper() = default;
+  InputMapper();
+  ~InputMapper();
+  InputMapper(const InputMapper&) = delete;
+  InputMapper& operator=(const InputMapper&) = delete;
 
   void AddMapping(
       const std::string& actionName,
@@ -82,6 +85,6 @@ class BROCCOLI_ENGINE_API InputMapper {
     int AxisId;
     float Scale;
   };
-  std::unordered_map<std::string, std::vector<FButtonBinding>> ButtonBindings;
-  std::unordered_map<std::string, std::vector<FAxisBinding>> AxisBindings;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

@@ -6,11 +6,10 @@
 
 #include "UIButtonComponent.h"
 
-class MSpriteComponent;
-
 class BROCCOLI_ENGINE_API UIInputTextComponent : public MUIButtonComponent {
  public:
   UIInputTextComponent();
+  ~UIInputTextComponent() override;
 
   void OnRegister() override;
   void Press() override;
@@ -18,7 +17,7 @@ class BROCCOLI_ENGINE_API UIInputTextComponent : public MUIButtonComponent {
   void OnStateChanged(EButtonState NewState) override;
 
   void SetText(const std::string& text, bool bBroadcast = false);
-  const std::string& GetText() const { return Text; }
+  const std::string& GetText() const;
 
   void SetHintText(const std::string& hintText);
   void SetMaxLength(int maxLength);
@@ -29,11 +28,10 @@ class BROCCOLI_ENGINE_API UIInputTextComponent : public MUIButtonComponent {
   void SetHintColor(int color);
   void SetTextOffsetY(float offsetY);
   void SetActionHintOffsetY(float offsetY);
+  void SetOnTextChanged(std::function<void(const std::string&)> Callback);
+  void SetOnTextCommitted(std::function<void(const std::string&)> Callback);
 
-  bool IsEditing() const { return bIsEditing; }
-
-  std::function<void(const std::string&)> OnTextChanged;
-  std::function<void(const std::string&)> OnTextCommitted;
+  bool IsEditing() const;
 
  protected:
   void OnComponentDestroy() override;
@@ -48,31 +46,6 @@ class BROCCOLI_ENGINE_API UIInputTextComponent : public MUIButtonComponent {
   std::string GetDisplayText() const;
   int GetCurrentBackgroundColor() const;
 
-  MSpriteComponent* BoxSprite = nullptr;
-  MSpriteComponent* TextSprite = nullptr;
-  MSpriteComponent* BorderSprite = nullptr;
-  MSpriteComponent* ActionHintSprite = nullptr;
-
-  std::string Text;
-  std::string HintText;
-  std::string EditingText;
-  int MaxLength = 16;
-  bool bIsPassword = false;
-  bool bIsEditing = false;
-  bool bCaretVisible = true;
-  float CaretBlinkTimer = 0.0f;
-
-  float Width = 0.0f;
-  float Height = 0.0f;
-  float TextOffsetY = 0.0f;
-  float ActionHintOffsetY = 3.0f;
-  int NormalColor = 0;
-  int HoveredColor = 0;
-  int EditingColor = 0;
-  int TextColor = 0xFFFFFF;
-  int HintColor = 0xA0A0A0;
-  int FontSize = 24;
-  int FontHandle = -1;
-  int HintFontHandle = -1;
-  EButtonState CurrentState = EButtonState::Normal;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };
