@@ -41,7 +41,7 @@ class BROCCOLI_ENGINE_API MSceneComponent : public MActorComponent {
 
   void AttachToComponent(MSceneComponent* Parent);
   bool AttachToComponent(MSceneComponent* Parent, const FAttachmentTransformRules& AttachmentRules);
-  auto GetParentComponent() const { return ParentComponent; }
+  MSceneComponent* GetParentComponent() const;
 
   bool SetWorldLocation(const FVector2D& NewWorldLocation);
   bool SetRelativeLocation(const FVector2D& NewRelativeLocation);
@@ -62,30 +62,19 @@ class BROCCOLI_ENGINE_API MSceneComponent : public MActorComponent {
   FScale GetWorldScale() const;
 
   virtual void SetVisibility(bool bNewVisibility);
-  bool IsVisible() const { return bVisible; }
-  bool bVisible = true;
+  bool IsVisible() const;
 
-  bool bGridDirty() { return bIsGridDirty; }
-  void SetGridClean() { bIsGridDirty = true; }
+  bool bGridDirty() const;
+  void SetGridClean();
 
  protected:
   void OnComponentDestroy() override;
 
-  MSceneComponent* ParentComponent = nullptr;
-  std::vector<MSceneComponent*> ChildComponents;
-
-  FVector2D RelativeLocation;
-  FRotator RelativeRotation;
-  FScale RelativeScale;
-
-  mutable FVector2D WorldLocation;
-  mutable FRotator WorldRotation;
-  mutable FScale WorldScale;
-
+  const std::vector<MSceneComponent*>& GetChildComponents() const;
   void MakeTransformDirty();
   void UpdateTransform() const;
 
-  mutable bool bIsTransformDirty = true;
-
-  mutable bool bIsGridDirty = true;
+ private:
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

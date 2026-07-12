@@ -51,7 +51,9 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
 
   virtual std::string GetActorClassName() const = 0;
 
-  std::vector<std::string> Tags;
+  const std::vector<std::string>& GetTags() const;
+  void AddTag(const std::string& Tag);
+  void RemoveTag(const std::string& Tag);
   FNetworkActorId NetworkId = 0;
   bool bReplicates = false;
 
@@ -100,8 +102,8 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   void UpdateReplicatedStateCache();
   void MarkReplicatedStateDirty();
   uint32_t IncrementReplicationSequence();
-  uint32_t GetReplicationSequence() const { return ReplicationSequence; }
-  uint32_t GetLastReceivedReplicationSequence() const { return LastReceivedReplicationSequence; }
+  uint32_t GetReplicationSequence() const;
+  uint32_t GetLastReceivedReplicationSequence() const;
   void SetLastReceivedReplicationSequence(uint32_t Sequence);
 
   template <class T>
@@ -110,8 +112,7 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
       return;
     }
 
-    ReplicatedProperties.push_back(std::make_unique<TReplicatedProperty<T>>(Property));
-    MarkReplicatedStateDirty();
+    AddReplicatedProperty(std::make_unique<TReplicatedProperty<T>>(Property));
   }
 
   template <class T, class TObject>
@@ -120,10 +121,9 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
       return;
     }
 
-    ReplicatedProperties.push_back(
+    AddReplicatedProperty(
         std::make_unique<TReplicatedProperty<T, TObject>>(Property, Object, OnRep)
     );
-    MarkReplicatedStateDirty();
   }
 
   using FRPCHandler = std::function<void(FNetBuffer&)>;
@@ -205,16 +205,16 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   template <class T>
   std::vector<T*> GetComponents() const {
     std::vector<T*> results;
-    for (const auto& comp : Components) {
+    for (const auto& comp : GetComponents()) {
       if (auto casted = dynamic_cast<T*>(comp.get())) {
         results.push_back(casted);
       }
     }
     return results;
   }
-  World* GetWorld() { return OwnerWorld; }
+  World* GetWorld();
   void SetWorld(World* world);
-  bool HasBegunPlay() const { return bHasBegunPlay; }
+  bool HasBegunPlay() const;
 
   bool IsEditorActor() const { return bEditorActor; }
   bool CanUpdateAnytime() const { return bUpdateableAnytime; }
@@ -236,27 +236,14 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   MActorComponent* AcceptNewObjectComponent(std::unique_ptr<MActorComponent> NewComponent);
   void CompletePendingComponentRegistrations();
 
-  std::vector<AActor*> ChildObjects;
-  bool bPendingDestroy = false;
-  bool bHasBegunPlay = false;
-  std::vector<std::unique_ptr<MActorComponent>> Components;
-  World* OwnerWorld = nullptr;
-  FVector2D LastReplicatedLocation = FVector2D::ZeroVector;
-  FRotator LastReplicatedRotation;
-  FScale LastReplicatedScale;
-  bool bHasReplicatedStateCache = false;
-  bool bReplicatedStateDirty = false;
-  std::vector<std::unique_ptr<IReplicatedProperty>> ReplicatedProperties;
-  uint32_t ReplicationSequence = 0;
-  uint32_t LastReceivedReplicationSequence = 0;
-  FNetworkComponentId NextNetworkComponentId = 1;
-  std::unordered_map<FNetworkComponentId, MActorComponent*> ComponentsByNetworkId;
   struct FRPCEntry {
     ENetRPCType Type = ENetRPCType::Server;
     FRPCHandler Handler;
   };
-  std::unordered_map<FNetworkRPCId, FRPCEntry> RPCHandlers;
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 
+  void AddReplicatedProperty(std::unique_ptr<IReplicatedProperty> Property);
   void EnsureNetComponentName(MActorComponent* Component);
   std::vector<MActorComponent*> GetReplicatedNetworkComponents() const;
   void SerializeActorNetworkState(FNetBuffer& OutBuffer);

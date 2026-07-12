@@ -61,7 +61,7 @@ void MSpriteComponent::SubmitCircle(float radius, int color, bool fill, int alph
 }
 
 void MSpriteComponent::Draw() {
-  if (!bVisible) return;
+  if (!IsVisible()) return;
 
   // 現在のワールドトランスフォームを取得
   FVector2D worldPos = GetWorldLocation();

@@ -28,7 +28,25 @@ bool IsReplicationSequenceNewer(uint32_t IncomingSequence, uint32_t CurrentSeque
 }
 }  // namespace
 
-AActor::AActor() {
+struct AActor::Impl {
+  std::vector<std::string> Tags;
+  bool PendingDestroy = false;
+  bool HasBegunPlay = false;
+  std::vector<std::unique_ptr<MActorComponent>> Components;
+  World* OwnerWorld = nullptr;
+  FVector2D LastReplicatedLocation = FVector2D::ZeroVector;
+  FRotator LastReplicatedRotation;
+  FScale LastReplicatedScale;
+  bool HasReplicatedStateCache = false;
+  bool ReplicatedStateDirty = false;
+  std::vector<std::unique_ptr<IReplicatedProperty>> ReplicatedProperties;
+  uint32_t ReplicationSequence = 0;
+  uint32_t LastReceivedReplicationSequence = 0;
+  FNetworkComponentId NextNetworkComponentId = 1;
+  std::unordered_map<FNetworkComponentId, MActorComponent*> ComponentsByNetworkId;
+  std::unordered_map<FNetworkRPCId, FRPCEntry> RPCHandlers;
+};
+AActor::AActor() : ImplPtr(new Impl()) {
   RootComponent = NewObject<MSceneComponent>(this);
   if (RootComponent) {
     RootComponent->RegisterComponent();
@@ -36,26 +54,50 @@ AActor::AActor() {
 }
 
 AActor::~AActor() {
-  if (OwnerWorld && OwnerWorld->GetTimerManager()) {
-    OwnerWorld->GetTimerManager()->ClearAllTimersForObject(this);
+  if (ImplPtr->OwnerWorld && ImplPtr->OwnerWorld->GetTimerManager()) {
+    ImplPtr->OwnerWorld->GetTimerManager()->ClearAllTimersForObject(this);
   }
   HttpManager::GetInstance().CancelAllRequestsForObject(this);
+  delete ImplPtr;
+  ImplPtr = nullptr;
 }
 
+const std::vector<std::string>& AActor::GetTags() const { return ImplPtr->Tags; }
+
+void AActor::AddTag(const std::string& Tag) { ImplPtr->Tags.push_back(Tag); }
+
+void AActor::RemoveTag(const std::string& Tag) {
+  std::erase(ImplPtr->Tags, Tag);
+}
+
+uint32_t AActor::GetReplicationSequence() const { return ImplPtr->ReplicationSequence; }
+
+uint32_t AActor::GetLastReceivedReplicationSequence() const {
+  return ImplPtr->LastReceivedReplicationSequence;
+}
+
+World* AActor::GetWorld() { return ImplPtr->OwnerWorld; }
+
+bool AActor::HasBegunPlay() const { return ImplPtr->HasBegunPlay; }
+
+void AActor::AddReplicatedProperty(std::unique_ptr<IReplicatedProperty> Property) {
+  ImplPtr->ReplicatedProperties.push_back(std::move(Property));
+  MarkReplicatedStateDirty();
+}
 void AActor::Spawned() {
-  bHasBegunPlay = true;
+  ImplPtr->HasBegunPlay = true;
   BeginPlay();
 
-  for (size_t i = 0; i < Components.size(); ++i) {
-    if (Components[i] && Components[i]->IsRegistered() && !Components[i]->IsPendingDestroy()) {
-      Components[i]->BeginPlay();
+  for (size_t i = 0; i < ImplPtr->Components.size(); ++i) {
+    if (ImplPtr->Components[i] && ImplPtr->Components[i]->IsRegistered() && !ImplPtr->Components[i]->IsPendingDestroy()) {
+      ImplPtr->Components[i]->BeginPlay();
     }
   }
 }
 
 void AActor::SetWorld(World* world) {
-  if (OwnerWorld == world) return;
-  OwnerWorld = world;
+  if (ImplPtr->OwnerWorld == world) return;
+  ImplPtr->OwnerWorld = world;
 
   CompletePendingComponentRegistrations();
 #ifdef _EDITOR
@@ -69,7 +111,7 @@ void AActor::SetWorld(World* world) {
 void AActor::OnUpdate(float DeltaTime) {}
 
 const std::vector<std::unique_ptr<MActorComponent>>& AActor::GetComponents() const {
-  return Components;
+  return ImplPtr->Components;
 }
 
 MActorComponent* AActor::AcceptNewObjectComponent(std::unique_ptr<MActorComponent> NewComponent) {
@@ -90,14 +132,14 @@ MActorComponent* AActor::AcceptNewObjectComponent(std::unique_ptr<MActorComponen
     }
   }
 
-  Components.push_back(std::move(NewComponent));
+  ImplPtr->Components.push_back(std::move(NewComponent));
   return NewComponentPtr;
 }
 
 void AActor::CompletePendingComponentRegistrations() {
-  for (size_t i = 0; i < Components.size(); ++i) {
-    if (Components[i] && Components[i]->IsRegistrationPending()) {
-      Components[i]->CompleteRegistration();
+  for (size_t i = 0; i < ImplPtr->Components.size(); ++i) {
+    if (ImplPtr->Components[i] && ImplPtr->Components[i]->IsRegistrationPending()) {
+      ImplPtr->Components[i]->CompleteRegistration();
     }
   }
 }
@@ -107,12 +149,12 @@ MActorComponent* AActor::FindReplicatedComponent(FNetworkComponentId ComponentNe
     return nullptr;
   }
 
-  auto it = ComponentsByNetworkId.find(ComponentNetworkId);
-  if (it != ComponentsByNetworkId.end()) {
+  auto it = ImplPtr->ComponentsByNetworkId.find(ComponentNetworkId);
+  if (it != ImplPtr->ComponentsByNetworkId.end()) {
     return it->second;
   }
 
-  for (const auto& comp : Components) {
+  for (const auto& comp : ImplPtr->Components) {
     if (comp && comp->ComponentNetworkId == ComponentNetworkId) {
       return comp.get();
     }
@@ -126,7 +168,7 @@ MActorComponent* AActor::FindReplicatedComponentByName(std::string_view NetCompo
     return nullptr;
   }
 
-  for (const auto& comp : Components) {
+  for (const auto& comp : ImplPtr->Components) {
     if (comp && comp->GetNetComponentName() == NetComponentName) {
       return comp.get();
     }
@@ -136,22 +178,22 @@ MActorComponent* AActor::FindReplicatedComponentByName(std::string_view NetCompo
 }
 
 void AActor::AssignNetworkComponentIds() {
-  ComponentsByNetworkId.clear();
+  ImplPtr->ComponentsByNetworkId.clear();
   if (NetworkId == 0) {
     return;
   }
 
-  for (const auto& comp : Components) {
+  for (const auto& comp : ImplPtr->Components) {
     if (!comp || !comp->bReplicates || comp->IsPendingDestroy() || !comp->IsRegistered()) {
       continue;
     }
 
     EnsureNetComponentName(comp.get());
     if (comp->ComponentNetworkId == 0) {
-      comp->ComponentNetworkId = NextNetworkComponentId++;
+      comp->ComponentNetworkId = ImplPtr->NextNetworkComponentId++;
     }
 
-    ComponentsByNetworkId[comp->ComponentNetworkId] = comp.get();
+    ImplPtr->ComponentsByNetworkId[comp->ComponentNetworkId] = comp.get();
   }
 }
 
@@ -159,22 +201,22 @@ void AActor::Update(float DeltaTime) {
 
   this->OnUpdate(DeltaTime);
 
-  for (size_t i = 0; i < Components.size(); ++i) {
-    if (Components[i] && Components[i]->IsRegistered() && !Components[i]->IsPendingDestroy()) {
-      Components[i]->Update(DeltaTime);
+  for (size_t i = 0; i < ImplPtr->Components.size(); ++i) {
+    if (ImplPtr->Components[i] && ImplPtr->Components[i]->IsRegistered() && !ImplPtr->Components[i]->IsPendingDestroy()) {
+      ImplPtr->Components[i]->Update(DeltaTime);
     }
   }
 
   
-  std::erase_if(Components, [](const std::unique_ptr<MActorComponent>& comp) {
+  std::erase_if(ImplPtr->Components, [](const std::unique_ptr<MActorComponent>& comp) {
     return !comp || comp->IsPendingDestroy();
   });
 }
 
 void AActor::Draw() {
-  for (size_t i = 0; i < Components.size(); ++i) {
-    if (Components[i] && Components[i]->IsRegistered() && !Components[i]->IsPendingDestroy()) {
-      Components[i]->Draw();
+  for (size_t i = 0; i < ImplPtr->Components.size(); ++i) {
+    if (ImplPtr->Components[i] && ImplPtr->Components[i]->IsRegistered() && !ImplPtr->Components[i]->IsPendingDestroy()) {
+      ImplPtr->Components[i]->Draw();
     }
   }
 }
@@ -202,14 +244,16 @@ void AActor::AddActorRotation(const FRotator& DeltaRotation) {
 }
 
 void AActor::Destroy() {
-  bPendingDestroy = true;
-  if (OwnerWorld && OwnerWorld->GetTimerManager()) {
-    OwnerWorld->GetTimerManager()->ClearAllTimersForObject(this);
+  ImplPtr->PendingDestroy = true;
+  if (ImplPtr->OwnerWorld && ImplPtr->OwnerWorld->GetTimerManager()) {
+    ImplPtr->OwnerWorld->GetTimerManager()->ClearAllTimersForObject(this);
   }
   HttpManager::GetInstance().CancelAllRequestsForObject(this);
+  delete ImplPtr;
+  ImplPtr = nullptr;
 }
 
-bool AActor::IsPendingDestroy() const { return bPendingDestroy; }
+bool AActor::IsPendingDestroy() const { return ImplPtr->PendingDestroy; }
 
 FScale AActor::GetActorScale() const { return RootComponent->GetWorldScale(); }
 
@@ -246,7 +290,7 @@ bool AActor::DeserializeNetworkSpawn(FNetBuffer& InBuffer) {
 }
 
 bool AActor::HasReplicatedStateChanged(float Tolerance) const {
-  if (!bHasReplicatedStateCache) {
+  if (!ImplPtr->HasReplicatedStateCache) {
     return true;
   }
 
@@ -254,15 +298,15 @@ bool AActor::HasReplicatedStateChanged(float Tolerance) const {
   const FRotator rotation = GetActorRotation();
   const FScale scale = GetActorScale();
 
-  if (bReplicatedStateDirty || !location.Equals(LastReplicatedLocation, Tolerance) ||
-      !IsNearlyEqual(rotation.Rotation, LastReplicatedRotation.Rotation, Tolerance) ||
-      !IsNearlyEqual(scale.Scale, LastReplicatedScale.Scale, Tolerance)) {
+  if (ImplPtr->ReplicatedStateDirty || !location.Equals(ImplPtr->LastReplicatedLocation, Tolerance) ||
+      !IsNearlyEqual(rotation.Rotation, ImplPtr->LastReplicatedRotation.Rotation, Tolerance) ||
+      !IsNearlyEqual(scale.Scale, ImplPtr->LastReplicatedScale.Scale, Tolerance)) {
     return true;
   }
 
   if (std::any_of(
-          ReplicatedProperties.begin(),
-          ReplicatedProperties.end(),
+          ImplPtr->ReplicatedProperties.begin(),
+          ImplPtr->ReplicatedProperties.end(),
           [](const std::unique_ptr<IReplicatedProperty>& replicatedProperty) {
             return replicatedProperty && replicatedProperty->HasChanged();
           }
@@ -271,7 +315,7 @@ bool AActor::HasReplicatedStateChanged(float Tolerance) const {
   }
 
   return std::any_of(
-      Components.begin(), Components.end(), [](const std::unique_ptr<MActorComponent>& comp) {
+      ImplPtr->Components.begin(), ImplPtr->Components.end(), [](const std::unique_ptr<MActorComponent>& comp) {
         return comp && comp->bReplicates && comp->IsRegistered() && !comp->IsPendingDestroy() &&
                comp->HasReplicatedStateChanged();
       }
@@ -279,32 +323,32 @@ bool AActor::HasReplicatedStateChanged(float Tolerance) const {
 }
 
 void AActor::UpdateReplicatedStateCache() {
-  LastReplicatedLocation = GetActorLocation();
-  LastReplicatedRotation = GetActorRotation();
-  LastReplicatedScale = GetActorScale();
-  for (const auto& replicatedProperty : ReplicatedProperties) {
+  ImplPtr->LastReplicatedLocation = GetActorLocation();
+  ImplPtr->LastReplicatedRotation = GetActorRotation();
+  ImplPtr->LastReplicatedScale = GetActorScale();
+  for (const auto& replicatedProperty : ImplPtr->ReplicatedProperties) {
     if (replicatedProperty) {
       replicatedProperty->UpdateCache();
     }
   }
-  for (const auto& comp : Components) {
+  for (const auto& comp : ImplPtr->Components) {
     if (comp && comp->bReplicates && comp->IsRegistered() && !comp->IsPendingDestroy()) {
       comp->UpdateReplicatedStateCache();
     }
   }
-  bHasReplicatedStateCache = true;
-  bReplicatedStateDirty = false;
+  ImplPtr->HasReplicatedStateCache = true;
+  ImplPtr->ReplicatedStateDirty = false;
 }
 
-void AActor::MarkReplicatedStateDirty() { bReplicatedStateDirty = true; }
+void AActor::MarkReplicatedStateDirty() { ImplPtr->ReplicatedStateDirty = true; }
 
 uint32_t AActor::IncrementReplicationSequence() {
-  ++ReplicationSequence;
-  return ReplicationSequence;
+  ++ImplPtr->ReplicationSequence;
+  return ImplPtr->ReplicationSequence;
 }
 
 void AActor::SetLastReceivedReplicationSequence(uint32_t Sequence) {
-  LastReceivedReplicationSequence = Sequence;
+  ImplPtr->LastReceivedReplicationSequence = Sequence;
 }
 
 void AActor::RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FRPCHandler Handler) {
@@ -312,12 +356,12 @@ void AActor::RegisterRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FRPCHandler H
     return;
   }
 
-  RPCHandlers[RPCId] = {RPCType, std::move(Handler)};
+  ImplPtr->RPCHandlers[RPCId] = {RPCType, std::move(Handler)};
 }
 
 bool AActor::DispatchRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FNetBuffer& Payload) {
-  auto it = RPCHandlers.find(RPCId);
-  if (it == RPCHandlers.end() || it->second.Type != RPCType || !it->second.Handler) {
+  auto it = ImplPtr->RPCHandlers.find(RPCId);
+  if (it == ImplPtr->RPCHandlers.end() || it->second.Type != RPCType || !it->second.Handler) {
     return false;
   }
 
@@ -349,11 +393,11 @@ bool AActor::InvokeRPCWithPayload(
     ENetPacketReliability Reliability,
     const FNetBuffer& Payload
 ) {
-  if (RPCId == 0 || !OwnerWorld) {
+  if (RPCId == 0 || !ImplPtr->OwnerWorld) {
     return false;
   }
 
-  if (OwnerWorld->IsStandalone()) {
+  if (ImplPtr->OwnerWorld->IsStandalone()) {
     FNetBuffer localPayload(Payload.GetData());
     return DispatchRPC(RPCId, RPCType, localPayload);
   }
@@ -362,7 +406,7 @@ bool AActor::InvokeRPCWithPayload(
     return false;
   }
 
-  FReplicationSystem* replication = OwnerWorld->GetReplicationSystem();
+  FReplicationSystem* replication = ImplPtr->OwnerWorld->GetReplicationSystem();
   if (!replication) {
     return false;
   }
@@ -377,11 +421,11 @@ bool AActor::InvokeComponentRPCWithPayload(
     ENetPacketReliability Reliability,
     const FNetBuffer& Payload
 ) {
-  if (!Component || Component->GetOwner() != this || RPCId == 0 || !OwnerWorld) {
+  if (!Component || Component->GetOwner() != this || RPCId == 0 || !ImplPtr->OwnerWorld) {
     return false;
   }
 
-  if (OwnerWorld->IsStandalone()) {
+  if (ImplPtr->OwnerWorld->IsStandalone()) {
     FNetBuffer localPayload(Payload.GetData());
     return Component->DispatchRPC(RPCId, RPCType, localPayload);
   }
@@ -390,7 +434,7 @@ bool AActor::InvokeComponentRPCWithPayload(
     return false;
   }
 
-  if (OwnerWorld->IsServer()) {
+  if (ImplPtr->OwnerWorld->IsServer()) {
     AssignNetworkComponentIds();
   }
 
@@ -398,7 +442,7 @@ bool AActor::InvokeComponentRPCWithPayload(
     return false;
   }
 
-  FReplicationSystem* replication = OwnerWorld->GetReplicationSystem();
+  FReplicationSystem* replication = ImplPtr->OwnerWorld->GetReplicationSystem();
   if (!replication) {
     return false;
   }
@@ -426,10 +470,10 @@ void AActor::SetRootComponent(MSceneComponent* Component) {
   RootComponent = Component;
 }
 
-FTimerManager& AActor::GetWorldTimerManager() { return *(OwnerWorld->GetTimerManager()); }
+FTimerManager& AActor::GetWorldTimerManager() { return *(ImplPtr->OwnerWorld->GetTimerManager()); }
 
 bool AActor::HasTag(std::string_view Tag) const {
-  return std::any_of(Tags.begin(), Tags.end(), [&](const std::string& existing) {
+  return std::any_of(ImplPtr->Tags.begin(), ImplPtr->Tags.end(), [&](const std::string& existing) {
     return existing == Tag;
   });
 }
@@ -441,7 +485,7 @@ void AActor::EnsureNetComponentName(MActorComponent* Component) {
 
   std::string candidate = Component->GetNetComponentName();
   if (candidate.empty()) {
-    candidate = std::string(typeid(*Component).name()) + "_" + std::to_string(Components.size());
+    candidate = std::string(typeid(*Component).name()) + "_" + std::to_string(ImplPtr->Components.size());
   }
 
   const std::string baseName = candidate;
@@ -462,7 +506,7 @@ void AActor::EnsureNetComponentName(MActorComponent* Component) {
 
 std::vector<MActorComponent*> AActor::GetReplicatedNetworkComponents() const {
   std::vector<MActorComponent*> replicatedComponents;
-  for (const auto& comp : Components) {
+  for (const auto& comp : ImplPtr->Components) {
     if (comp && comp->bReplicates && comp->IsRegistered() && !comp->IsPendingDestroy() && comp->ComponentNetworkId != 0) {
       replicatedComponents.push_back(comp.get());
     }
@@ -481,7 +525,7 @@ void AActor::SerializeActorNetworkState(FNetBuffer& OutBuffer) {
   OutBuffer.Write(rotation.Rotation);
   OutBuffer.Write(scale.Scale);
 
-  for (const auto& replicatedProperty : ReplicatedProperties) {
+  for (const auto& replicatedProperty : ImplPtr->ReplicatedProperties) {
     if (replicatedProperty) {
       replicatedProperty->Serialize(OutBuffer);
     }
@@ -505,7 +549,7 @@ bool AActor::DeserializeActorNetworkState(FNetBuffer& InBuffer, bool bApplyTrans
     SetActorScale(FScale(scale));
   }
 
-  for (const auto& replicatedProperty : ReplicatedProperties) {
+  for (const auto& replicatedProperty : ImplPtr->ReplicatedProperties) {
     if (replicatedProperty && !replicatedProperty->DeserializeAndTriggerOnRep(InBuffer)) {
       return false;
     }
@@ -606,7 +650,7 @@ bool AActor::DeserializeReplicatedComponentSpawns(FNetBuffer& InBuffer) {
     return false;
   }
 
-  ComponentsByNetworkId.clear();
+  ImplPtr->ComponentsByNetworkId.clear();
   for (uint32_t i = 0; i < componentCount; ++i) {
     FNetworkComponentId componentNetworkId = 0;
     std::string netComponentName;
@@ -627,7 +671,7 @@ bool AActor::DeserializeReplicatedComponentSpawns(FNetBuffer& InBuffer) {
 
     component->bReplicates = true;
     component->ComponentNetworkId = componentNetworkId;
-    ComponentsByNetworkId[componentNetworkId] = component;
+    ImplPtr->ComponentsByNetworkId[componentNetworkId] = component;
 
     if (!component->DeserializeNetworkSpawn(payload)) {
       return false;
