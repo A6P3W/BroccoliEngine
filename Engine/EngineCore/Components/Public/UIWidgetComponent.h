@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include "SceneComponent.h"
 #include "UMath.h"
 
@@ -14,7 +15,7 @@ enum class EUIAnchor {
   BottomRight
 };
 
-class MUIWidgetComponent : public MSceneComponent {
+class BROCCOLI_ENGINE_API MUIWidgetComponent : public MSceneComponent {
  public:
   MUIWidgetComponent();
 

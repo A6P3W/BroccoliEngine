@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 
 #include "EOSTypes.h"
 
@@ -8,7 +9,7 @@
 
 #include <eos_lobby_types.h>
 
-class EOSLobbyManager {
+class BROCCOLI_ENGINE_API EOSLobbyManager {
  public:
   static EOSLobbyManager& Get();
 

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 
 #include <string>
 #include <vector>
@@ -7,7 +8,7 @@
 
 class FSoundManager;
 
-class MSoundComponent : public MActorComponent {
+class BROCCOLI_ENGINE_API MSoundComponent : public MActorComponent {
  public:
   int PlaySE(const std::string& path, bool loop = false);
   int PlayBGM(const std::string& path, bool loop = true);

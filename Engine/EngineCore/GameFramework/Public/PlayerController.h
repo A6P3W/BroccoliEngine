@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <InputMapper.h>
 
 #include <memory>
@@ -8,7 +9,7 @@
 
 enum class EInputMode { GameOnly, UIOnly, GameAndUI };
 class MEnhancedInputComponent;
-class APlayerController : public AActor {
+class BROCCOLI_ENGINE_API APlayerController : public AActor {
  public:
   DEFINE_ACTOR_CLASS(APlayerController)
   APlayerController();

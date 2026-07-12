@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <eos_connect.h>
 #include <eos_lobby.h>
 #include <eos_sdk.h>
@@ -7,7 +8,7 @@
 
 #include "EOSTypes.h"
 
-class EOSCoreManager {
+class BROCCOLI_ENGINE_API EOSCoreManager {
  public:
   static EOSCoreManager& Get();
 

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -45,7 +46,7 @@ struct UIActionLower {
   static constexpr auto MoveY = "UI_MoveY";
 };
 
-class InputMapper {
+class BROCCOLI_ENGINE_API InputMapper {
  public:
   InputMapper() = default;
 

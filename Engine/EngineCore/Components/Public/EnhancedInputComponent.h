@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -16,7 +17,7 @@ struct FInputActionValue {
   bool bIsPressed = false;
 };
 
-class MEnhancedInputComponent : public MActorComponent {
+class BROCCOLI_ENGINE_API MEnhancedInputComponent : public MActorComponent {
  private:
   struct FInputBinding {
     std::string ActionName;

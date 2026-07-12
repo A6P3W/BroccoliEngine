@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <algorithm>
 #include <functional>
 #include <string>
@@ -9,52 +10,39 @@
 #include "UMath.h"
 #include "World.h"
 class AActor;
-class ActorRegistry {
+class BROCCOLI_ENGINE_API ActorRegistry {
  public:
   using FactoryFn = std::function<AActor*(World*, const FVector2D&, FRotator)>;
 
-  static ActorRegistry& GetInstance() {
-    static ActorRegistry instance;
-    return instance;
-  }
+  static ActorRegistry& GetInstance();
 
   template <class T>
   void Register(bool bIsGameMode = false) {
-    std::string className = T::StaticClassName();
-    Factories[className] = [](World* world, const FVector2D& loc, FRotator rot) -> AActor* {
-      return world->SpawnActor<T>(loc, rot, true);
-    };
-
-    if (bIsGameMode) {
-      if (std::find(GameModeClassNames.begin(), GameModeClassNames.end(), className) ==
-          GameModeClassNames.end()) {
-        GameModeClassNames.push_back(className);
-      }
-    } else if (std::find(ClassNames.begin(), ClassNames.end(), className) == ClassNames.end()) {
-      ClassNames.push_back(className);
-    }
+    std::string ClassName = T::StaticClassName();
+    RegisterFactory(
+        ClassName,
+        [](World* WorldPtr, const FVector2D& Location, FRotator Rotation) -> AActor* {
+          return WorldPtr->SpawnActor<T>(Location, Rotation, true);
+        },
+        bIsGameMode
+    );
   }
 
-  // クラス名からスポーン
   AActor* Spawn(
-      World* world,
-      const std::string& className,
-      const FVector2D& loc = FVector2D::ZeroVector,
-      FRotator rot = FRotator(0)
-  ) {
-    auto it = Factories.find(className);
-    if (it == Factories.end()) return nullptr;
-    return it->second(world, loc, rot);
-  }
+      World* WorldPtr,
+      const std::string& ClassName,
+      const FVector2D& Location = FVector2D::ZeroVector,
+      FRotator Rotation = FRotator(0)
+  );
 
-  const std::vector<std::string>& GetClassNames() const { return ClassNames; }
-  const std::vector<std::string>& GetGameModeClassNames() const { return GameModeClassNames; }
-
-  bool Contains(const std::string& className) const { return Factories.count(className) > 0; }
+  const std::vector<std::string>& GetClassNames() const;
+  const std::vector<std::string>& GetGameModeClassNames() const;
+  bool Contains(const std::string& ClassName) const;
 
  private:
-  ActorRegistry() = default;
-  std::unordered_map<std::string, FactoryFn> Factories;
-  std::vector<std::string> ClassNames;
-  std::vector<std::string> GameModeClassNames;
+  ActorRegistry();
+  ~ActorRegistry();
+  void RegisterFactory(std::string ClassName, FactoryFn Factory, bool bIsGameMode);
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

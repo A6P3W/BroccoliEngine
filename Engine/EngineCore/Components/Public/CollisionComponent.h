@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <cstdint>
 #include <unordered_map>
 #include <unordered_set>
@@ -14,7 +15,7 @@ enum class ECollisionType { Overlap, Block };
 struct FAABB {
   float MinX, MinY, MaxX, MaxY;
 };
-class MCollisionComponent : public MSceneComponent {
+class BROCCOLI_ENGINE_API MCollisionComponent : public MSceneComponent {
  public:
   MCollisionComponent();
   virtual ~MCollisionComponent();

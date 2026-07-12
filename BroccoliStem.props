@@ -29,7 +29,6 @@
     </ClCompile>
     <Link>
 		<AdditionalDependencies>
-			BroccoliEngine.lib;enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;EOSSDK-Win64-Shipping.lib;
 			%(AdditionalDependencies)
 		</AdditionalDependencies>
 		<AdditionalLibraryDirectories>

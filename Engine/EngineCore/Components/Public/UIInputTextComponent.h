@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 
 #include <functional>
 #include <string>
@@ -7,7 +8,7 @@
 
 class MSpriteComponent;
 
-class UIInputTextComponent : public MUIButtonComponent {
+class BROCCOLI_ENGINE_API UIInputTextComponent : public MUIButtonComponent {
  public:
   UIInputTextComponent();
 

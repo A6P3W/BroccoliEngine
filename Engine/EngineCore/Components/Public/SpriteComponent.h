@@ -1,10 +1,14 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include "RenderSystem.h"
 #include "SceneComponent.h"
 
-class MSpriteComponent : public MSceneComponent {
+class SpriteRenderState;
+
+class BROCCOLI_ENGINE_API MSpriteComponent : public MSceneComponent {
  public:
-   MSpriteComponent();
+  MSpriteComponent();
+  ~MSpriteComponent() override;
   void SetRenderSettings(int Priority, RenderSpace Space);
 
   void SubmitGraph(int handle, FScale scale = FScale(1.0f), int alpha = 255);
@@ -17,7 +21,5 @@ class MSpriteComponent : public MSceneComponent {
   void Draw() override;
 
  private:
-  // 描画設定（共通設定とデータ本体）
-  RenderCommon CommonData;
-  RenderCommandData FeatureData;
+  SpriteRenderState* RenderState = nullptr;
 };

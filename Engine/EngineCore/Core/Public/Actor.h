@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -37,12 +38,14 @@ struct TActorAutoRegister {
 class MSceneComponent;
 class FTimerManager;
 class World;
-class AActor : public MBaseObject
+class BROCCOLI_ENGINE_API AActor : public MBaseObject
 
 {
  public:
   AActor();
   virtual ~AActor() override;
+  AActor(const AActor&) = delete;
+  AActor& operator=(const AActor&) = delete;
 
   void Spawned();
 

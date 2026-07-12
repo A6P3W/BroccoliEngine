@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -8,10 +9,12 @@
 #include "UMath.h"
 class AActor;
 class World;
-class FActorManager {
+class BROCCOLI_ENGINE_API FActorManager {
  public:
   FActorManager();
   ~FActorManager();
+  FActorManager(const FActorManager&) = delete;
+  FActorManager& operator=(const FActorManager&) = delete;
 
   void Update(float DeltaTime);
   void Draw();

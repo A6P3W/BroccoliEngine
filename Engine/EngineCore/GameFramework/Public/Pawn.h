@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include "Actor.h"
 #include "UMath.h"
 
@@ -7,7 +8,7 @@ class MEnhancedInputComponent;
 struct FInputActionValue;
 class APlayerController;
 
-class APawn : public AActor {
+class BROCCOLI_ENGINE_API APawn : public AActor {
  public:
   DEFINE_ACTOR_CLASS(APawn);
   APawn();

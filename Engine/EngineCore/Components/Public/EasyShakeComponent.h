@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <cstdint>
 #include <vector>
 
@@ -19,7 +20,7 @@ class FShakeHandle {
   uint64_t ShakeID = 0;
 };
 
-class MEasyShakeComponent : public MSceneComponent {
+class BROCCOLI_ENGINE_API MEasyShakeComponent : public MSceneComponent {
  public:
   void ApplyShake(
       const FVector2D& StrengthXY, float DurationSeconds, bool bEnableFadeIn, bool bEnableFadeOut

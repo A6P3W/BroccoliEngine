@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <memory>
 #include <string>
 
@@ -17,10 +18,12 @@ class FReplicationSystem;
 class APlayerController;
 class APawn;
 
-class World {
+class BROCCOLI_ENGINE_API World {
  public:
   World();
   ~World();
+  World(const World&) = delete;
+  World& operator=(const World&) = delete;
 
   void Update(float DeltaTime);
   void Draw();

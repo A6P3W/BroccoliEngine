@@ -1,11 +1,12 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <string>
 
 #include "Actor.h"
 
 class MSpriteComponent;
 
-class ASpriteActor : public AActor {
+class BROCCOLI_ENGINE_API ASpriteActor : public AActor {
  public:
   DEFINE_ACTOR_CLASS(ASpriteActor);
 

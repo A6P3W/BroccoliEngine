@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 
 #include <cstdint>
 #include <vector>
@@ -7,7 +8,7 @@
 #include "NetworkTypes.h"
 #include "UMath.h"
 
-class MNetMovementComponent : public MMovementComponent {
+class BROCCOLI_ENGINE_API MNetMovementComponent : public MMovementComponent {
  public:
   MNetMovementComponent();
 

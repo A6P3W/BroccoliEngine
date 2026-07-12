@@ -1,11 +1,12 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <string>
 
 #include "UIWidgetComponent.h"
 
 class MSpriteComponent;
 
-class UITextComponent : public MUIWidgetComponent {
+class BROCCOLI_ENGINE_API UITextComponent : public MUIWidgetComponent {
  public:
   // デフォルトで白文字、サイズ24
   UITextComponent();

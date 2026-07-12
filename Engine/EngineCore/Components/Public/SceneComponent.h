@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <string>
 #include <vector>
 
@@ -12,7 +13,7 @@ enum class EAttachmentRule {
   SnapToTarget,
 };
 
-struct FAttachmentTransformRules {
+struct BROCCOLI_ENGINE_API FAttachmentTransformRules {
   EAttachmentRule LocationRule;
   EAttachmentRule RotationRule;
   EAttachmentRule ScaleRule;
@@ -29,7 +30,7 @@ struct FAttachmentTransformRules {
   static const FAttachmentTransformRules SnapToTargetIncludingScale;
 };
 
-class MSceneComponent : public MActorComponent {
+class BROCCOLI_ENGINE_API MSceneComponent : public MActorComponent {
  public:
   MSceneComponent();
   virtual ~MSceneComponent();

@@ -1,10 +1,11 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <functional>
 
 #include "UIWidgetComponent.h"
 enum class EButtonState { Normal, Hovered, Pressed, Disabled };
 
-class MUIButtonComponent : public MUIWidgetComponent {
+class BROCCOLI_ENGINE_API MUIButtonComponent : public MUIWidgetComponent {
  public:
   struct FNavigationLinks {
     MUIButtonComponent* Up = nullptr;

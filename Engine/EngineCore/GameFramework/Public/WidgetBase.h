@@ -1,10 +1,11 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include "Actor.h"
 
 struct FInputActionValue;
 class MUIButtonComponent;
 
-class AWidgetBase : public AActor {
+class BROCCOLI_ENGINE_API AWidgetBase : public AActor {
  public:
   virtual ~AWidgetBase() override;
 

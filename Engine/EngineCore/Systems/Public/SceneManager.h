@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <functional>
 #include <memory>
 #include <string>
@@ -10,18 +11,17 @@
 #include "NetMode.h"
 #include "NetworkTypes.h"
 #include "World.h"
-class SceneManager {
+class BROCCOLI_ENGINE_API SceneManager {
  public:
-  static SceneManager& GetInstance() {
-    static SceneManager instance;
-    return instance;
-  }
+  static SceneManager& GetInstance();
+  SceneManager(const SceneManager&) = delete;
+  SceneManager& operator=(const SceneManager&) = delete;
   template <class T>
   void OpenGameMode() {
     QueueSceneFactory(MakeSceneFactory<T>(), GetCurrentNetMode(), 0);
   }
 
-  World* GetCurrentScene() { return CurrentScene.get(); }
+  World* GetCurrentScene();
 
   void ProcessSceneChanges();
   void Shutdown();
@@ -32,20 +32,22 @@ class SceneManager {
   bool OpenLevelByPath(const std::string& LevelPath);
   bool OpenLevelByPath(const std::string& LevelPath, ENetMode NetMode);
   bool IsSceneRegistered(FNetworkSceneId SceneId) const;
-  FNetworkSceneId GetCurrentSceneId() const { return CurrentSceneId; }
-  const std::string& GetCurrentLevelPath() const { return CurrentLevelPath; }
+  FNetworkSceneId GetCurrentSceneId() const;
+  const std::string& GetCurrentLevelPath() const;
   ENetMode GetCurrentNetMode() const;
-  void SetStartupLevelPath(const std::string& LevelPath) { StartupLevelPath = LevelPath; }
-  const std::string& GetStartupLevelPath() const { return StartupLevelPath; }
+  void SetStartupLevelPath(const std::string& LevelPath);
+  const std::string& GetStartupLevelPath() const;
   bool OpenStartupLevel();
 
   template <class T>
   void SetGameInstance() {
-    GameInstance = std::make_unique<T>();
+    SetGameInstanceInternal(std::make_unique<T>());
   }
-  GameInstance* GetGameInstance() { return GameInstance.get(); }
+  GameInstance* GetGameInstance();
 
  private:
+  SceneManager();
+  ~SceneManager();
   using RegisteredSceneFactory = std::function<std::unique_ptr<World>(ENetMode)>;
 
   template <class T>
@@ -62,14 +64,7 @@ class SceneManager {
 
   void QueueSceneFactory(RegisteredSceneFactory Factory, ENetMode NetMode, FNetworkSceneId SceneId);
   void QueueLevelPath(const std::string& LevelPath, ENetMode NetMode, FNetworkSceneId SceneId);
-
-  std::unique_ptr<World> CurrentScene;
-  std::function<std::unique_ptr<World>()> PendingSceneFactory;
-  std::unordered_map<FNetworkSceneId, std::string> RegisteredLevelPaths;
-  std::unique_ptr<GameInstance> GameInstance = std::make_unique<::GameInstance>();
-  FNetworkSceneId CurrentSceneId = 0;
-  FNetworkSceneId PendingSceneId = 0;
-  std::string CurrentLevelPath;
-  std::string PendingLevelPath;
-  std::string StartupLevelPath;
+  void SetGameInstanceInternal(std::unique_ptr<GameInstance> NewGameInstance);
+  struct Impl;
+  Impl* ImplPtr = nullptr;
 };

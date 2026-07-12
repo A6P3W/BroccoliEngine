@@ -1,5 +1,10 @@
 ﻿#include "UIManager.h"
 
+UIManager* UIManager::GetInstance() {
+  static UIManager Instance;
+  return &Instance;
+}
+
 #include <algorithm>
 
 #include "Actor.h"
@@ -7,9 +12,28 @@
 #include "Log.h"
 #include "WidgetBase.h"
 
+struct UIManager::Impl {
+  AWidgetBase* CurrentFocusedWidget = nullptr;
+  std::vector<AWidgetBase*> ActiveWidgets;
+  bool TextInputActive = false;
+};
+
+UIManager::UIManager() : ImplPtr(new Impl()) {}
+
+UIManager::~UIManager() {
+  delete ImplPtr;
+}
+
+void UIManager::SetTextInputActive(bool bActive) { ImplPtr->TextInputActive = bActive; }
+
+bool UIManager::IsTextInputActive() const { return ImplPtr->TextInputActive; }
+
+void UIManager::SetFocusedWidget(AWidgetBase* Widget) { ImplPtr->CurrentFocusedWidget = Widget; }
+
+AWidgetBase* UIManager::GetFocusedWidget() const { return ImplPtr->CurrentFocusedWidget; }
 void UIManager::RefreshZOrder() {
   int currentOffset = 0;
-  for (AWidgetBase* widget : ActiveWidgets) {
+  for (AWidgetBase* widget : ImplPtr->ActiveWidgets) {
     if (widget) {
       widget->SetZOrderOffset(currentOffset);
       currentOffset += 100;
@@ -20,7 +44,7 @@ void UIManager::RefreshZOrder() {
 void UIManager::AddWidget(AWidgetBase* Widget) {
   if (!Widget) return;
 
-  ActiveWidgets.push_back(Widget);
+  ImplPtr->ActiveWidgets.push_back(Widget);
   Widget->OnOpened();
 
   RefreshZOrder();
@@ -29,47 +53,47 @@ void UIManager::AddWidget(AWidgetBase* Widget) {
 void UIManager::RemoveWidget(AWidgetBase* Widget) {
   if (!Widget) return;
 
-  if (CurrentFocusedWidget == Widget) {
-    CurrentFocusedWidget = nullptr;
-    bTextInputActive = false;
+  if (ImplPtr->CurrentFocusedWidget == Widget) {
+    ImplPtr->CurrentFocusedWidget = nullptr;
+    ImplPtr->TextInputActive = false;
   }
 
-  auto it = std::find(ActiveWidgets.begin(), ActiveWidgets.end(), Widget);
-  if (it != ActiveWidgets.end()) {
+  auto it = std::find(ImplPtr->ActiveWidgets.begin(), ImplPtr->ActiveWidgets.end(), Widget);
+  if (it != ImplPtr->ActiveWidgets.end()) {
     (*it)->OnClosed();
     (*it)->Destroy();
-    ActiveWidgets.erase(it);
+    ImplPtr->ActiveWidgets.erase(it);
 
     RefreshZOrder();
   }
 }
 
 void UIManager::Navigate(const FInputActionValue& Value) {
-  if (bTextInputActive) {
+  if (ImplPtr->TextInputActive) {
     return;
   }
 
-  if (CurrentFocusedWidget) {
-    CurrentFocusedWidget->Navigate(Value);
+  if (ImplPtr->CurrentFocusedWidget) {
+    ImplPtr->CurrentFocusedWidget->Navigate(Value);
   }
 }
 
 void UIManager::Submit() {
-  if (bTextInputActive) {
+  if (ImplPtr->TextInputActive) {
     return;
   }
 
-  if (CurrentFocusedWidget) {
-    CurrentFocusedWidget->Submit();
+  if (ImplPtr->CurrentFocusedWidget) {
+    ImplPtr->CurrentFocusedWidget->Submit();
   }
 }
 
 void UIManager::Cancel() {
-  if (bTextInputActive) {
+  if (ImplPtr->TextInputActive) {
     return;
   }
 
-  if (CurrentFocusedWidget) {
-    CurrentFocusedWidget->Cancel();
+  if (ImplPtr->CurrentFocusedWidget) {
+    ImplPtr->CurrentFocusedWidget->Cancel();
   }
 }

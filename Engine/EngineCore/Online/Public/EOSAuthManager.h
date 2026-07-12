@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 
 #include "EOSTypes.h"
 
@@ -16,7 +17,7 @@ enum class EEOSAuthState {
   Failed
 };
 
-class EOSAuthManager {
+class BROCCOLI_ENGINE_API EOSAuthManager {
  public:
   static EOSAuthManager& Get();
 

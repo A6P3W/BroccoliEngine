@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -17,7 +18,7 @@ using ENetPeer = _ENetPeer;
 
 enum class ENetPacketReliability { Reliable, Unreliable };
 
-class NetworkManager {
+class BROCCOLI_ENGINE_API NetworkManager {
  public:
   using ConnectedCallback = std::function<void(FNetworkConnectionId)>;
   using DisconnectedCallback = std::function<void(FNetworkConnectionId)>;

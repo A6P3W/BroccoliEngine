@@ -1,11 +1,12 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <functional>
 
 #include "UIButtonComponent.h"
 
 class MSpriteComponent;
 
-class UIToggleButtonComponent : public MUIButtonComponent {
+class BROCCOLI_ENGINE_API UIToggleButtonComponent : public MUIButtonComponent {
  public:
   UIToggleButtonComponent();
 

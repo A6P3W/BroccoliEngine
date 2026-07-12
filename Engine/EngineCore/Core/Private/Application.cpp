@@ -27,7 +27,9 @@
 #include "SceneManager.h"
 #include "TimerManager.h"
 
-extern void SetupGame();
+namespace {
+void (*GameSetupCallback)() = nullptr;
+}
 extern IMGUI_IMPL_API LRESULT
 ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -45,6 +47,10 @@ LRESULT CALLBACK ImGuiHookProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
     return 1;
   }
   return 0;
+}
+
+void Application::SetGameSetupCallback(void (*Callback)()) {
+  GameSetupCallback = Callback;
 }
 
 Application::Application() {}
@@ -135,7 +141,9 @@ bool Application::Run() {
   if (IsEditor) {
     SceneManager::GetInstance().OpenGameMode<EditorMode>();
   } else {
-    SetupGame();
+    if (GameSetupCallback) {
+      GameSetupCallback();
+    }
     SceneManager::GetInstance().OpenStartupLevel();
   }
 

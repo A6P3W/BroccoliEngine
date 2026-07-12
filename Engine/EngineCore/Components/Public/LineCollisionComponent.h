@@ -1,7 +1,8 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include "CollisionComponent.h"
 
-class MLineCollisionComponent : public MCollisionComponent {
+class BROCCOLI_ENGINE_API MLineCollisionComponent : public MCollisionComponent {
  public:
   MLineCollisionComponent() = default;
 

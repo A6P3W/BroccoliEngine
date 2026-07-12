@@ -1,7 +1,8 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include "CollisionComponent.h"
 
-class MCircleCollisionComponent : public MCollisionComponent {
+class BROCCOLI_ENGINE_API MCircleCollisionComponent : public MCollisionComponent {
  public:
   MCircleCollisionComponent() = default;
   ECollisionShape GetShapeType() const override { return ECollisionShape::Circle; }

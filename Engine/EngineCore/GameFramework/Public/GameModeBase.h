@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BroccoliEngineAPI.h"
 #include <string>
 
 #include "Actor.h"
@@ -18,7 +19,7 @@ class APlayerController;
 #define REGISTER_GAME_MODE(ClassName) \
   static TActorAutoRegister<ClassName> AutoRegister_##ClassName(true);
 
-class AGameModeBase : public AActor {
+class BROCCOLI_ENGINE_API AGameModeBase : public AActor {
  public:
   DEFINE_ACTOR_CLASS(AGameModeBase)
   AGameModeBase();
