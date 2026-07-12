@@ -6,7 +6,7 @@
     <Platform Name="x64" />
   </Configurations>
   <Project Path="Engine/BroccoliEngine.vcxproj" Id="118bd4ba-a816-42c0-95d2-aeafcd33bac5">
-    <Build Solution="Debug|*" Project="false" />
+    <Build Project="false" />
   </Project>
   <Project Path="Launcher/Launcher.vcxproj" Id="63559843-ba7d-46f1-82ad-c6ab716b1cd1" />
 </Solution>

@@ -7,7 +7,7 @@
 
     <!-- 1. DLLのコピー (OutDir直下へ) -->
     <ItemGroup>
-      <EngineDLLs Include="$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration)\BroccoliEngine.dll" Condition="Exists('$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration)\BroccoliEngine.dll')" />
+      <EngineDLLs Include="$(BroccoliEngineBinDir)BroccoliEngine.dll" Condition="Exists('$(BroccoliEngineBinDir)BroccoliEngine.dll')" />
       <EngineDLLs Include="$(MSBuildThisFileDirectory)ThirdParty\EOS\SDK\Bin\EOSSDK-Win64-Shipping.dll" Condition="Exists('$(MSBuildThisFileDirectory)ThirdParty\EOS\SDK\Bin\EOSSDK-Win64-Shipping.dll')" />
     </ItemGroup>
     <Copy SourceFiles="@(EngineDLLs)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
@@ -32,6 +32,7 @@
     <!-- パスの解決：未定義の場合のデフォルト設定 -->
     <PropertyGroup>
       <ActualPublishBinDir>$(BroccoliPublishRootDir)Binaries</ActualPublishBinDir>
+      <ActualBootstrapExe>$(OutDir)Bootstrap_Tmp.exe</ActualBootstrapExe>
     </PropertyGroup>
 
     <Message Importance="high" Text="[Broccoli Engine] Organizing Publish folders..." />
@@ -58,11 +59,11 @@
     <Copy SourceFiles="@(ResourcesToPublish)" DestinationFolder="$(BroccoliPublishRootDir)Resources\%(RecursiveDir)" SkipUnchangedFiles="true" />
 
     <!-- Bootstrap (ランチャー) のコンパイル (前のターンのパス修正版) -->
-    <Exec Command="&quot;$(VC_ExecutablePath_x64_x64)\cl.exe&quot; /nologo /O2 /EHsc /std:c++17 /I &quot;$(VC_IncludePath.Split(';')[0].TrimEnd('\'))&quot; /I &quot;$(WindowsSDK_IncludePath.Split(';')[0].TrimEnd('\'))&quot; /Fo&quot;$(IntDir)\&quot; /Fe&quot;$(BroccoliBootstrapExe)&quot; &quot;$(BroccoliBootstrapCpp)&quot; /link /LIBPATH:&quot;$(VC_LibraryPath_x64.Split(';')[0].TrimEnd('\'))&quot; /LIBPATH:&quot;$(WindowsSDK_LibraryPath_x64.Split(';')[0].TrimEnd('\'))&quot; user32.lib shlwapi.lib shell32.lib" 
+    <Exec Command="&quot;$(VC_ExecutablePath_x64_x64)\cl.exe&quot; /nologo /O2 /EHsc /std:c++17 /I &quot;$(VC_IncludePath.Split(';')[0].TrimEnd('\'))&quot; /I &quot;$(WindowsSDK_IncludePath.Split(';')[0].TrimEnd('\'))&quot; /Fo&quot;$(IntDir)\&quot; /Fe&quot;$(ActualBootstrapExe)&quot; &quot;$(BroccoliBootstrapCpp)&quot; /link /LIBPATH:&quot;$(VC_LibraryPath_x64.Split(';')[0].TrimEnd('\'))&quot; /LIBPATH:&quot;$(WindowsSDK_LibraryPath_x64.Split(';')[0].TrimEnd('\'))&quot; user32.lib shlwapi.lib shell32.lib"
           Condition="Exists('$(BroccoliBootstrapCpp)')" />
 
     <!-- Bootstrap EXE を Publish直下(ルート)へ -->
-    <Copy SourceFiles="$(BroccoliBootstrapExe)" DestinationFiles="$(BroccoliPublishRootDir)\$(BroccoliProductName).exe" SkipUnchangedFiles="true" Condition="Exists('$(BroccoliBootstrapExe)')" />
+    <Copy SourceFiles="$(ActualBootstrapExe)" DestinationFiles="$(BroccoliPublishRootDir)\$(BroccoliProductName).exe" SkipUnchangedFiles="true" Condition="Exists('$(ActualBootstrapExe)')" />
 
     <Message Importance="high" Text="[Broccoli Engine] Build and Deploy Successful: $(BroccoliPublishRootDir)" />
   </Target>
