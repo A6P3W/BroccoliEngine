@@ -1,5 +1,6 @@
 ﻿#include <Windows.h>
 #include <imgui.h>
+#include <iostream>
 
 #include "Application.h"
 #include "EOSCoreManager.h"
@@ -15,8 +16,13 @@ void SetupGame() {
 }
 }
 
+void SetupDllSearchPath() {
+  SetDllDirectoryA("Engine/Binaries");
+}
+
 int WINAPI WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, LPSTR CommandLine, int ShowCommand) {
+  SetupDllSearchPath();
   Application::SetGameSetupCallback(&SetupGame);
   Application App;
   return App.Run() ? 0 : 1;
-}
+} 

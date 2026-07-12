@@ -1,48 +1,104 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ImportGroup Label="PropertySheets" />
-  <PropertyGroup>
-    <!-- ソリューションビルド時は SolutionDir、プロジェクト単体ビルド時は MSBuildThisFileDirectory をベースにする -->
-    <BroccoliEngineTargetDir Condition="'$(SolutionDir)' != ''">$(SolutionDir)$(Platform)\$(Configuration)\</BroccoliEngineTargetDir>
-    <BroccoliEngineTargetDir Condition="'$(SolutionDir)' == ''">$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\</BroccoliEngineTargetDir>
-    <BroccoliVcpkgLibDir Condition="'$(Configuration)' == 'Debug'">$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows-static-md\x64-windows-static-md\debug\lib\</BroccoliVcpkgLibDir>
-    <BroccoliVcpkgLibDir Condition="'$(Configuration)' != 'Debug'">$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows-static-md\x64-windows-static-md\lib\</BroccoliVcpkgLibDir>
-  </PropertyGroup>
-  <ItemDefinitionGroup>
-    <ClCompile>
-      <AdditionalIncludeDirectories>
-		  $(DXLIB_DIR);
-		  $(MSBuildThisFileDirectory)Engine/EngineCore/;
-		  $(MSBuildThisFileDirectory)Engine/EngineCore/Core/Public;
-		  $(MSBuildThisFileDirectory)Engine/EngineCore/Systems/Public;
-		  $(MSBuildThisFileDirectory)Engine/EngineCore/Network/Public;
-		  $(MSBuildThisFileDirectory)Engine/EngineCore/Components/Public;
-		  $(MSBuildThisFileDirectory)Engine/EngineSide/;
-		  $(MSBuildThisFileDirectory)Engine/EngineSide/Default/Public;
-		  $(MSBuildThisFileDirectory)Engine/EngineCore/GameFramework/Public;
-		  $(MSBuildThisFileDirectory)Engine/ThirdParty;
-		  $(MSBuildThisFileDirectory)Engine/EngineCore/Utils/Public;
-		  $(MSBuildThisFileDirectory)Engine/ThirdParty/EOS/SDK/Include;
-		  $(MSBuildThisFileDirectory)Engine/EngineCore/Online/Public;
-		  %(AdditionalIncludeDirectories)
-	  </AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-		<AdditionalDependencies>
-			%(AdditionalDependencies)
-		</AdditionalDependencies>
-		<AdditionalLibraryDirectories>
-			$(BroccoliEngineTargetDir);
-			$(BroccoliVcpkgLibDir);
-			$(MSBuildThisFileDirectory)Engine/ThirdParty/EOS/SDK/Lib/;
-			$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\;
-			$(MSBuildThisFileDirectory)BroccoliEngine\$(Platform)\$(Configuration)\;
-			$(MSBuildThisFileDirectory)Config;
-			%(AdditionalLibraryDirectories)
-		</AdditionalLibraryDirectories>
-    </Link>
-	  <PostBuildEvent>
-		  <Command>copy /Y "$(MSBuildThisFileDirectory)Engine\ThirdParty\EOS\SDK\Bin\EOSSDK-Win64-Shipping.dll" "$(OutDir)"</Command>
-	  </PostBuildEvent>
-  </ItemDefinitionGroup>
+	<ImportGroup Label="PropertySheets" />
+
+	<PropertyGroup>
+		<BroccoliEngineTargetDir Condition="'$(SolutionDir)' != ''">$(SolutionDir)$(Platform)\$(Configuration)\</BroccoliEngineTargetDir>
+		<BroccoliEngineTargetDir Condition="'$(SolutionDir)' == ''">$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\</BroccoliEngineTargetDir>
+		<BroccoliVcpkgLibDir Condition="'$(Configuration)' == 'Debug'">$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows-static-md\x64-windows-static-md\debug\lib\</BroccoliVcpkgLibDir>
+		<BroccoliVcpkgLibDir Condition="'$(Configuration)' != 'Debug'">$(MSBuildThisFileDirectory)vcpkg_installed\x64-windows-static-md\x64-windows-static-md\lib\</BroccoliVcpkgLibDir>
+
+		<!-- 配布用出力先ディレクトリの定義 -->
+		<BroccoliPublishDir>$(SolutionDir)Publish\$(Configuration)\</BroccoliPublishDir>
+	</PropertyGroup>
+
+	<ItemDefinitionGroup>
+		<ClCompile>
+			<AdditionalIncludeDirectories>
+				$(DXLIB_DIR);
+				$(MSBuildThisFileDirectory)Engine/EngineCore/;
+				$(MSBuildThisFileDirectory)Engine/EngineCore/Core/Public;
+				$(MSBuildThisFileDirectory)Engine/EngineCore/Systems/Public;
+				$(MSBuildThisFileDirectory)Engine/EngineCore/Network/Public;
+				$(MSBuildThisFileDirectory)Engine/EngineCore/Components/Public;
+				$(MSBuildThisFileDirectory)Engine/EngineSide/;
+				$(MSBuildThisFileDirectory)Engine/EngineSide/Default/Public;
+				$(MSBuildThisFileDirectory)Engine/EngineCore/GameFramework/Public;
+				$(MSBuildThisFileDirectory)Engine/ThirdParty;
+				$(MSBuildThisFileDirectory)Engine/EngineCore/Utils/Public;
+				$(MSBuildThisFileDirectory)Engine/ThirdParty/EOS/SDK/Include;
+				$(MSBuildThisFileDirectory)Engine/EngineCore/Online/Public;
+				%(AdditionalIncludeDirectories)
+			</AdditionalIncludeDirectories>
+		</ClCompile>
+		<Link>
+			<AdditionalLibraryDirectories>
+				$(BroccoliEngineTargetDir);
+				$(BroccoliVcpkgLibDir);
+				$(MSBuildThisFileDirectory)Engine/ThirdParty/EOS/SDK/Lib/;
+				$(MSBuildThisFileDirectory)$(Platform)\$(Configuration)\;
+				$(MSBuildThisFileDirectory)BroccoliEngine\$(Platform)\$(Configuration)\;
+				$(MSBuildThisFileDirectory)Config;
+				%(AdditionalLibraryDirectories)
+			</AdditionalLibraryDirectories>
+		</Link>
+
+		<PostBuildEvent>
+			<Command>
+				@echo off
+				REM --- DLLのコピー ---
+				copy /Y "$(MSBuildThisFileDirectory)Engine\ThirdParty\EOS\SDK\Bin\EOSSDK-Win64-Shipping.dll" "$(OutDir)"
+
+				REM --- Resourcesのコピー ---
+				if not exist "$(OutDir)Engine" mkdir "$(OutDir)Engine" > NUL
+				if exist "$(MSBuildThisFileDirectory)Resources" (
+				echo [Broccoli Engine] リソースをコピーしています: Resources -^> $(OutDir)Engine\Resources
+				xcopy /Y /E /I /Q "$(MSBuildThisFileDirectory)/Engine/Resources" "$(OutDir)Engine\Resources" > NUL
+				)
+				REM --- Launcher共通Resourcesのコピー ---
+				if exist "$(MSBuildThisFileDirectory)Launcher\Resources" (
+				echo [Broccoli Engine] Launcherリソースをコピーしています...
+				if not exist "$(OutDir)$(TargetName)\Resources" mkdir "$(OutDir)$(TargetName)\Resources" > NUL
+				xcopy /Y /E /I /Q "$(MSBuildThisFileDirectory)Launcher\Resources" "$(OutDir)$(TargetName)\Resources" > NUL
+				)
+			</Command>
+		</PostBuildEvent>
+	</ItemDefinitionGroup>
+
+	<ItemDefinitionGroup Condition="'$(ConfigurationType)' == 'Application'">
+		<PostBuildEvent>
+			<Command>
+				%(Command)
+				@echo off
+				if not exist "$(BroccoliPublishDir)Engine\Binaries" mkdir "$(BroccoliPublishDir)Engine\Binaries" > NUL
+
+				echo [Broccoli Engine] アプリケーションを書き出しています...
+
+				copy /Y "$(OutDir)$(TargetName).exe" "$(BroccoliPublishDir)" > NUL
+				copy /Y "$(OutDir)BroccoliEngine.dll" "$(BroccoliPublishDir)Engine\Binaries\" > NUL
+				copy /Y "$(OutDir)EOSSDK-Win64-Shipping.dll" "$(BroccoliPublishDir)Engine\Binaries\" > NUL
+
+				REM --- Publishフォルダ側へのResourcesコピー ---
+				if exist "$(MSBuildThisFileDirectory)/Engine/Resources" (
+				echo [Broccoli Engine] リソースを配布フォルダに同期しています...
+				xcopy /Y /E /I /Q "$(MSBuildThisFileDirectory)/Engine/Resources" "$(BroccoliPublishDir)Engine\Resources" > NUL
+				)
+				REM --- Launcher共通ResourcesのPublishコピー ---
+				if exist "$(MSBuildThisFileDirectory)Launcher\Resources" (
+				echo [Broccoli Engine] Launcherリソースを配布フォルダに同期しています...
+				if not exist "$(BroccoliPublishDir)$(TargetName)\Resources" mkdir "$(BroccoliPublishDir)$(TargetName)\Resources" > NUL
+				xcopy /Y /E /I /Q "$(MSBuildThisFileDirectory)Launcher\Resources" "$(BroccoliPublishDir)$(TargetName)\Resources" > NUL
+				)
+
+				if exist "$(SolutionDir)Content" (
+				echo [Broccoli Engine] コンテンツファイルを同期しています...
+				xcopy /Y /E /I /Q "$(SolutionDir)Content" "$(BroccoliPublishDir)Content" > NUL
+				)
+
+				echo [Broccoli Engine] --------------------------------------------------
+				echo [Broccoli Engine] 成功: Publishフォルダに出力しました。
+				echo [Broccoli Engine] --------------------------------------------------
+			</Command>
+		</PostBuildEvent>
+	</ItemDefinitionGroup>
 </Project>
