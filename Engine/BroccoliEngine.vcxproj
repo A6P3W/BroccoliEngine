@@ -103,7 +103,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -121,7 +121,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -141,7 +141,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
