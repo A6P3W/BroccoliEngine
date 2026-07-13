@@ -14,7 +14,6 @@
 #include "MovementComponent.h"
 #include "RectangleCollisionComponent.h"
 
-
 struct pair_hash {
   inline std::size_t operator()(const std::pair<int, int>& v) const {
     return v.first * 31 + v.second;
@@ -42,10 +41,7 @@ struct FCollisionSystem::Impl {
   std::vector<MCollisionComponent*> PendingStaticRegistrations;
 };
 FCollisionSystem::FCollisionSystem() : ImplPtr(new Impl()) {}
-FCollisionSystem::~FCollisionSystem() {
-  delete ImplPtr;
-}
-
+FCollisionSystem::~FCollisionSystem() { delete ImplPtr; }
 
 float FCollisionSystem::GetCollisionCellSize() const { return ImplPtr->CollisionCellSize; }
 
@@ -53,7 +49,9 @@ void FCollisionSystem::RegisterCollision(MCollisionComponent* component) {
   ImplPtr->CollisionComponents.push_back(component);
   if (component->IsStatic()) {
     if (std::find(
-            ImplPtr->PendingStaticRegistrations.begin(), ImplPtr->PendingStaticRegistrations.end(), component
+            ImplPtr->PendingStaticRegistrations.begin(),
+            ImplPtr->PendingStaticRegistrations.end(),
+            component
         ) == ImplPtr->PendingStaticRegistrations.end()) {
       ImplPtr->PendingStaticRegistrations.push_back(component);
     }
@@ -61,14 +59,20 @@ void FCollisionSystem::RegisterCollision(MCollisionComponent* component) {
 }
 
 void FCollisionSystem::UnRegisterCollision(MCollisionComponent* component) {
-  auto it = std::find(ImplPtr->CollisionComponents.begin(), ImplPtr->CollisionComponents.end(), component);
+  auto it = std::find(
+      ImplPtr->CollisionComponents.begin(), ImplPtr->CollisionComponents.end(), component
+  );
   if (it != ImplPtr->CollisionComponents.end()) {
     *it = ImplPtr->CollisionComponents.back();
     ImplPtr->CollisionComponents.pop_back();
   }
 
   ImplPtr->PendingStaticRegistrations.erase(
-      std::remove(ImplPtr->PendingStaticRegistrations.begin(), ImplPtr->PendingStaticRegistrations.end(), component),
+      std::remove(
+          ImplPtr->PendingStaticRegistrations.begin(),
+          ImplPtr->PendingStaticRegistrations.end(),
+          component
+      ),
       ImplPtr->PendingStaticRegistrations.end()
   );
 
@@ -153,7 +157,8 @@ void FCollisionSystem::CheckCollisions() {
   for (const auto& loc : ImplPtr->ActiveDynamicCells) {
     const auto& vec = ImplPtr->DynamicCollisionMap[loc];
     auto staticIter = ImplPtr->StaticCollisionMap.find(loc);
-    const auto* staticVec = staticIter != ImplPtr->StaticCollisionMap.end() ? &staticIter->second : nullptr;
+    const auto* staticVec =
+        staticIter != ImplPtr->StaticCollisionMap.end() ? &staticIter->second : nullptr;
 
     for (size_t i = 0; i < vec.size(); ++i) {
       auto* A = vec[i];
@@ -200,6 +205,15 @@ void FCollisionSystem::CheckCollisions() {
 
   for (auto* comp : ImplPtr->CollisionComponents) {
     comp->FlushOverlapState();
+  }
+}
+
+void FCollisionSystem::RemoveActorReferences(AActor* Actor) {
+  if (!Actor) return;
+  for (auto* comp : ImplPtr->CollisionComponents) {
+    if (comp) {
+      comp->RemoveActorReference(Actor);
+    }
   }
 }
 

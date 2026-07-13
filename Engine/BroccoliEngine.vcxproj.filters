@@ -161,7 +161,6 @@
     <ClInclude Include="EngineCore\Online\Public\EOSLobbyManager.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSTypes.h" />
     <ClInclude Include="EngineCore\Online\Public\OnlineSessionManager.h" />
-    <ClInclude Include="PrivateConfig\EOS_ProductCredentials.h" />
     <ClInclude Include="EngineCore\Core\Public\BroccoliEngineAPI.h" />
   </ItemGroup>
   <ItemGroup>

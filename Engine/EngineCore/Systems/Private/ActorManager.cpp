@@ -1,4 +1,4 @@
-#include "ActorManager.h"
+﻿#include "ActorManager.h"
 
 #include <algorithm>
 #include <vector>
@@ -46,6 +46,19 @@ void FActorManager::RemovePendingDestroy() {
   auto shouldRemove = [](const std::unique_ptr<AActor>& obj) {
     return !obj || obj->IsPendingDestroy();
   };
+
+  if (ImplPtr->World && ImplPtr->World->GetCollisionSystem()) {
+    for (auto& obj : ImplPtr->Actors) {
+      if (obj && obj->IsPendingDestroy()) {
+        ImplPtr->World->GetCollisionSystem()->RemoveActorReferences(obj.get());
+      }
+    }
+    for (auto& obj : ImplPtr->PendingActors) {
+      if (obj && obj->IsPendingDestroy()) {
+        ImplPtr->World->GetCollisionSystem()->RemoveActorReferences(obj.get());
+      }
+    }
+  }
 
   std::erase_if(ImplPtr->Actors, shouldRemove);
   std::erase_if(ImplPtr->PendingActors, shouldRemove);
