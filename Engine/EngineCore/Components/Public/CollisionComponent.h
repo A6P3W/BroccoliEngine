@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <cstdint>
 
+#include "BroccoliEngineAPI.h"
 #include "SceneComponent.h"
 class AActor;
 enum class ECollisionShape {
@@ -27,6 +27,7 @@ class BROCCOLI_ENGINE_API MCollisionComponent : public MSceneComponent {
   bool IsOverlappingActor(AActor* OtherActor) const;
   bool ShouldProcessPair(MCollisionComponent* OtherComponent, std::uint64_t FrameId);
   void UpdateOverlapState(AActor* OtherActor, bool bIsIntersecting);
+  void RemoveActorReference(AActor* Actor);
   void SetStatic(bool IsStatic);
   bool IsStatic() const;
   void MarkCheckedThisFrame(AActor* OtherActor);

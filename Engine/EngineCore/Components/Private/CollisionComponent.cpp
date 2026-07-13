@@ -106,3 +106,10 @@ void MCollisionComponent::UpdateOverlapState(AActor* OtherActor, bool bIsInterse
     }
   }
 }
+
+void MCollisionComponent::RemoveActorReference(AActor* Actor) {
+  if (!Actor) return;
+  ImplPtr->OverlappingActors.erase(Actor);
+  ImplPtr->CheckedThisFrame.erase(Actor);
+  ImplPtr->IntersectingThisFrame.erase(Actor);
+}

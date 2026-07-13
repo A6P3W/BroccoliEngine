@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "BroccoliEngineAPI.h"
-
 #include "UMath.h"
 
 class MCollisionComponent;
@@ -26,6 +25,8 @@ class BROCCOLI_ENGINE_API FCollisionSystem {
 
   void UpdateCollisionMap();
   void CheckCollisions();
+
+  void RemoveActorReferences(AActor* Actor);
 
   float GetCollisionCellSize() const;
 
