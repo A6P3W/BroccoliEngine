@@ -218,6 +218,7 @@
     <ClCompile Include="EngineCore\Systems\Private\HttpManager.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\SimpleCrypto.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\NetworkUtils.cpp" />
+    <ClCompile Include="EngineCore\Utils\Private\DebugOverlay.cpp" />
     <ClCompile Include="EngineCore\Network\Private\NetBuffer.cpp" />
     <ClCompile Include="EngineCore\Network\Private\NetworkManager.cpp" />
     <ClCompile Include="EngineCore\Network\Private\ReplicationSystem.cpp" />
@@ -301,6 +302,7 @@
     <ClInclude Include="EngineCore\Systems\Public\HttpManager.h" />
     <ClInclude Include="EngineCore\Utils\Public\SimpleCrypto.h" />
     <ClInclude Include="EngineCore\Utils\Public\NetworkUtils.h" />
+    <ClInclude Include="EngineCore\Utils\Public\DebugOverlay.h" />
     <ClInclude Include="EngineCore\Network\Public\NetMode.h" />
     <ClInclude Include="EngineCore\Network\Public\NetworkTypes.h" />
     <ClInclude Include="EngineCore\Network\Public\NetPacketType.h" />

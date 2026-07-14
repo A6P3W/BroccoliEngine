@@ -100,7 +100,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Engine\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Engine\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
       <AdditionalDependencies>winmm.lib;delayimp.lib;BroccoliEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>BroccoliEngine.dll</DelayLoadDLLs>
     </Link>
@@ -122,7 +122,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Engine\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Engine\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
       <AdditionalDependencies>winmm.lib;BroccoliEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -145,7 +145,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Engine\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Engine\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
       <AdditionalDependencies>winmm.lib;BroccoliEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
