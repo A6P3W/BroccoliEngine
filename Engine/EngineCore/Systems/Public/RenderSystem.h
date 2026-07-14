@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "BroccoliEngineAPI.h"
+#include <cstddef>
 #include <map>
 #include <string>
 #include <variant>
@@ -130,6 +131,12 @@ class BROCCOLI_ENGINE_API RenderSystem {
 
   void SetCameraView(MCameraComponent* m);
   MCameraComponent* GetCamera();
+  void SetViewCullingEnabled(bool BEnabled);
+  bool IsViewCullingEnabled() const;
+  void SetViewCullingMargin(float Margin);
+  float GetViewCullingMargin() const;
+  std::size_t GetLastSubmittedCommandCount() const;
+  std::size_t GetLastCulledCommandCount() const;
 
  private:
   RenderSystemImpl* Impl = nullptr;
