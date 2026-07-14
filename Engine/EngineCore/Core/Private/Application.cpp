@@ -6,6 +6,7 @@
 #include <imgui_impl/imgui_impl_win32.h>
 
 #include "CollisionSystem.h"
+#include "DebugOverlay.h"
 #include "DxLib.h"
 #include "EditorMode.h"
 #include "EngineDefine.h"
@@ -218,6 +219,7 @@ bool Application::Update(float DeltaTime) {
   EOSCoreManager::Get().Tick();
   InputManager::GetInstance().Update();
   HttpManager::GetInstance().Update();
+  DebugOverlayManager::GetInstance().Update(DeltaTime);
 
   if (bPosed) return true;
 
@@ -256,6 +258,7 @@ bool Application::Draw() {
   SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
 
   SetDrawScreen(DX_SCREEN_BACK);
+  DebugOverlayManager::GetInstance().Draw();
   ImGui::Render();
   ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
   ScreenFlip();

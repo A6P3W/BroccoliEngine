@@ -44,3 +44,5 @@ class MLog {
 };
 
 #define M_LOG(fmt, ...) MLog::Log(__FUNCTION__, fmt, ##__VA_ARGS__)
+
+#include "DebugOverlay.h"

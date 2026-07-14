@@ -10,7 +10,7 @@
 #include "SceneManager.h"
 #include "SoundManager.h"
 #include "TimerManager.h"
-
+#include "DebugOverlay.h"
 struct World::Impl {
   std::unique_ptr<FCollisionSystem> CollisionSystem;
   std::unique_ptr<FSoundManager> SoundManager;
