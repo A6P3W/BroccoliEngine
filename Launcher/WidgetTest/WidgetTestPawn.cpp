@@ -31,8 +31,6 @@ void AWidgetTestPawn::OnPossessedBy(APlayerController* NewController) {
 }
 void AWidgetTestPawn::OnUpdate(float DeltaTime) {
   const FVector2D PawnPosition = GetActorLocation();
-  const FVector2D WorldLogPosition = PawnPosition + FVector2D(0.0f, -60.0f);
-
   DRAW_SCREEN_LOG(
       "WidgetTestPawnPosition",
       0.1f,
@@ -40,11 +38,14 @@ void AWidgetTestPawn::OnUpdate(float DeltaTime) {
       PawnPosition.X,
       PawnPosition.Y
   );
+  DRAW_WORLD_LOG("WidgetTestPawnName", 0.1f, this, "WidgetTest Pawn");
   DRAW_WORLD_LOG(
-      "WidgetTestPawnWorldLog",
+      "WidgetTestPawnWorldPosition",
       0.1f,
-      WorldLogPosition,
-      "WidgetTest Pawn"
+      this,
+      "X={:.1f}, Y={:.1f}",
+      PawnPosition.X,
+      PawnPosition.Y
   );
 }
 

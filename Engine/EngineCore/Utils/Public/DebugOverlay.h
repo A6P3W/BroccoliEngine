@@ -5,7 +5,10 @@
 
 #include <format>
 #include <string>
+#include <unordered_map>
 #include <vector>
+
+class AActor;
 
 struct DebugOverlayLogEntry {
   std::string Key;
@@ -33,6 +36,12 @@ class BROCCOLI_ENGINE_API DebugOverlayManager {
       const FVector2D& WorldPosition,
       const std::string& FormattedText
   );
+  void AddWorldLog(
+      const std::string& Key,
+      float DisplayTime,
+      const AActor* Actor,
+      const std::string& FormattedText
+  );
   void Update(float DeltaTime);
   void UpdateWorldLogs(float DeltaTime);
   void Draw();
@@ -41,10 +50,11 @@ class BROCCOLI_ENGINE_API DebugOverlayManager {
  private:
   std::vector<DebugOverlayLogEntry> Entries;
   std::vector<FWorldLogEntry> WorldLogs;
+  std::unordered_map<const AActor*, std::size_t> ActorWorldLogCounts;
 };
 
 #define DRAW_SCREEN_LOG(Key, Time, Fmt, ...) \
   DebugOverlayManager::GetInstance().AddLog(Key, Time, std::format(Fmt, ##__VA_ARGS__))
 
-#define DRAW_WORLD_LOG(Key, Time, WorldPosition, Fmt, ...) \
-  DebugOverlayManager::GetInstance().AddWorldLog(Key, Time, WorldPosition, std::format(Fmt, ##__VA_ARGS__))
+#define DRAW_WORLD_LOG(Key, Time, Target, Fmt, ...) \
+  DebugOverlayManager::GetInstance().AddWorldLog(Key, Time, Target, std::format(Fmt, ##__VA_ARGS__))

@@ -1,9 +1,11 @@
 ﻿#include "DebugOverlay.h"
 
 #include <algorithm>
+#include <cstdint>
 
 #include <imgui.h>
 
+#include "Actor.h"
 #include "EngineDefine.h"
 #include "RenderSystem.h"
 
@@ -33,7 +35,6 @@ void DebugOverlayManager::AddLog(
   Entries.push_back({Key, DisplayTime, DisplayTime, FormattedText});
 }
 
-
 void DebugOverlayManager::AddWorldLog(
     const std::string& Key,
     float DisplayTime,
@@ -56,7 +57,35 @@ void DebugOverlayManager::AddWorldLog(
 
   WorldLogs.push_back({Key, DisplayTime, DisplayTime, FormattedText, WorldPosition});
 }
+
+void DebugOverlayManager::AddWorldLog(
+    const std::string& Key,
+    float DisplayTime,
+    const AActor* Actor,
+    const std::string& FormattedText
+) {
+  if (Actor == nullptr) {
+    return;
+  }
+
+  constexpr float BaseHeightOffset = 10.0f;
+  constexpr float LineSpacing = 8.0f;
+  const std::size_t ActorLogIndex = ActorWorldLogCounts[Actor]++;
+  const FVector2D WorldPosition = Actor->GetActorLocation() +
+                                  FVector2D(
+                                      0.0f,
+                                      BaseHeightOffset -
+                                          LineSpacing * static_cast<float>(ActorLogIndex)
+                                  );
+  const std::string ActorLogKey =
+      std::format("{}:{}", reinterpret_cast<std::uintptr_t>(Actor), Key);
+
+  AddWorldLog(ActorLogKey, DisplayTime, WorldPosition, FormattedText);
+}
+
 void DebugOverlayManager::Update(float DeltaTime) {
+  ActorWorldLogCounts.clear();
+
   for (DebugOverlayLogEntry& Entry : Entries) {
     Entry.TimeRemaining -= DeltaTime;
   }
@@ -83,7 +112,7 @@ void DebugOverlayManager::Draw() {
 
   constexpr float FadeStartTime = 0.5f;
   for (const DebugOverlayLogEntry& Entry : Entries) {
-    const float FadeTime = std::max(0.001f, std::min(FadeStartTime, Entry.DisplayTime));
+    const float FadeTime = (std::max)(0.001f, (std::min)(FadeStartTime, Entry.DisplayTime));
     const float Alpha = std::clamp(Entry.TimeRemaining / FadeTime, 0.0f, 1.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, Alpha);
     ImGui::Text("%s", Entry.Text.c_str());
@@ -93,10 +122,11 @@ void DebugOverlayManager::Draw() {
   ImGui::End();
   DrawWorldLogs();
 }
+
 void DebugOverlayManager::DrawWorldLogs() {
   ImDrawList* DrawList = ImGui::GetForegroundDrawList();
   const ImVec2 DisplaySize = ImGui::GetIO().DisplaySize;
-  const float Scale = std::min(DisplaySize.x / VirtualWidth, DisplaySize.y / VirtualHeight);
+  const float Scale = (std::min)(DisplaySize.x / VirtualWidth, DisplaySize.y / VirtualHeight);
   const ImVec2 Offset = {
       (DisplaySize.x - VirtualWidth * Scale) * 0.5f,
       (DisplaySize.y - VirtualHeight * Scale) * 0.5f
@@ -111,7 +141,7 @@ void DebugOverlayManager::DrawWorldLogs() {
         Offset.x + WorldScreenPosition.X * Scale - TextSize.x * 0.5f,
         Offset.y + WorldScreenPosition.Y * Scale - TextSize.y * 0.5f
     };
-    const float FadeTime = std::max(0.001f, std::min(FadeStartTime, Entry.DisplayTime));
+    const float FadeTime = (std::max)(0.001f, (std::min)(FadeStartTime, Entry.DisplayTime));
     const float Alpha = std::clamp(Entry.TimeRemaining / FadeTime, 0.0f, 1.0f);
     const ImU32 TextColor = IM_COL32(255, 255, 255, static_cast<int>(Alpha * 255.0f));
     const ImU32 OutlineColor = IM_COL32(0, 0, 0, static_cast<int>(Alpha * 255.0f));
