@@ -64,6 +64,7 @@ struct RenderCommand {
 };
 
 class MCameraComponent;
+struct FRenderContext;
 class RenderSystemImpl;
 
 class BROCCOLI_ENGINE_API RenderSystem {
@@ -139,5 +140,13 @@ class BROCCOLI_ENGINE_API RenderSystem {
   std::size_t GetLastCulledCommandCount() const;
 
  private:
+  void UpdateDrawStatistics();
+  FRenderContext BuildRenderContext() const;
+  bool IsCommandVisible(const RenderCommand& Command, const FRenderContext& Context) const;
+  void CullCommands(const FRenderContext& Context);
+  void SortCommands();
+  void DrawCommands(const FRenderContext& Context);
+  void DrawCommand(const RenderCommand& Command, const FRenderContext& Context);
+
   RenderSystemImpl* Impl = nullptr;
 };
