@@ -29,7 +29,24 @@ void AWidgetTestPawn::OnPossessedBy(APlayerController* NewController) {
   APawn::OnPossessedBy(NewController);
   Camera->SetFOV(1);
 }
-void AWidgetTestPawn::OnUpdate(float DeltaTime) {}
+void AWidgetTestPawn::OnUpdate(float DeltaTime) {
+  const FVector2D PawnPosition = GetActorLocation();
+  const FVector2D WorldLogPosition = PawnPosition + FVector2D(0.0f, -60.0f);
+
+  DRAW_SCREEN_LOG(
+      "WidgetTestPawnPosition",
+      0.1f,
+      "WidgetTest Pawn Position: X={:.1f}, Y={:.1f}",
+      PawnPosition.X,
+      PawnPosition.Y
+  );
+  DRAW_WORLD_LOG(
+      "WidgetTestPawnWorldLog",
+      0.1f,
+      WorldLogPosition,
+      "WidgetTest Pawn"
+  );
+}
 
 void AWidgetTestPawn::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) {
   PlayerInputComponent->BindAction(
