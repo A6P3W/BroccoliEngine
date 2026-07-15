@@ -4,8 +4,8 @@
 
 #include <algorithm>
 #include <cctype>
-#include <memory>
 #include <functional>
+#include <memory>
 #include <utility>
 
 #include "Actor.h"
@@ -50,11 +50,11 @@ struct UIInputTextComponent::Impl {
   float Height = 0.0f;
   float TextOffsetY = 0.0f;
   float ActionHintOffsetY = 3.0f;
-  int NormalColor = 0;
-  int HoveredColor = 0;
-  int EditingColor = 0;
-  int TextColor = 0xFFFFFF;
-  int HintColor = 0xA0A0A0;
+  FColor NormalColor = FColor::Black;
+  FColor HoveredColor = FColor::Black;
+  FColor EditingColor = FColor::Black;
+  FColor TextColor = FColor::White;
+  FColor HintColor = FColor{160, 160, 160};
   int FontSize = 24;
   int FontHandle = -1;
   int HintFontHandle = -1;
@@ -62,9 +62,9 @@ struct UIInputTextComponent::Impl {
 };
 UIInputTextComponent::UIInputTextComponent() : ImplPtr(new Impl()) {
   SetWidgetSize({ImplPtr->Width, ImplPtr->Height});
-  ImplPtr->NormalColor = GetColor(80, 80, 80);
-  ImplPtr->HoveredColor = GetColor(120, 120, 120);
-  ImplPtr->EditingColor = GetColor(45, 105, 170);
+  ImplPtr->NormalColor = FColor{80, 80, 80};
+  ImplPtr->HoveredColor = FColor{120, 120, 120};
+  ImplPtr->EditingColor = FColor{45, 105, 170};
 }
 
 UIInputTextComponent::~UIInputTextComponent() { delete ImplPtr; }
@@ -82,8 +82,8 @@ void UIInputTextComponent::OnRegister() {
   ImplPtr->TextSprite = NewObject<MSpriteComponent>(GetOwner());
   ImplPtr->BorderSprite = NewObject<MSpriteComponent>(GetOwner());
   ImplPtr->ActionHintSprite = NewObject<MSpriteComponent>(GetOwner());
-  if (ImplPtr->BoxSprite == nullptr || ImplPtr->TextSprite == nullptr || ImplPtr->BorderSprite == nullptr ||
-      ImplPtr->ActionHintSprite == nullptr) {
+  if (ImplPtr->BoxSprite == nullptr || ImplPtr->TextSprite == nullptr ||
+      ImplPtr->BorderSprite == nullptr || ImplPtr->ActionHintSprite == nullptr) {
     return;
   }
 
@@ -181,19 +181,21 @@ void UIInputTextComponent::SetSize(float width, float height) {
   UpdateVisuals();
 }
 
-void UIInputTextComponent::SetColors(int normalColor, int hoveredColor, int editingColor) {
+void UIInputTextComponent::SetColors(
+    const FColor& normalColor, const FColor& hoveredColor, const FColor& editingColor
+) {
   ImplPtr->NormalColor = normalColor;
   ImplPtr->HoveredColor = hoveredColor;
   ImplPtr->EditingColor = editingColor;
   UpdateVisuals();
 }
 
-void UIInputTextComponent::SetTextColor(int color) {
+void UIInputTextComponent::SetTextColor(const FColor& color) {
   ImplPtr->TextColor = color;
   UpdateVisuals();
 }
 
-void UIInputTextComponent::SetHintColor(int color) {
+void UIInputTextComponent::SetHintColor(const FColor& color) {
   ImplPtr->HintColor = color;
   UpdateVisuals();
 }
@@ -308,9 +310,16 @@ void UIInputTextComponent::HandleKeyboardInput() {
   }
 
   const std::pair<int, char> digitKeys[] = {
-      {KEY_INPUT_0, '0'}, {KEY_INPUT_1, '1'}, {KEY_INPUT_2, '2'}, {KEY_INPUT_3, '3'},
-      {KEY_INPUT_4, '4'}, {KEY_INPUT_5, '5'}, {KEY_INPUT_6, '6'}, {KEY_INPUT_7, '7'},
-      {KEY_INPUT_8, '8'}, {KEY_INPUT_9, '9'},
+      {KEY_INPUT_0, '0'},
+      {KEY_INPUT_1, '1'},
+      {KEY_INPUT_2, '2'},
+      {KEY_INPUT_3, '3'},
+      {KEY_INPUT_4, '4'},
+      {KEY_INPUT_5, '5'},
+      {KEY_INPUT_6, '6'},
+      {KEY_INPUT_7, '7'},
+      {KEY_INPUT_8, '8'},
+      {KEY_INPUT_9, '9'},
   };
 
   for (const auto& [keyCode, character] : digitKeys) {
@@ -322,7 +331,8 @@ void UIInputTextComponent::HandleKeyboardInput() {
 }
 
 void UIInputTextComponent::AppendCharacter(char character) {
-  if (!IsAlphaNumeric(character) || static_cast<int>(ImplPtr->EditingText.size()) >= ImplPtr->MaxLength) {
+  if (!IsAlphaNumeric(character) ||
+      static_cast<int>(ImplPtr->EditingText.size()) >= ImplPtr->MaxLength) {
     return;
   }
 
@@ -340,17 +350,23 @@ void UIInputTextComponent::AppendCharacter(char character) {
 void UIInputTextComponent::UpdateVisuals() {
   if (ImplPtr->BoxSprite != nullptr) {
     ImplPtr->BoxSprite->SetRelativeLocation({-ImplPtr->Width * 0.5f, -ImplPtr->Height * 0.5f});
-    ImplPtr->BoxSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, GetCurrentBackgroundColor(), true);
+    ImplPtr->BoxSprite->SubmitBox(
+        ImplPtr->Width, ImplPtr->Height, GetCurrentBackgroundColor(), true
+    );
   }
 
   if (ImplPtr->BorderSprite != nullptr) {
     ImplPtr->BorderSprite->SetRelativeLocation({-ImplPtr->Width * 0.5f, -ImplPtr->Height * 0.5f});
     if (ImplPtr->bIsEditing) {
-      ImplPtr->BorderSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, GetColor(0, 255, 0), false);
+      ImplPtr->BorderSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, FColor{0, 255, 0}, false);
     } else if (ImplPtr->CurrentState == EButtonState::Hovered) {
-      ImplPtr->BorderSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, GetColor(255, 255, 255), false);
+      ImplPtr->BorderSprite->SubmitBox(
+          ImplPtr->Width, ImplPtr->Height, FColor{255, 255, 255}, false
+      );
     } else {
-      ImplPtr->BorderSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, GetColor(255, 255, 255), false, 0);
+      ImplPtr->BorderSprite->SubmitBox(
+          ImplPtr->Width, ImplPtr->Height, FColor{255, 255, 255, 0}, false
+      );
     }
   }
 
@@ -359,10 +375,14 @@ void UIInputTextComponent::UpdateVisuals() {
       const int hintWidth = GetDrawStringWidthToHandle(
           ActionHintText.c_str(), static_cast<int>(ActionHintText.length()), ImplPtr->HintFontHandle
       );
-      ImplPtr->ActionHintSprite->SetRelativeLocation({-hintWidth * 0.5f, ImplPtr->Height * 0.5f + ImplPtr->ActionHintOffsetY});
-      ImplPtr->ActionHintSprite->SubmitText(ActionHintText, GetColor(255, 230, 64), ImplPtr->HintFontHandle);
+      ImplPtr->ActionHintSprite->SetRelativeLocation(
+          {-hintWidth * 0.5f, ImplPtr->Height * 0.5f + ImplPtr->ActionHintOffsetY}
+      );
+      ImplPtr->ActionHintSprite->SubmitText(
+          ActionHintText, FColor{255, 230, 64}, ImplPtr->HintFontHandle
+      );
     } else {
-      ImplPtr->ActionHintSprite->SubmitText("", GetColor(255, 230, 64), ImplPtr->HintFontHandle, 0);
+      ImplPtr->ActionHintSprite->SubmitText("", FColor{255, 230, 64, 0}, ImplPtr->HintFontHandle);
     }
   }
 
@@ -371,17 +391,23 @@ void UIInputTextComponent::UpdateVisuals() {
   }
 
   const std::string displayText = GetDisplayText();
-  const bool bShowHint = !ImplPtr->bIsEditing && ImplPtr->Text.empty() && !ImplPtr->HintText.empty();
-  const int color = bShowHint ? ImplPtr->HintColor : ImplPtr->TextColor;
-  const int textWidth =
-      GetDrawStringWidthToHandle(displayText.c_str(), static_cast<int>(displayText.length()), ImplPtr->FontHandle);
+  const bool bShowHint =
+      !ImplPtr->bIsEditing && ImplPtr->Text.empty() && !ImplPtr->HintText.empty();
+  FColor color = bShowHint ? ImplPtr->HintColor : ImplPtr->TextColor;
+  const int textWidth = GetDrawStringWidthToHandle(
+      displayText.c_str(), static_cast<int>(displayText.length()), ImplPtr->FontHandle
+  );
 
   const float leftPadding = 16.0f;
   const float maxTextWidth = (std::max)(0.0f, ImplPtr->Width - leftPadding * 2.0f);
   const float textX = -ImplPtr->Width * 0.5f + leftPadding;
   const float textY = -ImplPtr->FontSize * 0.5f + ImplPtr->TextOffsetY;
   ImplPtr->TextSprite->SetRelativeLocation({textX, textY});
-  ImplPtr->TextSprite->SubmitText(displayText, color, ImplPtr->FontHandle, textWidth > maxTextWidth ? 220 : 255);
+  ImplPtr->TextSprite->SubmitText(
+      displayText,
+      (color.A = static_cast<uint8_t>(textWidth > maxTextWidth ? 220 : 255), color),
+      ImplPtr->FontHandle
+  );
 }
 
 std::string UIInputTextComponent::GetDisplayText() const {
@@ -403,7 +429,7 @@ std::string UIInputTextComponent::GetDisplayText() const {
   return result;
 }
 
-int UIInputTextComponent::GetCurrentBackgroundColor() const {
+FColor UIInputTextComponent::GetCurrentBackgroundColor() const {
   if (ImplPtr->bIsEditing) {
     return ImplPtr->EditingColor;
   }

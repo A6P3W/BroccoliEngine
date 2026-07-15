@@ -21,7 +21,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
   // 親の中心を示す黄色い円
   auto* ParentMarker = NewObject<MSpriteComponent>(this);
   ParentMarker->SetRenderSettings(10, RenderSpace::World);
-  ParentMarker->SubmitCircle(18.0f, GetColor(255, 220, 60), true);
+  ParentMarker->SubmitCircle(18.0f, FColor{255, 220, 60}, true);
   ParentMarker->AttachToComponent(RotatingParent);
   ParentMarker->RegisterComponent();
 
@@ -36,7 +36,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
 
   KeepRelativeSprite = NewObject<MSpriteComponent>(this);
   KeepRelativeSprite->SetRenderSettings(11, RenderSpace::World);
-  KeepRelativeSprite->SubmitCircle(12.0f, GetColor(80, 170, 255), true);
+  KeepRelativeSprite->SubmitCircle(12.0f, FColor{80, 170, 255}, true);
 
   KeepRelativeSprite->SetRelativeLocation({100.0f, 0.0f});
 
@@ -62,7 +62,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
 
   KeepWorldStartMarker->SetRenderSettings(5, RenderSpace::World);
 
-  KeepWorldStartMarker->SubmitCircle(16.0f, GetColor(160, 160, 160), false);
+  KeepWorldStartMarker->SubmitCircle(16.0f, FColor{160, 160, 160}, false);
 
   KeepWorldStartMarker->SetWorldLocation(KeepWorldStartLocation);
 
@@ -70,7 +70,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
 
   KeepWorldSprite = NewObject<MSpriteComponent>(this);
   KeepWorldSprite->SetRenderSettings(11, RenderSpace::World);
-  KeepWorldSprite->SubmitCircle(12.0f, GetColor(80, 255, 140), true);
+  KeepWorldSprite->SubmitCircle(12.0f, FColor{80, 255, 140}, true);
 
   // アタッチ前にワールド値を指定
   KeepWorldSprite->SetWorldLocation(KeepWorldStartLocation);
@@ -95,7 +95,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
 
   SnapBeforeMarker->SetRenderSettings(5, RenderSpace::World);
 
-  SnapBeforeMarker->SubmitCircle(14.0f, GetColor(160, 160, 160), false);
+  SnapBeforeMarker->SubmitCircle(14.0f, FColor{160, 160, 160}, false);
 
   SnapBeforeMarker->SetWorldLocation(SnapBeforeLocation);
 
@@ -103,7 +103,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
 
   SnapSprite = NewObject<MSpriteComponent>(this);
   SnapSprite->SetRenderSettings(12, RenderSpace::World);
-  SnapSprite->SubmitCircle(10.0f, GetColor(255, 80, 110), true);
+  SnapSprite->SubmitCircle(10.0f, FColor{255, 80, 110}, true);
 
   // この位置はSnapによって無視される
   SnapSprite->SetWorldLocation(SnapBeforeLocation);

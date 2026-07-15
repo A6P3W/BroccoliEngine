@@ -6,10 +6,20 @@
 void MCircleCollisionComponent::Draw() {
   if (!IsDebug) return;
   RenderSystem::GetInstance().SubmitCircle(
-      GetWorldLocation(), Radius * GetWorldScale().Scale, 0x00FF00, 0, RenderSpace::World, 100, 255
+      GetWorldLocation(),
+      Radius * GetWorldScale().Scale,
+      FColor{0, 255, 0},
+      0,
+      RenderSpace::World,
+      100
   );
   RenderSystem::GetInstance().SubmitCircle(
-      GetWorldLocation(), Radius * GetWorldScale().Scale, 11111111, 1, RenderSpace::World, 100, 50
+      GetWorldLocation(),
+      Radius * GetWorldScale().Scale,
+      FColor{169, 138, 199, 50},
+      1,
+      RenderSpace::World,
+      100
   );
 }
 

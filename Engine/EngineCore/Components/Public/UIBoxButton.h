@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "BroccoliEngineAPI.h"
+#include "Color.h"
 #include "UIButtonComponent.h"
 
 class MSpriteComponent;
@@ -12,17 +13,17 @@ class BROCCOLI_ENGINE_API UIBoxButtonComponent : public MUIButtonComponent {
   void OnStateChanged(EButtonState NewState) override;
 
   void SetSize(float width, float height);
-  void SetColors(int normalColor, int hoveredColor, int pressedColor);
+  void SetColors(const FColor& normalColor, const FColor& hoveredColor, const FColor& pressedColor);
 
  private:
   void UpdateBox();
-  int GetColorForState(EButtonState State) const;
+  FColor GetColorForState(EButtonState State) const;
 
   MSpriteComponent* BoxSprite = nullptr;
   float Width = 0.0f;
   float Height = 0.0f;
-  int NormalColor = 0;
-  int HoveredColor = 0;
-  int PressedColor = 0;
+  FColor NormalColor = FColor::Black;
+  FColor HoveredColor = FColor::Black;
+  FColor PressedColor = FColor::Black;
   EButtonState CurrentState = EButtonState::Normal;
 };

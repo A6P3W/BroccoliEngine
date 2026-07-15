@@ -5,9 +5,7 @@
 #include "Actor.h"
 #include "SpriteComponent.h"
 
-UIBoxButtonComponent::UIBoxButtonComponent() {
-  SetWidgetSize({Width, Height});
-}
+UIBoxButtonComponent::UIBoxButtonComponent() { SetWidgetSize({Width, Height}); }
 
 void UIBoxButtonComponent::OnRegister() {
   if (BoxSprite != nullptr || GetOwner() == nullptr) {
@@ -35,7 +33,9 @@ void UIBoxButtonComponent::SetSize(float width, float height) {
   UpdateBox();
 }
 
-void UIBoxButtonComponent::SetColors(int normalColor, int hoveredColor, int pressedColor) {
+void UIBoxButtonComponent::SetColors(
+    const FColor& normalColor, const FColor& hoveredColor, const FColor& pressedColor
+) {
   NormalColor = normalColor;
   HoveredColor = hoveredColor;
   PressedColor = pressedColor;
@@ -50,7 +50,7 @@ void UIBoxButtonComponent::UpdateBox() {
   BoxSprite->SubmitBox(Width, Height, GetColorForState(CurrentState), true);
 }
 
-int UIBoxButtonComponent::GetColorForState(EButtonState State) const {
+FColor UIBoxButtonComponent::GetColorForState(EButtonState State) const {
   switch (State) {
     case EButtonState::Hovered:
       return HoveredColor;

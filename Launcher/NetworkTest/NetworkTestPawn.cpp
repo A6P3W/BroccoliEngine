@@ -205,22 +205,21 @@ void ANetworkTestPawn::OnInteract(const FInputActionValue& Value) {
   }
 }
 
-int ANetworkTestPawn::GetDisplayColor() const {
+FColor ANetworkTestPawn::GetDisplayColor() const {
   if (ReplicationTest && ReplicationTest->IsRPCFlashActive()) {
-    return GetColor(255, 120, 255);
+    return FColor{255, 120, 255};
   }
 
   if (ReplicationTest && ReplicationTest->IsOnRepFlashActive()) {
-    return GetColor(80, 170, 255);
+    return FColor{80, 170, 255};
   }
 
   if (FlashTimer > 0.0f) {
-    return GetColor(255, 255, 80);
+    return FColor{255, 255, 80};
   }
 
-  return (bIsLocallyControlled || (bHasAuthority && OwnerConnectionId == 0))
-             ? GetColor(0, 220, 80)
-             : GetColor(220, 60, 60);
+  return (bIsLocallyControlled || (bHasAuthority && OwnerConnectionId == 0)) ? FColor{0, 220, 80}
+                                                                             : FColor{220, 60, 60};
 }
 
 void ANetworkTestPawn::BeginOverlap(AActor* OtherActor) {

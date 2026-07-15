@@ -9,7 +9,7 @@ EditorSelectPointComponent::EditorSelectPointComponent() {}
 void EditorSelectPointComponent::Draw() { SelectPointSprite->SetWorldScale(FScale(1.0f)); }
 
 void EditorSelectPointComponent::Selected(bool bSelected) {
-  int color = bSelected ? GetColor(255, 255, 0) : GetColor(255, 0, 0);
+  FColor color = bSelected ? FColor{255, 255, 0} : FColor{255, 0, 0};
   SelectPointSprite->SubmitCircle(10, color, 1);
 }
 
@@ -20,6 +20,6 @@ void EditorSelectPointComponent::OnRegister() {
   }
   SelectPointSprite->SetRenderSettings(100, RenderSpace::World);
   SelectPointSprite->AttachToComponent(this);
-  SelectPointSprite->SubmitCircle(8.0f, GetColor(255, 0, 0), true);
+  SelectPointSprite->SubmitCircle(8.0f, FColor{255, 0, 0}, true);
   SelectPointSprite->RegisterComponent();
 }

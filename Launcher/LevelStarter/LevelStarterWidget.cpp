@@ -1,4 +1,4 @@
-#include "LevelStarterWidget.h"
+﻿#include "LevelStarterWidget.h"
 
 #include <DxLib.h>
 
@@ -19,7 +19,7 @@ ALevelStarterWidget::ALevelStarterWidget() {
 
   auto* buttonPtr = NewObject<UIBoxButtonComponent>(this);
   buttonPtr->SetSize(ButtonWidth, ButtonHeight);
-  buttonPtr->SetColors(GetColor(85, 85, 85), GetColor(119, 119, 119), GetColor(51, 51, 51));
+  buttonPtr->SetColors(FColor{85, 85, 85}, FColor{119, 119, 119}, FColor{51, 51, 51});
   buttonPtr->SetAnchor(EUIAnchor::MiddleCenter);
   buttonPtr->SetOnPressed([]() {
     const std::string filepath =
@@ -31,7 +31,7 @@ ALevelStarterWidget::ALevelStarterWidget() {
 
   auto* text = NewObject<UITextComponent>(this);
   text->SetText("Select .BLevel to Play");
-  text->SetColor(GetColor(255, 255, 255));
+  text->SetColor(FColor{255, 255, 255});
   text->SetFontSize(24);
   text->AttachToComponent(buttonPtr);
   text->SetAnchor(EUIAnchor::MiddleCenter);

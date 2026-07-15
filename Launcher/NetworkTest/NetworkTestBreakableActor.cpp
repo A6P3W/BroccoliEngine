@@ -1,6 +1,7 @@
 ﻿#include "NetworkTestBreakableActor.h"
 
 #include <DxLib.h>
+
 #include <memory>
 
 #include "CollisionComponent.h"
@@ -16,7 +17,7 @@ ANetworkTestBreakableActor::ANetworkTestBreakableActor() {
 
   BodySprite = NewObject<MSpriteComponent>(this);
   BodySprite->SetRenderSettings(9, RenderSpace::World);
-  BodySprite->SubmitBox(40.0f, 40.0f, GetColor(255, 150, 40), true);
+  BodySprite->SubmitBox(40.0f, 40.0f, FColor{255, 150, 40}, true);
   BodySprite->SetRelativeLocation({-20.0f, -20.0f});
   BodySprite->RegisterComponent();
 

@@ -5,6 +5,7 @@
 #include <string>
 
 #include "ActorComponent.h"
+#include "Color.h"
 #include "Pawn.h"
 #include "UMath.h"
 
@@ -57,7 +58,7 @@ class ANetworkTestPawn : public APawn {
   void OnMove(const FInputActionValue& Value);
   void OnInteract(const FInputActionValue& Value);
   void BeginOverlap(AActor* OtherActor) override;
-  int GetDisplayColor() const;
+  FColor GetDisplayColor() const;
 
   MSpriteComponent* BodySprite = nullptr;
   MNetMovementComponent* Movement = nullptr;

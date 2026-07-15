@@ -15,10 +15,10 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   float btnHeight = 50.0f;
   float sideBtnWidth = 120.0f;
   float sideBtnHeight = 50.0f;
-  int normalColor = GetColor(100, 100, 100);
-  int hoveredColor = GetColor(150, 150, 150);
-  int pressedColor = GetColor(50, 50, 50);
-  int inputEditingColor = GetColor(40, 100, 170);
+  FColor normalColor = FColor{100, 100, 100};
+  FColor hoveredColor = FColor{150, 150, 150};
+  FColor pressedColor = FColor{50, 50, 50};
+  FColor inputEditingColor = FColor{40, 100, 170};
 
   auto* VerticalBox = NewObject<MUIVerticalBoxComponent>(this);
   auto* VerticalBoxPtr = VerticalBox;
@@ -42,12 +42,12 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   auto* ToggleBtnPtr = ToggleBtn;
   ToggleBtnPtr->SetSize(btnWidth, btnHeight);
   ToggleBtnPtr->SetColors(
-      GetColor(46, 160, 67),
-      GetColor(61, 184, 82),
-      GetColor(35, 134, 54),
-      GetColor(90, 90, 90),
-      GetColor(125, 125, 125),
-      GetColor(60, 60, 60)
+      FColor{46, 160, 67},
+      FColor{61, 184, 82},
+      FColor{35, 134, 54},
+      FColor{90, 90, 90},
+      FColor{125, 125, 125},
+      FColor{60, 60, 60}
   );
   VerticalBoxPtr->AddItem(ToggleBtnPtr);
   ToggleBtn->RegisterComponent();
@@ -94,7 +94,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
 
   auto* startText = NewObject<UITextComponent>(this);
   startText->SetText("Start");
-  startText->SetColor(GetColor(255, 255, 255));
+  startText->SetColor(FColor{255, 255, 255});
   startText->SetFontSize(24);
   startText->AttachToComponent(StartBtnPtr);  // ボタンの子要素にするだけで中央に配置される
   startText->RegisterComponent();
@@ -102,21 +102,21 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   auto* toggleText = NewObject<UITextComponent>(this);
   auto* ToggleTextPtr = toggleText;
   ToggleTextPtr->SetText("Toggle: OFF");
-  ToggleTextPtr->SetColor(GetColor(255, 255, 255));
+  ToggleTextPtr->SetColor(FColor{255, 255, 255});
   ToggleTextPtr->SetFontSize(24);
   ToggleTextPtr->AttachToComponent(ToggleBtnPtr);
   toggleText->RegisterComponent();
 
   auto* leftNavText = NewObject<UITextComponent>(this);
   leftNavText->SetText("Left");
-  leftNavText->SetColor(GetColor(255, 255, 255));
+  leftNavText->SetColor(FColor{255, 255, 255});
   leftNavText->SetFontSize(24);
   leftNavText->AttachToComponent(LeftNavBtnPtr);
   leftNavText->RegisterComponent();
 
   auto* rightNavText = NewObject<UITextComponent>(this);
   rightNavText->SetText("Right");
-  rightNavText->SetColor(GetColor(255, 255, 255));
+  rightNavText->SetColor(FColor{255, 255, 255});
   rightNavText->SetFontSize(24);
   rightNavText->AttachToComponent(RightNavBtnPtr);
   rightNavText->RegisterComponent();
@@ -126,7 +126,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   CommittedTextPtr->SetAnchor(EUIAnchor::MiddleCenter);
   CommittedTextPtr->SetAnchoredPosition({0.0f, 210.0f});
   committedText->SetText("Input: <empty>");
-  committedText->SetColor(GetColor(210, 230, 255));
+  committedText->SetColor(FColor{210, 230, 255});
   committedText->SetFontSize(20);
   committedText->RegisterComponent();
 
@@ -136,9 +136,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
     ToggleTextPtr->SetText(bIsOn ? "Toggle: ON" : "Toggle: OFF");
     M_LOG("Toggle Button: {}", bIsOn ? "ON" : "OFF");
   });
-  NameInputPtr->SetOnTextChanged([](const std::string& text) {
-    M_LOG("Input changed: {}", text);
-  });
+  NameInputPtr->SetOnTextChanged([](const std::string& text) { M_LOG("Input changed: {}", text); });
   NameInputPtr->SetOnTextCommitted([CommittedTextPtr](const std::string& text) {
     const std::string displayText = text.empty() ? "<empty>" : text;
     CommittedTextPtr->SetText("Input: " + displayText);

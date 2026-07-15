@@ -1,11 +1,12 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <cstddef>
 #include <map>
 #include <string>
 #include <variant>
 #include <vector>
 
+#include "BroccoliEngineAPI.h"
+#include "Color.h"
 #include "UMath.h"
 
 enum class RenderType { Graph, Box, Text, Line, RectGraph, Circle };
@@ -21,24 +22,24 @@ struct BoxData {
   FVector2D Location;
   FVector2D WidthHeight;
   FRotator Rotation;
-  int Color;
+  FColor Color;
   bool Fill;
 };
 struct TextData {
   FVector2D Location;
   std::string Text;
-  int Color;
+  FColor Color;
   int Handle = 0;
 };
 struct LineData {
   FVector2D StartLocation;
   FVector2D EndLocation;
-  int Color;
+  FColor Color;
 };
 struct CircleData {
   FVector2D Location;
   float Radius;
-  int Color;
+  FColor Color;
   bool Fill;
 };
 struct RectGraphData {
@@ -76,35 +77,32 @@ class BROCCOLI_ENGINE_API RenderSystem {
   static RenderSystem& GetInstance();
 
   void SubmitLine(
-      FVector2D Start, FVector2D End, int Color, RenderSpace Space, int Priority, int Alpha = 255
+      FVector2D Start, FVector2D End, const FColor& Color, RenderSpace Space, int Priority
   );
   void SubmitBox(
       FVector2D Location,
       FVector2D WidthHeight,
       FRotator Rotation,
-      int Color,
+      const FColor& Color,
       bool Fill,
       RenderSpace Space,
-      int Priority,
-      int Alpha = 255
+      int Priority
   );
   void SubmitCircle(
       FVector2D Location,
       float Radius,
-      int Color,
+      const FColor& Color,
       bool Fill,
       RenderSpace Space,
-      int Priority,
-      int Alpha = 255
+      int Priority
   );
   void SubmitText(
       FVector2D Location,
       const std::string& Text,
       int Handle,
-      int Color,
+      const FColor& Color,
       RenderSpace Space,
-      int Priority,
-      int Alpha = 255
+      int Priority
   );
   void SubmitGraph(
       FVector2D Location,

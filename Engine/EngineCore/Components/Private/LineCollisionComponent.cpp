@@ -8,7 +8,7 @@ void MLineCollisionComponent::Draw() {
   if (!IsDebug) return;
 
   RenderSystem::GetInstance().SubmitLine(
-      GetWorldStart(), GetWorldEnd(), 0x00FF00, RenderSpace::World, 100, 120
+      GetWorldStart(), GetWorldEnd(), FColor{0, 255, 0, 120}, RenderSpace::World, 100
   );
 }
 
