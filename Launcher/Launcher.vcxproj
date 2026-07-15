@@ -157,6 +157,7 @@
     <ClCompile Include="LevelStarter\LevelStarterGameMode.cpp" />
     <ClCompile Include="LevelStarter\LevelStarterWidget.cpp" />
     <ClCompile Include="NetworkTest\NetworkTestBreakableActor.cpp" />
+    <ClCompile Include="NetworkTest\NetworkTestForceFieldActor.cpp" />
     <ClCompile Include="NetworkTest\NetworkTestGameMode.cpp" />
     <ClCompile Include="NetworkTest\NetworkTestPawn.cpp" />
     <ClCompile Include="NetworkTest\NetworkTestUI.cpp" />
@@ -170,6 +171,7 @@
     <ClInclude Include="LevelStarter\LevelStarterGameMode.h" />
     <ClInclude Include="LevelStarter\LevelStarterWidget.h" />
     <ClInclude Include="NetworkTest\NetworkTestBreakableActor.h" />
+    <ClInclude Include="NetworkTest\NetworkTestForceFieldActor.h" />
     <ClInclude Include="NetworkTest\NetworkTestGameMode.h" />
     <ClInclude Include="NetworkTest\NetworkTestPawn.h" />
     <ClInclude Include="NetworkTest\NetworkTestUI.h" />

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <cstdint>
+#include <vector>
 
 #include "BroccoliEngineAPI.h"
 #include "SceneComponent.h"
@@ -19,6 +20,7 @@ class BROCCOLI_ENGINE_API MCollisionComponent : public MSceneComponent {
   virtual ~MCollisionComponent();
   virtual ECollisionShape GetShapeType() const = 0;
 
+  std::vector<AActor*> GetOverlappingActors() const;
   virtual FAABB GetAABB() const = 0;
 
   ECollisionType GetCollisionType() const;

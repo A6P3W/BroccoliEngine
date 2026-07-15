@@ -1,10 +1,10 @@
 ﻿#include "CollisionComponent.h"
 
+#include <CollisionSystem.h>
+
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-#include <CollisionSystem.h>
 
 #include "Actor.h"
 #include "World.h"
@@ -82,7 +82,23 @@ bool MCollisionComponent::IsOverlappingActor(AActor* OtherActor) const {
   return ImplPtr->OverlappingActors.contains(OtherActor);
 }
 
-bool MCollisionComponent::ShouldProcessPair(MCollisionComponent* OtherComponent, std::uint64_t FrameId) {
+std::vector<AActor*> MCollisionComponent::GetOverlappingActors() const {
+  std::vector<AActor*> Result;
+  Result.reserve(ImplPtr->OverlappingActors.size());
+
+  for (AActor* Actor : ImplPtr->OverlappingActors) {
+    if (!Actor || Actor == GetOwner()) {
+      continue;
+    }
+    Result.push_back(Actor);
+  }
+
+  return Result;
+}
+
+bool MCollisionComponent::ShouldProcessPair(
+    MCollisionComponent* OtherComponent, std::uint64_t FrameId
+) {
   auto it = ImplPtr->LastCheckedFrame.find(OtherComponent);
   if (it != ImplPtr->LastCheckedFrame.end() && it->second == FrameId) {
     ImplPtr->CheckedThisFrame.insert(OtherComponent->GetOwner());

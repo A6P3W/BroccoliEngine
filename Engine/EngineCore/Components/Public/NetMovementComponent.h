@@ -1,8 +1,7 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
-
 #include <cstdint>
 
+#include "BroccoliEngineAPI.h"
 #include "MovementComponent.h"
 #include "NetworkTypes.h"
 #include "UMath.h"
@@ -38,6 +37,13 @@ class BROCCOLI_ENGINE_API MNetMovementComponent : public MMovementComponent {
   );
   bool ShouldSimulate() const;
   void ClearFrameMovementData();
+  void Client_ReceiveAuthorityCorrection(
+      uint32_t ConfirmedSequence,
+      uint32_t CorrectionSequence,
+      FVector2D ServerLocation,
+      FRotator ServerRotation,
+      FVector2D ServerVelocity
+  );
 
  private:
   struct Impl;

@@ -10,6 +10,7 @@ namespace {
 enum : FNetworkRPCId {
   RPC_ServerReceiveMove = 1,
   RPC_ClientReceiveAck = 2,
+  RPC_ClientReceiveAuthorityCorrection = 3,
 };
 }
 
@@ -20,6 +21,8 @@ struct MNetMovementComponent::Impl {
   uint32_t LastConfirmedSequence = 0;
   FVector2D FrameForce = FVector2D::ZeroVector();
   FVector2D FrameVelocityOverride = FVector2D::ZeroVector();
+  uint32_t CurrentCorrectionSequence = 0;
+  uint32_t LastReceivedCorrectionSequence = 0;
   FRotator FrameVelocityRotation = FRotator(0.0f);
   bool bFrameVelocityOverride = false;
 };
@@ -36,16 +39,16 @@ void MNetMovementComponent::OnRegister() {
   MMovementComponent::OnRegister();
 
   RegisterRPC(
-      RPC_ServerReceiveMove,
-      ENetRPCType::Server,
-      this,
-      &MNetMovementComponent::Server_UploadMove
+      RPC_ServerReceiveMove, ENetRPCType::Server, this, &MNetMovementComponent::Server_UploadMove
   );
   RegisterRPC(
-      RPC_ClientReceiveAck,
+      RPC_ClientReceiveAck, ENetRPCType::Client, this, &MNetMovementComponent::Client_ResolveMove
+  );
+  RegisterRPC(
+      RPC_ClientReceiveAuthorityCorrection,
       ENetRPCType::Client,
       this,
-      &MNetMovementComponent::Client_ResolveMove
+      &MNetMovementComponent::Client_ReceiveAuthorityCorrection
   );
 }
 
@@ -79,12 +82,22 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
     return;
   }
 
-  const bool bHasAuthorityFrameInput =
-      ImplPtr->FrameForce.SizeSquared() > 0.0001f ||
-      ImplPtr->FrameVelocityRotation.Rotation != 0.0f || ImplPtr->bFrameVelocityOverride;
+  const bool bHasAuthorityFrameInput = ImplPtr->FrameForce.SizeSquared() > 0.0001f ||
+                                       ImplPtr->FrameVelocityRotation.Rotation != 0.0f ||
+                                       ImplPtr->bFrameVelocityOverride;
+  const FVector2D AuthorityFrameForce = ImplPtr->FrameForce;
+  const FVector2D AuthorityVelocityOverride = ImplPtr->FrameVelocityOverride;
+  const FRotator AuthorityVelocityRotation = ImplPtr->FrameVelocityRotation;
+  const bool bAuthorityVelocityOverride = ImplPtr->bFrameVelocityOverride;
+  const bool bHasPendingClientMove = std::any_of(
+      ImplPtr->ServerPendingMoves.begin(),
+      ImplPtr->ServerPendingMoves.end(),
+      [this](const FMovePredictionData& Move) {
+        return Move.Sequence > ImplPtr->LastConfirmedSequence;
+      }
+  );
 
-  if (OwnerActor->bHasAuthority &&
-      (bHasAuthorityFrameInput || ImplPtr->ServerPendingMoves.empty()) && ShouldSimulate()) {
+  if (OwnerActor->bHasAuthority && !bHasPendingClientMove && ShouldSimulate()) {
     FMovePredictionData AuthorityMove;
     AuthorityMove.DeltaTime = DeltaTime;
     AuthorityMove.Force = ImplPtr->FrameForce;
@@ -109,9 +122,20 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
   );
 
   bool bProcessedMove = false;
+  bool bAppliedAuthorityFrameInput = false;
   uint32_t ProcessedSequence = ImplPtr->LastConfirmedSequence;
   for (FMovePredictionData& Move : ImplPtr->ServerPendingMoves) {
     if (Move.Sequence <= ProcessedSequence) continue;
+
+    if (bHasAuthorityFrameInput && !bAppliedAuthorityFrameInput) {
+      Move.Force += AuthorityFrameForce;
+      Move.VelocityRotation += AuthorityVelocityRotation;
+      if (bAuthorityVelocityOverride) {
+        Move.VelocityOverride = AuthorityVelocityOverride;
+        Move.bUseVelocityOverride = true;
+      }
+      bAppliedAuthorityFrameInput = true;
+    }
 
     if (!Move.bUseVelocityOverride) {
       Move.StartVelocity = GetVelocity();
@@ -134,6 +158,18 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
         GetVelocity()
     );
   }
+  if (bHasAuthorityFrameInput && !bProcessedMove && OwnerActor->OwnerConnectionId != 0) {
+    InvokeRPC(
+        RPC_ClientReceiveAuthorityCorrection,
+        ENetRPCType::Client,
+        ENetPacketReliability::Unreliable,
+        ImplPtr->LastConfirmedSequence,
+        ++ImplPtr->CurrentCorrectionSequence,
+        OwnerActor->GetActorLocation(),
+        OwnerActor->GetActorRotation(),
+        GetVelocity()
+    );
+  }
 }
 
 void MNetMovementComponent::AddWorldForce(const FVector2D& Force) {
@@ -145,9 +181,7 @@ void MNetMovementComponent::AddLocalForce(const FVector2D& Force) {
   AddWorldForce(OwnerActor ? Force.RotateVector(OwnerActor->GetActorRotation()) : Force);
 }
 
-void MNetMovementComponent::SetWorldForce(const FVector2D& Force) {
-  ImplPtr->FrameForce = Force;
-}
+void MNetMovementComponent::SetWorldForce(const FVector2D& Force) { ImplPtr->FrameForce = Force; }
 
 void MNetMovementComponent::SetLocalForce(const FVector2D& Force) {
   AActor* OwnerActor = GetOwner();
@@ -173,9 +207,7 @@ void MNetMovementComponent::AddWorldImpulse(const FVector2D& Impulse) {
 
 void MNetMovementComponent::AddLocalImpulse(const FVector2D& Impulse) {
   AActor* OwnerActor = GetOwner();
-  AddWorldImpulse(
-      OwnerActor ? Impulse.RotateVector(OwnerActor->GetActorRotation()) : Impulse
-  );
+  AddWorldImpulse(OwnerActor ? Impulse.RotateVector(OwnerActor->GetActorRotation()) : Impulse);
 }
 
 void MNetMovementComponent::AddVelocityRotation(const FRotator& Rotation) {
@@ -192,8 +224,7 @@ void MNetMovementComponent::SimulateMovement(const FMovePredictionData& Move) {
   FMovementStepData Step;
   Step.DeltaTime = Move.DeltaTime;
   Step.Force = Move.Force;
-  Step.StartVelocity =
-      Move.bUseVelocityOverride ? Move.VelocityOverride : Move.StartVelocity;
+  Step.StartVelocity = Move.bUseVelocityOverride ? Move.VelocityOverride : Move.StartVelocity;
   Step.StartRotation = Move.StartRotation;
   Step.VelocityRotation = Move.VelocityRotation;
   SimulateMovementStep(Step);
@@ -212,8 +243,7 @@ void MNetMovementComponent::Client_ResolveMove(
     FVector2D ServerVelocity
 ) {
   AActor* OwnerActor = GetOwner();
-  if (!OwnerActor || OwnerActor->bHasAuthority ||
-      AckedSequence <= ImplPtr->LastConfirmedSequence) {
+  if (!OwnerActor || OwnerActor->bHasAuthority || AckedSequence <= ImplPtr->LastConfirmedSequence) {
     return;
   }
 
@@ -234,10 +264,44 @@ void MNetMovementComponent::Client_ResolveMove(
   }
 }
 
+void MNetMovementComponent::Client_ReceiveAuthorityCorrection(
+    uint32_t ConfirmedSequence,
+    uint32_t CorrectionSequence,
+    FVector2D ServerLocation,
+    FRotator ServerRotation,
+    FVector2D ServerVelocity
+) {
+  AActor* OwnerActor = GetOwner();
+  if (!OwnerActor || OwnerActor->bHasAuthority ||
+      CorrectionSequence <= ImplPtr->LastReceivedCorrectionSequence) {
+    return;
+  }
+
+  ImplPtr->LastReceivedCorrectionSequence = CorrectionSequence;
+  if (ConfirmedSequence > ImplPtr->LastConfirmedSequence) {
+    ImplPtr->LastConfirmedSequence = ConfirmedSequence;
+  }
+
+  OwnerActor->SetActorLocation(ServerLocation);
+  OwnerActor->SetActorRotation(ServerRotation);
+  MMovementComponent::SetWorldVelocity(ServerVelocity);
+
+  std::erase_if(ImplPtr->InFlightMoves, [ConfirmedSequence](const FMovePredictionData& Move) {
+    return Move.Sequence <= ConfirmedSequence;
+  });
+
+  for (FMovePredictionData& Move : ImplPtr->InFlightMoves) {
+    if (!Move.bUseVelocityOverride) {
+      Move.StartVelocity = GetVelocity();
+    }
+    SimulateMovement(Move);
+  }
+}
+
 bool MNetMovementComponent::ShouldSimulate() const {
   return ImplPtr->FrameForce.SizeSquared() > 0.0001f ||
-         ImplPtr->FrameVelocityRotation.Rotation != 0.0f ||
-         ImplPtr->bFrameVelocityOverride || GetVelocitySizeSquared() > 0.001f;
+         ImplPtr->FrameVelocityRotation.Rotation != 0.0f || ImplPtr->bFrameVelocityOverride ||
+         GetVelocitySizeSquared() > 0.001f;
 }
 
 void MNetMovementComponent::ClearFrameMovementData() {
