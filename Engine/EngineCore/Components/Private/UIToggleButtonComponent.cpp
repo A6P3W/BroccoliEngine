@@ -1,4 +1,4 @@
-#include "UIToggleButtonComponent.h"
+﻿#include "UIToggleButtonComponent.h"
 
 #include <memory>
 
@@ -11,13 +11,13 @@ struct UIToggleButtonComponent::Impl {
   float Width = 0.0f;
   float Height = 0.0f;
 
-  int OnNormalColor = 0;
-  int OnHoveredColor = 0;
-  int OnPressedColor = 0;
+  FColor OnNormalColor = FColor::Black;
+  FColor OnHoveredColor = FColor::Black;
+  FColor OnPressedColor = FColor::Black;
 
-  int OffNormalColor = 0;
-  int OffHoveredColor = 0;
-  int OffPressedColor = 0;
+  FColor OffNormalColor = FColor::Black;
+  FColor OffHoveredColor = FColor::Black;
+  FColor OffPressedColor = FColor::Black;
 
   EButtonState CurrentState = EButtonState::Normal;
   std::function<void(bool)> OnToggled;
@@ -85,7 +85,12 @@ void UIToggleButtonComponent::SetSize(float width, float height) {
 }
 
 void UIToggleButtonComponent::SetColors(
-    int onNormal, int onHovered, int onPressed, int offNormal, int offHovered, int offPressed
+    const FColor& onNormal,
+    const FColor& onHovered,
+    const FColor& onPressed,
+    const FColor& offNormal,
+    const FColor& offHovered,
+    const FColor& offPressed
 ) {
   ImplPtr->OnNormalColor = onNormal;
   ImplPtr->OnHoveredColor = onHovered;
@@ -113,7 +118,7 @@ void UIToggleButtonComponent::UpdateVisuals() {
   ImplPtr->BoxSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, GetCurrentColor(), true);
 }
 
-int UIToggleButtonComponent::GetCurrentColor() const {
+FColor UIToggleButtonComponent::GetCurrentColor() const {
   if (ImplPtr->bIsOn) {
     switch (ImplPtr->CurrentState) {
       case EButtonState::Hovered:

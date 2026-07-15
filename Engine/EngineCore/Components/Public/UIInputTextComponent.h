@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
-
 #include <functional>
 #include <string>
 
+#include "BroccoliEngineAPI.h"
+#include "Color.h"
 #include "UIButtonComponent.h"
 
 class BROCCOLI_ENGINE_API UIInputTextComponent : public MUIButtonComponent {
@@ -23,9 +23,9 @@ class BROCCOLI_ENGINE_API UIInputTextComponent : public MUIButtonComponent {
   void SetMaxLength(int maxLength);
   void SetPassword(bool bInIsPassword);
   void SetSize(float width, float height);
-  void SetColors(int normalColor, int hoveredColor, int editingColor);
-  void SetTextColor(int color);
-  void SetHintColor(int color);
+  void SetColors(const FColor& normalColor, const FColor& hoveredColor, const FColor& editingColor);
+  void SetTextColor(const FColor& color);
+  void SetHintColor(const FColor& color);
   void SetTextOffsetY(float offsetY);
   void SetActionHintOffsetY(float offsetY);
   void SetOnTextChanged(std::function<void(const std::string&)> Callback);
@@ -44,7 +44,7 @@ class BROCCOLI_ENGINE_API UIInputTextComponent : public MUIButtonComponent {
   void AppendCharacter(char character);
   void UpdateVisuals();
   std::string GetDisplayText() const;
-  int GetCurrentBackgroundColor() const;
+  FColor GetCurrentBackgroundColor() const;
 
   struct Impl;
   Impl* ImplPtr = nullptr;

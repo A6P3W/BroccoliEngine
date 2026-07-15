@@ -19,7 +19,7 @@ APlayerStart::APlayerStart() {
 #ifdef _EDITOR
   auto* Sprite = NewObject<MSpriteComponent>(this);
   if (Sprite) {
-    Sprite->SubmitCircle(12.0f, 0x00ff80, false, 200);
+    Sprite->SubmitCircle(12.0f, FColor{0, 255, 128, 200}, false);
     Sprite->RegisterComponent();
   }
 #endif

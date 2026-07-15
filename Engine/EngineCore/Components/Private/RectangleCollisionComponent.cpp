@@ -24,22 +24,20 @@ void MRectangleCollisionComponent::Draw() {
        center.Y + rotatedTopLeftOffset.Y},  // 回転を考慮した左上座標
       {halfWidth * 2.0f, halfHeight * 2.0f},
       GetWorldRotation(),
-      0x00FF00,
+      FColor{0, 255, 0},
       0,
       RenderSpace::World,
-      100,
-      255
+      100
   );
   RenderSystem::GetInstance().SubmitBox(
       {center.X + rotatedTopLeftOffset.X,
        center.Y + rotatedTopLeftOffset.Y},  // 回転を考慮した左上座標
       {halfWidth * 2.0f, halfHeight * 2.0f},
       GetWorldRotation(),
-      11111111,
+      FColor{169, 138, 199, 50},
       1,
       RenderSpace::World,
-      100,
-      50
+      100
   );
 }
 

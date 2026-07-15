@@ -9,7 +9,7 @@
 struct UITextComponent::Impl {
   MSpriteComponent* TextSprite = nullptr;
   std::string Text;
-  int Color = 0xFFFFFF;
+  FColor Color = FColor::White;
   int FontSize = 24;
   int FontHandle = -1;
 };
@@ -43,7 +43,7 @@ void UITextComponent::SetText(const std::string& text) {
   UpdateText();
 }
 
-void UITextComponent::SetColor(int color) {
+void UITextComponent::SetColor(const FColor& color) {
   ImplPtr->Color = color;
   UpdateText();
 }

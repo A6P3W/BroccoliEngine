@@ -18,12 +18,7 @@ struct FScreenBounds {
 };
 
 FScreenBounds MakeScreenBounds(float X1, float Y1, float X2, float Y2) {
-  return {
-      (std::min)(X1, X2),
-      (std::min)(Y1, Y2),
-      (std::max)(X1, X2),
-      (std::max)(Y1, Y2)
-  };
+  return {(std::min)(X1, X2), (std::min)(Y1, Y2), (std::max)(X1, X2), (std::max)(Y1, Y2)};
 }
 
 bool Intersects(const FScreenBounds& A, const FScreenBounds& B) {
@@ -148,10 +143,8 @@ FBoxDrawParameters BuildBoxDrawParameters(
   const float SinA = std::sin(Rotation);
   const auto GetVertex = [&](float LocalX, float LocalY) {
     return Context.WorldToScreen(
-        {
-            Box.Location.X + (LocalX * CosA - LocalY * SinA),
-            Box.Location.Y + (LocalX * SinA + LocalY * CosA)
-        }
+        {Box.Location.X + (LocalX * CosA - LocalY * SinA),
+         Box.Location.Y + (LocalX * SinA + LocalY * CosA)}
     );
   };
 
@@ -167,8 +160,7 @@ FCircleDrawParameters BuildCircleDrawParameters(
     const CircleData& Circle, RenderSpace Space, const FRenderContext& Context
 ) {
   return {
-      Context.ToScreenPosition(Circle.Location, Space),
-      Circle.Radius * Context.GetSpaceScale(Space)
+      Context.ToScreenPosition(Circle.Location, Space), Circle.Radius * Context.GetSpaceScale(Space)
   };
 }
 
@@ -201,8 +193,7 @@ struct FVisibilityVisitor {
   const FRenderContext& Context;
 
   bool operator()(const GraphData& Graph) const {
-    const FGraphDrawParameters Parameters =
-        BuildGraphDrawParameters(Graph, Common.space, Context);
+    const FGraphDrawParameters Parameters = BuildGraphDrawParameters(Graph, Common.space, Context);
     int GraphWidth = 0;
     int GraphHeight = 0;
     if (GetGraphSize(Graph.Handle, &GraphWidth, &GraphHeight) != 0 || GraphWidth <= 0 ||
@@ -229,8 +220,7 @@ struct FVisibilityVisitor {
 
   bool operator()(const BoxData& Box) const {
     return Intersects(
-        MakeBoundsFromBox(BuildBoxDrawParameters(Box, Common.space, Context)),
-        Context.ViewBounds
+        MakeBoundsFromBox(BuildBoxDrawParameters(Box, Common.space, Context)), Context.ViewBounds
     );
   }
 
@@ -275,8 +265,7 @@ struct FVisibilityVisitor {
   }
 
   bool operator()(const LineData& Line) const {
-    const FLineDrawParameters Parameters =
-        BuildLineDrawParameters(Line, Common.space, Context);
+    const FLineDrawParameters Parameters = BuildLineDrawParameters(Line, Common.space, Context);
     return LineIntersects(Parameters.Start, Parameters.End, Context.ViewBounds);
   }
 
@@ -332,14 +321,13 @@ void RenderSystem::SubmitGraph(
 void RenderSystem::SubmitCircle(
     FVector2D Location,
     float Radius,
-    int Color,
+    const FColor& Color,
     bool Fill,
     RenderSpace Space,
-    int Priority,
-    int Alpha
+    int Priority
 ) {
   Impl->CommandBuffer.push_back(
-      {{Priority, Alpha, Space}, CircleData{Location, Radius, Color, Fill}}
+      {{Priority, static_cast<int>(Color.A), Space}, CircleData{Location, Radius, Color, Fill}}
   );
 }
 
@@ -347,14 +335,14 @@ void RenderSystem::SubmitBox(
     FVector2D Location,
     FVector2D WidthHeight,
     FRotator Rotation,
-    int Color,
+    const FColor& Color,
     bool Fill,
     RenderSpace Space,
-    int Priority,
-    int Alpha
+    int Priority
 ) {
   Impl->CommandBuffer.push_back(
-      {{Priority, Alpha, Space}, BoxData{Location, WidthHeight, Rotation, Color, Fill}}
+      {{Priority, static_cast<int>(Color.A), Space},
+       BoxData{Location, WidthHeight, Rotation, Color, Fill}}
   );
 }
 
@@ -362,20 +350,21 @@ void RenderSystem::SubmitText(
     FVector2D Location,
     const std::string& Text,
     int Handle,
-    int Color,
+    const FColor& Color,
     RenderSpace Space,
-    int Priority,
-    int Alpha
+    int Priority
 ) {
   Impl->CommandBuffer.push_back(
-      {{Priority, Alpha, Space}, TextData{Location, Text, Color, Handle}}
+      {{Priority, static_cast<int>(Color.A), Space}, TextData{Location, Text, Color, Handle}}
   );
 }
 
 void RenderSystem::SubmitLine(
-    FVector2D Start, FVector2D End, int Color, RenderSpace Space, int Priority, int Alpha
+    FVector2D Start, FVector2D End, const FColor& Color, RenderSpace Space, int Priority
 ) {
-  Impl->CommandBuffer.push_back({{Priority, Alpha, Space}, LineData{Start, End, Color}});
+  Impl->CommandBuffer.push_back(
+      {{Priority, static_cast<int>(Color.A), Space}, LineData{Start, End, Color}}
+  );
 }
 
 void RenderSystem::SubmitRectGraph(
@@ -455,12 +444,10 @@ FRenderContext RenderSystem::BuildRenderContext() const {
       std::cos(CameraRadians),
       std::sin(CameraRadians),
       CameraRotation,
-      {
-          -ViewMargin,
-          -ViewMargin,
-          static_cast<float>(VirtualWidth) + ViewMargin,
-          static_cast<float>(VirtualHeight) + ViewMargin
-      }
+      {-ViewMargin,
+       -ViewMargin,
+       static_cast<float>(VirtualWidth) + ViewMargin,
+       static_cast<float>(VirtualHeight) + ViewMargin}
   };
 }
 
@@ -539,7 +526,7 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
                 static_cast<int>(Parameters.V3.Y),
                 static_cast<int>(Parameters.V4.X),
                 static_cast<int>(Parameters.V4.Y),
-                Data.Color,
+                Data.Color.ToRGB(),
                 Data.Fill
             );
           } else {
@@ -548,7 +535,7 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
                 static_cast<int>(Data.Location.Y),
                 static_cast<int>(Data.Location.X + Data.WidthHeight.X),
                 static_cast<int>(Data.Location.Y + Data.WidthHeight.Y),
-                Data.Color,
+                Data.Color.ToRGB(),
                 Data.Fill
             );
           }
@@ -559,7 +546,7 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
               static_cast<int>(Parameters.Position.X),
               static_cast<int>(Parameters.Position.Y),
               static_cast<int>(Parameters.Radius),
-              Data.Color,
+              Data.Color.ToRGB(),
               Data.Fill
           );
         } else if constexpr (std::is_same_v<T, TextData>) {
@@ -568,7 +555,7 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
               static_cast<int>(Position.X),
               static_cast<int>(Position.Y),
               Data.Text.c_str(),
-              Data.Color,
+              Data.Color.ToRGB(),
               Data.Handle
           );
         } else if constexpr (std::is_same_v<T, LineData>) {
@@ -579,7 +566,7 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
               static_cast<int>(Parameters.Start.Y),
               static_cast<int>(Parameters.End.X),
               static_cast<int>(Parameters.End.Y),
-              Data.Color
+              Data.Color.ToRGB()
           );
         } else if constexpr (std::is_same_v<T, RectGraphData>) {
           const FRectGraphDrawParameters Parameters =
@@ -636,6 +623,4 @@ std::size_t RenderSystem::GetLastSubmittedCommandCount() const {
   return Impl->LastSubmittedCommandCount;
 }
 
-std::size_t RenderSystem::GetLastCulledCommandCount() const {
-  return Impl->LastCulledCommandCount;
-}
+std::size_t RenderSystem::GetLastCulledCommandCount() const { return Impl->LastCulledCommandCount; }

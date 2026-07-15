@@ -1,7 +1,8 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <string>
 
+#include "BroccoliEngineAPI.h"
+#include "Color.h"
 #include "UIWidgetComponent.h"
 
 class BROCCOLI_ENGINE_API UITextComponent : public MUIWidgetComponent {
@@ -11,7 +12,7 @@ class BROCCOLI_ENGINE_API UITextComponent : public MUIWidgetComponent {
 
   void OnRegister() override;
   void SetText(const std::string& text);
-  void SetColor(int color);
+  void SetColor(const FColor& color);
   void SetFontSize(int fontSize);
 
  private:

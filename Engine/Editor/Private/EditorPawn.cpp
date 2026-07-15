@@ -15,7 +15,7 @@ EditorPawn::EditorPawn() {
   GameScreenView = NewObject<MSpriteComponent>(this);
   if (GameScreenView) {
     GameScreenView->SetRenderSettings(999, RenderSpace::World);
-    GameScreenView->SubmitBox(1920, 1080, GetColor(255, 255, 255), 0);
+    GameScreenView->SubmitBox(1920, 1080, FColor{255, 255, 255}, 0);
     GameScreenView->RegisterComponent();
   }
   bEditorActor = true;

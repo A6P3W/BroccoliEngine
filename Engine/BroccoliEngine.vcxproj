@@ -175,6 +175,7 @@
     <ClCompile Include="EngineCore\Core\Private\ActorComponent.cpp" />
     <ClCompile Include="EngineCore\Core\Private\Application.cpp" />
     <ClCompile Include="EngineCore\Core\Private\BaseObject.cpp" />
+    <ClCompile Include="EngineCore\Core\Private\Color.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\Pawn.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\PlayerStart.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\SpriteActor.cpp" />
@@ -234,6 +235,7 @@
     <ClInclude Include="Editor\Public\EditorSelectPointComponent.h" />
     <ClInclude Include="Editor\Public\EditorUI.h" />
     <ClInclude Include="EngineCore\Core\Public\BroccoliEngineAPI.h" />
+    <ClInclude Include="EngineCore\Core\Public\Color.h" />
     <ClInclude Include="EngineCore\Core\Public\EngineDefine.h" />
     <ClInclude Include="EngineCore\GameFramework\Public\GameInstance.h" />
     <ClInclude Include="EngineCore\Systems\Public\ActorRegistry.h" />
@@ -331,3 +333,4 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
+

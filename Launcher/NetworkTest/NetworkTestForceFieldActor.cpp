@@ -26,7 +26,7 @@ ANetworkTestForceFieldActor::ANetworkTestForceFieldActor() {
   FieldMarker = NewObject<MSpriteComponent>(this);
   if (FieldMarker) {
     FieldMarker->SetRenderSettings(8, RenderSpace::World);
-    FieldMarker->SubmitCircle(18.0f, GetColor(80, 190, 255), true);
+    FieldMarker->SubmitCircle(18.0f, FColor{80, 190, 255}, true);
     FieldMarker->RegisterComponent();
   }
 }
