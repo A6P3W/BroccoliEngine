@@ -8,6 +8,10 @@ class BROCCOLI_ENGINE_API MMovementComponent : public MActorComponent {
   virtual void AddLocalForce(const FVector2D& Force);
   virtual void SetWorldForce(const FVector2D& Force);
   virtual void SetLocalForce(const FVector2D& Force);
+  virtual void SetWorldVelocity(const FVector2D& NewVelocity);
+  virtual void SetLocalVelocity(const FVector2D& NewVelocity);
+  virtual void AddWorldImpulse(const FVector2D& Impulse);
+  virtual void AddLocalImpulse(const FVector2D& Impulse);
   virtual void AddVelocityRotation(const FRotator& Rotation);
   virtual void SetVelocityRotation(const FRotator& Rotation);
 
@@ -18,6 +22,20 @@ class BROCCOLI_ENGINE_API MMovementComponent : public MActorComponent {
   void OnUpdate(float DeltaTime) override;
 
  protected:
-  FVector2D Velocity = {0.0f, 0.0f};
+  struct FMovementStepData {
+    float DeltaTime = 0.0f;
+    FVector2D Force = FVector2D::ZeroVector();
+    FVector2D StartVelocity = FVector2D::ZeroVector();
+    FRotator StartRotation = FRotator(0.0f);
+    FRotator VelocityRotation = FRotator(0.0f);
+  };
+
+  virtual void SimulateMovementStep(const FMovementStepData& Step);
+  virtual void ApplyMovementOffset(const FVector2D& Offset);
+  void ClearPendingMovement();
+
+  FVector2D Velocity = FVector2D::ZeroVector();
+  FVector2D PendingForce = FVector2D::ZeroVector();
+  FRotator PendingVelocityRotation = FRotator(0.0f);
   float Friction = 0.95f;
 };

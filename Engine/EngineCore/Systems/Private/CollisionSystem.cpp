@@ -556,7 +556,7 @@ void FCollisionSystem::CancelNormalVelocity(MMovementComponent* move, const FVec
   FVector2D v = move->GetVelocity();
   float dot = v.X * normal.X + v.Y * normal.Y;
   if (dot > 0.0f) {
-    move->SetWorldForce({v.X - normal.X * dot, v.Y - normal.Y * dot});
+    move->SetWorldVelocity({v.X - normal.X * dot, v.Y - normal.Y * dot});
   }
 }
 

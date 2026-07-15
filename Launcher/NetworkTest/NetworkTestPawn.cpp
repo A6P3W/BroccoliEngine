@@ -13,10 +13,7 @@
 #include "World.h"
 
 namespace {
-enum : FNetworkRPCId {
-  RPC_ComponentServerTest = 101,
-  RPC_ComponentMulticastTest = 102
-};
+enum : FNetworkRPCId { RPC_ComponentServerTest = 101, RPC_ComponentMulticastTest = 102 };
 }
 
 MNetworkTestRepComponent::MNetworkTestRepComponent() {
@@ -196,7 +193,7 @@ void ANetworkTestPawn::OnMove(const FInputActionValue& Value) {
     return;
   }
 
-  Movement->AddMovementInput(Value.Axis2D);
+  Movement->AddWorldForce(Value.Axis2D * -1.0f);
 }
 
 void ANetworkTestPawn::OnInteract(const FInputActionValue& Value) {
