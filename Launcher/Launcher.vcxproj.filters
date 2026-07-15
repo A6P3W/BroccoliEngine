@@ -37,6 +37,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="WidgetTest\WidgetTestUIMain.cpp">
+    <ClCompile Include="NetworkTest\NetworkTestForceFieldActor.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="WidgetTest\WidgetTestPawn.cpp">
@@ -72,6 +75,9 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="WidgetTest\WidgetTestUIMain.h">
+    <ClInclude Include="NetworkTest\NetworkTestForceFieldActor.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="WidgetTest\WidgetTestPawn.h">

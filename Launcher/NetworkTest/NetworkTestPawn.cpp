@@ -121,6 +121,7 @@ REGISTER_ACTOR(ANetworkTestPawn)
 
 ANetworkTestPawn::ANetworkTestPawn() {
   bReplicates = true;
+  AddTag("ForceFieldAffected");
   NetworkTestUI = std::make_unique<FNetworkTestUI>(*this);
 
   BodySprite = NewObject<MSpriteComponent>(this);

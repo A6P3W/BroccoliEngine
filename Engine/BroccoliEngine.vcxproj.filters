@@ -11,6 +11,7 @@
     <ClCompile Include="EngineCore\Components\Private\CameraComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\CircleCollisionComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\CollisionComponent.cpp" />
+    <ClCompile Include="EngineCore\Components\Private\ForceFieldComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\MovementComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\NetMovementComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\SceneComponent.cpp" />
@@ -52,6 +53,7 @@
     <ClCompile Include="Editor\Private\EditorController.cpp" />
     <ClCompile Include="EngineSide\StressTestActor.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\SpriteActor.cpp" />
+    <ClCompile Include="EngineCore\GameFramework\Private\ForceFieldActor.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\FileUtils.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\WidgetBase.cpp" />
     <ClCompile Include="EngineCore\Components\Private\UIWidgetComponent.cpp" />
@@ -87,6 +89,7 @@
     <ClInclude Include="EngineCore\Components\Public\CameraComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\CircleCollisionComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\CollisionComponent.h" />
+    <ClInclude Include="EngineCore\Components\Public\ForceFieldComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\MovementComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\NetMovementComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\SceneComponent.h" />
@@ -135,6 +138,7 @@
     <ClInclude Include="Editor\Public\EditorController.h" />
     <ClInclude Include="EngineSide\StressTestActor.h" />
     <ClInclude Include="EngineCore\GameFramework\Public\SpriteActor.h" />
+    <ClInclude Include="EngineCore\GameFramework\Public\ForceFieldActor.h" />
     <ClInclude Include="EngineCore\Utils\Public\FileUtils.h" />
     <ClInclude Include="EngineCore\GameFramework\Public\WidgetBase.h" />
     <ClInclude Include="EngineCore\Components\Public\UIWidgetComponent.h" />

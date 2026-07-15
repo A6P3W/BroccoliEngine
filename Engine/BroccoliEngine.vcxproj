@@ -165,6 +165,7 @@
     <ClCompile Include="EngineCore\Components\Private\CameraComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\CircleCollisionComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\CollisionComponent.cpp" />
+    <ClCompile Include="EngineCore\Components\Private\ForceFieldComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\MovementComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\NetMovementComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\SceneComponent.cpp" />
@@ -177,6 +178,7 @@
     <ClCompile Include="EngineCore\GameFramework\Private\Pawn.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\PlayerStart.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\SpriteActor.cpp" />
+    <ClCompile Include="EngineCore\GameFramework\Private\ForceFieldActor.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\GameModeBase.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\PlayerController.cpp" />
     <ClCompile Include="EngineCore\Systems\Private\CollisionSystem.cpp" />
@@ -244,6 +246,7 @@
     <ClInclude Include="EngineCore\Components\Public\CameraComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\CircleCollisionComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\CollisionComponent.h" />
+    <ClInclude Include="EngineCore\Components\Public\ForceFieldComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\MovementComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\NetMovementComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\SceneComponent.h" />
@@ -257,6 +260,7 @@
     <ClInclude Include="EngineCore\GameFramework\Public\Pawn.h" />
     <ClInclude Include="EngineCore\GameFramework\Public\PlayerStart.h" />
     <ClInclude Include="EngineCore\GameFramework\Public\SpriteActor.h" />
+    <ClInclude Include="EngineCore\GameFramework\Public\ForceFieldActor.h" />
     <ClInclude Include="EngineCore\GameFramework\Public\GameModeBase.h" />
     <ClInclude Include="EngineCore\GameFramework\Public\PlayerController.h" />
     <ClInclude Include="EngineCore\Systems\Public\CollisionSystem.h" />
