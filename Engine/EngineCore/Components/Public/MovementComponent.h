@@ -10,8 +10,8 @@ class BROCCOLI_ENGINE_API MMovementComponent : public MActorComponent {
   virtual void SetLocalForce(const FVector2D& Force);
   virtual void SetWorldVelocity(const FVector2D& NewVelocity);
   virtual void SetLocalVelocity(const FVector2D& NewVelocity);
-  virtual void AddWorldVelocity(const FVector2D& DeltaVelocity);
-  virtual void AddLocalVelocity(const FVector2D& DeltaVelocity);
+  virtual void AddWorldImpulse(const FVector2D& Impulse);
+  virtual void AddLocalImpulse(const FVector2D& Impulse);
   virtual void AddVelocityRotation(const FRotator& Rotation);
   virtual void SetVelocityRotation(const FRotator& Rotation);
 

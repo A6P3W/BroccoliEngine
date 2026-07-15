@@ -167,14 +167,14 @@ void MNetMovementComponent::SetLocalVelocity(const FVector2D& NewVelocity) {
   );
 }
 
-void MNetMovementComponent::AddWorldVelocity(const FVector2D& DeltaVelocity) {
-  SetWorldVelocity(GetVelocity() + DeltaVelocity);
+void MNetMovementComponent::AddWorldImpulse(const FVector2D& Impulse) {
+  SetWorldVelocity(GetVelocity() + Impulse);
 }
 
-void MNetMovementComponent::AddLocalVelocity(const FVector2D& DeltaVelocity) {
+void MNetMovementComponent::AddLocalImpulse(const FVector2D& Impulse) {
   AActor* OwnerActor = GetOwner();
-  AddWorldVelocity(
-      OwnerActor ? DeltaVelocity.RotateVector(OwnerActor->GetActorRotation()) : DeltaVelocity
+  AddWorldImpulse(
+      OwnerActor ? Impulse.RotateVector(OwnerActor->GetActorRotation()) : Impulse
   );
 }
 

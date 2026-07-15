@@ -41,16 +41,16 @@ void MMovementComponent::SetLocalVelocity(const FVector2D& NewVelocity) {
   SetWorldVelocity(NewVelocity.RotateVector(GetOwner()->GetActorRotation()));
 }
 
-void MMovementComponent::AddWorldVelocity(const FVector2D& DeltaVelocity) {
-  Velocity = Velocity + DeltaVelocity;
+void MMovementComponent::AddWorldImpulse(const FVector2D& Impulse) {
+  Velocity = Velocity + Impulse;
 }
 
-void MMovementComponent::AddLocalVelocity(const FVector2D& DeltaVelocity) {
+void MMovementComponent::AddLocalImpulse(const FVector2D& Impulse) {
   if (!GetOwner()) {
-    AddWorldVelocity(DeltaVelocity);
+    AddWorldImpulse(Impulse);
     return;
   }
-  AddWorldVelocity(DeltaVelocity.RotateVector(GetOwner()->GetActorRotation()));
+  AddWorldImpulse(Impulse.RotateVector(GetOwner()->GetActorRotation()));
 }
 
 void MMovementComponent::AddVelocityRotation(const FRotator& Rotation) {

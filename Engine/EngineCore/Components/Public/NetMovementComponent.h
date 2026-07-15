@@ -21,8 +21,8 @@ class BROCCOLI_ENGINE_API MNetMovementComponent : public MMovementComponent {
   void SetLocalForce(const FVector2D& Force) override;
   void SetWorldVelocity(const FVector2D& NewVelocity) override;
   void SetLocalVelocity(const FVector2D& NewVelocity) override;
-  void AddWorldVelocity(const FVector2D& DeltaVelocity) override;
-  void AddLocalVelocity(const FVector2D& DeltaVelocity) override;
+  void AddWorldImpulse(const FVector2D& Impulse) override;
+  void AddLocalImpulse(const FVector2D& Impulse) override;
   void AddVelocityRotation(const FRotator& Rotation) override;
   void SetVelocityRotation(const FRotator& Rotation) override;
 
