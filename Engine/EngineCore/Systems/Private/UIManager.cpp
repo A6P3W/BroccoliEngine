@@ -28,7 +28,12 @@ void UIManager::SetTextInputActive(bool bActive) { ImplPtr->TextInputActive = bA
 
 bool UIManager::IsTextInputActive() const { return ImplPtr->TextInputActive; }
 
-void UIManager::SetFocusedWidget(AWidgetBase* Widget) { ImplPtr->CurrentFocusedWidget = Widget; }
+void UIManager::SetFocusedWidget(AWidgetBase* Widget) {
+  if (ImplPtr->CurrentFocusedWidget != Widget && ImplPtr->CurrentFocusedWidget != nullptr) {
+    ImplPtr->CurrentFocusedWidget->ClearFocusedButton();
+  }
+  ImplPtr->CurrentFocusedWidget = Widget;
+}
 
 AWidgetBase* UIManager::GetFocusedWidget() const { return ImplPtr->CurrentFocusedWidget; }
 void UIManager::RefreshZOrder() {
