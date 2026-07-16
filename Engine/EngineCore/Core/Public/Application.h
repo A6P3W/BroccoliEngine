@@ -1,7 +1,8 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <memory>
 #include <vector>
+
+#include "BroccoliEngineAPI.h"
 class AGameModeBase;
 class BROCCOLI_ENGINE_API Application {
  public:
@@ -10,9 +11,9 @@ class BROCCOLI_ENGINE_API Application {
   bool Run();
 
   static void SetWindowResolution(int width, int height);
-   static void SetGameSetupCallback(void (*Callback)());
-   static void QuitGame();
-   static void* GetImGuiContext();
+  static void SetGameSetupCallback(void (*Callback)());
+  static void QuitGame();
+  static void* GetImGuiContext();
 
  private:
   bool Update(float DeltaTime);
