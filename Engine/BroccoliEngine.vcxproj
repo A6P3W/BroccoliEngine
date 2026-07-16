@@ -204,6 +204,7 @@
     <ClCompile Include="EngineCore\Systems\Private\LevelSerializer.cpp" />
     <ClCompile Include="ThirdParty\imgui_impl\Private\imgui_impl_dx11.cpp" />
     <ClCompile Include="ThirdParty\imgui_impl\Private\imgui_impl_win32.cpp" />
+    <ClCompile Include="ThirdParty\DxLibLap\DxLibLap.cpp" />
     <ClCompile Include="EngineCore\Core\Private\World.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\FileDialog.cpp" />
     <ClCompile Include="EngineSide\StressTestActor.cpp" />
@@ -286,6 +287,7 @@
     <ClInclude Include="EngineSide\GridLine.h" />
     <ClInclude Include="ThirdParty\imgui_impl\imgui_impl_dx11.h" />
     <ClInclude Include="ThirdParty\imgui_impl\imgui_impl_win32.h" />
+    <ClInclude Include="ThirdParty\DxLibLap\DxLibLap.h" />
     <ClInclude Include="ThirdParty\nlohmann\json.hpp" />
     <ClInclude Include="Utils\Log.h" />
     <ClInclude Include="Utils\UMath.h" />

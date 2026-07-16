@@ -87,13 +87,6 @@ void Application::InitOffscreenBuffer() {
 }
 
 void Application::SetWindowResolution(int width, int height) { SetWindowSize(width, height); }
-int Application::MakeScreen(int Width, int Height, bool bUseAlphaChannel) {
-  SetDrawScreen(DX_SCREEN_BACK);
-  return ::MakeScreen(Width, Height, bUseAlphaChannel);
-}
-
-void Application::ReleaseScreen(int ScreenHandle) { ::DeleteGraph(ScreenHandle); }
-
 static bool ShouldQuitGame = false;
 void Application::QuitGame() { ShouldQuitGame = true; }
 

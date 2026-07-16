@@ -14,8 +14,6 @@ class BROCCOLI_ENGINE_API Application {
   static void SetGameSetupCallback(void (*Callback)());
   static void QuitGame();
   static void* GetImGuiContext();
-  static int MakeScreen(int Width, int Height, bool bUseAlphaChannel = false);
-  static void ReleaseScreen(int ScreenHandle);
 
  private:
   bool Update(float DeltaTime);

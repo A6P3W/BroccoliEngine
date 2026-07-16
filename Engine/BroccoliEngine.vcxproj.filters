@@ -46,6 +46,7 @@
     <ClCompile Include="EngineCore\Systems\Private\LevelSerializer.cpp" />
     <ClCompile Include="ThirdParty\imgui_impl\Private\imgui_impl_dx11.cpp" />
     <ClCompile Include="ThirdParty\imgui_impl\Private\imgui_impl_win32.cpp" />
+    <ClCompile Include="ThirdParty\DxLibLap\DxLibLap.cpp" />
     <ClCompile Include="Editor\Private\EditorUI.cpp" />
     <ClCompile Include="EngineCore\Core\Private\World.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\FileDialog.cpp" />
@@ -130,6 +131,7 @@
     <ClInclude Include="EngineCore\Systems\Public\LevelSerializer.h" />
     <ClInclude Include="ThirdParty\imgui_impl\imgui_impl_dx11.h" />
     <ClInclude Include="ThirdParty\imgui_impl\imgui_impl_win32.h" />
+    <ClInclude Include="ThirdParty\DxLibLap\DxLibLap.h" />
     <ClInclude Include="Editor\Public\EditorUI.h" />
     <ClInclude Include="EngineCore\Core\Public\EngineDefine.h" />
     <ClInclude Include="EngineCore\Core\Public\World.h" />

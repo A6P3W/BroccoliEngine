@@ -4,6 +4,7 @@
 #include <SpriteComponent.h>
 
 #include "ActorManager.h"
+#include "DxLibLap/DxLibLap.h"
 #include "HttpManager.h"
 #include "Log.h"
 #include "UIManager.h"
@@ -20,6 +21,19 @@ AWidgetTestGameMode::AWidgetTestGameMode() {
 
 void AWidgetTestGameMode::BeginPlay() {
   AGameModeBase::BeginPlay();
+
+  constexpr int ScreenWidth = 800;
+  constexpr int ScreenHeight = 600;
+  const int ScreenHandle = DxLibLap::MakeScreen(ScreenWidth, ScreenHeight);
+  if (ScreenHandle == -1) {
+    M_LOG("WidgetTest MakeScreen failed: {}x{}.", ScreenWidth, ScreenHeight);
+  } else {
+    M_LOG(
+        "WidgetTest MakeScreen succeeded: {}x{}, handle={}", ScreenWidth, ScreenHeight, ScreenHandle
+    );
+    DxLibLap::ReleaseScreen(ScreenHandle);
+  }
+
   auto* mainMenuWidget = GetWorld()->GetActorManager()->SpawnObject<AWidgetTestUIMain>();
 
   UIManager::GetInstance()->AddWidget(mainMenuWidget);
