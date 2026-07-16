@@ -4,19 +4,32 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
+#include <cstring>
+#include <filesystem>
 #include <string>
 #include <vector>
 
 #include "Actor.h"
+#include "ActorClassGenerator.h"
+#include "ActorManager.h"
 #include "EditorMode.h"
 #include "FileDialog.h"
-#include "ActorManager.h"
+#include "Log.h"
 #include "SpriteActor.h"
 #include "UMath.h"
 #include "World.h"
 
+namespace {
+std::filesystem::path Utf8ToPath(const std::string& Value) {
+  return std::filesystem::path(reinterpret_cast<const char8_t*>(Value.c_str()));
+}
+
+}  // namespace
+
 void EditorUI::UpdateAndDraw(EditorMode* editorMode) {
   DrawMenuBar(editorMode);
+  DrawCreateNewActorModal(editorMode);
 
   DrawClassBrowser(editorMode);
   DrawOutliner(editorMode);
@@ -27,6 +40,7 @@ void EditorUI::UpdateAndDraw(EditorMode* editorMode) {
 }
 
 void EditorUI::DrawMenuBar(EditorMode* editorMode) {
+  bool bOpenCreateNewActorPopup = false;
   if (ImGui::BeginMainMenuBar()) {
     if (ImGui::BeginMenu("File")) {
       if (ImGui::MenuItem("Save Level")) {
@@ -47,6 +61,9 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode) {
           editorMode->LoadLevel(filepath);
         }
       }
+      if (ImGui::MenuItem("Create New Actor")) {
+        bOpenCreateNewActorPopup = true;
+      }
       if (ImGui::MenuItem("Simulate")) {
         editorMode->Simulate();
       }
@@ -54,6 +71,76 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode) {
     }
     ImGui::EndMainMenuBar();
   }
+  if (bOpenCreateNewActorPopup) {
+    ImGui::OpenPopup("Create New Actor");
+  }
+}
+
+void EditorUI::DrawCreateNewActorModal(EditorMode* editorMode) {
+  static char ClassName[128] = {};
+  static std::string ParentClassName;
+  static FCreateNewActorResult LastResult;
+  static ActorClassGenerator Generator;
+
+  ImGui::SetNextWindowSize(ImVec2(620.0f, 0.0f), ImGuiCond_Appearing);
+  if (!ImGui::BeginPopupModal("Create New Actor", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    return;
+  }
+
+  std::vector<std::string> ParentClasses = editorMode->GetClassList();
+  std::sort(ParentClasses.begin(), ParentClasses.end());
+  if (ImGui::IsWindowAppearing()) {
+    if (std::find(ParentClasses.begin(), ParentClasses.end(), ParentClassName) ==
+        ParentClasses.end()) {
+      ParentClassName = ParentClasses.empty() ? "" : ParentClasses.front();
+    }
+    LastResult = {};
+  }
+
+  ImGui::InputText("Class Name", ClassName, sizeof(ClassName));
+  const char* ParentPreview = ParentClassName.empty() ? "(None)" : ParentClassName.c_str();
+  if (ImGui::BeginCombo("Parent Actor Class", ParentPreview)) {
+    for (const std::string& Candidate : ParentClasses) {
+      const bool bSelected = Candidate == ParentClassName;
+      if (ImGui::Selectable(Candidate.c_str(), bSelected)) {
+        ParentClassName = Candidate;
+      }
+      if (bSelected) {
+        ImGui::SetItemDefaultFocus();
+      }
+    }
+    ImGui::EndCombo();
+  }
+  if (!LastResult.Message.empty()) {
+    ImGui::Separator();
+    const ImVec4 MessageColor =
+        LastResult.bSuccess ? ImVec4(0.35f, 0.85f, 0.35f, 1.0f) : ImVec4(0.95f, 0.35f, 0.35f, 1.0f);
+    ImGui::PushStyleColor(ImGuiCol_Text, MessageColor);
+    ImGui::TextWrapped("%s", LastResult.Message.c_str());
+    ImGui::PopStyleColor();
+  }
+
+  ImGui::Separator();
+  if (ImGui::Button("Create", ImVec2(120.0f, 0.0f))) {
+    const std::string SelectedPath = FileDialog::SelectFolder();
+    if (!SelectedPath.empty()) {
+      FCreateNewActorRequest Request;
+      Request.ClassName = ClassName;
+      Request.ParentClassName = ParentClassName;
+      Request.OutputDirectory = Utf8ToPath(SelectedPath);
+      LastResult = Generator.Generate(Request);
+      M_LOG("{}", LastResult.Message);
+      if (LastResult.bSuccess) {
+        std::memset(ClassName, 0, sizeof(ClassName));
+      }
+    }
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f))) {
+    ImGui::CloseCurrentPopup();
+  }
+
+  ImGui::EndPopup();
 }
 
 void EditorUI::DrawClassBrowser(EditorMode* editorMode) {

@@ -7,6 +7,7 @@ class EditorUI {
 
  private:
   void DrawMenuBar(EditorMode* editorMode);
+  void DrawCreateNewActorModal(EditorMode* editorMode);
   void DrawClassBrowser(EditorMode* editorMode);
   void DrawOutliner(EditorMode* editorMode);
   void DrawInspector(EditorMode* editorMode);

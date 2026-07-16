@@ -1,0 +1,10 @@
+﻿#pragma once
+
+#include "{PARENT_HEADER}"
+
+class {CLASS_NAME} : public {PARENT_CLASS} {
+ public:
+  DEFINE_ACTOR_CLASS({CLASS_NAME});
+
+  {CLASS_NAME}();
+};
