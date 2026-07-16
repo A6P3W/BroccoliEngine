@@ -102,6 +102,7 @@
       <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -120,6 +121,7 @@
       <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;_EDITOR;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -140,6 +142,7 @@
       <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;_RELEASE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -152,6 +155,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Editor\Private\ActorClassGenerator.cpp" />
     <ClCompile Include="Editor\Private\EditorController.cpp" />
     <ClCompile Include="Editor\Private\EditorMode.cpp" />
     <ClCompile Include="Editor\Private\EditorPawn.cpp" />
@@ -232,6 +236,7 @@
     <ClCompile Include="EngineCore\Online\Private\OnlineSessionManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Editor\Public\ActorClassGenerator.h" />
     <ClInclude Include="Editor\Public\EditorController.h" />
     <ClInclude Include="Editor\Public\EditorSelectPointComponent.h" />
     <ClInclude Include="Editor\Public\EditorUI.h" />
@@ -325,6 +330,8 @@
     <ClInclude Include="EngineCore\Online\Public\OnlineSessionManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Editor\Templates\CreateNewActor\Default.cpp.template" />
+    <None Include="Editor\Templates\CreateNewActor\Default.h.template" />
     <None Include="..\README.md">
       <SubType>
       </SubType>

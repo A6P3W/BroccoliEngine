@@ -13,6 +13,8 @@ m\_は不要
 
 /t:Build /p:Configuration=Debug /p:Platform=x64 /m
 
+editor関連のデバッグ中は Configuration=Editorを使用。
+
 BroccoliEngineプロジェクトの変更後のビルドテスト方法
 
 BroccoliEngine.vcxprojのビルド、成功したらBroccoliEngine.slnxのビルド。
