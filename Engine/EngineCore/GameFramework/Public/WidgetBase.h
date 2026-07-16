@@ -17,12 +17,16 @@ class BROCCOLI_ENGINE_API AWidgetBase : public AActor {
   virtual void OnRevealed() {}
 
   void SetFocusedButton(MUIButtonComponent* Button);
+  void ClearFocusedButton();
   MUIButtonComponent* GetFocusedButton() const { return FocusedButtonComponent; }
-  void Navigate(const FInputActionValue& Value);
+  virtual void Navigate(const FInputActionValue& Value);
   void Submit();
   virtual void Cancel();
 
   void SetZOrderOffset(int offset);
+
+ protected:
+  void StartNavigationCooldown();
 
  private:
   MUIButtonComponent* FocusedButtonComponent = nullptr;

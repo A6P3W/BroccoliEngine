@@ -26,6 +26,12 @@ void AWidgetBase::SetFocusedButton(MUIButtonComponent* Button) {
     FocusedButtonComponent->SetState(EButtonState::Hovered);
   }
 }
+void AWidgetBase::ClearFocusedButton() {
+  if (FocusedButtonComponent) {
+    FocusedButtonComponent->SetState(EButtonState::Normal);
+  }
+  FocusedButtonComponent = nullptr;
+}
 void AWidgetBase::Navigate(const FInputActionValue& Value) {
   if (!FocusedButtonComponent || NavigationCooldown > 0.0f) return;
   const float Threshold = 0.5f;
@@ -46,6 +52,8 @@ void AWidgetBase::Navigate(const FInputActionValue& Value) {
     NavigationCooldown = 0.2f;
   }
 }
+
+void AWidgetBase::StartNavigationCooldown() { NavigationCooldown = 0.2f; }
 
 void AWidgetBase::Submit() {
   if (FocusedButtonComponent) {
