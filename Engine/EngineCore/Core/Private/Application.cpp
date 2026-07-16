@@ -5,9 +5,13 @@
 #include <imgui_impl/imgui_impl_dx11.h>
 #include <imgui_impl/imgui_impl_win32.h>
 
+#include "ActorManager.h"
 #include "CollisionSystem.h"
 #include "DebugOverlay.h"
 #include "DxLib.h"
+#include "EOSAuthManager.h"
+#include "EOSCoreManager.h"
+#include "EOSLobbyManager.h"
 #include "EditorMode.h"
 #include "EngineDefine.h"
 #include "GameModeBase.h"
@@ -20,10 +24,6 @@
 #include "MouseDevice.h"
 #include "NetworkManager.h"
 #include "OnlineSessionManager.h"
-#include "EOSCoreManager.h"
-#include "EOSAuthManager.h"
-#include "EOSLobbyManager.h"
-#include "ActorManager.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "TimerManager.h"
@@ -50,15 +50,11 @@ LRESULT CALLBACK ImGuiHookProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
   return 0;
 }
 
-void Application::SetGameSetupCallback(void (*Callback)()) {
-  GameSetupCallback = Callback;
-}
+void Application::SetGameSetupCallback(void (*Callback)()) { GameSetupCallback = Callback; }
 
 Application::Application() {}
 
-Application::~Application() {
-  Shutdown();
-}
+Application::~Application() { Shutdown(); }
 
 void Application::Shutdown() {
   if (bImGuiInitialized) {
@@ -91,6 +87,13 @@ void Application::InitOffscreenBuffer() {
 }
 
 void Application::SetWindowResolution(int width, int height) { SetWindowSize(width, height); }
+int Application::MakeScreen(int Width, int Height, bool bUseAlphaChannel) {
+  SetDrawScreen(DX_SCREEN_BACK);
+  return ::MakeScreen(Width, Height, bUseAlphaChannel);
+}
+
+void Application::ReleaseScreen(int ScreenHandle) { ::DeleteGraph(ScreenHandle); }
+
 static bool ShouldQuitGame = false;
 void Application::QuitGame() { ShouldQuitGame = true; }
 
@@ -266,6 +269,4 @@ bool Application::Draw() {
   return true;
 }
 
-void* Application::GetImGuiContext() {
-  return static_cast<void*>(ImGui::GetCurrentContext());
-}
+void* Application::GetImGuiContext() { return static_cast<void*>(ImGui::GetCurrentContext()); }
