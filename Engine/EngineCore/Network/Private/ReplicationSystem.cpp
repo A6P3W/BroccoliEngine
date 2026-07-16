@@ -75,10 +75,10 @@ FReplicationSystem::~FReplicationSystem() {
 }
 
 void FReplicationSystem::Update() {
-  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() || !ImplPtr->OwnerWorld->GetObjectManager()) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() || !ImplPtr->OwnerWorld->GetActorManager()) {
     return;
   }
-  const auto& actors = ImplPtr->OwnerWorld->GetObjectManager()->GetAllActors();
+  const auto& actors = ImplPtr->OwnerWorld->GetActorManager()->GetAllActors();
   for (const auto& actorPtr : actors) {
     AActor* actor = actorPtr.get();
     if (!actor || !actor->bReplicates) {
@@ -546,10 +546,10 @@ bool FReplicationSystem::SendClientTravelReady(const std::string& LevelPath) {
 }
 
 void FReplicationSystem::SendInitialStateToClient(FNetworkConnectionId ConnectionId) {
-  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->GetObjectManager()) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->GetActorManager()) {
     return;
   }
-  const auto& actors = ImplPtr->OwnerWorld->GetObjectManager()->GetAllActors();
+  const auto& actors = ImplPtr->OwnerWorld->GetActorManager()->GetAllActors();
   for (const auto& actorPtr : actors) {
     AActor* actor = actorPtr.get();
     if (!actor || !actor->bReplicates || actor->IsPendingDestroy()) {

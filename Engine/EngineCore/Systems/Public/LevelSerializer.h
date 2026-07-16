@@ -26,7 +26,7 @@ class World;
 
 class BROCCOLI_ENGINE_API LevelSerializer {
  public:
-  // 現在ObjectManagerにいるActorRegistryに登録されている全アクタを保存
+  // 現在ActorManagerにいるActorRegistryに登録されている全アクタを保存
   static bool Save(World* world, const std::string& filePath, const std::string& gameModeClassName);
 
   // JSONからアクタをスポーン（現シーンはクリアしない）

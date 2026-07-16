@@ -25,7 +25,7 @@ bool LevelSerializer::Save(
   std::vector<FActorSaveData> actors;
   auto& registry = ActorRegistry::GetInstance();
   AActor* gameModeActor = world->GetGameMode();
-  for (const auto& actorPtr : world->GetObjectManager()->GetAllActors()) {
+  for (const auto& actorPtr : world->GetActorManager()->GetAllActors()) {
     AActor* actor = actorPtr.get();
     if (!actor || actor->IsPendingDestroy()) continue;
     if (actor == gameModeActor || actor->IsEditorActor()) continue;
@@ -106,7 +106,7 @@ bool LevelSerializer::Load(
     }
     spawnedActors.push_back(actor);
   }
-  world->GetObjectManager()->FlushPendingActors();
+  world->GetActorManager()->FlushPendingActors();
   if (!world->IsSimulating()) {
     return true;
   }

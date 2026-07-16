@@ -45,7 +45,7 @@ void EditorMode::SetSelectedActor(AActor* actor) {
 }
 
 void EditorMode::OnMousePress(const FVector2D& worldPos) {
-  const auto& actors = GetWorld()->GetObjectManager()->GetAllActors();
+  const auto& actors = GetWorld()->GetActorManager()->GetAllActors();
   AActor* hitActor = nullptr;
 
   for (auto& actor : actors) {

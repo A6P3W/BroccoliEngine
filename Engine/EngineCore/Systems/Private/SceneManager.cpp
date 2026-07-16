@@ -144,7 +144,7 @@ void SceneManager::ProcessSceneChanges() {
       return;
     }
 
-    newScene->GetObjectManager()->FlushPendingActors();
+    newScene->GetActorManager()->FlushPendingActors();
 
     ImplPtr->CurrentScene = std::move(newScene);
     ImplPtr->CurrentSceneId = newSceneId;

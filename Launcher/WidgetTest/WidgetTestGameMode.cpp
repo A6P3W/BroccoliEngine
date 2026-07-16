@@ -20,7 +20,7 @@ AWidgetTestGameMode::AWidgetTestGameMode() {
 
 void AWidgetTestGameMode::BeginPlay() {
   AGameModeBase::BeginPlay();
-  auto* mainMenuWidget = GetWorld()->GetObjectManager()->SpawnObject<AWidgetTestUIMain>();
+  auto* mainMenuWidget = GetWorld()->GetActorManager()->SpawnObject<AWidgetTestUIMain>();
 
   UIManager::GetInstance()->AddWidget(mainMenuWidget);
   UIManager::GetInstance()->SetFocusedWidget(mainMenuWidget);
