@@ -213,7 +213,7 @@ void EditorUI::DrawClassBrowser(EditorMode* editorMode) {
 void EditorUI::DrawOutliner(EditorMode* editorMode) {
   ImGui::Begin("Outliner");
 
-  const auto& actors = editorMode->GetWorld()->GetObjectManager()->GetAllActors();
+  const auto& actors = editorMode->GetWorld()->GetActorManager()->GetAllActors();
   for (size_t i = 0; i < actors.size(); ++i) {
     AActor* actor = actors[i].get();
     if (!actor || actor->IsPendingDestroy()) continue;

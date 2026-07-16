@@ -48,11 +48,11 @@ APlayerController* AGameModeBase::OnClientConnected(FNetworkConnectionId Connect
 }
 
 void AGameModeBase::OnClientDisconnected(FNetworkConnectionId ConnectionId) {
-  if (!GetWorld() || !GetWorld()->GetObjectManager()) {
+  if (!GetWorld() || !GetWorld()->GetActorManager()) {
     return;
   }
 
-  const auto& actors = GetWorld()->GetObjectManager()->GetAllActors();
+  const auto& actors = GetWorld()->GetActorManager()->GetAllActors();
   for (const auto& actorPtr : actors) {
     AActor* actor = actorPtr.get();
     if (!actor || actor->IsPendingDestroy()) {
@@ -77,11 +77,11 @@ void AGameModeBase::OnUpdate(float DeltaTime) { (void)DeltaTime; }
 void AGameModeBase::Draw() { AActor::Draw(); }
 
 AActor* AGameModeBase::FindPlayerStart(FNetworkConnectionId ConnectionId) {
-  if (!GetWorld() || !GetWorld()->GetObjectManager()) {
+  if (!GetWorld() || !GetWorld()->GetActorManager()) {
     return nullptr;
   }
   std::vector<APlayerStart*> playerStarts;
-  const auto& actors = GetWorld()->GetObjectManager()->GetAllActors();
+  const auto& actors = GetWorld()->GetActorManager()->GetAllActors();
   for (const auto& actorPtr : actors) {
     if (!actorPtr || actorPtr->IsPendingDestroy()) {
       continue;

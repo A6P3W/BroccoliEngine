@@ -43,7 +43,6 @@ World::~World() {
 
 FActorManager* World::GetActorManager() { return ImplPtr->ActorManager.get(); }
 
-FActorManager* World::GetObjectManager() { return ImplPtr->ActorManager.get(); }
 FCollisionSystem* World::GetCollisionSystem() { return ImplPtr->CollisionSystem.get(); }
 FSoundManager* World::GetSoundManager() { return ImplPtr->SoundManager.get(); }
 FTimerManager* World::GetTimerManager() { return ImplPtr->TimerManager.get(); }

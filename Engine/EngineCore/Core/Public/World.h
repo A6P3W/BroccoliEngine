@@ -28,7 +28,7 @@ class BROCCOLI_ENGINE_API World {
   void Update(float DeltaTime);
   void Draw();
 
-  FActorManager* GetObjectManager();
+  FActorManager* GetActorManager();
   FCollisionSystem* GetCollisionSystem();
   FSoundManager* GetSoundManager();
   FTimerManager* GetTimerManager();
@@ -79,7 +79,6 @@ class BROCCOLI_ENGINE_API World {
   void SetLocalPlayerControllerClass(const std::string& ClassName);
 
  private:
-  FActorManager* GetActorManager();
   struct Impl;
   Impl* ImplPtr = nullptr;
 };
