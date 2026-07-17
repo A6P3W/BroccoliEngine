@@ -10,6 +10,9 @@
 
 class AActor;
 class MCollisionComponent;
+#if !defined(_RELEASE)
+class MSpriteComponent;
+#endif
 
 enum class EForceFieldType : uint8_t {
   Directional,
@@ -38,6 +41,11 @@ class BROCCOLI_ENGINE_API MForceFieldComponent : public MSceneComponent {
   bool IsActive() const;
   void Pulse(float StrengthScale = 1.0f);
 
+ protected:
+#if !defined(_RELEASE)
+  void OnRegister() override;
+#endif
+
  private:
   enum class EApplicationType { Force, Impulse };
 
@@ -46,6 +54,9 @@ class BROCCOLI_ENGINE_API MForceFieldComponent : public MSceneComponent {
   FVector2D GetForceOrigin() const;
   FVector2D CalculateVector(AActor* Target, float StrengthScale) const;
   void ApplyToTargets(EApplicationType ApplicationType, float StrengthScale);
+#if !defined(_RELEASE)
+  void UpdateDebugSprite();
+#endif
 
   EForceFieldType ForceType = EForceFieldType::Directional;
   FVector2D Direction = {1.0f, 0.0f};
@@ -54,4 +65,7 @@ class BROCCOLI_ENGINE_API MForceFieldComponent : public MSceneComponent {
   MCollisionComponent* RangeComponent = nullptr;
   std::vector<std::string> AffectedActorTags;
   std::vector<std::string> IgnoredActorTags;
+#if !defined(_RELEASE)
+  MSpriteComponent* DebugSprite = nullptr;
+#endif
 };

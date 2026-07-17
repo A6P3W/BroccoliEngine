@@ -40,7 +40,10 @@
     <ClCompile Include="EngineCore\Systems\Private\KeyboardDevice.cpp" />
     <ClCompile Include="EngineCore\Systems\Private\GamepadDevice.cpp" />
     <ClCompile Include="EngineSide\Default\Private\DefaultCircleCollisionActor.cpp" />
+    <ClCompile Include="EngineSide\Default\Private\DefaultDirectionalForceFieldActor.cpp" />
     <ClCompile Include="EngineSide\Default\Private\DefaultLineCollisionActor.cpp" />
+    <ClCompile Include="EngineSide\Default\Private\DefaultPullForceFieldActor.cpp" />
+    <ClCompile Include="EngineSide\Default\Private\DefaultPushForceFieldActor.cpp" />
     <ClCompile Include="EngineSide\Default\Private\DefaultRectangleCollisionActor.cpp" />
     <ClCompile Include="EngineSide\GridLine.cpp" />
     <ClCompile Include="EngineCore\Components\Private\EnhancedInputComponent.cpp" />
@@ -123,7 +126,10 @@
     <ClInclude Include="EngineCore\Utils\Public\Log.h" />
     <ClInclude Include="EngineCore\Utils\Public\UMath.h" />
     <ClInclude Include="EngineSide\Default\Public\DefaultCircleCollisionActor.h" />
+    <ClInclude Include="EngineSide\Default\Public\DefaultDirectionalForceFieldActor.h" />
     <ClInclude Include="EngineSide\Default\Public\DefaultLineCollisionActor.h" />
+    <ClInclude Include="EngineSide\Default\Public\DefaultPullForceFieldActor.h" />
+    <ClInclude Include="EngineSide\Default\Public\DefaultPushForceFieldActor.h" />
     <ClInclude Include="EngineSide\Default\Public\DefaultRectangleCollisionActor.h" />
     <ClInclude Include="EngineSide\GridLine.h" />
     <ClInclude Include="ThirdParty\nlohmann\json.hpp" />
