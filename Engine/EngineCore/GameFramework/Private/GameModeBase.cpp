@@ -1,6 +1,9 @@
 ﻿#include "GameModeBase.h"
 
 #include <vector>
+#include <unordered_set>
+
+#include "NetworkManager.h"
 
 #include "ActorRegistry.h"
 #include "CameraComponent.h"
@@ -17,6 +20,8 @@ struct AGameModeBase::Impl {
   std::string DefaultPlayerControllerClass;
   APawn* PlayerPawn = nullptr;
   bool HostPlayerSpawned = false;
+  std::unordered_set<FNetworkConnectionId> TravelReadyClients;
+  bool bWaitingForTravelReady = false;
 };
 
 AGameModeBase::AGameModeBase() : ImplPtr(new Impl()) {
@@ -48,7 +53,9 @@ APlayerController* AGameModeBase::OnClientConnected(FNetworkConnectionId Connect
 }
 
 void AGameModeBase::OnClientDisconnected(FNetworkConnectionId ConnectionId) {
+  ImplPtr->TravelReadyClients.erase(ConnectionId);
   if (!GetWorld() || !GetWorld()->GetActorManager()) {
+    CheckAllClientsTravelReady();
     return;
   }
 
@@ -70,6 +77,33 @@ void AGameModeBase::OnClientDisconnected(FNetworkConnectionId ConnectionId) {
       }
     }
   }
+  CheckAllClientsTravelReady();
+}
+
+void AGameModeBase::BeginTravelWait() {
+  ImplPtr->TravelReadyClients.clear();
+  ImplPtr->bWaitingForTravelReady = true;
+  CheckAllClientsTravelReady();
+}
+
+void AGameModeBase::OnClientTravelReady(FNetworkConnectionId ConnectionId) {
+  if (!ImplPtr->bWaitingForTravelReady || ConnectionId == 0) {
+    return;
+  }
+  ImplPtr->TravelReadyClients.insert(ConnectionId);
+  CheckAllClientsTravelReady();
+}
+
+void AGameModeBase::CheckAllClientsTravelReady() {
+  if (!ImplPtr->bWaitingForTravelReady) {
+    return;
+  }
+  const size_t requiredClients = NetworkManager::GetInstance().GetConnectedClientCount();
+  if (ImplPtr->TravelReadyClients.size() < requiredClients) {
+    return;
+  }
+  ImplPtr->bWaitingForTravelReady = false;
+  OnAllClientsTravelReady();
 }
 
 void AGameModeBase::OnUpdate(float DeltaTime) { (void)DeltaTime; }

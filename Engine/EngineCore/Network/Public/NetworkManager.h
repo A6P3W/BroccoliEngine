@@ -54,6 +54,7 @@ class BROCCOLI_ENGINE_API NetworkManager {
   bool IsRunning() const { return Host != nullptr; }
   bool IsServer() const { return bIsServer; }
   bool IsClient() const { return bIsClient; }
+  size_t GetConnectedClientCount() const;
   FNetworkConnectionId GetLocalConnectionId() const { return LocalConnectionId; }
 
   void SetLocalConnectionId(FNetworkConnectionId ConnectionId) { LocalConnectionId = ConnectionId; }

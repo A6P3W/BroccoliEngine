@@ -242,6 +242,10 @@ bool NetworkManager::Broadcast(
   return true;
 }
 
+size_t NetworkManager::GetConnectedClientCount() const {
+  return bIsServer ? ImplPtr->PeersByConnectionId.size() : 0;
+}
+
 NetworkManager::CallbackHandle NetworkManager::AddOnConnected(ConnectedCallback Callback) {
   if (!Callback) {
     return 0;
