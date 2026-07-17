@@ -9,6 +9,10 @@
 #include "CollisionComponent.h"
 #include "DebugOverlay.h"
 #include "MovementComponent.h"
+#if !defined(_RELEASE)
+#include "ResourceManager.h"
+#include "SpriteComponent.h"
+#endif
 
 MForceFieldComponent::MForceFieldComponent() {
   bReplicates = true;
@@ -19,8 +23,28 @@ MForceFieldComponent::MForceFieldComponent() {
   RegisterReplicatedProperty(&bActive);
 }
 
+#if !defined(_RELEASE)
+void MForceFieldComponent::OnRegister() {
+  if (DebugSprite || !GetOwner()) {
+    return;
+  }
+
+  DebugSprite = NewObject<MSpriteComponent>(GetOwner());
+  if (!DebugSprite) {
+    return;
+  }
+
+  DebugSprite->SetRenderSettings(100, RenderSpace::World);
+  UpdateDebugSprite();
+  DebugSprite->RegisterComponent();
+}
+#endif
+
 void MForceFieldComponent::OnUpdate(float DeltaTime) {
   MSceneComponent::OnUpdate(DeltaTime);
+#if !defined(_RELEASE)
+  UpdateDebugSprite();
+#endif
   AActor* OwnerActor = GetOwner();
   if (!OwnerActor || !OwnerActor->bHasAuthority || !bActive) {
     return;
@@ -36,14 +60,32 @@ void MForceFieldComponent::SetRangeComponent(MCollisionComponent* NewRangeCompon
   if (RangeComponent) {
     RangeComponent->SetCollisionType(ECollisionType::Overlap);
   }
+#if !defined(_RELEASE)
+  UpdateDebugSprite();
+#endif
 }
 
 MCollisionComponent* MForceFieldComponent::GetRangeComponent() const { return RangeComponent; }
-void MForceFieldComponent::SetForceType(EForceFieldType NewForceType) { ForceType = NewForceType; }
+void MForceFieldComponent::SetForceType(EForceFieldType NewForceType) {
+  ForceType = NewForceType;
+#if !defined(_RELEASE)
+  UpdateDebugSprite();
+#endif
+}
 EForceFieldType MForceFieldComponent::GetForceType() const { return ForceType; }
-void MForceFieldComponent::SetDirection(const FVector2D& NewDirection) { Direction = NewDirection; }
+void MForceFieldComponent::SetDirection(const FVector2D& NewDirection) {
+  Direction = NewDirection;
+#if !defined(_RELEASE)
+  UpdateDebugSprite();
+#endif
+}
 const FVector2D& MForceFieldComponent::GetDirection() const { return Direction; }
-void MForceFieldComponent::SetStrength(float NewStrength) { Strength = NewStrength; }
+void MForceFieldComponent::SetStrength(float NewStrength) {
+  Strength = NewStrength;
+#if !defined(_RELEASE)
+  UpdateDebugSprite();
+#endif
+}
 float MForceFieldComponent::GetStrength() const { return Strength; }
 void MForceFieldComponent::SetAffectedActorTags(const std::vector<std::string>& NewTags) {
   AffectedActorTags = NewTags;
@@ -117,6 +159,32 @@ FVector2D MForceFieldComponent::CalculateVector(AActor* Target, float StrengthSc
   }
   return ForceDirection / std::sqrt(DirectionSizeSquared) * Strength * StrengthScale;
 }
+
+#if !defined(_RELEASE)
+void MForceFieldComponent::UpdateDebugSprite() {
+  if (!DebugSprite) {
+    return;
+  }
+
+  constexpr const char* DirectionalArrowPath = "Resources/.Engine/arrow-up.png";
+  constexpr const char* PointPushArrowPath = "Resources/.Engine/arrow-up-from-dot.png";
+  constexpr const char* PointPullArrowPath = "Resources/.Engine/arrow-down-to-dot.png";
+
+  const char* ArrowPath = DirectionalArrowPath;
+  if (ForceType == EForceFieldType::Point) {
+    ArrowPath = Strength < 0.0f ? PointPullArrowPath : PointPushArrowPath;
+  }
+
+  DebugSprite->SubmitGraph(ResourceManager::GetInstance().LoadResourceGraph(ArrowPath));
+  DebugSprite->SetWorldLocation(GetForceOrigin());
+
+  if (ForceType == EForceFieldType::Directional && Direction.SizeSquared() > 0.0001f) {
+    DebugSprite->SetWorldRotation(FRotator(UMath::RadToDeg(std::atan2(Direction.X, -Direction.Y))));
+  } else {
+    DebugSprite->SetWorldRotation(FRotator(0.0f));
+  }
+}
+#endif
 
 void MForceFieldComponent::ApplyToTargets(EApplicationType ApplicationType, float StrengthScale) {
   for (AActor* Target : ResolveTargets()) {
