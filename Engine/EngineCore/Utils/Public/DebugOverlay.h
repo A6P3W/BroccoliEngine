@@ -1,12 +1,12 @@
 ﻿#pragma once
 
-#include "BroccoliEngineAPI.h"
-#include "UMath.h"
-
 #include <format>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "BroccoliEngineAPI.h"
+#include "UMath.h"
 
 class AActor;
 
@@ -53,8 +53,13 @@ class BROCCOLI_ENGINE_API DebugOverlayManager {
   std::unordered_map<const AActor*, std::size_t> ActorWorldLogCounts;
 };
 
+#if defined(_RELEASE)
+#define DRAW_SCREEN_LOG(Key, Time, Fmt, ...) ((void)0)
+#define DRAW_WORLD_LOG(Key, Time, Target, Fmt, ...) ((void)0)
+#else
 #define DRAW_SCREEN_LOG(Key, Time, Fmt, ...) \
   DebugOverlayManager::GetInstance().AddLog(Key, Time, std::format(Fmt, ##__VA_ARGS__))
 
 #define DRAW_WORLD_LOG(Key, Time, Target, Fmt, ...) \
   DebugOverlayManager::GetInstance().AddWorldLog(Key, Time, Target, std::format(Fmt, ##__VA_ARGS__))
+#endif
