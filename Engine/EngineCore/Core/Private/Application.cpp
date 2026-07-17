@@ -102,6 +102,7 @@ bool Application::Run() {
   SetOutApplicationLogValidFlag(FALSE);
   SetAlwaysRunFlag(TRUE);
   SetWaitVSyncFlag(false);
+  SetUseCharCodeFormat(DX_CHARCODEFORMAT_UTF8);
   std::string mode;
   if (IsEditor) {
     mode = "Editor";
