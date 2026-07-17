@@ -14,6 +14,7 @@ struct MEnhancedInputComponent::Impl {
   std::vector<FInputBinding> Bindings;
   std::unordered_map<std::string, FVector2D> LastAxis2DValues;
   std::unordered_map<std::string, float> LastAxis1DValues;
+  bool bIsFirstProcess = true;
 };
 
 MEnhancedInputComponent::MEnhancedInputComponent() : ImplPtr(new Impl()) {}
@@ -24,6 +25,7 @@ void MEnhancedInputComponent::ClearBindings() {
   ImplPtr->Bindings.clear();
   ImplPtr->LastAxis2DValues.clear();
   ImplPtr->LastAxis1DValues.clear();
+  ImplPtr->bIsFirstProcess = true;
 }
 
 void MEnhancedInputComponent::AddBinding(
@@ -63,6 +65,9 @@ void MEnhancedInputComponent::ProcessInputBindings(
     } else {
       currentFrameAxis1D[b.ActionName] = currentAxis1D;
     }
+
+    if (ImplPtr->bIsFirstProcess) continue;
+
     bool bIsUIAction = b.bIsUIAction;
     if (bIsUIAction && !AllowUI) continue;
     if (!bIsUIAction && !AllowGame) continue;
@@ -75,8 +80,9 @@ void MEnhancedInputComponent::ProcessInputBindings(
           trigger = (lastSq <= EpsilonSq) && (currentAxis2D.SizeSquared() > EpsilonSq);
         } else {
           const bool isButtonStart = mapper.GetPressStart(b.ActionName);
-          const bool isAxisStart = (std::abs(ImplPtr->LastAxis1DValues[b.ActionName]) <= EpsilonSq) &&
-                                   (std::abs(currentAxis1D) > EpsilonSq);
+          const bool isAxisStart =
+              (std::abs(ImplPtr->LastAxis1DValues[b.ActionName]) <= EpsilonSq) &&
+              (std::abs(currentAxis1D) > EpsilonSq);
           trigger = isButtonStart || isAxisStart;
         }
         break;
@@ -93,8 +99,9 @@ void MEnhancedInputComponent::ProcessInputBindings(
           trigger = (lastSq > EpsilonSq) && (currentAxis2D.SizeSquared() <= EpsilonSq);
         } else {
           const bool isButtonRelease = mapper.GetRelease(b.ActionName);
-          const bool isAxisRelease = (std::abs(ImplPtr->LastAxis1DValues[b.ActionName]) > EpsilonSq) &&
-                                     (std::abs(currentAxis1D) <= EpsilonSq);
+          const bool isAxisRelease =
+              (std::abs(ImplPtr->LastAxis1DValues[b.ActionName]) > EpsilonSq) &&
+              (std::abs(currentAxis1D) <= EpsilonSq);
           trigger = isButtonRelease || isAxisRelease;
         }
         break;
@@ -110,4 +117,5 @@ void MEnhancedInputComponent::ProcessInputBindings(
   }
   ImplPtr->LastAxis2DValues = currentFrameAxis2D;
   ImplPtr->LastAxis1DValues = currentFrameAxis1D;
+  ImplPtr->bIsFirstProcess = false;
 }
