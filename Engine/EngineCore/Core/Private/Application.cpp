@@ -216,7 +216,9 @@ bool Application::Update(float DeltaTime) {
   EOSCoreManager::Get().Tick();
   InputManager::GetInstance().Update();
   HttpManager::GetInstance().Update();
+#if !defined(_RELEASE)
   DebugOverlayManager::GetInstance().Update(DeltaTime);
+#endif
 
   if (bPosed) return true;
 
@@ -255,7 +257,9 @@ bool Application::Draw() {
   SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
 
   SetDrawScreen(DX_SCREEN_BACK);
+#if !defined(_RELEASE)
   DebugOverlayManager::GetInstance().Draw();
+#endif
   ImGui::Render();
   ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
   ScreenFlip();
