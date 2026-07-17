@@ -485,6 +485,9 @@ void FReplicationSystem::HandleClientTravelReady(
   }
   ImplPtr->LastReadyTravelByConnection[ConnectionId] = travelKey;
   InitializeClientForCurrentScene(ConnectionId);
+  if (AGameModeBase* gameMode = ImplPtr->OwnerWorld->GetGameMode()) {
+    gameMode->OnClientTravelReady(ConnectionId);
+  }
 }
 
 void FReplicationSystem::SendAssignedConnectionId(FNetworkConnectionId ConnectionId) {

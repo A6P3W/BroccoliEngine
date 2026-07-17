@@ -37,6 +37,8 @@ class BROCCOLI_ENGINE_API AGameModeBase : public AActor {
   bool IsHostPlayerSpawned() const;
   virtual APlayerController* OnClientConnected(FNetworkConnectionId ConnectionId);
   virtual void OnClientDisconnected(FNetworkConnectionId ConnectionId);
+  void BeginTravelWait();
+  void OnClientTravelReady(FNetworkConnectionId ConnectionId);
 
   AActor* FindPlayerStart(FNetworkConnectionId ConnectionId);
   APlayerController* SpawnDefaultPlayer(FNetworkConnectionId ConnectionId);
@@ -47,6 +49,8 @@ class BROCCOLI_ENGINE_API AGameModeBase : public AActor {
   }
 
  protected:
+  virtual void OnAllClientsTravelReady() {}
+
   void SetPlayerPawn(APawn* Pawn);
   void SetDefaultPawnClass(const std::string& ClassName);
   void SetDefaultPlayerControllerClass(const std::string& ClassName);
@@ -65,6 +69,8 @@ class BROCCOLI_ENGINE_API AGameModeBase : public AActor {
   }
 
  private:
+  void CheckAllClientsTravelReady();
+
   struct Impl;
   Impl* ImplPtr = nullptr;
 };
