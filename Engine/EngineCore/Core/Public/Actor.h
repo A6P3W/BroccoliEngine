@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -12,8 +11,10 @@
 #include <vector>
 
 #include "ActorComponent.h"
+#include "ActorId.h"
 #include "ActorRegistry.h"
 #include "BaseObject.h"
+#include "BroccoliEngineAPI.h"
 #include "NetBuffer.h"
 #include "NetworkManager.h"
 #include "NetworkTypes.h"
@@ -37,6 +38,7 @@ struct TActorAutoRegister {
 
 class MSceneComponent;
 class FTimerManager;
+class FActorManager;
 class World;
 class BROCCOLI_ENGINE_API AActor : public MBaseObject
 
@@ -88,6 +90,7 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
 
   void Destroy();
   bool IsPendingDestroy() const;
+  FActorId GetActorId() const;
 
   virtual void BeginOverlap(AActor* OtherActor) {}
   virtual void EndOverlap(AActor* OtherActor) {}
@@ -230,8 +233,13 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   bool bUpdateableAnytime = false;
 
  private:
+  friend class FActorManager;
+
   template <class T>
   friend T* NewObject(AActor* Owner);
+
+  void SetActorIdInternal(FActorId InActorId);
+  void InvalidateActorIdInternal();
 
   MActorComponent* AcceptNewObjectComponent(std::unique_ptr<MActorComponent> NewComponent);
   void CompletePendingComponentRegistrations();

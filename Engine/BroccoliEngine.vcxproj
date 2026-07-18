@@ -264,6 +264,7 @@
     <ClInclude Include="EngineCore\Components\Public\SoundComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\SpriteComponent.h" />
     <ClInclude Include="EngineCore\Core\Public\Actor.h" />
+    <ClInclude Include="EngineCore\Core\Public\ActorId.h" />
     <ClInclude Include="EngineCore\Core\Public\ActorComponent.h" />
     <ClInclude Include="EngineCore\Core\Public\Application.h" />
     <ClInclude Include="EngineCore\Core\Public\BaseObject.h" />
