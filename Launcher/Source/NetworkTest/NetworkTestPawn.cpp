@@ -184,8 +184,9 @@ void ANetworkTestPawn::SetStatusMessage(const std::string& Message) {
 }
 
 bool ANetworkTestPawn::StartListenServer(uint16_t Port) {
-  // 指定ポートでサーバーを起動
-  if (NetworkManager::GetInstance().StartServer(Port)) {
+  NetworkManager& Network = NetworkManager::GetInstance();
+  // OnlineSessionManager がLobby作成後にTransportを開始済みの場合は、ゲーム側の状態だけを反映。
+  if ((Network.IsRunning() && Network.IsServer()) || Network.StartServer(Port)) {
     // ワールドのネットワークモードを ListenServer（サーバー兼ホストプレイヤー）に設定
     GetWorld()->SetNetMode(ENetMode::ListenServer);
     bSessionStarted = true;

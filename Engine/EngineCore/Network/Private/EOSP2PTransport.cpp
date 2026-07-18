@@ -349,6 +349,9 @@ class FEOSP2PTransport final : public INetworkTransport {
   void SetPacketReceivedCallback(PacketReceivedCallback Callback) override {
     OnPacketReceived = std::move(Callback);
   }
+  void SetPeerAuthorizationCallback(PeerAuthorizationCallback Callback) override {
+    IsPeerAuthorized = std::move(Callback);
+  }
 
  private:
   bool Initialize(size_t MaxConnections, size_t ChannelCount) {
@@ -501,8 +504,21 @@ class FEOSP2PTransport final : public INetworkTransport {
       M_LOG("[EOSP2PTransport] Incoming connection rejected: invalid state or socket.");
       return;
     }
+    const std::string RemoteUserId = ProductUserIdToString(Data->RemoteUserId);
+    if (RemoteUserId.empty() || !IsPeerAuthorized || !IsPeerAuthorized(RemoteUserId)) {
+      M_LOG(
+          "[EOSP2PTransportTest] Incoming connection rejected: unauthorized remoteUser={}",
+          RemoteUserId.empty() ? "<invalid>" : RemoteUserId
+      );
+      return;
+    }
     if (PeersById.size() >= MaximumConnections && FindPeerId(Data->RemoteUserId) == 0) {
-      M_LOG("[EOSP2PTransport] Incoming connection rejected: maximum peers reached.");
+      M_LOG(
+          "[EOSP2PTransportTest] Incoming connection rejected: maximum peers reached "
+          "remoteUser={} maxPeers={}",
+          RemoteUserId,
+          MaximumConnections
+      );
       return;
     }
 
@@ -624,6 +640,7 @@ class FEOSP2PTransport final : public INetworkTransport {
   ConnectedCallback OnConnected;
   DisconnectedCallback OnDisconnected;
   PacketReceivedCallback OnPacketReceived;
+  PeerAuthorizationCallback IsPeerAuthorized;
 };
 }  // namespace
 

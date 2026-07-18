@@ -1,11 +1,11 @@
-#include "EOSLobbyManager.h"
+﻿#include "EOSLobbyManager.h"
+
+#include <eos_lobby.h>
 
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <utility>
-
-#include <eos_lobby.h>
 
 #include "EOSAuthManager.h"
 #include "EOSCoreManager.h"
@@ -91,8 +91,7 @@ const char* LobbyMemberStatusToString(EOS_ELobbyMemberStatus Status) {
 }
 
 bool TryGetDisconnectReasonFromMemberStatus(
-    EOS_ELobbyMemberStatus Status,
-    ELobbyDisconnectReason& OutReason
+    EOS_ELobbyMemberStatus Status, ELobbyDisconnectReason& OutReason
 ) {
   switch (Status) {
     case EOS_ELobbyMemberStatus::EOS_LMS_LEFT:
@@ -142,9 +141,7 @@ EOS_EComparisonOp ToEOSComparisonOp(ELobbyComparisonOp Op) {
 }
 
 void FillEOSAttributeData(
-    const std::string& Key,
-    const FLobbyAttributeValue& Value,
-    EOS_Lobby_AttributeData& OutData
+    const std::string& Key, const FLobbyAttributeValue& Value, EOS_Lobby_AttributeData& OutData
 ) {
   OutData = {};
   OutData.ApiVersion = EOS_LOBBY_ATTRIBUTEDATA_API_LATEST;
@@ -259,7 +256,8 @@ std::vector<FLobbyAttribute> CopyLobbyAttributes(EOS_HLobbyDetails DetailsHandle
     CopyOptions.AttrIndex = Index;
 
     EOS_Lobby_Attribute* Attribute = nullptr;
-    EOS_EResult CopyResult = EOS_LobbyDetails_CopyAttributeByIndex(DetailsHandle, &CopyOptions, &Attribute);
+    EOS_EResult CopyResult =
+        EOS_LobbyDetails_CopyAttributeByIndex(DetailsHandle, &CopyOptions, &Attribute);
     if (CopyResult != EOS_EResult::EOS_Success || !Attribute || !Attribute->Data) {
       M_LOG(
           "[EOSLobby] Copy lobby attribute by index failed: index={}, result={}",
@@ -275,7 +273,8 @@ std::vector<FLobbyAttribute> CopyLobbyAttributes(EOS_HLobbyDetails DetailsHandle
     FLobbyAttribute LobbyAttribute;
     LobbyAttribute.Key = Attribute->Data->Key ? Attribute->Data->Key : "";
     LobbyAttribute.Value = MakeLobbyAttributeValue(*Attribute->Data);
-    LobbyAttribute.bAdvertised = Attribute->Visibility == EOS_ELobbyAttributeVisibility::EOS_LAT_PUBLIC;
+    LobbyAttribute.bAdvertised =
+        Attribute->Visibility == EOS_ELobbyAttributeVisibility::EOS_LAT_PUBLIC;
     Attributes.push_back(LobbyAttribute);
 
     EOS_Lobby_Attribute_Release(Attribute);
@@ -310,7 +309,11 @@ std::string CopyStringLobbyAttributeByKey(EOS_HLobbyDetails DetailsHandle, const
       EOS_LobbyDetails_CopyAttributeByKey(DetailsHandle, &CopyAttributeOptions, &Attribute);
   if (CopyResult != EOS_EResult::EOS_Success || !Attribute || !Attribute->Data) {
     if (CopyResult != EOS_EResult::EOS_NotFound) {
-      M_LOG("[EOSLobby] Copy lobby attribute failed: key={}, result={}", Key, SafeEOSResult(CopyResult));
+      M_LOG(
+          "[EOSLobby] Copy lobby attribute failed: key={}, result={}",
+          Key,
+          SafeEOSResult(CopyResult)
+      );
     }
     if (Attribute) {
       EOS_Lobby_Attribute_Release(Attribute);
@@ -345,21 +348,22 @@ FLobbyInfo MakeLobbyInfoFromDetails(EOS_HLobbyDetails DetailsHandle) {
   }
 
   LobbyInfo.LobbyId = DetailsInfo->LobbyId ? DetailsInfo->LobbyId : "";
+  LobbyInfo.OwnerProductUserId = ProductUserIdToString(DetailsInfo->LobbyOwnerUserId);
   LobbyInfo.MaxMembers = ClampToInt(DetailsInfo->MaxMembers);
-  LobbyInfo.CurrentMembers = ClampToInt(DetailsInfo->MaxMembers - (std::min)(DetailsInfo->AvailableSlots, DetailsInfo->MaxMembers));
+  LobbyInfo.CurrentMembers = ClampToInt(
+      DetailsInfo->MaxMembers - (std::min)(DetailsInfo->AvailableSlots, DetailsInfo->MaxMembers)
+  );
   LobbyInfo.bValid = !LobbyInfo.LobbyId.empty();
   LobbyInfo.Attributes = CopyLobbyAttributes(DetailsHandle);
   for (const FLobbyAttribute& Attribute : LobbyInfo.Attributes) {
-    if (Attribute.Key == HostIPAttributeKey && Attribute.Value.Type == ELobbyAttributeType::String) {
+    if (Attribute.Key == HostIPAttributeKey &&
+        Attribute.Value.Type == ELobbyAttributeType::String) {
       LobbyInfo.HostIPAddress = Attribute.Value.StringValue;
       break;
     }
   }
   if (LobbyInfo.HostIPAddress.empty()) {
     LobbyInfo.HostIPAddress = CopyStringLobbyAttributeByKey(DetailsHandle, HostIPAttributeKey);
-  }
-  if (LobbyInfo.HostIPAddress.empty()) {
-    M_LOG("[EOSLobby] HostIP attribute is missing: lobby={}, attributes={}", LobbyInfo.LobbyId, LobbyInfo.Attributes.size());
   }
 
   EOS_LobbyDetails_Info_Release(DetailsInfo);
@@ -470,8 +474,7 @@ void EOSLobbyManager::Shutdown() {
 }
 
 void EOSLobbyManager::CreateLobby(
-    const FCreateLobbyRequest& Request,
-    std::function<void(bool, const FLobbyInfo&)> OnComplete
+    const FCreateLobbyRequest& Request, std::function<void(bool, const FLobbyInfo&)> OnComplete
 ) {
   EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
   EOS_ProductUserId LocalUserId = GetLoggedInUserId();
@@ -485,8 +488,9 @@ void EOSLobbyManager::CreateLobby(
   Options.ApiVersion = EOS_LOBBY_CREATELOBBY_API_LATEST;
   Options.LocalUserId = LocalUserId;
   Options.MaxLobbyMembers = static_cast<uint32_t>((std::max)(1, Request.MaxMembers));
-  Options.PermissionLevel = Request.bPublicAdvertised ? EOS_ELobbyPermissionLevel::EOS_LPL_PUBLICADVERTISED
-                                                      : EOS_ELobbyPermissionLevel::EOS_LPL_INVITEONLY;
+  Options.PermissionLevel = Request.bPublicAdvertised
+                                ? EOS_ELobbyPermissionLevel::EOS_LPL_PUBLICADVERTISED
+                                : EOS_ELobbyPermissionLevel::EOS_LPL_INVITEONLY;
   Options.bPresenceEnabled = EOS_FALSE;
   Options.bAllowInvites = EOS_TRUE;
   Options.BucketId = GetSafeBucketId(Request);
@@ -503,10 +507,7 @@ void EOSLobbyManager::CreateLobby(
 
   auto* Context = new FCreateLobbyContext{Request, {}, nullptr, {}, std::move(OnComplete)};
   EOS_Lobby_CreateLobby(
-      LobbyHandle,
-      &Options,
-      Context,
-      [](const EOS_Lobby_CreateLobbyCallbackInfo* Data) {
+      LobbyHandle, &Options, Context, [](const EOS_Lobby_CreateLobbyCallbackInfo* Data) {
         auto* Context = static_cast<FCreateLobbyContext*>(Data ? Data->ClientData : nullptr);
         EOSLobbyManager& LobbyManager = EOSLobbyManager::Get();
 
@@ -520,6 +521,7 @@ void EOSLobbyManager::CreateLobby(
         if (Data->ResultCode == EOS_EResult::EOS_Success && Data->LobbyId) {
           FLobbyInfo LobbyInfo;
           LobbyInfo.LobbyId = Data->LobbyId;
+          LobbyInfo.OwnerProductUserId = ProductUserIdToString(GetLoggedInUserId());
           LobbyInfo.HostIPAddress = Context->Request.HostIPAddress;
           LobbyInfo.CurrentMembers = 1;
           LobbyInfo.MaxMembers = (std::max)(1, Context->Request.MaxMembers);
@@ -562,19 +564,20 @@ void EOSLobbyManager::CreateLobby(
               LobbyHandle, &ModificationOptions, &ModificationHandle
           );
           if (ModificationResult != EOS_EResult::EOS_Success || !ModificationHandle) {
-            M_LOG("[EOSLobby] UpdateLobbyModification failed: {}", SafeEOSResult(ModificationResult));
+            M_LOG(
+                "[EOSLobby] UpdateLobbyModification failed: {}", SafeEOSResult(ModificationResult)
+            );
             CompleteCreateCallback(Context->OnComplete, false, LobbyInfo);
             delete Context;
             return;
           }
 
           Context->AttributeDataStorage.resize(LobbyInfo.Attributes.size());
-          for (size_t AttributeIndex = 0; AttributeIndex < LobbyInfo.Attributes.size(); ++AttributeIndex) {
+          for (size_t AttributeIndex = 0; AttributeIndex < LobbyInfo.Attributes.size();
+               ++AttributeIndex) {
             const FLobbyAttribute& Attribute = LobbyInfo.Attributes[AttributeIndex];
             if (!AddLobbyAttributeToModification(
-                    ModificationHandle,
-                    Attribute,
-                    Context->AttributeDataStorage[AttributeIndex]
+                    ModificationHandle, Attribute, Context->AttributeDataStorage[AttributeIndex]
                 )) {
               EOS_LobbyModification_Release(ModificationHandle);
               CompleteCreateCallback(Context->OnComplete, false, LobbyInfo);
@@ -603,7 +606,10 @@ void EOSLobbyManager::CreateLobby(
                 }
 
                 if (UpdateData->ResultCode == EOS_EResult::EOS_Success) {
-                  M_LOG("[EOSLobby] Lobby attributes updated: count={}", Context->LobbyInfo.Attributes.size());
+                  M_LOG(
+                      "[EOSLobby] Lobby attributes updated: count={}",
+                      Context->LobbyInfo.Attributes.size()
+                  );
                   CompleteCreateCallback(Context->OnComplete, true, Context->LobbyInfo);
                 } else {
                   M_LOG("[EOSLobby] UpdateLobby failed: {}", SafeEOSResult(UpdateData->ResultCode));
@@ -629,8 +635,7 @@ void EOSLobbyManager::CreateLobby(
 }
 
 void EOSLobbyManager::UpdateCurrentLobbyAttributes(
-    const std::vector<FLobbyAttribute>& Attributes,
-    std::function<void(bool)> OnComplete
+    const std::vector<FLobbyAttribute>& Attributes, std::function<void(bool)> OnComplete
 ) {
   EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
   EOS_ProductUserId LocalUserId = GetLoggedInUserId();
@@ -681,8 +686,9 @@ void EOSLobbyManager::UpdateCurrentLobbyAttributes(
       &UpdateOptions,
       Context,
       [](const EOS_Lobby_UpdateLobbyCallbackInfo* UpdateData) {
-        auto* Context =
-            static_cast<FUpdateLobbyAttributesContext*>(UpdateData ? UpdateData->ClientData : nullptr);
+        auto* Context = static_cast<FUpdateLobbyAttributesContext*>(
+            UpdateData ? UpdateData->ClientData : nullptr
+        );
         if (!UpdateData || !Context) {
           M_LOG("[EOSLobby] UpdateCurrentLobbyAttributes failed: callback data is null.");
           return;
@@ -722,10 +728,7 @@ void EOSLobbyManager::LeaveLobby(std::function<void(bool)> OnComplete) {
   Options.LocalUserId = LocalUserId;
   Options.LobbyId = Context->LobbyId.c_str();
   EOS_Lobby_LeaveLobby(
-      LobbyHandle,
-      &Options,
-      Context,
-      [](const EOS_Lobby_LeaveLobbyCallbackInfo* Data) {
+      LobbyHandle, &Options, Context, [](const EOS_Lobby_LeaveLobbyCallbackInfo* Data) {
         auto* Context = static_cast<FLeaveLobbyContext*>(Data ? Data->ClientData : nullptr);
         EOSLobbyManager& LobbyManager = EOSLobbyManager::Get();
 
@@ -776,7 +779,8 @@ void EOSLobbyManager::SearchLobbies(
   CreateSearchOptions.MaxResults = static_cast<uint32_t>((std::max)(1, Request.MaxResults));
 
   EOS_HLobbySearch SearchHandle = nullptr;
-  EOS_EResult CreateSearchResult = EOS_Lobby_CreateLobbySearch(LobbyHandle, &CreateSearchOptions, &SearchHandle);
+  EOS_EResult CreateSearchResult =
+      EOS_Lobby_CreateLobbySearch(LobbyHandle, &CreateSearchOptions, &SearchHandle);
   if (CreateSearchResult != EOS_EResult::EOS_Success || !SearchHandle) {
     M_LOG("[EOSLobby] CreateLobbySearch failed: {}", SafeEOSResult(CreateSearchResult));
     CompleteSearchCallback(OnComplete, false, {});
@@ -814,10 +818,7 @@ void EOSLobbyManager::SearchLobbies(
 
   auto* Context = new FSearchLobbiesContext{SearchHandle, std::move(OnComplete)};
   EOS_LobbySearch_Find(
-      SearchHandle,
-      &FindOptions,
-      Context,
-      [](const EOS_LobbySearch_FindCallbackInfo* Data) {
+      SearchHandle, &FindOptions, Context, [](const EOS_LobbySearch_FindCallbackInfo* Data) {
         auto* Context = static_cast<FSearchLobbiesContext*>(Data ? Data->ClientData : nullptr);
         EOSLobbyManager& LobbyManager = EOSLobbyManager::Get();
         std::vector<FLobbyInfo> Results;
@@ -837,7 +838,8 @@ void EOSLobbyManager::SearchLobbies(
 
         EOS_LobbySearch_GetSearchResultCountOptions CountOptions = {};
         CountOptions.ApiVersion = EOS_LOBBYSEARCH_GETSEARCHRESULTCOUNT_API_LATEST;
-        uint32_t ResultCount = EOS_LobbySearch_GetSearchResultCount(Context->SearchHandle, &CountOptions);
+        uint32_t ResultCount =
+            EOS_LobbySearch_GetSearchResultCount(Context->SearchHandle, &CountOptions);
 
         Results.reserve(ResultCount);
         LobbyManager.ImplPtr->CachedLobbyDetails.reserve(ResultCount);
@@ -848,10 +850,15 @@ void EOSLobbyManager::SearchLobbies(
           CopyOptions.LobbyIndex = Index;
 
           EOS_HLobbyDetails DetailsHandle = nullptr;
-          EOS_EResult CopyResult =
-              EOS_LobbySearch_CopySearchResultByIndex(Context->SearchHandle, &CopyOptions, &DetailsHandle);
+          EOS_EResult CopyResult = EOS_LobbySearch_CopySearchResultByIndex(
+              Context->SearchHandle, &CopyOptions, &DetailsHandle
+          );
           if (CopyResult != EOS_EResult::EOS_Success || !DetailsHandle) {
-            M_LOG("[EOSLobby] CopySearchResultByIndex failed: index={}, result={}", Index, SafeEOSResult(CopyResult));
+            M_LOG(
+                "[EOSLobby] CopySearchResultByIndex failed: index={}, result={}",
+                Index,
+                SafeEOSResult(CopyResult)
+            );
             continue;
           }
 
@@ -875,8 +882,7 @@ void EOSLobbyManager::SearchLobbies(
 }
 
 void EOSLobbyManager::FetchLobbyInfoById(
-    const std::string& LobbyId,
-    std::function<void(bool, const FLobbyInfo&)> OnComplete
+    const std::string& LobbyId, std::function<void(bool, const FLobbyInfo&)> OnComplete
 ) {
   EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
   EOS_ProductUserId LocalUserId = GetLoggedInUserId();
@@ -894,7 +900,10 @@ void EOSLobbyManager::FetchLobbyInfoById(
   EOS_EResult CreateSearchResult =
       EOS_Lobby_CreateLobbySearch(LobbyHandle, &CreateSearchOptions, &SearchHandle);
   if (CreateSearchResult != EOS_EResult::EOS_Success || !SearchHandle) {
-    M_LOG("[EOSLobby] FetchLobbyInfoById CreateLobbySearch failed: {}", SafeEOSResult(CreateSearchResult));
+    M_LOG(
+        "[EOSLobby] FetchLobbyInfoById CreateLobbySearch failed: {}",
+        SafeEOSResult(CreateSearchResult)
+    );
     CompleteFetchCallback(OnComplete, false, {});
     return;
   }
@@ -917,10 +926,7 @@ void EOSLobbyManager::FetchLobbyInfoById(
 
   auto* Context = new FFetchLobbyInfoContext{SearchHandle, LobbyId, std::move(OnComplete)};
   EOS_LobbySearch_Find(
-      SearchHandle,
-      &FindOptions,
-      Context,
-      [](const EOS_LobbySearch_FindCallbackInfo* Data) {
+      SearchHandle, &FindOptions, Context, [](const EOS_LobbySearch_FindCallbackInfo* Data) {
         auto* Context = static_cast<FFetchLobbyInfoContext*>(Data ? Data->ClientData : nullptr);
         EOSLobbyManager& LobbyManager = EOSLobbyManager::Get();
 
@@ -942,7 +948,9 @@ void EOSLobbyManager::FetchLobbyInfoById(
         const uint32_t ResultCount =
             EOS_LobbySearch_GetSearchResultCount(Context->SearchHandle, &CountOptions);
         if (ResultCount == 0) {
-          M_LOG("[EOSLobby] FetchLobbyInfoById failed: lobby not found. lobby={}", Context->LobbyId);
+          M_LOG(
+              "[EOSLobby] FetchLobbyInfoById failed: lobby not found. lobby={}", Context->LobbyId
+          );
           EOS_LobbySearch_Release(Context->SearchHandle);
           CompleteFetchCallback(Context->OnComplete, false, {});
           delete Context;
@@ -954,10 +962,13 @@ void EOSLobbyManager::FetchLobbyInfoById(
         CopyOptions.LobbyIndex = 0;
 
         EOS_HLobbyDetails DetailsHandle = nullptr;
-        EOS_EResult CopyResult =
-            EOS_LobbySearch_CopySearchResultByIndex(Context->SearchHandle, &CopyOptions, &DetailsHandle);
+        EOS_EResult CopyResult = EOS_LobbySearch_CopySearchResultByIndex(
+            Context->SearchHandle, &CopyOptions, &DetailsHandle
+        );
         if (CopyResult != EOS_EResult::EOS_Success || !DetailsHandle) {
-          M_LOG("[EOSLobby] FetchLobbyInfoById CopySearchResult failed: {}", SafeEOSResult(CopyResult));
+          M_LOG(
+              "[EOSLobby] FetchLobbyInfoById CopySearchResult failed: {}", SafeEOSResult(CopyResult)
+          );
           EOS_LobbySearch_Release(Context->SearchHandle);
           CompleteFetchCallback(Context->OnComplete, false, {});
           delete Context;
@@ -987,7 +998,8 @@ void EOSLobbyManager::JoinLobby(const FLobbyInfo& LobbyInfo, std::function<void(
   EOS_ProductUserId LocalUserId = GetLoggedInUserId();
   EOS_HLobbyDetails DetailsHandle = FindCachedLobbyDetails(LobbyInfo.LobbyId);
 
-  if (!LobbyInfo.bValid || LobbyInfo.LobbyId.empty() || !LobbyHandle || !LocalUserId || !DetailsHandle) {
+  if (!LobbyInfo.bValid || LobbyInfo.LobbyId.empty() || !LobbyHandle || !LocalUserId ||
+      !DetailsHandle) {
     M_LOG("[EOSLobby] JoinLobby failed: lobby info or cached details is invalid.");
     CompleteBoolCallback(OnComplete, false);
     return;
@@ -1004,10 +1016,7 @@ void EOSLobbyManager::JoinLobby(const FLobbyInfo& LobbyInfo, std::function<void(
 
   auto* Context = new FJoinLobbyContext{LobbyInfo.LobbyId, std::move(OnComplete)};
   EOS_Lobby_JoinLobby(
-      LobbyHandle,
-      &Options,
-      Context,
-      [](const EOS_Lobby_JoinLobbyCallbackInfo* Data) {
+      LobbyHandle, &Options, Context, [](const EOS_Lobby_JoinLobbyCallbackInfo* Data) {
         auto* Context = static_cast<FJoinLobbyContext*>(Data ? Data->ClientData : nullptr);
         EOSLobbyManager& LobbyManager = EOSLobbyManager::Get();
 
@@ -1017,7 +1026,8 @@ void EOSLobbyManager::JoinLobby(const FLobbyInfo& LobbyInfo, std::function<void(
         }
 
         if (Data->ResultCode == EOS_EResult::EOS_Success) {
-          LobbyManager.ImplPtr->CurrentLobbyId = !Context->LobbyId.empty() ? Context->LobbyId : SafeText(Data->LobbyId);
+          LobbyManager.ImplPtr->CurrentLobbyId =
+              !Context->LobbyId.empty() ? Context->LobbyId : SafeText(Data->LobbyId);
           LobbyManager.ImplPtr->bInLobby = true;
           LobbyManager.RegisterLobbyNotifications();
           M_LOG("[EOSLobby] JoinLobby success");
@@ -1036,15 +1046,63 @@ void EOSLobbyManager::JoinLobby(const FLobbyInfo& LobbyInfo, std::function<void(
 
 bool EOSLobbyManager::IsInLobby() const { return ImplPtr->bInLobby; }
 
+bool EOSLobbyManager::IsCurrentLobbyMember(const std::string& ProductUserId) const {
+  EOS_HLobby LobbyHandle = EOSCoreManager::Get().GetLobbyHandle();
+  EOS_ProductUserId LocalUserId = GetLoggedInUserId();
+  if (!ImplPtr->bInLobby || ImplPtr->CurrentLobbyId.empty() || ProductUserId.empty() ||
+      !LobbyHandle || !LocalUserId) {
+    return false;
+  }
+
+  EOS_Lobby_CopyLobbyDetailsHandleOptions CopyOptions = {};
+  CopyOptions.ApiVersion = EOS_LOBBY_COPYLOBBYDETAILSHANDLE_API_LATEST;
+  CopyOptions.LocalUserId = LocalUserId;
+  CopyOptions.LobbyId = ImplPtr->CurrentLobbyId.c_str();
+
+  EOS_HLobbyDetails DetailsHandle = nullptr;
+  const EOS_EResult CopyResult =
+      EOS_Lobby_CopyLobbyDetailsHandle(LobbyHandle, &CopyOptions, &DetailsHandle);
+  if (CopyResult != EOS_EResult::EOS_Success || !DetailsHandle) {
+    M_LOG(
+        "[EOSLobby] Lobby member authorization failed: copy details result={}",
+        SafeEOSResult(CopyResult)
+    );
+    return false;
+  }
+
+  EOS_LobbyDetails_GetMemberCountOptions CountOptions = {};
+  CountOptions.ApiVersion = EOS_LOBBYDETAILS_GETMEMBERCOUNT_API_LATEST;
+  const uint32_t MemberCount = EOS_LobbyDetails_GetMemberCount(DetailsHandle, &CountOptions);
+  bool bIsMember = false;
+  for (uint32_t MemberIndex = 0; MemberIndex < MemberCount; ++MemberIndex) {
+    EOS_LobbyDetails_GetMemberByIndexOptions MemberOptions = {};
+    MemberOptions.ApiVersion = EOS_LOBBYDETAILS_GETMEMBERBYINDEX_API_LATEST;
+    MemberOptions.MemberIndex = MemberIndex;
+    EOS_ProductUserId MemberUserId =
+        EOS_LobbyDetails_GetMemberByIndex(DetailsHandle, &MemberOptions);
+    if (ProductUserIdToString(MemberUserId) == ProductUserId) {
+      bIsMember = true;
+      break;
+    }
+  }
+
+  EOS_LobbyDetails_Release(DetailsHandle);
+  M_LOG(
+      "[EOSLobby] Lobby member authorization: remoteUser={} member={} memberCount={}",
+      ProductUserId,
+      bIsMember,
+      MemberCount
+  );
+  return bIsMember;
+}
+
 std::string EOSLobbyManager::GetCurrentLobbyId() const { return ImplPtr->CurrentLobbyId; }
 
 void EOSLobbyManager::ForceLocalDisconnect(ELobbyDisconnectReason Reason) {
   HandleLocalDisconnect(Reason, true);
 }
 
-void EOSLobbyManager::SetOnLobbyDisconnected(
-    std::function<void(ELobbyDisconnectReason)> Callback
-) {
+void EOSLobbyManager::SetOnLobbyDisconnected(std::function<void(ELobbyDisconnectReason)> Callback) {
   ImplPtr->OnLobbyDisconnected = std::move(Callback);
 }
 
@@ -1083,10 +1141,7 @@ void EOSLobbyManager::RegisterLobbyNotifications() {
   EOS_Lobby_AddNotifyLobbyMemberStatusReceivedOptions MemberStatusOptions = {};
   MemberStatusOptions.ApiVersion = EOS_LOBBY_ADDNOTIFYLOBBYMEMBERSTATUSRECEIVED_API_LATEST;
   ImplPtr->MemberStatusNotificationId = EOS_Lobby_AddNotifyLobbyMemberStatusReceived(
-      LobbyHandle,
-      &MemberStatusOptions,
-      this,
-      &EOSLobbyManager::OnLobbyMemberStatusReceived
+      LobbyHandle, &MemberStatusOptions, this, &EOSLobbyManager::OnLobbyMemberStatusReceived
   );
   if (ImplPtr->MemberStatusNotificationId == EOS_INVALID_NOTIFICATIONID) {
     M_LOG("[EOSLobby] AddNotifyLobbyMemberStatusReceived failed.");
@@ -1095,10 +1150,7 @@ void EOSLobbyManager::RegisterLobbyNotifications() {
   EOS_Lobby_AddNotifyLobbyUpdateReceivedOptions LobbyUpdateOptions = {};
   LobbyUpdateOptions.ApiVersion = EOS_LOBBY_ADDNOTIFYLOBBYUPDATERECEIVED_API_LATEST;
   ImplPtr->LobbyUpdateNotificationId = EOS_Lobby_AddNotifyLobbyUpdateReceived(
-      LobbyHandle,
-      &LobbyUpdateOptions,
-      this,
-      &EOSLobbyManager::OnLobbyUpdateReceived
+      LobbyHandle, &LobbyUpdateOptions, this, &EOSLobbyManager::OnLobbyUpdateReceived
   );
   if (ImplPtr->LobbyUpdateNotificationId == EOS_INVALID_NOTIFICATIONID) {
     M_LOG("[EOSLobby] AddNotifyLobbyUpdateReceived failed.");
@@ -1229,9 +1281,8 @@ void EOS_CALL EOSLobbyManager::OnLobbyMemberStatusReceived(
   }
 }
 
-void EOS_CALL EOSLobbyManager::OnLobbyUpdateReceived(
-    const EOS_Lobby_LobbyUpdateReceivedCallbackInfo* Data
-) {
+void EOS_CALL
+EOSLobbyManager::OnLobbyUpdateReceived(const EOS_Lobby_LobbyUpdateReceivedCallbackInfo* Data) {
   auto* LobbyManager = static_cast<EOSLobbyManager*>(Data ? Data->ClientData : nullptr);
   if (LobbyManager) {
     LobbyManager->HandleLobbyUpdateReceived(Data);

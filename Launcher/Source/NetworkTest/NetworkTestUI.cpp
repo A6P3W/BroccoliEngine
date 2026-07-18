@@ -16,6 +16,7 @@
 FNetworkTestUI::FNetworkTestUI(ANetworkTestPawn& InOwner) : Owner(InOwner) {}
 
 void FNetworkTestUI::InitializeStatus() {
+  UseEOSP2P = NetworkManager::GetInstance().GetTransportType() == ENetworkTransportType::EOSP2P;
   StatusMessage = "Select network role.";
   // 現在のワールドから稼働しているゲームモード（ANetworkTestGameMode）を取得
   if (auto gameMode = dynamic_cast<ANetworkTestGameMode*>(Owner.GetWorld()->GetGameMode())) {
@@ -48,7 +49,7 @@ void FNetworkTestUI::DrawConnectionWindow() {
   if (ImGui::Checkbox("Use EOS P2P", &RequestedEOSP2P)) {
     const ENetworkTransportType RequestedType =
         RequestedEOSP2P ? ENetworkTransportType::EOSP2P : ENetworkTransportType::ENet;
-    if (NetworkManager::GetInstance().SetTransportType(RequestedType)) {
+    if (OnlineSessionManager::Get().SetTransportType(RequestedType)) {
       UseEOSP2P = RequestedEOSP2P;
       StatusMessage =
           UseEOSP2P ? "EOS P2P selected. Login before starting or connecting." : "ENet selected.";
@@ -271,19 +272,26 @@ void FNetworkTestUI::CreateLanLobby() {
     return;
   }
 
-  // ローカルPCのプライベートIPアドレスを取得するユーティリティ関数
-  const std::string localIPAddress = NetworkUtils::GetLocalIPAddress();
-  if (localIPAddress.empty()) {
-    OnlineStatusMessage = "Local IP address was not found.";
-    return;
-  }
-
   FCreateLobbyRequest request;
   request.MaxMembers = (std::max)(1, OnlineLobbyMaxMembers);
   request.bPublicAdvertised = true;
-  request.HostIPAddress = localIPAddress;
+  request.Port = static_cast<uint16_t>(Port);
+  if (NetworkManager::GetInstance().GetTransportType() == ENetworkTransportType::ENet) {
+    // ENetだけがLobby AttributeとしてローカルIPアドレスを公開する。
+    request.HostIPAddress = NetworkUtils::GetLocalIPAddress();
+    if (request.HostIPAddress.empty()) {
+      OnlineStatusMessage = "Local IP address was not found.";
+      return;
+    }
+  }
 
-  OnlineStatusMessage = "Create LAN lobby requested. HostIP=" + localIPAddress;
+  OnlineStatusMessage =
+      "Create lobby requested. Transport=" +
+      std::string(
+          NetworkManager::GetInstance().GetTransportType() == ENetworkTransportType::EOSP2P
+              ? "EOSP2P"
+              : "ENet"
+      );
   // 新しい EOS ロビーの作成を非同期でリクエスト
   if (!OnlineSessionManager::Get().CreateLobby(
           request, [this](bool bSuccess, const FLobbyInfo& lobbyInfo) {
@@ -298,7 +306,9 @@ void FNetworkTestUI::CreateLanLobby() {
             if (Owner.StartListenServer(static_cast<uint16_t>(Port))) {
               StatusMessage = "Listen server started from EOS lobby.";
               OnlineStatusMessage =
-                  "LAN lobby created: " + lobbyInfo.LobbyId + " HostIP=" + lobbyInfo.HostIPAddress;
+                  "Lobby host ready: " + lobbyInfo.LobbyId +
+                  " Owner=" + lobbyInfo.OwnerProductUserId + " HostIP=" +
+                  (lobbyInfo.HostIPAddress.empty() ? "<unused>" : lobbyInfo.HostIPAddress);
             } else {
               OnlineStatusMessage = "LAN lobby created, but listen server failed to start.";
               StatusMessage = "Failed to start listen server.";
@@ -356,8 +366,12 @@ void FNetworkTestUI::JoinSelectedLanLobby() {
   }
 
   const FLobbyInfo lobbyInfo = OnlineSearchResults[SelectedOnlineLobbyIndex];
-  if (lobbyInfo.HostIPAddress.empty()) {
-    OnlineStatusMessage = "Selected lobby does not have HostIP.";
+  const bool bUseEOSP2P =
+      NetworkManager::GetInstance().GetTransportType() == ENetworkTransportType::EOSP2P;
+  if ((!bUseEOSP2P && lobbyInfo.HostIPAddress.empty()) ||
+      (bUseEOSP2P && lobbyInfo.OwnerProductUserId.empty())) {
+    OnlineStatusMessage = bUseEOSP2P ? "Selected lobby does not have an Owner Product User ID."
+                                     : "Selected lobby does not have HostIP.";
     return;
   }
 
@@ -367,16 +381,18 @@ void FNetworkTestUI::JoinSelectedLanLobby() {
           lobbyInfo, static_cast<uint16_t>(Port), [this, lobbyInfo](bool bSuccess) {
             if (!bSuccess) {
               OnlineStatusMessage =
-                  "Join lobby or ENet connection failed. Search again if the result is stale.";
+                  "Join lobby or transport connection failed. Search again if the result is stale.";
               return;
             }
 
-            strncpy_s(
-                ServerAddress, sizeof(ServerAddress), lobbyInfo.HostIPAddress.c_str(), _TRUNCATE
-            );
+            const std::string ConnectionTarget =
+                NetworkManager::GetInstance().GetTransportType() == ENetworkTransportType::EOSP2P
+                    ? lobbyInfo.OwnerProductUserId
+                    : lobbyInfo.HostIPAddress;
+            strncpy_s(ServerAddress, sizeof(ServerAddress), ConnectionTarget.c_str(), _TRUNCATE);
             // 接続成功後、ワールドのネットワークモードを Client に設定
             Owner.GetWorld()->SetNetMode(ENetMode::Client);
-            StatusMessage = "Connecting to lobby host: " + lobbyInfo.HostIPAddress;
+            StatusMessage = "Connecting to lobby host: " + ConnectionTarget;
             OnlineStatusMessage = "Joined lobby and connecting: " + lobbyInfo.LobbyId;
           }
       )) {

@@ -69,6 +69,7 @@ struct FLobbyAttribute {
 
 struct FLobbyInfo {
   std::string LobbyId;
+  std::string OwnerProductUserId;
   std::string HostIPAddress;
 
   int CurrentMembers = 0;
@@ -111,6 +112,7 @@ struct FCreateLobbyRequest {
   bool bPublicAdvertised = true;
   std::string BucketId = "BroccoliNetworkTest";
   std::string HostIPAddress;
+  uint16_t Port = 7777;
 
   std::vector<FLobbyAttribute> Attributes;
 };

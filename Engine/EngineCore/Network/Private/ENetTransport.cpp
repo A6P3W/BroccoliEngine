@@ -227,6 +227,8 @@ class FENetTransport final : public INetworkTransport {
     OnPacketReceived = std::move(Callback);
   }
 
+  void SetPeerAuthorizationCallback(PeerAuthorizationCallback Callback) override { (void)Callback; }
+
  private:
   void LogSuccessfulSend(
       ENetworkReliability Reliability, uint8_t Channel, size_t Size, const char* Target

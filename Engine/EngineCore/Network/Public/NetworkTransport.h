@@ -31,6 +31,7 @@ class BROCCOLI_ENGINE_API INetworkTransport {
   using ConnectedCallback = std::function<void(FNetworkPeerId)>;
   using DisconnectedCallback = std::function<void(FNetworkPeerId)>;
   using PacketReceivedCallback = std::function<void(FReceivedPacket&&)>;
+  using PeerAuthorizationCallback = std::function<bool(const std::string&)>;
 
   virtual ~INetworkTransport() = default;
 
@@ -58,6 +59,7 @@ class BROCCOLI_ENGINE_API INetworkTransport {
   virtual void SetConnectedCallback(ConnectedCallback Callback) = 0;
   virtual void SetDisconnectedCallback(DisconnectedCallback Callback) = 0;
   virtual void SetPacketReceivedCallback(PacketReceivedCallback Callback) = 0;
+  virtual void SetPeerAuthorizationCallback(PeerAuthorizationCallback Callback) = 0;
 };
 
 BROCCOLI_ENGINE_API std::unique_ptr<INetworkTransport> CreateNetworkTransport(

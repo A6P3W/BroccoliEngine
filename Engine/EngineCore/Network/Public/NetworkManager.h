@@ -19,6 +19,8 @@ class BROCCOLI_ENGINE_API NetworkManager {
   static NetworkManager& GetInstance();
 
   bool SetTransportType(ENetworkTransportType Type);
+  ENetworkTransportType GetTransportType() const;
+  void SetPeerAuthorizationCallback(INetworkTransport::PeerAuthorizationCallback Callback);
   bool StartServer(uint16_t Port, size_t MaxConnections = 32, size_t ChannelCount = 2);
   bool ConnectToServer(const std::string& HostName, uint16_t Port, size_t ChannelCount = 2);
 
@@ -70,6 +72,7 @@ class BROCCOLI_ENGINE_API NetworkManager {
       ENetworkReliability Reliability,
       uint8_t ChannelId
   );
+  bool CreateSelectedTransport();
   void BindTransportCallbacks();
   FNetworkConnectionId RegisterPeer(FNetworkPeerId PeerId);
   FNetworkConnectionId FindConnectionId(FNetworkPeerId PeerId) const;

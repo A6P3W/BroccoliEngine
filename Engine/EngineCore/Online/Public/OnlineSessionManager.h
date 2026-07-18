@@ -1,32 +1,33 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
-
-#include "EOSTypes.h"
-#include "NetworkTypes.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
 
+#include "BroccoliEngineAPI.h"
+#include "EOSTypes.h"
+#include "NetworkTransport.h"
+#include "NetworkTypes.h"
+
 class BROCCOLI_ENGINE_API OnlineSessionManager {
  public:
   static OnlineSessionManager& Get();
 
+  bool SetTransportType(ENetworkTransportType Type);
   bool LoginWithDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete);
-  bool CreateLobby(const FCreateLobbyRequest& Request, std::function<void(bool, const FLobbyInfo&)> OnComplete);
+  bool CreateLobby(
+      const FCreateLobbyRequest& Request, std::function<void(bool, const FLobbyInfo&)> OnComplete
+  );
   bool UpdateCurrentLobbyAttributes(
-      const std::vector<FLobbyAttribute>& Attributes,
-      std::function<void(bool)> OnComplete
+      const std::vector<FLobbyAttribute>& Attributes, std::function<void(bool)> OnComplete
   );
   bool SearchLobbies(
       const FLobbySearchRequest& Request,
       std::function<void(bool, const std::vector<FLobbyInfo>&)> OnComplete
   );
   bool FetchLobbyInfoById(
-      const std::string& LobbyId,
-      std::function<void(bool, const FLobbyInfo&)> OnComplete
+      const std::string& LobbyId, std::function<void(bool, const FLobbyInfo&)> OnComplete
   );
   bool JoinLobby(const FLobbyInfo& LobbyInfo, uint16_t Port, std::function<void(bool)> OnComplete);
   bool LeaveSession(std::function<void(bool)> OnComplete);
@@ -58,6 +59,13 @@ class BROCCOLI_ENGINE_API OnlineSessionManager {
  private:
   bool BeginOperation();
   void EndOperation();
+  void HandleCreateLobbyComplete(
+      const FCreateLobbyRequest& RoutingRequest,
+      ENetworkTransportType TransportType,
+      std::function<void(bool, const FLobbyInfo&)> OnComplete,
+      bool bSuccess,
+      const FLobbyInfo& LobbyInfo
+  );
   void NotifySessionDisconnected(ELobbyDisconnectReason Reason);
   void HandleLobbyDisconnected(ELobbyDisconnectReason Reason);
   void HandleNetworkDisconnected(FNetworkConnectionId ConnectionId);
