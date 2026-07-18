@@ -13,7 +13,7 @@ using FNetworkPeerId = uint64_t;
 
 enum class ENetworkReliability : uint8_t { Unreliable, Reliable };
 
-enum class ENetworkTransportType : uint8_t { ENet };
+enum class ENetworkTransportType : uint8_t { ENet, EOSP2P };
 
 struct BROCCOLI_ENGINE_API FNetworkEndpoint {
   std::string HostName;

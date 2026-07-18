@@ -1,0 +1,15 @@
+<Configuration>
+  <VGpu>Enable</VGpu>
+  <Networking>Enable</Networking>
+  <ClipboardRedirection>Enable</ClipboardRedirection>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>Publish\Debug</HostFolder>
+      <SandboxFolder>C:\HostPublishDebug</SandboxFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command &quot;$ErrorActionPreference = 'Stop'; $SourceDirectory = 'C:\HostPublishDebug'; $TargetDirectory = 'C:\BroccoliEngineDebug'; try { New-Item -ItemType Directory -Path $TargetDirectory -Force | Out-Null; Copy-Item -Path (Join-Path $SourceDirectory '*') -Destination $TargetDirectory -Recurse -Force; $LauncherPath = Join-Path $TargetDirectory 'Launcher.exe'; if (-not (Test-Path -LiteralPath $LauncherPath -PathType Leaf)) { throw 'Launcher.exe was not found in the copied Debug build.' }; Start-Process -FilePath $LauncherPath -WorkingDirectory $TargetDirectory } catch { Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show($_.Exception.Message, 'BroccoliEngine Sandbox startup failed', 'OK', 'Error') | Out-Null }&quot;</Command>
+  </LogonCommand>
+</Configuration>

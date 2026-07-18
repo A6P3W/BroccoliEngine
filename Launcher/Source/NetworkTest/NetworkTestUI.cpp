@@ -41,6 +41,26 @@ void FNetworkTestUI::DrawConnectionWindow() {
   ImGui::TextUnformatted("Local Network Replication Test");
   ImGui::Separator();
 
+  bool RequestedEOSP2P = UseEOSP2P;
+  if (NetworkManager::GetInstance().IsRunning()) {
+    ImGui::BeginDisabled();
+  }
+  if (ImGui::Checkbox("Use EOS P2P", &RequestedEOSP2P)) {
+    const ENetworkTransportType RequestedType =
+        RequestedEOSP2P ? ENetworkTransportType::EOSP2P : ENetworkTransportType::ENet;
+    if (NetworkManager::GetInstance().SetTransportType(RequestedType)) {
+      UseEOSP2P = RequestedEOSP2P;
+      StatusMessage =
+          UseEOSP2P ? "EOS P2P selected. Login before starting or connecting." : "ENet selected.";
+    }
+  }
+  if (NetworkManager::GetInstance().IsRunning()) {
+    ImGui::EndDisabled();
+  }
+  ImGui::TextDisabled(
+      UseEOSP2P ? "Client target: host Product User ID" : "Client target: server IP"
+  );
+
   ImGui::InputInt("Port", &Port);
   Port = std::clamp(Port, 1, 65535);
 
@@ -52,7 +72,9 @@ void FNetworkTestUI::DrawConnectionWindow() {
     }
   }
 
-  ImGui::InputText("Server IP", ServerAddress, sizeof(ServerAddress));
+  ImGui::InputText(
+      UseEOSP2P ? "Host Product User ID" : "Server IP", ServerAddress, sizeof(ServerAddress)
+  );
   if (ImGui::Button("Connect as Client")) {
     if (Owner.ConnectAsClient(ServerAddress, static_cast<uint16_t>(Port))) {
       StatusMessage = "Connecting to server...";

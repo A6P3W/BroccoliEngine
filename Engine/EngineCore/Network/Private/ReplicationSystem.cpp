@@ -434,20 +434,28 @@ void FReplicationSystem::HandleServerTravel(FNetBuffer& Buffer) {
   }
 
   if (bIsPathBased) {
-    std::string levelPath;
-    if (!Buffer.ReadString(levelPath) || levelPath.empty()) {
+    std::string LevelPath;
+    if (!Buffer.ReadString(LevelPath) || LevelPath.empty()) {
+      M_LOG("[ReplicationSystem] Server travel dropped: invalid level path payload.");
       return;
     }
 
-    SceneManager::GetInstance().OpenLevelByPath(levelPath, ENetMode::Client);
+    const bool Queued = SceneManager::GetInstance().OpenLevelByPath(LevelPath, ENetMode::Client);
+    M_LOG(
+        "[ReplicationSystem] Server travel received: type=path target={} queued={}",
+        LevelPath,
+        Queued
+    );
     return;
   }
 
-  FNetworkSceneId sceneId = 0;
-  if (!Buffer.Read(sceneId)) {
+  FNetworkSceneId SceneId = 0;
+  if (!Buffer.Read(SceneId)) {
+    M_LOG("[ReplicationSystem] Server travel dropped: invalid scene ID payload.");
     return;
   }
-  SceneManager::GetInstance().OpenLevelById(sceneId, ENetMode::Client);
+  const bool Queued = SceneManager::GetInstance().OpenLevelById(SceneId, ENetMode::Client);
+  M_LOG("[ReplicationSystem] Server travel received: type=id target={} queued={}", SceneId, Queued);
 }
 
 void FReplicationSystem::HandleClientTravelReady(

@@ -185,6 +185,7 @@ bool Application::Run() {
 
   SceneManager::GetInstance().Shutdown();
   OnlineSessionManager::Get().Shutdown();
+  NetworkManager::GetInstance().Stop();
   EOSLobbyManager::Get().Shutdown();
   EOSAuthManager::Get().Shutdown();
   for (int TickIndex = 0; TickIndex < 3; ++TickIndex) {
@@ -212,8 +213,8 @@ bool Application::Update(float DeltaTime) {
   ImGui::NewFrame();
 
   SceneManager::GetInstance().ProcessSceneChanges();
-  NetworkManager::GetInstance().Service();
   EOSCoreManager::Get().Tick();
+  NetworkManager::GetInstance().Service();
   InputManager::GetInstance().Update();
   HttpManager::GetInstance().Update();
 #if !defined(_RELEASE)

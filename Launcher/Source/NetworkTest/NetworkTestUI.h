@@ -36,7 +36,8 @@ class FNetworkTestUI {
 
   ANetworkTestPawn& Owner;
 
-  char ServerAddress[64] = "127.0.0.1";
+  bool UseEOSP2P = false;
+  char ServerAddress[128] = "127.0.0.1";
   int Port = 7777;
   std::string StatusMessage;
 

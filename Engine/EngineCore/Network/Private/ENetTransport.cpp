@@ -296,9 +296,12 @@ class FENetTransport final : public INetworkTransport {
   PacketReceivedCallback OnPacketReceived;
 };
 }  // namespace
+std::unique_ptr<INetworkTransport> CreateEOSP2PTransport();
 
 std::unique_ptr<INetworkTransport> CreateNetworkTransport(ENetworkTransportType Type) {
   switch (Type) {
+    case ENetworkTransportType::EOSP2P:
+      return CreateEOSP2PTransport();
     case ENetworkTransportType::ENet:
     default:
       return std::make_unique<FENetTransport>();

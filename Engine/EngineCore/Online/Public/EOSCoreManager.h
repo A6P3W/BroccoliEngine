@@ -1,11 +1,12 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <eos_connect.h>
 #include <eos_lobby.h>
+#include <eos_p2p.h>
 #include <eos_sdk.h>
 
 #include <cstdint>
 
+#include "BroccoliEngineAPI.h"
 #include "EOSTypes.h"
 
 class BROCCOLI_ENGINE_API EOSCoreManager {
@@ -21,6 +22,7 @@ class BROCCOLI_ENGINE_API EOSCoreManager {
   EOS_HPlatform GetPlatformHandle() const;
   EOS_HConnect GetConnectHandle() const;
   EOS_HLobby GetLobbyHandle() const;
+  EOS_HP2P GetP2PHandle() const;
 
  private:
   EOSCoreManager() = default;

@@ -75,6 +75,7 @@
     <ClCompile Include="EngineCore\Utils\Private\NetworkUtils.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\DebugOverlay.cpp" />
     <ClCompile Include="EngineCore\Network\Private\ENetTransport.cpp" />
+    <ClCompile Include="EngineCore\Network\Private\EOSP2PTransport.cpp" />
     <ClCompile Include="EngineCore\Network\Private\NetBuffer.cpp" />
     <ClCompile Include="EngineCore\Network\Private\NetworkManager.cpp" />
     <ClCompile Include="EngineCore\Network\Private\ReplicationSystem.cpp" />
