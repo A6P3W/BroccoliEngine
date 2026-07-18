@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Editor|x64">
@@ -26,6 +26,7 @@
     <ClCompile Include="Source\NetworkTest\NetworkTestForceFieldActor.cpp" />
     <ClCompile Include="Source\NetworkTest\NetworkTestGameMode.cpp" />
     <ClCompile Include="Source\NetworkTest\NetworkTestPawn.cpp" />
+    <ClCompile Include="Source\NetworkTest\NetworkTestRepComponent.cpp" />
     <ClCompile Include="Source\NetworkTest\NetworkTestUI.cpp" />
     <ClCompile Include="Source\SceneTest\AttachmentRuleTestActor.cpp" />
     <ClCompile Include="Source\SceneTest\SceneLifecycleActor.cpp" />
@@ -45,6 +46,7 @@
     <ClInclude Include="Source\NetworkTest\NetworkTestForceFieldActor.h" />
     <ClInclude Include="Source\NetworkTest\NetworkTestGameMode.h" />
     <ClInclude Include="Source\NetworkTest\NetworkTestPawn.h" />
+    <ClInclude Include="Source\NetworkTest\NetworkTestRepComponent.h" />
     <ClInclude Include="Source\NetworkTest\NetworkTestUI.h" />
     <ClInclude Include="Source\SceneTest\AttachmentRuleTestActor.h" />
     <ClInclude Include="Source\SceneTest\SceneLifecycleActor.h" />

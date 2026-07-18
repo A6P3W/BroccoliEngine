@@ -7,11 +7,14 @@
 
 class ANetworkTestPawn;
 
+// ネットワーク接続や EOS ロビー操作を画面上に ImGui を使用して描画するデバッグ UI クラス
 class FNetworkTestUI {
  public:
   explicit FNetworkTestUI(ANetworkTestPawn& InOwner);
 
+  // ステータス表示の初期化処理
   void InitializeStatus();
+  // デバッグウィンドウを描画するメイン処理
   void Draw();
   void SetStatusMessage(const std::string& Message);
 
@@ -20,10 +23,15 @@ class FNetworkTestUI {
   void DrawOnlineWindow();
   void DrawStatusWindow();
 
+  // EOS Connect サービスへデバイス ID を用いてログインする関数
   void LoginWithDeviceId();
+  // サーバーとして EOS ロビー（LAN用）を新規作成する関数
   void CreateLanLobby();
+  // アクティブな EOS ロビーを検索する関数
   void SearchOnlineLobbies();
+  // 選択された EOS ロビーにクライアントとして参加する関数
   void JoinSelectedLanLobby();
+  // 現在の EOS ロビーセッションから退出する関数
   void LeaveOnlineSession();
 
   ANetworkTestPawn& Owner;

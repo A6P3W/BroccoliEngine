@@ -6,6 +6,7 @@
 
 #include "ActorComponent.h"
 #include "Color.h"
+#include "NetworkTestRepComponent.h"
 #include "Pawn.h"
 #include "UMath.h"
 
@@ -14,49 +15,43 @@ class MSpriteComponent;
 struct FInputActionValue;
 class MNetMovementComponent;
 class FNetworkTestUI;
+class MNetworkTestRepComponent;
 
-class MNetworkTestRepComponent : public MActorComponent {
- public:
-  MNetworkTestRepComponent();
-
-  void RequestTest(int PlayerId);
-  int GetReplicatedCounter() const { return ReplicatedCounter; }
-  bool IsOnRepFlashActive() const { return OnRepFlashTimer > 0.0f; }
-  bool IsRPCFlashActive() const { return RPCFlashTimer > 0.0f; }
-
- protected:
-  void OnUpdate(float DeltaTime) override;
-
- private:
-  void Server_ComponentTest(int PlayerId);
-  void Multicast_ComponentTest(int PlayerId, int CounterValue);
-  void OnRepReplicatedCounter(int OldValue);
-
-  int ReplicatedCounter = 0;
-  float OnRepFlashTimer = 0.0f;
-  float RPCFlashTimer = 0.0f;
-  float PendingOnRepFlashTimer = 0.0f;
-};
-
+// プレイヤーやAIが憑依して操作可能な、エンジンのポーン基底クラス APawn を継承したネットワーク同期テスト用の Pawn クラス
 class ANetworkTestPawn : public APawn {
  public:
+  // クラスのメタデータ（型名 StaticClassName(), クラス名取得 GetActorClassName() など）を定義するエンジンマクロ
   DEFINE_ACTOR_CLASS(ANetworkTestPawn)
   ANetworkTestPawn();
   ~ANetworkTestPawn() override;
 
+  // アクターがゲーム内に配置・生成され、プレイが開始されたときに一度だけ呼び出されるライフサイクル関数
   void BeginPlay() override;
+
+  // プレイヤーコントローラーがこの Pawn に憑依（Possess）した際に呼び出されるライフサイクル関数
   void OnPossessedBy(APlayerController* NewController) override;
+
+  // 毎フレーム呼び出される更新用ライフサイクル関数。DeltaTime は前フレームからの経過時間（秒）
   void OnUpdate(float DeltaTime) override;
+
+  // 描画処理用のライフサイクル関数（UIの描画などを処理）
   void Draw() override;
+
+  // プレイヤーからの入力をこの Pawn のアクションにバインドする設定用ライフサイクル関数
   void SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) override;
 
   void SetStatusMessage(const std::string& Message);
+
+  // リスンサーバーとしてマルチプレイセッションを起動し、他クライアントの待受を開始する設定関数
   bool StartListenServer(uint16_t Port);
+
+  // クライアントとして稼働しているサーバーへネットワーク接続を行う設定関数
   bool ConnectAsClient(const std::string& HostAddress, uint16_t Port);
 
  private:
   void OnMove(const FInputActionValue& Value);
   void OnInteract(const FInputActionValue& Value);
+  // 他のアクターのコリジョンと重なりが生じた際にエンジンから呼び出されるコールバック関数
   void BeginOverlap(AActor* OtherActor) override;
   FColor GetDisplayColor() const;
 

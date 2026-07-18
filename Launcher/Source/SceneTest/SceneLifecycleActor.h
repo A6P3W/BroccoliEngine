@@ -3,10 +3,10 @@
 #include "Actor.h"
 #include "TimerHandle.h"
 
-// Place this actor beside AAttachmentRuleTestActor. It periodically creates
-// and destroys a child actor so SceneTest shows lifecycle APIs.
+// 3秒間隔で別のアクターを動的に生成・破棄（スポーン/デストロイ）し、アクターのライフサイクルを検証するアクター
 class ASceneLifecycleActor : public AActor {
  public:
+  // クラスのメタデータを定義するエンジンマクロ
   DEFINE_ACTOR_CLASS(ASceneLifecycleActor)
 
   void BeginPlay() override;
@@ -14,7 +14,9 @@ class ASceneLifecycleActor : public AActor {
 
  private:
   void ToggleSpawnedActor();
+  // 生成されたアクターへのポインタ
   AActor* SpawnedActor = nullptr;
+  // 生成・破棄ループの処理周期を管理するタイマーハンドル
   FTimerHandle LifecycleTimer;
 };
 

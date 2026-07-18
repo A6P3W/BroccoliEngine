@@ -17,10 +17,12 @@ FNetworkTestUI::FNetworkTestUI(ANetworkTestPawn& InOwner) : Owner(InOwner) {}
 
 void FNetworkTestUI::InitializeStatus() {
   StatusMessage = "Select network role.";
+  // 現在のワールドから稼働しているゲームモード（ANetworkTestGameMode）を取得
   if (auto gameMode = dynamic_cast<ANetworkTestGameMode*>(Owner.GetWorld()->GetGameMode())) {
     StatusMessage = std::string(gameMode->GetSceneName()) + " loaded.";
   }
 
+  // Epic Online Services (EOS) が初期化されているかどうかを判定
   OnlineStatusMessage = OnlineSessionManager::Get().IsEOSInitialized()
                             ? "EOS initialized. Login to use lobby."
                             : "EOS is not initialized.";
@@ -66,7 +68,9 @@ void FNetworkTestUI::DrawConnectionWindow() {
   const char* sceneName = gameMode ? gameMode->GetSceneName() : "Unknown Scene";
   ImGui::Text("Current Scene: %s", sceneName);
 
+  // サーバー権限を持つ（IsServer()）かつ、ゲームモードが存在する場合のみトラベル（レベル移行）処理を実行可能にする
   if (Owner.GetWorld()->IsServer() && gameMode && ImGui::Button(gameMode->GetTravelButtonText())) {
+    // 接続している全クライアントを連れて、指定のレベルへ移行（トラベル）するエンジンの機能
     if (Owner.GetWorld()->ServerTravel(gameMode->GetTravelTargetLevelPath())) {
       StatusMessage = "Server travel requested.";
     } else {
@@ -79,23 +83,28 @@ void FNetworkTestUI::DrawConnectionWindow() {
 }
 
 void FNetworkTestUI::DrawOnlineWindow() {
+  // EOS を統合管理するシングルトンマネージャーを取得
   OnlineSessionManager& onlineSession = OnlineSessionManager::Get();
 
   OnlineLobbyMaxMembers = std::clamp(OnlineLobbyMaxMembers, 1, 64);
   OnlineSearchMaxResults = std::clamp(OnlineSearchMaxResults, 1, 100);
 
   ImGui::Begin("EOS LAN Lobby Test");
+  // EOS の初期化、ログイン状態、現在ロビー参加中かどうかを取得して UI に描画
   ImGui::Text("EOS initialized: %s", onlineSession.IsEOSInitialized() ? "true" : "false");
   ImGui::Text("Logged in: %s", onlineSession.IsLoggedIn() ? "true" : "false");
   if (onlineSession.IsLoggedIn()) {
+    // ログイン中のユーザーID（ProductUserId）を取得
     const std::string localUserId = onlineSession.GetLocalUserIdString();
     ImGui::TextWrapped("ProductUserId: %s", localUserId.c_str());
   }
   ImGui::Text("In lobby: %s", onlineSession.IsInLobby() ? "true" : "false");
   if (onlineSession.IsInLobby()) {
+    // 現在のロビー ID を取得
     const std::string lobbyId = onlineSession.GetCurrentLobbyId();
     ImGui::TextWrapped("Current LobbyId: %s", lobbyId.c_str());
   }
+  // 非同期の EOS API が現在進行中か（処理中か）を取得
   ImGui::Text("Operation pending: %s", onlineSession.IsOperationPending() ? "true" : "false");
   ImGui::Separator();
 
@@ -177,19 +186,24 @@ void FNetworkTestUI::DrawStatusWindow() {
   ImGui::Begin("Network Status");
 
   const char* modeText = "Standalone";
+  // ワールドが ListenServer（サーバー＆クライアント）か、Client かを判定して表記を分ける
   if (Owner.GetWorld()->IsListenServer()) {
     modeText = "ListenServer";
   } else if (Owner.GetWorld()->IsClient()) {
     modeText = "Client";
   }
 
+  // ネットワーク処理の低レイヤーマネージャーを取得
   NetworkManager& network = NetworkManager::GetInstance();
   ImGui::Text("Mode: %s", modeText);
+  // ネットワーク接続が現在稼働しているかを取得
   ImGui::Text("Network running: %s", network.IsRunning() ? "true" : "false");
+  // ローカル環境自身のネットワーク接続IDを取得（未接続・単体起動時は無効値）
   ImGui::Text("Local ConnectionId: %u", network.GetLocalConnectionId());
 
   bool bHostSpawned = false;
   if (auto gameMode = dynamic_cast<ANetworkTestGameMode*>(Owner.GetWorld()->GetGameMode())) {
+    // サーバーのホストプレイヤー（ホスト Pawn）がワールド上に生成済みか判定
     bHostSpawned = gameMode->IsHostPlayerSpawned();
   }
   ImGui::Text("Host player spawned: %s", bHostSpawned ? "true" : "false");
@@ -208,6 +222,7 @@ void FNetworkTestUI::LoginWithDeviceId() {
   }
 
   OnlineStatusMessage = "EOS Device ID login requested.";
+  // EOS Connect サービスのログイン API を実行（引数にユーザー名と成功可否を受け取るコールバックを渡す）
   if (!OnlineSessionManager::Get().LoginWithDeviceId(OnlineDisplayName, [this](bool bSuccess) {
         if (bSuccess) {
           OnlineStatusMessage = "EOS Device ID login succeeded.";
@@ -234,6 +249,7 @@ void FNetworkTestUI::CreateLanLobby() {
     return;
   }
 
+  // ローカルPCのプライベートIPアドレスを取得するユーティリティ関数
   const std::string localIPAddress = NetworkUtils::GetLocalIPAddress();
   if (localIPAddress.empty()) {
     OnlineStatusMessage = "Local IP address was not found.";
@@ -246,6 +262,7 @@ void FNetworkTestUI::CreateLanLobby() {
   request.HostIPAddress = localIPAddress;
 
   OnlineStatusMessage = "Create LAN lobby requested. HostIP=" + localIPAddress;
+  // 新しい EOS ロビーの作成を非同期でリクエスト
   if (!OnlineSessionManager::Get().CreateLobby(
           request, [this](bool bSuccess, const FLobbyInfo& lobbyInfo) {
             if (!bSuccess) {
@@ -255,6 +272,7 @@ void FNetworkTestUI::CreateLanLobby() {
 
             OnlineSearchResults.clear();
             SelectedOnlineLobbyIndex = -1;
+            // ロビー作成成功後、自アクター（ホスト側）でリスンサーバーを起動して接続の待受を開始
             if (Owner.StartListenServer(static_cast<uint16_t>(Port))) {
               StatusMessage = "Listen server started from EOS lobby.";
               OnlineStatusMessage =
@@ -281,6 +299,7 @@ void FNetworkTestUI::SearchOnlineLobbies() {
   OnlineSearchResults.clear();
   SelectedOnlineLobbyIndex = -1;
   OnlineStatusMessage = "Search lobbies requested.";
+  // 作成されているアクティブな EOS ロビーの検索を非同期で実行
   if (!OnlineSessionManager::Get().SearchLobbies(
           request, [this](bool bSuccess, const std::vector<FLobbyInfo>& results) {
             if (bSuccess) {
@@ -321,6 +340,7 @@ void FNetworkTestUI::JoinSelectedLanLobby() {
   }
 
   OnlineStatusMessage = "Join lobby requested: " + lobbyInfo.LobbyId;
+  // 選択した EOS ロビーへの参加およびホストへのネットワーク接続をリクエスト
   if (!OnlineSessionManager::Get().JoinLobby(
           lobbyInfo, static_cast<uint16_t>(Port), [this, lobbyInfo](bool bSuccess) {
             if (!bSuccess) {
@@ -332,6 +352,7 @@ void FNetworkTestUI::JoinSelectedLanLobby() {
             strncpy_s(
                 ServerAddress, sizeof(ServerAddress), lobbyInfo.HostIPAddress.c_str(), _TRUNCATE
             );
+            // 接続成功後、ワールドのネットワークモードを Client に設定
             Owner.GetWorld()->SetNetMode(ENetMode::Client);
             StatusMessage = "Connecting to lobby host: " + lobbyInfo.HostIPAddress;
             OnlineStatusMessage = "Joined lobby and connecting: " + lobbyInfo.LobbyId;
@@ -348,8 +369,10 @@ void FNetworkTestUI::LeaveOnlineSession() {
 
   const std::string lobbyId = OnlineSessionManager::Get().GetCurrentLobbyId();
   OnlineStatusMessage = "Leave session requested: " + lobbyId;
+  // 現在参加しているマルチプレイロビーから退出
   if (!OnlineSessionManager::Get().LeaveSession([this, lobbyId](bool bSuccess) {
         if (bSuccess) {
+          // セッション退出成功後、接続を切断しネットワークモードを Standalone（未接続状態）へ戻す
           Owner.GetWorld()->SetNetMode(ENetMode::Standalone);
           OnlineStatusMessage = "Left session: " + lobbyId;
         } else {

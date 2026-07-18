@@ -6,9 +6,11 @@ class MEnhancedInputComponent;
 struct FInputActionValue;
 class MMovementComponent;
 
+// UI表示テスト時の動作検証用 Pawn クラス（APawn を継承）
 class AWidgetTestPawn : public APawn {
- public:
+  // クラスのメタデータを定義するエンジンマクロ
   DEFINE_ACTOR_CLASS(AWidgetTestPawn)
+ public:
   AWidgetTestPawn();
   void BeginPlay() override;
   void OnPossessedBy(APlayerController* NewController) override;
@@ -18,5 +20,6 @@ class AWidgetTestPawn : public APawn {
  private:
   void OnInteractPressed();
   void OnMove(const FInputActionValue& Value);
+  // 移動制御用のコンポーネント
   MMovementComponent* Movement = nullptr;
 };
