@@ -6,3 +6,4 @@ BinPackArguments: false
 BinPackParameters: false
 LineEnding: CRLF
 IndentWidth: 2
+ReflowComments: false
