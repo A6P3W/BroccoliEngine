@@ -12,6 +12,18 @@ using FNetworkSceneId = uint32_t;
 
 enum class ENetRPCType : uint8_t { Server, Client, Multicast };
 
+enum class ESessionDisconnectReason : uint8_t {
+  LocalLeave,
+  RemoteLeave,
+  HostClosed,
+  LobbyClosed,
+  AuthLost,
+  ConnectionTimeout,
+  TransportError,
+  UnauthorizedPeer,
+  Kicked
+};
+
 struct FMovePredictionData {
   uint32_t Sequence = 0;
   float DeltaTime = 0.0f;

@@ -67,12 +67,28 @@ class BROCCOLI_ENGINE_API OnlineSessionManager {
       const FLobbyInfo& LobbyInfo
   );
   void NotifySessionDisconnected(ELobbyDisconnectReason Reason);
+  void BeginSessionEnd(
+      ESessionDisconnectReason Reason,
+      bool bLeaveLobby,
+      bool bNotify,
+      std::function<void(bool)> OnComplete = nullptr
+  );
+  void FinalizeSessionEnd(
+      ESessionDisconnectReason Reason,
+      bool bSuccess,
+      bool bNotify,
+      std::function<void(bool)> OnComplete
+  );
   void HandleLobbyDisconnected(ELobbyDisconnectReason Reason);
-  void HandleNetworkDisconnected(FNetworkConnectionId ConnectionId);
+  void HandleNetworkDisconnected(
+      FNetworkConnectionId ConnectionId, ESessionDisconnectReason Reason
+  );
   void HandleAuthLost(EAuthLossReason Reason);
 
  private:
   bool bOperationPending = false;
   bool bIsLeavingSession = false;
+  bool bIsEndingSession = false;
+  bool bSessionDisconnectNotified = false;
   size_t NetworkDisconnectedCallbackHandle = 0;
 };

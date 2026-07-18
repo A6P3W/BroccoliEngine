@@ -55,10 +55,11 @@ OnlineSessionManager::OnlineSessionManager() {
     HandleLobbyDisconnected(Reason);
   });
   EOSAuthManager::Get().SetOnAuthLost([this](EAuthLossReason Reason) { HandleAuthLost(Reason); });
-  NetworkDisconnectedCallbackHandle =
-      NetworkManager::GetInstance().AddOnDisconnected([this](FNetworkConnectionId ConnectionId) {
-        HandleNetworkDisconnected(ConnectionId);
-      });
+  NetworkDisconnectedCallbackHandle = NetworkManager::GetInstance().AddOnDisconnected(
+      [this](FNetworkConnectionId ConnectionId, ESessionDisconnectReason Reason) {
+        HandleNetworkDisconnected(ConnectionId, Reason);
+      }
+  );
 }
 
 OnlineSessionManager::~OnlineSessionManager() = default;
@@ -75,15 +76,13 @@ bool OnlineSessionManager::SetTransportType(ENetworkTransportType Type) {
   return NetworkManager::GetInstance().SetTransportType(Type);
 }
 void OnlineSessionManager::Shutdown() {
+  BeginSessionEnd(ESessionDisconnectReason::LocalLeave, false, false);
   if (NetworkDisconnectedCallbackHandle != 0) {
     NetworkManager::GetInstance().RemoveOnDisconnected(NetworkDisconnectedCallbackHandle);
     NetworkDisconnectedCallbackHandle = 0;
   }
-
   EOSLobbyManager::Get().SetOnLobbyDisconnected(nullptr);
   EOSAuthManager::Get().SetOnAuthLost(nullptr);
-  bOperationPending = false;
-  bIsLeavingSession = false;
 }
 
 bool OnlineSessionManager::LoginWithDeviceId(
@@ -202,6 +201,8 @@ void OnlineSessionManager::HandleCreateLobbyComplete(
       LobbyInfo.HostIPAddress.empty() ? "<unused>" : LobbyInfo.HostIPAddress,
       RoutingRequest.Port
   );
+  bSessionDisconnectNotified = false;
+  M_LOG("[OnlineSession] Disconnect notification guard reset for hosted session.");
   EndOperation();
   CompleteCreateCallback(OnComplete, true, LobbyInfo);
 }
@@ -339,6 +340,8 @@ bool OnlineSessionManager::JoinLobby(
             ConnectionTarget,
             ConnectionPort
         );
+        bSessionDisconnectNotified = false;
+        M_LOG("[OnlineSession] Disconnect notification guard reset for joined session.");
         EndOperation();
         CompleteBoolCallback(OnComplete, true);
       }
@@ -347,22 +350,12 @@ bool OnlineSessionManager::JoinLobby(
 }
 
 bool OnlineSessionManager::LeaveSession(std::function<void(bool)> OnComplete) {
-  if (bIsLeavingSession || !CanShowLeaveSession() || !BeginOperation()) {
+  if (!CanShowLeaveSession()) {
     M_LOG("[OnlineSession] LeaveSession rejected.");
     CompleteBoolCallback(OnComplete, false);
     return false;
   }
-
-  bIsLeavingSession = true;
-  EOSLobbyManager::Get().LeaveLobby([this,
-                                     OnComplete = std::move(OnComplete)](bool bSuccess) mutable {
-    if (bSuccess) {
-      NetworkManager::GetInstance().Stop();
-    }
-    bIsLeavingSession = false;
-    EndOperation();
-    CompleteBoolCallback(OnComplete, bSuccess);
-  });
+  BeginSessionEnd(ESessionDisconnectReason::LocalLeave, true, true, std::move(OnComplete));
   return true;
 }
 
@@ -418,6 +411,70 @@ bool OnlineSessionManager::BeginOperation() {
 
 void OnlineSessionManager::EndOperation() { bOperationPending = false; }
 
+void OnlineSessionManager::BeginSessionEnd(
+    ESessionDisconnectReason Reason,
+    bool bLeaveLobby,
+    bool bNotify,
+    std::function<void(bool)> OnComplete
+) {
+  if (bIsEndingSession) {
+    M_LOG("[OnlineSession] Session end already in progress: reason={}", static_cast<int>(Reason));
+    CompleteBoolCallback(OnComplete, true);
+    return;
+  }
+
+  bIsEndingSession = true;
+  bIsLeavingSession = true;
+  if (bOperationPending) {
+    M_LOG("[OnlineSession] Pending operation cancelled by session end.");
+  }
+  bOperationPending = true;
+
+  NetworkManager::GetInstance().Disconnect();
+  NetworkManager::GetInstance().Stop();
+  M_LOG(
+      "[OnlineSession] Session end started: reason={} leaveLobby={}",
+      static_cast<int>(Reason),
+      bLeaveLobby
+  );
+
+  auto Finish = [this, Reason, bNotify, OnComplete = std::move(OnComplete)](bool bSuccess) mutable {
+    if (EOSLobbyManager::Get().IsInLobby()) {
+      EOSLobbyManager::Get().ForceLocalDisconnect(Reason);
+    }
+    FinalizeSessionEnd(Reason, bSuccess, bNotify, std::move(OnComplete));
+  };
+
+  if (bLeaveLobby && EOSLobbyManager::Get().IsInLobby() && IsLoggedIn()) {
+    EOSLobbyManager::Get().LeaveLobby(std::move(Finish));
+    return;
+  }
+  Finish(true);
+}
+
+void OnlineSessionManager::FinalizeSessionEnd(
+    ESessionDisconnectReason Reason,
+    bool bSuccess,
+    bool bNotify,
+    std::function<void(bool)> OnComplete
+) {
+  NetworkManager::GetInstance().Stop();
+  bIsLeavingSession = false;
+  bIsEndingSession = false;
+  EndOperation();
+  M_LOG(
+      "[OnlineSession] Session end completed: reason={} success={} notify={}",
+      static_cast<int>(Reason),
+      bSuccess,
+      bNotify
+  );
+  if (bNotify && !bSessionDisconnectNotified) {
+    bSessionDisconnectNotified = true;
+    NotifySessionDisconnected(Reason);
+  }
+  CompleteBoolCallback(OnComplete, bSuccess);
+}
+
 void OnlineSessionManager::NotifySessionDisconnected(ELobbyDisconnectReason Reason) {
   GameInstance* CurrentGameInstance = SceneManager::GetInstance().GetGameInstance();
   if (!CurrentGameInstance) {
@@ -429,64 +486,35 @@ void OnlineSessionManager::NotifySessionDisconnected(ELobbyDisconnectReason Reas
 }
 
 void OnlineSessionManager::HandleLobbyDisconnected(ELobbyDisconnectReason Reason) {
-  if (bIsLeavingSession) {
-    if (bOperationPending) {
-      M_LOG("[OnlineSession] Operation was reset by lobby disconnect during session leave.");
-    }
-    bOperationPending = false;
+  if (bIsEndingSession) {
+    M_LOG(
+        "[OnlineSession] Lobby disconnect absorbed by active session end: reason={}",
+        static_cast<int>(Reason)
+    );
     return;
   }
-
-  bIsLeavingSession = true;
-  if (bOperationPending) {
-    M_LOG("[OnlineSession] Operation was reset by lobby disconnect.");
-  }
-  bOperationPending = false;
-  if (NetworkManager::GetInstance().IsRunning()) {
-    NetworkManager::GetInstance().Stop();
-  }
-  bIsLeavingSession = false;
-  NotifySessionDisconnected(Reason);
+  BeginSessionEnd(Reason, false, true);
 }
 
-void OnlineSessionManager::HandleNetworkDisconnected(FNetworkConnectionId ConnectionId) {
-  (void)ConnectionId;
-  NetworkManager& network = NetworkManager::GetInstance();
-  if (!network.IsClient() || !EOSLobbyManager::Get().IsInLobby()) {
+void OnlineSessionManager::HandleNetworkDisconnected(
+    FNetworkConnectionId ConnectionId, ESessionDisconnectReason Reason
+) {
+  NetworkManager& Network = NetworkManager::GetInstance();
+  if (!Network.IsClient() || !EOSLobbyManager::Get().IsInLobby() || bIsEndingSession) {
     return;
   }
-
-  if (bIsLeavingSession) {
-    return;
-  }
-
-  bIsLeavingSession = true;
-  if (bOperationPending) {
-    M_LOG("[OnlineSession] Operation was reset by network disconnect.");
-  }
-  bOperationPending = true;
-
-  EOSLobbyManager::Get().LeaveLobby([this](bool bSuccess) {
-    if (!bSuccess) {
-      M_LOG("[OnlineSession] LeaveLobby failed after network disconnect.");
-    }
-    NetworkManager::GetInstance().Stop();
-    bIsLeavingSession = false;
-    EndOperation();
-    NotifySessionDisconnected(ELobbyDisconnectReason::NetworkError);
-  });
+  const ESessionDisconnectReason SessionReason = Reason == ESessionDisconnectReason::RemoteLeave
+                                                     ? ESessionDisconnectReason::HostClosed
+                                                     : Reason;
+  M_LOG(
+      "[OnlineSession] Client transport disconnected: connection={} reason={}",
+      ConnectionId,
+      static_cast<int>(SessionReason)
+  );
+  BeginSessionEnd(SessionReason, true, true);
 }
 
 void OnlineSessionManager::HandleAuthLost(EAuthLossReason Reason) {
-  (void)Reason;
-  if (EOSLobbyManager::Get().IsInLobby()) {
-    EOSLobbyManager::Get().ForceLocalDisconnect(ELobbyDisconnectReason::AuthLost);
-    return;
-  }
-
-  if (bOperationPending) {
-    M_LOG("[OnlineSession] Operation was reset by auth loss.");
-  }
-  bOperationPending = false;
-  NotifySessionDisconnected(ELobbyDisconnectReason::AuthLost);
+  M_LOG("[OnlineSession] Auth lost: authReason={}", static_cast<int>(Reason));
+  BeginSessionEnd(ESessionDisconnectReason::AuthLost, false, true);
 }

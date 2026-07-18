@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstring>
 #include <limits>
 #include <memory>
@@ -18,6 +19,7 @@
 
 namespace {
 constexpr const char* SocketName = "BroccoliGame";
+constexpr auto InterruptedConnectionTimeout = std::chrono::seconds(10);
 
 const char* SafeEOSResult(EOS_EResult Result) {
   const char* Text = EOS_EResult_ToString(Result);
@@ -125,6 +127,7 @@ class FEOSP2PTransport final : public INetworkTransport {
   }
 
   bool Service() override {
+    CheckInterruptedTimeouts();
     if (!Running || !P2PHandle || !LocalUserId) {
       return false;
     }
@@ -222,7 +225,8 @@ class FEOSP2PTransport final : public INetworkTransport {
       const uint8_t* Data,
       size_t Size
   ) override {
-    if (!Running || !P2PHandle || !LocalUserId || !Data || Size == 0) {
+    if (!Running || !P2PHandle || !LocalUserId || !Data || Size == 0 ||
+        InterruptedPeers.find(PeerId) != InterruptedPeers.end()) {
       M_LOG("[EOSP2PTransport] Send rejected: invalid transport or data. bytes={}", Size);
       return false;
     }
@@ -340,11 +344,19 @@ class FEOSP2PTransport final : public INetworkTransport {
 
   bool IsRunning() const override { return Running; }
 
+  std::string GetRemoteProductUserId(FNetworkPeerId PeerId) const override {
+    const auto Iterator = PeersById.find(PeerId);
+    return Iterator == PeersById.end() ? std::string{} : ProductUserIdToString(Iterator->second);
+  }
+
   void SetConnectedCallback(ConnectedCallback Callback) override {
     OnConnected = std::move(Callback);
   }
   void SetDisconnectedCallback(DisconnectedCallback Callback) override {
     OnDisconnected = std::move(Callback);
+  }
+  void SetConnectionStateChangedCallback(ConnectionStateChangedCallback Callback) override {
+    OnConnectionStateChanged = std::move(Callback);
   }
   void SetPacketReceivedCallback(PacketReceivedCallback Callback) override {
     OnPacketReceived = std::move(Callback);
@@ -481,6 +493,7 @@ class FEOSP2PTransport final : public INetworkTransport {
       PeersById.erase(Iterator);
     }
     ConnectedPeers.erase(PeerId);
+    InterruptedPeers.erase(PeerId);
   }
 
   void ClearState() {
@@ -497,6 +510,7 @@ class FEOSP2PTransport final : public INetworkTransport {
     PeersById.clear();
     PeerIdsByUserId.clear();
     ConnectedPeers.clear();
+    InterruptedPeers.clear();
   }
 
   void OnConnectionRequest(const EOS_P2P_OnIncomingConnectionRequestInfo* Data) {
@@ -543,8 +557,16 @@ class FEOSP2PTransport final : public INetworkTransport {
       return;
     }
     const FNetworkPeerId PeerId = RegisterPeer(Data->RemoteUserId);
-    if (PeerId == 0 || !ConnectedPeers.insert(PeerId).second) {
+    if (PeerId == 0) {
       return;
+    }
+    const bool bWasInterrupted = InterruptedPeers.erase(PeerId) != 0;
+    const bool bIsNewConnection = ConnectedPeers.insert(PeerId).second;
+    if (!bIsNewConnection && !bWasInterrupted) {
+      return;
+    }
+    if (bWasInterrupted && OnConnectionStateChanged) {
+      OnConnectionStateChanged(PeerId, ETransportConnectionState::Connected);
     }
     M_LOG(
         "[EOSP2PTransportTest] Connection established: remoteUser={} peer={} connectionType={} "
@@ -554,7 +576,7 @@ class FEOSP2PTransport final : public INetworkTransport {
         static_cast<int>(Data->ConnectionType),
         static_cast<int>(Data->NetworkType)
     );
-    if (OnConnected) {
+    if (bIsNewConnection && OnConnected) {
       OnConnected(PeerId);
     }
   }
@@ -563,10 +585,19 @@ class FEOSP2PTransport final : public INetworkTransport {
     if (!Data || !Running || !IsExpectedSocket(Data->SocketId)) {
       return;
     }
+    const FNetworkPeerId PeerId = FindPeerId(Data->RemoteUserId);
+    if (PeerId == 0 || ConnectedPeers.find(PeerId) == ConnectedPeers.end() ||
+        InterruptedPeers.find(PeerId) != InterruptedPeers.end()) {
+      return;
+    }
+    InterruptedPeers[PeerId] = std::chrono::steady_clock::now();
+    if (OnConnectionStateChanged) {
+      OnConnectionStateChanged(PeerId, ETransportConnectionState::Interrupted);
+    }
     M_LOG(
         "[EOSP2PTransportTest] Connection interrupted: remoteUser={} peer={}",
         ProductUserIdToString(Data->RemoteUserId),
-        FindPeerId(Data->RemoteUserId)
+        PeerId
     );
   }
 
@@ -584,7 +615,56 @@ class FEOSP2PTransport final : public INetworkTransport {
     );
     RemovePeer(PeerId);
     if (WasConnected && OnDisconnected) {
-      OnDisconnected(PeerId);
+      OnDisconnected(PeerId, GetDisconnectReason(Data->Reason));
+    }
+  }
+
+  static ESessionDisconnectReason GetDisconnectReason(EOS_EConnectionClosedReason Reason) {
+    switch (Reason) {
+      case EOS_EConnectionClosedReason::EOS_CCR_ClosedByLocalUser:
+        return ESessionDisconnectReason::LocalLeave;
+      case EOS_EConnectionClosedReason::EOS_CCR_ClosedByPeer:
+      case EOS_EConnectionClosedReason::EOS_CCR_ConnectionClosed:
+        return ESessionDisconnectReason::RemoteLeave;
+      case EOS_EConnectionClosedReason::EOS_CCR_TimedOut:
+        return ESessionDisconnectReason::ConnectionTimeout;
+      case EOS_EConnectionClosedReason::EOS_CCR_TooManyConnections:
+      case EOS_EConnectionClosedReason::EOS_CCR_ConnectionIgnored:
+        return ESessionDisconnectReason::UnauthorizedPeer;
+      case EOS_EConnectionClosedReason::EOS_CCR_Unknown:
+      case EOS_EConnectionClosedReason::EOS_CCR_InvalidMessage:
+      case EOS_EConnectionClosedReason::EOS_CCR_InvalidData:
+      case EOS_EConnectionClosedReason::EOS_CCR_ConnectionFailed:
+      case EOS_EConnectionClosedReason::EOS_CCR_NegotiationFailed:
+      case EOS_EConnectionClosedReason::EOS_CCR_UnexpectedError:
+      default:
+        return ESessionDisconnectReason::TransportError;
+    }
+  }
+
+  void CheckInterruptedTimeouts() {
+    if (InterruptedPeers.empty()) {
+      return;
+    }
+    const auto Now = std::chrono::steady_clock::now();
+    std::vector<FNetworkPeerId> TimedOutPeers;
+    for (const auto& Pair : InterruptedPeers) {
+      if (Now - Pair.second >= InterruptedConnectionTimeout) {
+        TimedOutPeers.push_back(Pair.first);
+      }
+    }
+    for (FNetworkPeerId PeerId : TimedOutPeers) {
+      M_LOG(
+          "[EOSP2PTransportTest] Interrupted connection timed out: peer={} timeoutSeconds={}",
+          PeerId,
+          InterruptedConnectionTimeout.count()
+      );
+      Disconnect(PeerId);
+      const bool bWasConnected = ConnectedPeers.find(PeerId) != ConnectedPeers.end();
+      RemovePeer(PeerId);
+      if (bWasConnected && OnDisconnected) {
+        OnDisconnected(PeerId, ESessionDisconnectReason::ConnectionTimeout);
+      }
     }
   }
 
@@ -638,8 +718,10 @@ class FEOSP2PTransport final : public INetworkTransport {
   std::unordered_map<std::string, FNetworkPeerId> PeerIdsByUserId;
   std::unordered_set<FNetworkPeerId> ConnectedPeers;
   ConnectedCallback OnConnected;
+  std::unordered_map<FNetworkPeerId, std::chrono::steady_clock::time_point> InterruptedPeers;
   DisconnectedCallback OnDisconnected;
   PacketReceivedCallback OnPacketReceived;
+  ConnectionStateChangedCallback OnConnectionStateChanged;
   PeerAuthorizationCallback IsPeerAuthorized;
 };
 }  // namespace

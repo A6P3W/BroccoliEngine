@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "NetworkTypes.h"
+
 struct FEOSConfig {
   const char* ProductName = nullptr;
   const char* ProductVersion = nullptr;
@@ -19,7 +21,7 @@ struct FEOSConfig {
 
 enum class ELobbyAttributeType { String, Int64, Double, Bool };
 
-enum class ELobbyDisconnectReason { Kicked, HostLeft, NetworkError, LobbyClosed, AuthLost };
+using ELobbyDisconnectReason = ESessionDisconnectReason;
 
 enum class EAuthLossReason { TokenExpired, NetworkError, Unknown };
 

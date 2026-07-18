@@ -55,10 +55,12 @@ FReplicationSystem::FReplicationSystem(World* InWorld) : ImplPtr(new Impl()) {
       network.AddOnConnected([this](FNetworkConnectionId ConnectionId) {
         HandleConnected(ConnectionId);
       });
-  ImplPtr->DisconnectedCallbackHandle =
-      network.AddOnDisconnected([this](FNetworkConnectionId ConnectionId) {
+  ImplPtr->DisconnectedCallbackHandle = network.AddOnDisconnected(
+      [this](FNetworkConnectionId ConnectionId, ESessionDisconnectReason Reason) {
         HandleDisconnected(ConnectionId);
-      });
+        (void)Reason;
+      }
+  );
   ImplPtr->PacketReceivedCallbackHandle =
       network.AddOnPacketReceived([this](FNetworkConnectionId ConnectionId, FNetBuffer& Buffer) {
         HandlePacketReceived(ConnectionId, Buffer);

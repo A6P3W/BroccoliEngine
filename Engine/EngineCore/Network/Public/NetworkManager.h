@@ -12,7 +12,7 @@
 class BROCCOLI_ENGINE_API NetworkManager {
  public:
   using ConnectedCallback = std::function<void(FNetworkConnectionId)>;
-  using DisconnectedCallback = std::function<void(FNetworkConnectionId)>;
+  using DisconnectedCallback = std::function<void(FNetworkConnectionId, ESessionDisconnectReason)>;
   using PacketReceivedCallback = std::function<void(FNetworkConnectionId, FNetBuffer&)>;
   using CallbackHandle = size_t;
 
@@ -79,10 +79,13 @@ class BROCCOLI_ENGINE_API NetworkManager {
   void RemovePeer(FNetworkPeerId PeerId);
   void ClearPeers();
   void HandleTransportConnected(FNetworkPeerId PeerId);
-  void HandleTransportDisconnected(FNetworkPeerId PeerId);
+  void HandleTransportDisconnected(FNetworkPeerId PeerId, ESessionDisconnectReason Reason);
+  void HandleTransportConnectionStateChanged(
+      FNetworkPeerId PeerId, ETransportConnectionState State
+  );
   void HandleTransportPacket(FReceivedPacket&& Packet);
   void BroadcastConnected(FNetworkConnectionId ConnectionId);
-  void BroadcastDisconnected(FNetworkConnectionId ConnectionId);
+  void BroadcastDisconnected(FNetworkConnectionId ConnectionId, ESessionDisconnectReason Reason);
   void BroadcastPacketReceived(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer);
 
   bool bIsServer = false;

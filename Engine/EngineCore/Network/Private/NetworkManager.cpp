@@ -68,13 +68,22 @@ ENetworkTransportType GetConfiguredTransportType() {
 }  // namespace
 
 struct NetworkManager::Impl {
+  struct FManagedPeer {
+    FNetworkPeerId TransportPeerId = 0;
+    FNetworkConnectionId ConnectionId = 0;
+    ENetworkTransportType TransportType = ENetworkTransportType::ENet;
+    std::string RemoteProductUserId;
+    ETransportConnectionState ConnectionState = ETransportConnectionState::Connected;
+  };
+
   std::unique_ptr<INetworkTransport> Transport;
   ENetworkTransportType TransportType = ENetworkTransportType::ENet;
   INetworkTransport::PeerAuthorizationCallback PeerAuthorization;
-  std::unordered_map<FNetworkConnectionId, FNetworkPeerId> PeersByConnectionId;
+  std::unordered_map<FNetworkConnectionId, FManagedPeer> PeersByConnectionId;
   std::unordered_map<FNetworkPeerId, FNetworkConnectionId> ConnectionIdsByPeer;
   std::unordered_set<uint8_t> LoggedReceivedPacketTypes;
   FNetworkPeerId ServerPeerId = 0;
+  bool bAcceptingSends = false;
   CallbackHandle NextCallbackHandle = 1;
   std::vector<std::pair<CallbackHandle, ConnectedCallback>> OnConnectedCallbacks;
   std::vector<std::pair<CallbackHandle, DisconnectedCallback>> OnDisconnectedCallbacks;
@@ -144,6 +153,7 @@ bool NetworkManager::StartServer(uint16_t Port, size_t MaxConnections, size_t Ch
   NextConnectionId = 1;
   LocalConnectionId = 0;
   ImplPtr->LoggedReceivedPacketTypes.clear();
+  ImplPtr->bAcceptingSends = true;
   M_LOG(
       "[NetworkManager] Listen server ready: transport={} port={}",
       GetTransportTypeName(ImplPtr->TransportType),
@@ -176,6 +186,7 @@ bool NetworkManager::ConnectToServer(
   bIsClient = true;
   LocalConnectionId = 0;
   ImplPtr->LoggedReceivedPacketTypes.clear();
+  ImplPtr->bAcceptingSends = true;
   M_LOG(
       "[NetworkManager] Client connection started: transport={} target={} port={}",
       GetTransportTypeName(ImplPtr->TransportType),
@@ -206,11 +217,12 @@ void NetworkManager::Disconnect() {
     return;
   }
 
+  ImplPtr->bAcceptingSends = false;
   if (bIsClient && ImplPtr->ServerPeerId != 0) {
     ImplPtr->Transport->Disconnect(ImplPtr->ServerPeerId);
   } else {
     for (const auto& Pair : ImplPtr->PeersByConnectionId) {
-      ImplPtr->Transport->Disconnect(Pair.second);
+      ImplPtr->Transport->Disconnect(Pair.second.TransportPeerId);
     }
   }
   M_LOG("[NetworkManager] Graceful disconnect requested.");
@@ -222,6 +234,12 @@ void NetworkManager::Stop() {
     return;
   }
 
+  ImplPtr->bAcceptingSends = false;
+  std::vector<FNetworkConnectionId> DisconnectedConnectionIds;
+  DisconnectedConnectionIds.reserve(ImplPtr->PeersByConnectionId.size());
+  for (const auto& Pair : ImplPtr->PeersByConnectionId) {
+    DisconnectedConnectionIds.push_back(Pair.first);
+  }
   if (ImplPtr && ImplPtr->Transport) {
     ImplPtr->Transport->Stop();
     ImplPtr->Transport.reset();
@@ -231,12 +249,18 @@ void NetworkManager::Stop() {
   NextConnectionId = 1;
   LocalConnectionId = 0;
   ClearPeers();
+  for (FNetworkConnectionId ConnectionId : DisconnectedConnectionIds) {
+    BroadcastDisconnected(ConnectionId, ESessionDisconnectReason::LocalLeave);
+  }
+  if (!DisconnectedConnectionIds.empty()) {
+    M_LOG("[NetworkManager] Stop cleared peers: count={}", DisconnectedConnectionIds.size());
+  }
 }
 
 bool NetworkManager::SendToServer(
     const FNetBuffer& Buffer, ENetworkReliability Reliability, uint8_t ChannelId
 ) {
-  if (!bIsClient || ImplPtr->ServerPeerId == 0) {
+  if (!ImplPtr->bAcceptingSends || !bIsClient || ImplPtr->ServerPeerId == 0) {
     return false;
   }
   return SendToPeer(ImplPtr->ServerPeerId, Buffer, Reliability, ChannelId);
@@ -248,7 +272,7 @@ bool NetworkManager::SendToClient(
     ENetworkReliability Reliability,
     uint8_t ChannelId
 ) {
-  if (!bIsServer) {
+  if (!ImplPtr->bAcceptingSends || !bIsServer) {
     return false;
   }
 
@@ -256,16 +280,26 @@ bool NetworkManager::SendToClient(
   if (Iterator == ImplPtr->PeersByConnectionId.end()) {
     return false;
   }
-  return SendToPeer(Iterator->second, Buffer, Reliability, ChannelId);
+  return SendToPeer(Iterator->second.TransportPeerId, Buffer, Reliability, ChannelId);
 }
 
 bool NetworkManager::Broadcast(
     const FNetBuffer& Buffer, ENetworkReliability Reliability, uint8_t ChannelId
 ) {
-  if (!IsRunning() || !bIsServer || Buffer.Size() == 0) {
+  if (!ImplPtr->bAcceptingSends || !IsRunning() || !bIsServer || Buffer.Size() == 0) {
     return false;
   }
-  return ImplPtr->Transport->Broadcast(ChannelId, Reliability, Buffer.Data(), Buffer.Size());
+  bool bSentAny = false;
+  bool bAllSucceeded = true;
+  for (const auto& Pair : ImplPtr->PeersByConnectionId) {
+    if (Pair.second.ConnectionState != ETransportConnectionState::Connected) {
+      continue;
+    }
+    bSentAny = true;
+    bAllSucceeded =
+        SendToPeer(Pair.second.TransportPeerId, Buffer, Reliability, ChannelId) && bAllSucceeded;
+  }
+  return bSentAny && bAllSucceeded;
 }
 
 bool NetworkManager::IsRunning() const {
@@ -273,7 +307,16 @@ bool NetworkManager::IsRunning() const {
 }
 
 size_t NetworkManager::GetConnectedClientCount() const {
-  return bIsServer ? ImplPtr->PeersByConnectionId.size() : 0;
+  if (!bIsServer) {
+    return 0;
+  }
+  return static_cast<size_t>(std::count_if(
+      ImplPtr->PeersByConnectionId.begin(),
+      ImplPtr->PeersByConnectionId.end(),
+      [](const auto& Pair) {
+        return Pair.second.ConnectionState == ETransportConnectionState::Connected;
+      }
+  ));
 }
 
 NetworkManager::CallbackHandle NetworkManager::AddOnConnected(ConnectedCallback Callback) {
@@ -385,9 +428,16 @@ void NetworkManager::BindTransportCallbacks() {
   ImplPtr->Transport->SetConnectedCallback([this](FNetworkPeerId PeerId) {
     HandleTransportConnected(PeerId);
   });
-  ImplPtr->Transport->SetDisconnectedCallback([this](FNetworkPeerId PeerId) {
-    HandleTransportDisconnected(PeerId);
-  });
+  ImplPtr->Transport->SetDisconnectedCallback(
+      [this](FNetworkPeerId PeerId, ESessionDisconnectReason Reason) {
+        HandleTransportDisconnected(PeerId, Reason);
+      }
+  );
+  ImplPtr->Transport->SetConnectionStateChangedCallback(
+      [this](FNetworkPeerId PeerId, ETransportConnectionState State) {
+        HandleTransportConnectionStateChanged(PeerId, State);
+      }
+  );
   ImplPtr->Transport->SetPacketReceivedCallback([this](FReceivedPacket&& Packet) {
     HandleTransportPacket(std::move(Packet));
   });
@@ -403,7 +453,14 @@ FNetworkConnectionId NetworkManager::RegisterPeer(FNetworkPeerId PeerId) {
   }
 
   const FNetworkConnectionId ConnectionId = bIsClient ? ServerConnectionId : NextConnectionId++;
-  ImplPtr->PeersByConnectionId[ConnectionId] = PeerId;
+  Impl::FManagedPeer Peer;
+  Peer.TransportPeerId = PeerId;
+  Peer.ConnectionId = ConnectionId;
+  Peer.TransportType = ImplPtr->TransportType;
+  Peer.RemoteProductUserId =
+      ImplPtr->Transport ? ImplPtr->Transport->GetRemoteProductUserId(PeerId) : std::string{};
+  Peer.ConnectionState = ETransportConnectionState::Connected;
+  ImplPtr->PeersByConnectionId[ConnectionId] = std::move(Peer);
   ImplPtr->ConnectionIdsByPeer[PeerId] = ConnectionId;
   if (bIsClient) {
     ImplPtr->ServerPeerId = PeerId;
@@ -438,24 +495,63 @@ void NetworkManager::ClearPeers() {
 
 void NetworkManager::HandleTransportConnected(FNetworkPeerId PeerId) {
   const FNetworkConnectionId ConnectionId = RegisterPeer(PeerId);
-  M_LOG("[NetworkTransportTest] Connection verified: peer={} connection={}", PeerId, ConnectionId);
+  if (ConnectionId == 0) {
+    return;
+  }
+  const auto Iterator = ImplPtr->PeersByConnectionId.find(ConnectionId);
+  M_LOG(
+      "[NetworkTransportTest] Connection verified: peer={} connection={} transport={} "
+      "remoteUser={}",
+      PeerId,
+      ConnectionId,
+      GetTransportTypeName(ImplPtr->TransportType),
+      Iterator != ImplPtr->PeersByConnectionId.end() &&
+              !Iterator->second.RemoteProductUserId.empty()
+          ? Iterator->second.RemoteProductUserId
+          : "<none>"
+  );
   BroadcastConnected(ConnectionId);
 }
 
-void NetworkManager::HandleTransportDisconnected(FNetworkPeerId PeerId) {
+void NetworkManager::HandleTransportDisconnected(
+    FNetworkPeerId PeerId, ESessionDisconnectReason Reason
+) {
   const FNetworkConnectionId ConnectionId = FindConnectionId(PeerId);
   RemovePeer(PeerId);
   if (ConnectionId != 0) {
     M_LOG(
-        "[NetworkTransportTest] Disconnect verified: peer={} connection={}", PeerId, ConnectionId
+        "[NetworkTransportTest] Disconnect verified: peer={} connection={} reason={}",
+        PeerId,
+        ConnectionId,
+        static_cast<int>(Reason)
     );
-    BroadcastDisconnected(ConnectionId);
+    BroadcastDisconnected(ConnectionId, Reason);
   }
 }
 
+void NetworkManager::HandleTransportConnectionStateChanged(
+    FNetworkPeerId PeerId, ETransportConnectionState State
+) {
+  const FNetworkConnectionId ConnectionId = FindConnectionId(PeerId);
+  const auto Iterator = ImplPtr->PeersByConnectionId.find(ConnectionId);
+  if (ConnectionId == 0 || Iterator == ImplPtr->PeersByConnectionId.end() ||
+      Iterator->second.ConnectionState == State) {
+    return;
+  }
+  Iterator->second.ConnectionState = State;
+  M_LOG(
+      "[NetworkManager] Peer state changed: peer={} connection={} state={}",
+      PeerId,
+      ConnectionId,
+      State == ETransportConnectionState::Connected ? "Connected" : "Interrupted"
+  );
+}
 void NetworkManager::HandleTransportPacket(FReceivedPacket&& Packet) {
   const FNetworkConnectionId ConnectionId = FindConnectionId(Packet.Sender);
-  if (ConnectionId == 0 || Packet.Data.empty()) {
+  const auto PeerIterator = ImplPtr->PeersByConnectionId.find(ConnectionId);
+  if (ConnectionId == 0 || PeerIterator == ImplPtr->PeersByConnectionId.end() ||
+      PeerIterator->second.ConnectionState != ETransportConnectionState::Connected ||
+      Packet.Data.empty()) {
     return;
   }
 
@@ -490,11 +586,13 @@ void NetworkManager::BroadcastConnected(FNetworkConnectionId ConnectionId) {
   }
 }
 
-void NetworkManager::BroadcastDisconnected(FNetworkConnectionId ConnectionId) {
+void NetworkManager::BroadcastDisconnected(
+    FNetworkConnectionId ConnectionId, ESessionDisconnectReason Reason
+) {
   const auto Callbacks = ImplPtr->OnDisconnectedCallbacks;
   for (const auto& CallbackEntry : Callbacks) {
     if (CallbackEntry.second) {
-      CallbackEntry.second(ConnectionId);
+      CallbackEntry.second(ConnectionId, Reason);
     }
   }
 }

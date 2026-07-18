@@ -56,16 +56,24 @@ bool IsSameProductUserId(EOS_ProductUserId A, EOS_ProductUserId B) {
 
 const char* LobbyDisconnectReasonToString(ELobbyDisconnectReason Reason) {
   switch (Reason) {
-    case ELobbyDisconnectReason::Kicked:
-      return "Kicked";
-    case ELobbyDisconnectReason::HostLeft:
-      return "HostLeft";
-    case ELobbyDisconnectReason::NetworkError:
-      return "NetworkError";
+    case ELobbyDisconnectReason::LocalLeave:
+      return "LocalLeave";
+    case ELobbyDisconnectReason::RemoteLeave:
+      return "RemoteLeave";
+    case ELobbyDisconnectReason::HostClosed:
+      return "HostClosed";
     case ELobbyDisconnectReason::LobbyClosed:
       return "LobbyClosed";
     case ELobbyDisconnectReason::AuthLost:
       return "AuthLost";
+    case ELobbyDisconnectReason::ConnectionTimeout:
+      return "ConnectionTimeout";
+    case ELobbyDisconnectReason::TransportError:
+      return "TransportError";
+    case ELobbyDisconnectReason::UnauthorizedPeer:
+      return "UnauthorizedPeer";
+    case ELobbyDisconnectReason::Kicked:
+      return "Kicked";
     default:
       return "Unknown";
   }
@@ -95,13 +103,13 @@ bool TryGetDisconnectReasonFromMemberStatus(
 ) {
   switch (Status) {
     case EOS_ELobbyMemberStatus::EOS_LMS_LEFT:
-      OutReason = ELobbyDisconnectReason::HostLeft;
+      OutReason = ELobbyDisconnectReason::HostClosed;
       return true;
     case EOS_ELobbyMemberStatus::EOS_LMS_KICKED:
       OutReason = ELobbyDisconnectReason::Kicked;
       return true;
     case EOS_ELobbyMemberStatus::EOS_LMS_DISCONNECTED:
-      OutReason = ELobbyDisconnectReason::NetworkError;
+      OutReason = ELobbyDisconnectReason::TransportError;
       return true;
     default:
       return false;
@@ -1219,7 +1227,7 @@ void EOSLobbyManager::HandleMemberStatusReceived(
     return;
   }
 
-  ELobbyDisconnectReason Reason = ELobbyDisconnectReason::NetworkError;
+  ELobbyDisconnectReason Reason = ELobbyDisconnectReason::TransportError;
   if (TryGetDisconnectReasonFromMemberStatus(Data->CurrentStatus, Reason)) {
     HandleLocalDisconnect(Reason, true);
     return;

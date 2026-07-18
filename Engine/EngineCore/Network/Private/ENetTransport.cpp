@@ -115,7 +115,7 @@ class FENetTransport final : public INetworkTransport {
         RemovePeer(Event.peer);
         M_LOG("[NetworkTransport] ENet peer disconnected: peer={}", PeerId);
         if (PeerId != 0 && OnDisconnected) {
-          OnDisconnected(PeerId);
+          OnDisconnected(PeerId, ESessionDisconnectReason::RemoteLeave);
         }
         break;
       }
@@ -215,12 +215,21 @@ class FENetTransport final : public INetworkTransport {
 
   bool IsRunning() const override { return Host != nullptr; }
 
+  std::string GetRemoteProductUserId(FNetworkPeerId PeerId) const override {
+    (void)PeerId;
+    return {};
+  }
+
   void SetConnectedCallback(ConnectedCallback Callback) override {
     OnConnected = std::move(Callback);
   }
 
   void SetDisconnectedCallback(DisconnectedCallback Callback) override {
     OnDisconnected = std::move(Callback);
+  }
+
+  void SetConnectionStateChangedCallback(ConnectionStateChangedCallback Callback) override {
+    (void)Callback;
   }
 
   void SetPacketReceivedCallback(PacketReceivedCallback Callback) override {
