@@ -1,10 +1,11 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <memory>
 #include <string>
 #include <type_traits>
 #include <vector>
 
+#include "ActorId.h"
+#include "BroccoliEngineAPI.h"
 #include "Log.h"
 #include "UMath.h"
 class AActor;
@@ -41,6 +42,7 @@ class BROCCOLI_ENGINE_API FActorManager {
     ptr->SetWorld(GetWorld());
     ptr->SetActorLocation(location);
     ptr->SetActorRotation(rotation);
+    RegisterActorId(*ptr);
 
     if (!DeferBeginPlay) ptr->Spawned();
     AddPendingActor(std::move(obj));
@@ -49,9 +51,13 @@ class BROCCOLI_ENGINE_API FActorManager {
   void RemovePendingDestroy();
   void FlushPendingActors();
   void ClearAllObjects();
+  AActor* FindActorById(FActorId ActorId);
+  const AActor* FindActorById(FActorId ActorId) const;
 
  private:
   void AddPendingActor(std::unique_ptr<AActor> Actor);
+  void RegisterActorId(AActor& Actor);
+  void UnregisterActorId(AActor& Actor);
 
   struct Impl;
   Impl* ImplPtr = nullptr;
