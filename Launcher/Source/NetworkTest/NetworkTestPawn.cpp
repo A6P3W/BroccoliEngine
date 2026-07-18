@@ -97,6 +97,7 @@ void ANetworkTestPawn::OnUpdate(float DeltaTime) {
   }
 
   if (BodySprite) {
+    // 指定されたサイズ（幅・高さ: 48.0f）、色（FColor）、および塗りつぶし設定で矩形（ボックス）の描画データを毎フレーム登録する関数。
     BodySprite->SubmitBox(48.0f, 48.0f, GetDisplayColor(), true);
   }
 }
@@ -169,6 +170,8 @@ void ANetworkTestPawn::BeginOverlap(AActor* OtherActor) {
   AActor::BeginOverlap(OtherActor);
 
   if (auto OtherPawn = dynamic_cast<ANetworkTestPawn*>(OtherActor)) {
+    // コンソールおよびログファイルにデバッグ用メッセージを出力するエンジンログマクロ
+    // NetworkId: アクターが一意に持つネットワーク識別子
     M_LOG(
         "Player overlap detected! My NetworkId: {}, Other NetworkId: {}",
         NetworkId,
@@ -184,8 +187,12 @@ void ANetworkTestPawn::SetStatusMessage(const std::string& Message) {
 }
 
 bool ANetworkTestPawn::StartListenServer(uint16_t Port) {
+  // ネットワーク接続全体を管理する NetworkManager のシングルトンインスタンスを取得する関数。
   NetworkManager& Network = NetworkManager::GetInstance();
   // OnlineSessionManager がLobby作成後にTransportを開始済みの場合は、ゲーム側の状態だけを反映。
+  // IsRunning(): ネットワーク機能が現在稼働しているかを判定する関数。
+  // IsServer(): 現在の実行環境がサーバーとして動作しているかを判定する関数。
+  // StartServer(): 指定したポート番号でサーバーとしての待受を開始する関数。
   if ((Network.IsRunning() && Network.IsServer()) || Network.StartServer(Port)) {
     // ワールドのネットワークモードを ListenServer（サーバー兼ホストプレイヤー）に設定
     GetWorld()->SetNetMode(ENetMode::ListenServer);
@@ -197,7 +204,7 @@ bool ANetworkTestPawn::StartListenServer(uint16_t Port) {
 }
 
 bool ANetworkTestPawn::ConnectAsClient(const std::string& HostAddress, uint16_t Port) {
-  // 指定されたアドレスとポートへクライアントとして接続を試みる
+  // 指定されたアドレスとポートへクライアントとして接続を試みる関数。
   if (NetworkManager::GetInstance().ConnectToServer(HostAddress, Port)) {
     // ワールドのネットワークモードを Client に設定
     GetWorld()->SetNetMode(ENetMode::Client);

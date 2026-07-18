@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "BroccoliEngineAPI.h"
 
 #include "EOSTypes.h"
@@ -19,7 +19,7 @@ enum class EEOSAuthState {
 
 class BROCCOLI_ENGINE_API EOSAuthManager {
  public:
-  static EOSAuthManager& Get();
+  static EOSAuthManager& GetInstance();
 
   void LoginWithDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete);
   void SetOnAuthLost(std::function<void(EAuthLossReason)> Callback);

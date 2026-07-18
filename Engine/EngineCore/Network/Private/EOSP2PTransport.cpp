@@ -367,14 +367,14 @@ class FEOSP2PTransport final : public INetworkTransport {
 
  private:
   bool Initialize(size_t MaxConnections, size_t ChannelCount) {
-    P2PHandle = EOSCoreManager::Get().GetP2PHandle();
-    LocalUserId = EOSAuthManager::Get().GetLocalUserId();
-    if (!EOSCoreManager::Get().IsInitialized() || !P2PHandle) {
+    P2PHandle = EOSCoreManager::GetInstance().GetP2PHandle();
+    LocalUserId = EOSAuthManager::GetInstance().GetLocalUserId();
+    if (!EOSCoreManager::GetInstance().IsInitialized() || !P2PHandle) {
       M_LOG("[EOSP2PTransport] Initialize failed: EOS P2P handle is unavailable.");
       ClearState();
       return false;
     }
-    if (!LocalUserId || !EOSAuthManager::Get().IsLoggedIn()) {
+    if (!LocalUserId || !EOSAuthManager::GetInstance().IsLoggedIn()) {
       M_LOG("[EOSP2PTransport] Initialize failed: local Product User ID is unavailable.");
       ClearState();
       return false;

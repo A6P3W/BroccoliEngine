@@ -11,7 +11,7 @@
 
 class BROCCOLI_ENGINE_API EOSCoreManager {
  public:
-  static EOSCoreManager& Get();
+  static EOSCoreManager& GetInstance();
 
   bool InitializeOnlineServices(const char* ProductVersion = "0.1.0");
 

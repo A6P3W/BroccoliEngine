@@ -10,7 +10,7 @@
 
 class BROCCOLI_ENGINE_API EOSLobbyManager {
  public:
-  static EOSLobbyManager& Get();
+  static EOSLobbyManager& GetInstance();
 
   void CreateLobby(
       const FCreateLobbyRequest& Request, std::function<void(bool, const FLobbyInfo&)> OnComplete

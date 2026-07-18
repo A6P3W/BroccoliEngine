@@ -13,8 +13,8 @@ namespace {
 void SetupGame() {
   // エンジンで管理されている ImGui コンテキストを取得し、ゲーム側の ImGui に設定
   ImGui::SetCurrentContext(static_cast<ImGuiContext*>(Application::GetImGuiContext()));
-  // Epic Online Services (EOS) のオンラインサービスを初期化
-  EOSCoreManager::Get().InitializeOnlineServices();
+  // EOSのオンラインサービスを初期化
+  EOSCoreManager::GetInstance().InitializeOnlineServices();
 
   // ゲーム起動時に最初に読み込むレベル（ステージ）ファイルのパスを設定
   SceneManager::GetInstance().SetStartupLevelPath("Resources/LevelStarter.BLevel");

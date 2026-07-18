@@ -12,7 +12,7 @@
 
 class BROCCOLI_ENGINE_API OnlineSessionManager {
  public:
-  static OnlineSessionManager& Get();
+  static OnlineSessionManager& GetInstance();
 
   bool SetTransportType(ENetworkTransportType Type);
   bool LoginWithDeviceId(const char* DisplayName, std::function<void(bool)> OnComplete);

@@ -42,6 +42,9 @@ MNetworkTestRepComponent::MNetworkTestRepComponent() {
 
 void MNetworkTestRepComponent::RequestTest(int PlayerId) {
   // コンソールおよびログファイルにデバッグ用メッセージを出力するエンジンログマクロ。
+  // GetOwner(): このコンポーネントを所有するアクターを取得する関数。
+  // NetworkId: アクターが一意に持つネットワーク識別子。
+  // ComponentNetworkId: コンポーネントが一意に持つネットワーク識別子。
   M_LOG(
       "Component RPC test input: actor={} component={} player={}",
       GetOwner() ? GetOwner()->NetworkId : 0,
@@ -82,6 +85,9 @@ void MNetworkTestRepComponent::Server_ComponentTest(int PlayerId) {
   // ネットワーク同期プロパティの値が変更され、クライアントへ再同期する必要があることをエンジンに示すための関数（サーバー側で呼び出します）。
   MarkReplicatedStateDirty();
 
+  // GetOwner(): このコンポーネントを所有するアクターを取得する関数。
+  // NetworkId: アクターが一意に持つネットワーク識別子。
+  // ComponentNetworkId: コンポーネントが一意に持つネットワーク識別子。
   M_LOG(
       "Server_ComponentTest received: actor={} component={} player={} counter={}",
       GetOwner() ? GetOwner()->NetworkId : 0,
@@ -90,7 +96,7 @@ void MNetworkTestRepComponent::Server_ComponentTest(int PlayerId) {
       ReplicatedCounter
   );
 
-  // サーバー側から全クライアントに向けてマルチキャスト RPC の実行を要求。
+  // サーバー側から全クライアントに向けてマルチキャスト RPC の実行を要求するエンジンの関数。
   InvokeRPC(
       RPC_ComponentMulticastTest,
       ENetRPCType::Multicast,
@@ -101,6 +107,9 @@ void MNetworkTestRepComponent::Server_ComponentTest(int PlayerId) {
 }
 
 void MNetworkTestRepComponent::Multicast_ComponentTest(int PlayerId, int CounterValue) {
+  // GetOwner(): このコンポーネントを所有するアクターを取得する関数。
+  // NetworkId: アクターが一意に持つネットワーク識別子。
+  // ComponentNetworkId: コンポーネントが一意に持つネットワーク識別子。
   M_LOG(
       "Multicast_ComponentTest received: actor={} component={} player={} counter={}",
       GetOwner() ? GetOwner()->NetworkId : 0,
@@ -113,6 +122,9 @@ void MNetworkTestRepComponent::Multicast_ComponentTest(int PlayerId, int Counter
 
 void MNetworkTestRepComponent::OnRepReplicatedCounter(int OldValue) {
   // ネットワークレプリケーション（同期）によって ReplicatedCounter の値が更新された際に実行される処理
+  // GetOwner(): このコンポーネントを所有するアクターを取得する関数。
+  // NetworkId: アクターが一意に持つネットワーク識別子。
+  // ComponentNetworkId: コンポーネントが一意に持つネットワーク識別子。
   M_LOG(
       "OnRep component counter: actor={} component={} old={} new={}",
       GetOwner() ? GetOwner()->NetworkId : 0,

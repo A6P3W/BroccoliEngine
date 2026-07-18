@@ -39,7 +39,7 @@ void EOS_CALL HandleEOSLogMessage(const EOS_LogMessage* Message) {
 }
 }  // namespace
 
-EOSCoreManager& EOSCoreManager::Get() {
+EOSCoreManager& EOSCoreManager::GetInstance() {
   static EOSCoreManager Instance;
   return Instance;
 }

@@ -184,14 +184,14 @@ bool Application::Run() {
   }
 
   SceneManager::GetInstance().Shutdown();
-  OnlineSessionManager::Get().Shutdown();
+  OnlineSessionManager::GetInstance().Shutdown();
   NetworkManager::GetInstance().Stop();
-  EOSLobbyManager::Get().Shutdown();
-  EOSAuthManager::Get().Shutdown();
+  EOSLobbyManager::GetInstance().Shutdown();
+  EOSAuthManager::GetInstance().Shutdown();
   for (int TickIndex = 0; TickIndex < 3; ++TickIndex) {
-    EOSCoreManager::Get().Tick();
+    EOSCoreManager::GetInstance().Tick();
   }
-  EOSCoreManager::Get().Shutdown();
+  EOSCoreManager::GetInstance().Shutdown();
   Shutdown();
 
   return true;
@@ -213,7 +213,7 @@ bool Application::Update(float DeltaTime) {
   ImGui::NewFrame();
 
   SceneManager::GetInstance().ProcessSceneChanges();
-  EOSCoreManager::Get().Tick();
+  EOSCoreManager::GetInstance().Tick();
   NetworkManager::GetInstance().Service();
   InputManager::GetInstance().Update();
   HttpManager::GetInstance().Update();

@@ -42,19 +42,19 @@ void CompleteSearchCallback(
 }
 }  // namespace
 
-OnlineSessionManager& OnlineSessionManager::Get() {
+OnlineSessionManager& OnlineSessionManager::GetInstance() {
   static OnlineSessionManager Instance;
   return Instance;
 }
 
 OnlineSessionManager::OnlineSessionManager() {
   NetworkManager::GetInstance().SetPeerAuthorizationCallback([](const std::string& ProductUserId) {
-    return EOSLobbyManager::Get().IsCurrentLobbyMember(ProductUserId);
+    return EOSLobbyManager::GetInstance().IsCurrentLobbyMember(ProductUserId);
   });
-  EOSLobbyManager::Get().SetOnLobbyDisconnected([this](ELobbyDisconnectReason Reason) {
+  EOSLobbyManager::GetInstance().SetOnLobbyDisconnected([this](ELobbyDisconnectReason Reason) {
     HandleLobbyDisconnected(Reason);
   });
-  EOSAuthManager::Get().SetOnAuthLost([this](EAuthLossReason Reason) { HandleAuthLost(Reason); });
+  EOSAuthManager::GetInstance().SetOnAuthLost([this](EAuthLossReason Reason) { HandleAuthLost(Reason); });
   NetworkDisconnectedCallbackHandle = NetworkManager::GetInstance().AddOnDisconnected(
       [this](FNetworkConnectionId ConnectionId, ESessionDisconnectReason Reason) {
         HandleNetworkDisconnected(ConnectionId, Reason);
@@ -81,8 +81,8 @@ void OnlineSessionManager::Shutdown() {
     NetworkManager::GetInstance().RemoveOnDisconnected(NetworkDisconnectedCallbackHandle);
     NetworkDisconnectedCallbackHandle = 0;
   }
-  EOSLobbyManager::Get().SetOnLobbyDisconnected(nullptr);
-  EOSAuthManager::Get().SetOnAuthLost(nullptr);
+  EOSLobbyManager::GetInstance().SetOnLobbyDisconnected(nullptr);
+  EOSAuthManager::GetInstance().SetOnAuthLost(nullptr);
 }
 
 bool OnlineSessionManager::LoginWithDeviceId(
@@ -94,7 +94,7 @@ bool OnlineSessionManager::LoginWithDeviceId(
     return false;
   }
 
-  EOSAuthManager::Get().LoginWithDeviceId(
+  EOSAuthManager::GetInstance().LoginWithDeviceId(
       DisplayName, [this, OnComplete = std::move(OnComplete)](bool bSuccess) mutable {
         EndOperation();
         CompleteBoolCallback(OnComplete, bSuccess);
@@ -130,7 +130,7 @@ bool OnlineSessionManager::CreateLobby(
       RoutingRequest.Port,
       RoutingRequest.MaxMembers
   );
-  EOSLobbyManager::Get().CreateLobby(
+  EOSLobbyManager::GetInstance().CreateLobby(
       RoutingRequest,
       [this, RoutingRequest, TransportType, OnComplete = std::move(OnComplete)](
           bool bSuccess, const FLobbyInfo& LobbyInfo
@@ -151,8 +151,8 @@ void OnlineSessionManager::HandleCreateLobbyComplete(
     const FLobbyInfo& LobbyInfo
 ) {
   if (!bSuccess) {
-    if (EOSLobbyManager::Get().IsInLobby()) {
-      EOSLobbyManager::Get().LeaveLobby(
+    if (EOSLobbyManager::GetInstance().IsInLobby()) {
+      EOSLobbyManager::GetInstance().LeaveLobby(
           [this, OnComplete = std::move(OnComplete)](bool bLeaveSuccess) mutable {
             if (!bLeaveSuccess) {
               M_LOG("[OnlineSession] Rollback LeaveLobby failed after lobby setup failure.");
@@ -180,7 +180,7 @@ void OnlineSessionManager::HandleCreateLobbyComplete(
         LobbyInfo.LobbyId,
         RoutingRequest.Port
     );
-    EOSLobbyManager::Get().LeaveLobby(
+    EOSLobbyManager::GetInstance().LeaveLobby(
         [this, OnComplete = std::move(OnComplete)](bool bLeaveSuccess) mutable {
           if (!bLeaveSuccess) {
             M_LOG("[OnlineSession] Rollback LeaveLobby failed after host start failure.");
@@ -216,7 +216,7 @@ bool OnlineSessionManager::UpdateCurrentLobbyAttributes(
     return false;
   }
 
-  EOSLobbyManager::Get().UpdateCurrentLobbyAttributes(
+  EOSLobbyManager::GetInstance().UpdateCurrentLobbyAttributes(
       Attributes, [this, OnComplete = std::move(OnComplete)](bool bSuccess) mutable {
         EndOperation();
         CompleteBoolCallback(OnComplete, bSuccess);
@@ -235,7 +235,7 @@ bool OnlineSessionManager::SearchLobbies(
     return false;
   }
 
-  EOSLobbyManager::Get().SearchLobbies(
+  EOSLobbyManager::GetInstance().SearchLobbies(
       Request,
       [this, OnComplete = std::move(OnComplete)](
           bool bSuccess, const std::vector<FLobbyInfo>& Results
@@ -256,7 +256,7 @@ bool OnlineSessionManager::FetchLobbyInfoById(
     return false;
   }
 
-  EOSLobbyManager::Get().FetchLobbyInfoById(
+  EOSLobbyManager::GetInstance().FetchLobbyInfoById(
       LobbyId,
       [this,
        OnComplete = std::move(OnComplete)](bool bSuccess, const FLobbyInfo& LobbyInfo) mutable {
@@ -298,7 +298,7 @@ bool OnlineSessionManager::JoinLobby(
       ConnectionTarget,
       TransportType == ENetworkTransportType::EOSP2P ? 0 : Port
   );
-  EOSLobbyManager::Get().JoinLobby(
+  EOSLobbyManager::GetInstance().JoinLobby(
       LobbyInfo,
       [this, LobbyInfo, Port, TransportType, ConnectionTarget, OnComplete = std::move(OnComplete)](
           bool bSuccess
@@ -319,7 +319,7 @@ bool OnlineSessionManager::JoinLobby(
               ConnectionPort
           );
           NetworkManager::GetInstance().Stop();
-          EOSLobbyManager::Get().LeaveLobby(
+          EOSLobbyManager::GetInstance().LeaveLobby(
               [this, OnComplete = std::move(OnComplete)](bool bLeaveSuccess) mutable {
                 if (!bLeaveSuccess) {
                   M_LOG("[OnlineSession] Rollback LeaveLobby failed after connection failure.");
@@ -364,12 +364,12 @@ bool OnlineSessionManager::LeaveLobby(std::function<void(bool)> OnComplete) {
 }
 
 bool OnlineSessionManager::IsEOSInitialized() const {
-  return EOSCoreManager::Get().IsInitialized();
+  return EOSCoreManager::GetInstance().IsInitialized();
 }
 
-bool OnlineSessionManager::IsLoggedIn() const { return EOSAuthManager::Get().IsLoggedIn(); }
+bool OnlineSessionManager::IsLoggedIn() const { return EOSAuthManager::GetInstance().IsLoggedIn(); }
 
-bool OnlineSessionManager::IsInLobby() const { return EOSLobbyManager::Get().IsInLobby(); }
+bool OnlineSessionManager::IsInLobby() const { return EOSLobbyManager::GetInstance().IsInLobby(); }
 
 bool OnlineSessionManager::IsOperationPending() const { return bOperationPending; }
 
@@ -393,11 +393,11 @@ bool OnlineSessionManager::CanShowLeaveSession() const {
 bool OnlineSessionManager::CanShowLeaveLobby() const { return CanShowLeaveSession(); }
 
 std::string OnlineSessionManager::GetLocalUserIdString() const {
-  return EOSAuthManager::Get().GetLocalUserIdString();
+  return EOSAuthManager::GetInstance().GetLocalUserIdString();
 }
 
 std::string OnlineSessionManager::GetCurrentLobbyId() const {
-  return EOSLobbyManager::Get().GetCurrentLobbyId();
+  return EOSLobbyManager::GetInstance().GetCurrentLobbyId();
 }
 
 bool OnlineSessionManager::BeginOperation() {
@@ -439,14 +439,14 @@ void OnlineSessionManager::BeginSessionEnd(
   );
 
   auto Finish = [this, Reason, bNotify, OnComplete = std::move(OnComplete)](bool bSuccess) mutable {
-    if (EOSLobbyManager::Get().IsInLobby()) {
-      EOSLobbyManager::Get().ForceLocalDisconnect(Reason);
+    if (EOSLobbyManager::GetInstance().IsInLobby()) {
+      EOSLobbyManager::GetInstance().ForceLocalDisconnect(Reason);
     }
     FinalizeSessionEnd(Reason, bSuccess, bNotify, std::move(OnComplete));
   };
 
-  if (bLeaveLobby && EOSLobbyManager::Get().IsInLobby() && IsLoggedIn()) {
-    EOSLobbyManager::Get().LeaveLobby(std::move(Finish));
+  if (bLeaveLobby && EOSLobbyManager::GetInstance().IsInLobby() && IsLoggedIn()) {
+    EOSLobbyManager::GetInstance().LeaveLobby(std::move(Finish));
     return;
   }
   Finish(true);
@@ -500,7 +500,7 @@ void OnlineSessionManager::HandleNetworkDisconnected(
     FNetworkConnectionId ConnectionId, ESessionDisconnectReason Reason
 ) {
   NetworkManager& Network = NetworkManager::GetInstance();
-  if (!Network.IsClient() || !EOSLobbyManager::Get().IsInLobby() || bIsEndingSession) {
+  if (!Network.IsClient() || !EOSLobbyManager::GetInstance().IsInLobby() || bIsEndingSession) {
     return;
   }
   const ESessionDisconnectReason SessionReason = Reason == ESessionDisconnectReason::RemoteLeave
