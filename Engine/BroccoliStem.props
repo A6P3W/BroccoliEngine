@@ -46,6 +46,9 @@
 				$(BroccoliEngineDir)Editor\Public;
 				$(BroccoliEngineDir)ThirdParty;
 				$(BroccoliEngineDir)ThirdParty\EOS\SDK\Include;
+
+				$(ProjectDir)Source;
+
 				%(AdditionalIncludeDirectories)
 			</AdditionalIncludeDirectories>
 		</ClCompile>

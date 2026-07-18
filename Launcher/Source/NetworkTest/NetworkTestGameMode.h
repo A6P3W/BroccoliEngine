@@ -11,8 +11,8 @@ constexpr FNetworkSceneId Level2 = 2;
 }  // namespace NetworkTestSceneIds
 
 namespace NetworkTestLevelPaths {
-constexpr const char* Level1 = "Resources/NetworkTestLevel.BLevel";
-constexpr const char* Level2 = "Resources/NetworkTestLevel2.BLevel";
+constexpr const char* Level1 = "Resources/Network1.BLevel";
+constexpr const char* Level2 = "Resources/Network2.BLevel";
 }  // namespace NetworkTestLevelPaths
 
 class ANetworkTestGameMode : public AGameModeBase {

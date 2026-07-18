@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Editor|x64">
@@ -13,6 +13,45 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\BasicGameplay\BasicGameplayGameMode.cpp" />
+    <ClCompile Include="Source\BasicGameplay\BasicGameplayPawn.cpp" />
+    <ClCompile Include="Source\BasicGameplay\CollisionTestActors.cpp" />
+    <ClCompile Include="Source\Common\LauncherPlayerController.cpp" />
+    <ClCompile Include="Source\Entry.cpp" />
+    <ClCompile Include="Source\LevelStarter\LevelStarterGameMode.cpp" />
+    <ClCompile Include="Source\LevelStarter\LevelStarterWidget.cpp" />
+    <ClCompile Include="Source\NetworkTest\NetworkTestBreakableActor.cpp" />
+    <ClCompile Include="Source\NetworkTest\NetworkTestForceFieldActor.cpp" />
+    <ClCompile Include="Source\NetworkTest\NetworkTestGameMode.cpp" />
+    <ClCompile Include="Source\NetworkTest\NetworkTestPawn.cpp" />
+    <ClCompile Include="Source\NetworkTest\NetworkTestUI.cpp" />
+    <ClCompile Include="Source\SceneTest\AttachmentRuleTestActor.cpp" />
+    <ClCompile Include="Source\SceneTest\SceneLifecycleActor.cpp" />
+    <ClCompile Include="Source\SceneTest\SceneTestGameMode.cpp" />
+    <ClCompile Include="Source\WidgetTest\WidgetTestGameMode.cpp" />
+    <ClCompile Include="Source\WidgetTest\WidgetTestPawn.cpp" />
+    <ClCompile Include="Source\WidgetTest\WidgetTestUIMain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\BasicGameplay\BasicGameplayGameMode.h" />
+    <ClInclude Include="Source\BasicGameplay\BasicGameplayPawn.h" />
+    <ClInclude Include="Source\BasicGameplay\CollisionTestActors.h" />
+    <ClInclude Include="Source\Common\LauncherPlayerController.h" />
+    <ClInclude Include="Source\LevelStarter\LevelStarterGameMode.h" />
+    <ClInclude Include="Source\LevelStarter\LevelStarterWidget.h" />
+    <ClInclude Include="Source\NetworkTest\NetworkTestBreakableActor.h" />
+    <ClInclude Include="Source\NetworkTest\NetworkTestForceFieldActor.h" />
+    <ClInclude Include="Source\NetworkTest\NetworkTestGameMode.h" />
+    <ClInclude Include="Source\NetworkTest\NetworkTestPawn.h" />
+    <ClInclude Include="Source\NetworkTest\NetworkTestUI.h" />
+    <ClInclude Include="Source\SceneTest\AttachmentRuleTestActor.h" />
+    <ClInclude Include="Source\SceneTest\SceneLifecycleActor.h" />
+    <ClInclude Include="Source\SceneTest\SceneTestGameMode.h" />
+    <ClInclude Include="Source\WidgetTest\WidgetTestGameMode.h" />
+    <ClInclude Include="Source\WidgetTest\WidgetTestPawn.h" />
+    <ClInclude Include="Source\WidgetTest\WidgetTestUIMain.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
@@ -155,34 +194,6 @@
       <EnableSegmentHeap>true</EnableSegmentHeap>
     </Manifest>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="Entry.cpp" />
-    <ClCompile Include="LevelStarter\LevelStarterGameMode.cpp" />
-    <ClCompile Include="LevelStarter\LevelStarterWidget.cpp" />
-    <ClCompile Include="NetworkTest\NetworkTestBreakableActor.cpp" />
-    <ClCompile Include="NetworkTest\NetworkTestForceFieldActor.cpp" />
-    <ClCompile Include="NetworkTest\NetworkTestGameMode.cpp" />
-    <ClCompile Include="NetworkTest\NetworkTestPawn.cpp" />
-    <ClCompile Include="NetworkTest\NetworkTestUI.cpp" />
-    <ClCompile Include="SceneTest\AttachmentRuleTestActor.cpp" />
-    <ClCompile Include="WidgetTest\WidgetTestUIMain.cpp" />
-    <ClCompile Include="WidgetTest\WidgetTestPawn.cpp" />
-    <ClCompile Include="WidgetTest\WidgetTestGameMode.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Config\EOS_ProductCredentials.h" />
-    <ClInclude Include="LevelStarter\LevelStarterGameMode.h" />
-    <ClInclude Include="LevelStarter\LevelStarterWidget.h" />
-    <ClInclude Include="NetworkTest\NetworkTestBreakableActor.h" />
-    <ClInclude Include="NetworkTest\NetworkTestForceFieldActor.h" />
-    <ClInclude Include="NetworkTest\NetworkTestGameMode.h" />
-    <ClInclude Include="NetworkTest\NetworkTestPawn.h" />
-    <ClInclude Include="NetworkTest\NetworkTestUI.h" />
-    <ClInclude Include="SceneTest\AttachmentRuleTestActor.h" />
-    <ClInclude Include="WidgetTest\WidgetTestUIMain.h" />
-    <ClInclude Include="WidgetTest\WidgetTestPawn.h" />
-    <ClInclude Include="WidgetTest\WidgetTestGameMode.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -3,6 +3,7 @@
 #include <PlayerController.h>
 #include <SpriteComponent.h>
 
+#include "../Common/LauncherPlayerController.h"
 #include "ActorManager.h"
 #include "DxLibLap/DxLibLap.h"
 #include "HttpManager.h"
@@ -16,7 +17,7 @@
 REGISTER_GAME_MODE(AWidgetTestGameMode)
 AWidgetTestGameMode::AWidgetTestGameMode() {
   SetDefaultPawnClass(AWidgetTestPawn::StaticClassName());
-  SetDefaultPlayerControllerClass(APlayerController::StaticClassName());
+  SetDefaultPlayerControllerClass(ALauncherPlayerController::StaticClassName());
 }
 
 void AWidgetTestGameMode::BeginPlay() {

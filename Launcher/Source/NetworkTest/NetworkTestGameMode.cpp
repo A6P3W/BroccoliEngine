@@ -1,5 +1,6 @@
 ﻿#include "NetworkTestGameMode.h"
 
+#include "../Common/LauncherPlayerController.h"
 #include "NetworkTestPawn.h"
 #include "PlayerController.h"
 #include "World.h"
@@ -9,7 +10,7 @@ REGISTER_GAME_MODE(ANetworkTestLevel2GameMode)
 
 ANetworkTestGameMode::ANetworkTestGameMode() {
   SetDefaultPawnClass(ANetworkTestPawn::StaticClassName());
-  SetDefaultPlayerControllerClass(APlayerController::StaticClassName());
+  SetDefaultPlayerControllerClass(ALauncherPlayerController::StaticClassName());
 }
 
 void ANetworkTestGameMode::BeginPlay() { SetUpdateableAnytime(true); }
@@ -26,7 +27,7 @@ APlayerController* ANetworkTestGameMode::OnClientConnected(FNetworkConnectionId 
   return controller;
 }
 
-const char* ANetworkTestGameMode::GetSceneName() const { return "NetworkTest Level 1"; }
+const char* ANetworkTestGameMode::GetSceneName() const { return "NetworkT1"; }
 
 const char* ANetworkTestGameMode::GetTravelButtonText() const { return "Server Travel to Level 2"; }
 
@@ -38,7 +39,7 @@ const char* ANetworkTestGameMode::GetTravelTargetLevelPath() const {
   return NetworkTestLevelPaths::Level2;
 }
 
-const char* ANetworkTestLevel2GameMode::GetSceneName() const { return "NetworkTest Level 2"; }
+const char* ANetworkTestLevel2GameMode::GetSceneName() const { return "Network2"; }
 
 const char* ANetworkTestLevel2GameMode::GetTravelButtonText() const {
   return "Server Travel to Level 1";
