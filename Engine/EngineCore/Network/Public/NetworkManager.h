@@ -1,22 +1,13 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
-#include <utility>
-#include <vector>
 
+#include "BroccoliEngineAPI.h"
 #include "NetBuffer.h"
+#include "NetworkTransport.h"
 #include "NetworkTypes.h"
-
-struct _ENetHost;
-struct _ENetPeer;
-using ENetHost = _ENetHost;
-using ENetPeer = _ENetPeer;
-
-enum class ENetPacketReliability { Reliable, Unreliable };
 
 class BROCCOLI_ENGINE_API NetworkManager {
  public:
@@ -27,6 +18,7 @@ class BROCCOLI_ENGINE_API NetworkManager {
 
   static NetworkManager& GetInstance();
 
+  bool SetTransportType(ENetworkTransportType Type);
   bool StartServer(uint16_t Port, size_t MaxConnections = 32, size_t ChannelCount = 2);
   bool ConnectToServer(const std::string& HostName, uint16_t Port, size_t ChannelCount = 2);
 
@@ -36,22 +28,22 @@ class BROCCOLI_ENGINE_API NetworkManager {
 
   bool SendToServer(
       const FNetBuffer& Buffer,
-      ENetPacketReliability Reliability = ENetPacketReliability::Reliable,
+      ENetworkReliability Reliability = ENetworkReliability::Reliable,
       uint8_t ChannelId = 0
   );
   bool SendToClient(
       FNetworkConnectionId ConnectionId,
       const FNetBuffer& Buffer,
-      ENetPacketReliability Reliability = ENetPacketReliability::Reliable,
+      ENetworkReliability Reliability = ENetworkReliability::Reliable,
       uint8_t ChannelId = 0
   );
   bool Broadcast(
       const FNetBuffer& Buffer,
-      ENetPacketReliability Reliability = ENetPacketReliability::Reliable,
+      ENetworkReliability Reliability = ENetworkReliability::Reliable,
       uint8_t ChannelId = 0
   );
 
-  bool IsRunning() const { return Host != nullptr; }
+  bool IsRunning() const;
   bool IsServer() const { return bIsServer; }
   bool IsClient() const { return bIsClient; }
   size_t GetConnectedClientCount() const;
@@ -73,19 +65,23 @@ class BROCCOLI_ENGINE_API NetworkManager {
   NetworkManager& operator=(const NetworkManager&) = delete;
 
   bool SendToPeer(
-      ENetPeer* Peer, const FNetBuffer& Buffer, ENetPacketReliability Reliability, uint8_t ChannelId
+      FNetworkPeerId PeerId,
+      const FNetBuffer& Buffer,
+      ENetworkReliability Reliability,
+      uint8_t ChannelId
   );
-  FNetworkConnectionId RegisterPeer(ENetPeer* Peer);
-  FNetworkConnectionId FindConnectionId(ENetPeer* Peer) const;
-  void RemovePeer(ENetPeer* Peer);
+  void BindTransportCallbacks();
+  FNetworkConnectionId RegisterPeer(FNetworkPeerId PeerId);
+  FNetworkConnectionId FindConnectionId(FNetworkPeerId PeerId) const;
+  void RemovePeer(FNetworkPeerId PeerId);
   void ClearPeers();
+  void HandleTransportConnected(FNetworkPeerId PeerId);
+  void HandleTransportDisconnected(FNetworkPeerId PeerId);
+  void HandleTransportPacket(FReceivedPacket&& Packet);
   void BroadcastConnected(FNetworkConnectionId ConnectionId);
   void BroadcastDisconnected(FNetworkConnectionId ConnectionId);
   void BroadcastPacketReceived(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer);
 
-  ENetHost* Host = nullptr;
-  ENetPeer* ServerPeer = nullptr;
-  bool bEnetInitialized = false;
   bool bIsServer = false;
   bool bIsClient = false;
   bool bIsServicing = false;
@@ -96,6 +92,4 @@ class BROCCOLI_ENGINE_API NetworkManager {
 
   struct Impl;
   Impl* ImplPtr = nullptr;
-
-
 };

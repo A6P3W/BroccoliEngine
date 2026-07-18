@@ -68,9 +68,7 @@ const std::vector<std::string>& AActor::GetTags() const { return ImplPtr->Tags; 
 
 void AActor::AddTag(const std::string& Tag) { ImplPtr->Tags.push_back(Tag); }
 
-void AActor::RemoveTag(const std::string& Tag) {
-  std::erase(ImplPtr->Tags, Tag);
-}
+void AActor::RemoveTag(const std::string& Tag) { std::erase(ImplPtr->Tags, Tag); }
 
 uint32_t AActor::GetReplicationSequence() const { return ImplPtr->ReplicationSequence; }
 
@@ -91,7 +89,8 @@ void AActor::Spawned() {
   BeginPlay();
 
   for (size_t i = 0; i < ImplPtr->Components.size(); ++i) {
-    if (ImplPtr->Components[i] && ImplPtr->Components[i]->IsRegistered() && !ImplPtr->Components[i]->IsPendingDestroy()) {
+    if (ImplPtr->Components[i] && ImplPtr->Components[i]->IsRegistered() &&
+        !ImplPtr->Components[i]->IsPendingDestroy()) {
       ImplPtr->Components[i]->BeginPlay();
     }
   }
@@ -200,16 +199,15 @@ void AActor::AssignNetworkComponentIds() {
 }
 
 void AActor::Update(float DeltaTime) {
-
   this->OnUpdate(DeltaTime);
 
   for (size_t i = 0; i < ImplPtr->Components.size(); ++i) {
-    if (ImplPtr->Components[i] && ImplPtr->Components[i]->IsRegistered() && !ImplPtr->Components[i]->IsPendingDestroy()) {
+    if (ImplPtr->Components[i] && ImplPtr->Components[i]->IsRegistered() &&
+        !ImplPtr->Components[i]->IsPendingDestroy()) {
       ImplPtr->Components[i]->Update(DeltaTime);
     }
   }
 
-  
   std::erase_if(ImplPtr->Components, [](const std::unique_ptr<MActorComponent>& comp) {
     return !comp || comp->IsPendingDestroy();
   });
@@ -217,7 +215,8 @@ void AActor::Update(float DeltaTime) {
 
 void AActor::Draw() {
   for (size_t i = 0; i < ImplPtr->Components.size(); ++i) {
-    if (ImplPtr->Components[i] && ImplPtr->Components[i]->IsRegistered() && !ImplPtr->Components[i]->IsPendingDestroy()) {
+    if (ImplPtr->Components[i] && ImplPtr->Components[i]->IsRegistered() &&
+        !ImplPtr->Components[i]->IsPendingDestroy()) {
       ImplPtr->Components[i]->Draw();
     }
   }
@@ -300,7 +299,8 @@ bool AActor::HasReplicatedStateChanged(float Tolerance) const {
   const FRotator rotation = GetActorRotation();
   const FScale scale = GetActorScale();
 
-  if (ImplPtr->ReplicatedStateDirty || !location.Equals(ImplPtr->LastReplicatedLocation, Tolerance) ||
+  if (ImplPtr->ReplicatedStateDirty ||
+      !location.Equals(ImplPtr->LastReplicatedLocation, Tolerance) ||
       !IsNearlyEqual(rotation.Rotation, ImplPtr->LastReplicatedRotation.Rotation, Tolerance) ||
       !IsNearlyEqual(scale.Scale, ImplPtr->LastReplicatedScale.Scale, Tolerance)) {
     return true;
@@ -317,7 +317,9 @@ bool AActor::HasReplicatedStateChanged(float Tolerance) const {
   }
 
   return std::any_of(
-      ImplPtr->Components.begin(), ImplPtr->Components.end(), [](const std::unique_ptr<MActorComponent>& comp) {
+      ImplPtr->Components.begin(),
+      ImplPtr->Components.end(),
+      [](const std::unique_ptr<MActorComponent>& comp) {
         return comp && comp->bReplicates && comp->IsRegistered() && !comp->IsPendingDestroy() &&
                comp->HasReplicatedStateChanged();
       }
@@ -392,7 +394,7 @@ bool AActor::DispatchRPC(
 bool AActor::InvokeRPCWithPayload(
     FNetworkRPCId RPCId,
     ENetRPCType RPCType,
-    ENetPacketReliability Reliability,
+    ENetworkReliability Reliability,
     const FNetBuffer& Payload
 ) {
   if (RPCId == 0 || !ImplPtr->OwnerWorld) {
@@ -420,7 +422,7 @@ bool AActor::InvokeComponentRPCWithPayload(
     MActorComponent* Component,
     FNetworkRPCId RPCId,
     ENetRPCType RPCType,
-    ENetPacketReliability Reliability,
+    ENetworkReliability Reliability,
     const FNetBuffer& Payload
 ) {
   if (!Component || Component->GetOwner() != this || RPCId == 0 || !ImplPtr->OwnerWorld) {
@@ -487,7 +489,8 @@ void AActor::EnsureNetComponentName(MActorComponent* Component) {
 
   std::string candidate = Component->GetNetComponentName();
   if (candidate.empty()) {
-    candidate = std::string(typeid(*Component).name()) + "_" + std::to_string(ImplPtr->Components.size());
+    candidate =
+        std::string(typeid(*Component).name()) + "_" + std::to_string(ImplPtr->Components.size());
   }
 
   const std::string baseName = candidate;
@@ -509,7 +512,8 @@ void AActor::EnsureNetComponentName(MActorComponent* Component) {
 std::vector<MActorComponent*> AActor::GetReplicatedNetworkComponents() const {
   std::vector<MActorComponent*> replicatedComponents;
   for (const auto& comp : ImplPtr->Components) {
-    if (comp && comp->bReplicates && comp->IsRegistered() && !comp->IsPendingDestroy() && comp->ComponentNetworkId != 0) {
+    if (comp && comp->bReplicates && comp->IsRegistered() && !comp->IsPendingDestroy() &&
+        comp->ComponentNetworkId != 0) {
       replicatedComponents.push_back(comp.get());
     }
   }

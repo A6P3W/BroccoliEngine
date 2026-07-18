@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -11,6 +10,7 @@
 #include <vector>
 
 #include "BaseObject.h"
+#include "BroccoliEngineAPI.h"
 #include "NetBuffer.h"
 #include "NetworkManager.h"
 #include "NetworkTypes.h"
@@ -91,7 +91,7 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   bool InvokeRPCWithPayload(
       FNetworkRPCId RPCId,
       ENetRPCType RPCType,
-      ENetPacketReliability Reliability,
+      ENetworkReliability Reliability,
       const FNetBuffer& Payload
   );
 
@@ -140,7 +140,7 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   bool InvokeRPC(
       FNetworkRPCId RPCId,
       ENetRPCType RPCType,
-      ENetPacketReliability Reliability,
+      ENetworkReliability Reliability,
       const TArgs&... Args
   ) {
     FNetBuffer payload;

@@ -230,6 +230,7 @@
     <ClCompile Include="EngineCore\Utils\Private\SimpleCrypto.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\NetworkUtils.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\DebugOverlay.cpp" />
+    <ClCompile Include="EngineCore\Network\Private\ENetTransport.cpp" />
     <ClCompile Include="EngineCore\Network\Private\NetBuffer.cpp" />
     <ClCompile Include="EngineCore\Network\Private\NetworkManager.cpp" />
     <ClCompile Include="EngineCore\Network\Private\ReplicationSystem.cpp" />
@@ -327,6 +328,7 @@
     <ClInclude Include="EngineCore\Network\Public\NetPacketType.h" />
     <ClInclude Include="EngineCore\Network\Public\NetBuffer.h" />
     <ClInclude Include="EngineCore\Network\Public\NetworkManager.h" />
+    <ClInclude Include="EngineCore\Network\Public\NetworkTransport.h" />
     <ClInclude Include="EngineCore\Network\Public\ReplicatedProperty.h" />
     <ClInclude Include="EngineCore\Network\Public\ReplicationSystem.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSAuthManager.h" />
@@ -348,4 +350,3 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
-

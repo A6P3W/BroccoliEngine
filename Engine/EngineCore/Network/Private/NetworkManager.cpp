@@ -1,16 +1,45 @@
 ﻿#include "NetworkManager.h"
 
-#include <enet/enet.h>
-
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
+#include "Log.h"
 #include "NetPacketType.h"
 
+namespace {
+const char* GetPacketTypeName(ENetPacketType PacketType) {
+  switch (PacketType) {
+    case ENetPacketType::AssignNetId:
+      return "AssignNetId";
+    case ENetPacketType::ActorSpawn:
+      return "ActorSpawn";
+    case ENetPacketType::ActorState:
+      return "ActorState";
+    case ENetPacketType::ActorDestroy:
+      return "ActorDestroy";
+    case ENetPacketType::ActorRPC:
+      return "ActorRPC";
+    case ENetPacketType::ServerTravel:
+      return "ServerTravel";
+    case ENetPacketType::ClientTravelReady:
+      return "ClientTravelReady";
+    case ENetPacketType::None:
+    default:
+      return "None";
+  }
+}
+}  // namespace
+
 struct NetworkManager::Impl {
-  std::unordered_map<FNetworkConnectionId, ENetPeer*> PeersByConnectionId;
-  std::unordered_map<ENetPeer*, FNetworkConnectionId> ConnectionIdsByPeer;
+  std::unique_ptr<INetworkTransport> Transport;
+  ENetworkTransportType TransportType = ENetworkTransportType::ENet;
+  std::unordered_map<FNetworkConnectionId, FNetworkPeerId> PeersByConnectionId;
+  std::unordered_map<FNetworkPeerId, FNetworkConnectionId> ConnectionIdsByPeer;
+  std::unordered_set<uint8_t> LoggedReceivedPacketTypes;
+  FNetworkPeerId ServerPeerId = 0;
   CallbackHandle NextCallbackHandle = 1;
   std::vector<std::pair<CallbackHandle, ConnectedCallback>> OnConnectedCallbacks;
   std::vector<std::pair<CallbackHandle, DisconnectedCallback>> OnDisconnectedCallbacks;
@@ -23,31 +52,38 @@ NetworkManager& NetworkManager::GetInstance() {
 }
 
 NetworkManager::NetworkManager() : ImplPtr(new Impl()) {
-  bEnetInitialized = (enet_initialize() == 0);
+  ImplPtr->Transport = CreateNetworkTransport(ImplPtr->TransportType);
+  BindTransportCallbacks();
 }
 
 NetworkManager::~NetworkManager() {
   Stop();
   delete ImplPtr;
   ImplPtr = nullptr;
-  if (bEnetInitialized) {
-    enet_deinitialize();
+}
+
+bool NetworkManager::SetTransportType(ENetworkTransportType Type) {
+  if (IsRunning()) {
+    M_LOG("[NetworkManager] Transport change rejected while running.");
+    return false;
   }
+
+  std::unique_ptr<INetworkTransport> Transport = CreateNetworkTransport(Type);
+  if (!Transport) {
+    M_LOG("[NetworkManager] Transport creation failed: type={}", static_cast<int>(Type));
+    return false;
+  }
+
+  ImplPtr->Transport = std::move(Transport);
+  ImplPtr->TransportType = Type;
+  BindTransportCallbacks();
+  M_LOG("[NetworkManager] Transport selected: type={}", static_cast<int>(Type));
+  return true;
 }
 
 bool NetworkManager::StartServer(uint16_t Port, size_t MaxConnections, size_t ChannelCount) {
   Stop();
-  if (!bEnetInitialized) {
-    return false;
-  }
-
-  ENetAddress address{};
-  address.host = ENET_HOST_ANY;
-  address.port = Port;
-
-  Host = enet_host_create(&address, MaxConnections, ChannelCount, 0, 0);
-
-  if (!Host) {
+  if (!ImplPtr->Transport || !ImplPtr->Transport->StartHost(Port, MaxConnections, ChannelCount)) {
     return false;
   }
 
@@ -55,6 +91,8 @@ bool NetworkManager::StartServer(uint16_t Port, size_t MaxConnections, size_t Ch
   bIsClient = false;
   NextConnectionId = 1;
   LocalConnectionId = 0;
+  ImplPtr->LoggedReceivedPacketTypes.clear();
+  M_LOG("[NetworkManager] Listen server ready: port={}", Port);
   return true;
 }
 
@@ -62,81 +100,30 @@ bool NetworkManager::ConnectToServer(
     const std::string& HostName, uint16_t Port, size_t ChannelCount
 ) {
   Stop();
-  if (!bEnetInitialized) {
+  if (!ImplPtr->Transport) {
     return false;
   }
 
-  Host = enet_host_create(nullptr, 1, ChannelCount, 0, 0);
-
-  if (!Host) {
-    return false;
-  }
-
-  ENetAddress address{};
-  if (enet_address_set_host(&address, HostName.c_str()) != 0) {
-    Stop();
-    return false;
-  }
-  address.port = Port;
-
-  ServerPeer = enet_host_connect(Host, &address, ChannelCount, 0);
-  if (!ServerPeer) {
-    Stop();
+  const FNetworkEndpoint Endpoint{HostName, Port};
+  if (!ImplPtr->Transport->Connect(Endpoint, ChannelCount, ImplPtr->ServerPeerId)) {
     return false;
   }
 
   bIsServer = false;
   bIsClient = true;
   LocalConnectionId = 0;
+  ImplPtr->LoggedReceivedPacketTypes.clear();
+  M_LOG("[NetworkManager] Client connection started: host={} port={}", HostName, Port);
   return true;
 }
 
 void NetworkManager::Service() {
-  if (!Host) {
+  if (!IsRunning()) {
     return;
   }
 
-  ENetEvent event{};
   bIsServicing = true;
-  while (!bStopRequested && Host && enet_host_service(Host, &event, 0) > 0) {
-    switch (event.type) {
-      case ENET_EVENT_TYPE_CONNECT: {
-        const FNetworkConnectionId connectionId = RegisterPeer(event.peer);
-        BroadcastConnected(connectionId);
-        break;
-      }
-      case ENET_EVENT_TYPE_DISCONNECT: {
-        const FNetworkConnectionId connectionId = FindConnectionId(event.peer);
-        RemovePeer(event.peer);
-        if (connectionId != 0) {
-          BroadcastDisconnected(connectionId);
-        }
-        break;
-      }
-      case ENET_EVENT_TYPE_RECEIVE: {
-        const FNetworkConnectionId connectionId = FindConnectionId(event.peer);
-        if (connectionId != 0 && event.packet && event.packet->data &&
-            event.packet->dataLength > 0) {
-          std::vector<uint8_t> bytes(
-              event.packet->data, event.packet->data + event.packet->dataLength
-          );
-          FNetBuffer buffer(std::move(bytes));
-
-          ENetPacketType packetType = ENetPacketType::None;
-          if (buffer.Read(packetType)) {
-            buffer.ResetRead();
-            BroadcastPacketReceived(connectionId, buffer);
-          }
-        }
-
-        if (event.packet) {
-          enet_packet_destroy(event.packet);
-        }
-        break;
-      }
-      default:
-        break;
-    }
+  while (!bStopRequested && IsRunning() && ImplPtr->Transport->Service()) {
   }
   bIsServicing = false;
 
@@ -147,21 +134,18 @@ void NetworkManager::Service() {
 }
 
 void NetworkManager::Disconnect() {
-  if (!Host) {
+  if (!IsRunning()) {
     return;
   }
 
-  if (bIsClient && ServerPeer) {
-    enet_peer_disconnect(ServerPeer, 0);
+  if (bIsClient && ImplPtr->ServerPeerId != 0) {
+    ImplPtr->Transport->Disconnect(ImplPtr->ServerPeerId);
   } else {
-    for (const auto& pair : ImplPtr->PeersByConnectionId) {
-      if (pair.second) {
-        enet_peer_disconnect(pair.second, 0);
-      }
+    for (const auto& Pair : ImplPtr->PeersByConnectionId) {
+      ImplPtr->Transport->Disconnect(Pair.second);
     }
   }
-
-  enet_host_flush(Host);
+  M_LOG("[NetworkManager] Graceful disconnect requested.");
 }
 
 void NetworkManager::Stop() {
@@ -170,24 +154,9 @@ void NetworkManager::Stop() {
     return;
   }
 
-  if (!Host) {
-    ClearPeers();
-    return;
+  if (ImplPtr && ImplPtr->Transport) {
+    ImplPtr->Transport->Stop();
   }
-
-  if (bIsClient && ServerPeer) {
-    enet_peer_disconnect_now(ServerPeer, 0);
-  } else {
-    for (const auto& pair : ImplPtr->PeersByConnectionId) {
-      if (pair.second) {
-        enet_peer_disconnect_now(pair.second, 0);
-      }
-    }
-  }
-
-  enet_host_destroy(Host);
-  Host = nullptr;
-  ServerPeer = nullptr;
   bIsServer = false;
   bIsClient = false;
   NextConnectionId = 1;
@@ -196,50 +165,42 @@ void NetworkManager::Stop() {
 }
 
 bool NetworkManager::SendToServer(
-    const FNetBuffer& Buffer, ENetPacketReliability Reliability, uint8_t ChannelId
+    const FNetBuffer& Buffer, ENetworkReliability Reliability, uint8_t ChannelId
 ) {
-  if (!bIsClient || !ServerPeer) {
+  if (!bIsClient || ImplPtr->ServerPeerId == 0) {
     return false;
   }
-
-  return SendToPeer(ServerPeer, Buffer, Reliability, ChannelId);
+  return SendToPeer(ImplPtr->ServerPeerId, Buffer, Reliability, ChannelId);
 }
 
 bool NetworkManager::SendToClient(
     FNetworkConnectionId ConnectionId,
     const FNetBuffer& Buffer,
-    ENetPacketReliability Reliability,
+    ENetworkReliability Reliability,
     uint8_t ChannelId
 ) {
   if (!bIsServer) {
     return false;
   }
 
-  auto it = ImplPtr->PeersByConnectionId.find(ConnectionId);
-  if (it == ImplPtr->PeersByConnectionId.end()) {
+  const auto Iterator = ImplPtr->PeersByConnectionId.find(ConnectionId);
+  if (Iterator == ImplPtr->PeersByConnectionId.end()) {
     return false;
   }
-
-  return SendToPeer(it->second, Buffer, Reliability, ChannelId);
+  return SendToPeer(Iterator->second, Buffer, Reliability, ChannelId);
 }
 
 bool NetworkManager::Broadcast(
-    const FNetBuffer& Buffer, ENetPacketReliability Reliability, uint8_t ChannelId
+    const FNetBuffer& Buffer, ENetworkReliability Reliability, uint8_t ChannelId
 ) {
-  if (!Host || !bIsServer || Buffer.Size() == 0) {
+  if (!IsRunning() || !bIsServer || Buffer.Size() == 0) {
     return false;
   }
+  return ImplPtr->Transport->Broadcast(ChannelId, Reliability, Buffer.Data(), Buffer.Size());
+}
 
-  const enet_uint32 flags =
-      (Reliability == ENetPacketReliability::Reliable) ? ENET_PACKET_FLAG_RELIABLE : 0;
-  ENetPacket* packet = enet_packet_create(Buffer.Data(), Buffer.Size(), flags);
-  if (!packet) {
-    return false;
-  }
-
-  enet_host_broadcast(Host, ChannelId, packet);
-  enet_host_flush(Host);
-  return true;
+bool NetworkManager::IsRunning() const {
+  return ImplPtr && ImplPtr->Transport && ImplPtr->Transport->IsRunning();
 }
 
 size_t NetworkManager::GetConnectedClientCount() const {
@@ -250,20 +211,18 @@ NetworkManager::CallbackHandle NetworkManager::AddOnConnected(ConnectedCallback 
   if (!Callback) {
     return 0;
   }
-
-  const CallbackHandle handle = ImplPtr->NextCallbackHandle++;
-  ImplPtr->OnConnectedCallbacks.push_back({handle, std::move(Callback)});
-  return handle;
+  const CallbackHandle Handle = ImplPtr->NextCallbackHandle++;
+  ImplPtr->OnConnectedCallbacks.push_back({Handle, std::move(Callback)});
+  return Handle;
 }
 
 NetworkManager::CallbackHandle NetworkManager::AddOnDisconnected(DisconnectedCallback Callback) {
   if (!Callback) {
     return 0;
   }
-
-  const CallbackHandle handle = ImplPtr->NextCallbackHandle++;
-  ImplPtr->OnDisconnectedCallbacks.push_back({handle, std::move(Callback)});
-  return handle;
+  const CallbackHandle Handle = ImplPtr->NextCallbackHandle++;
+  ImplPtr->OnDisconnectedCallbacks.push_back({Handle, std::move(Callback)});
+  return Handle;
 }
 
 NetworkManager::CallbackHandle NetworkManager::AddOnPacketReceived(
@@ -272,17 +231,15 @@ NetworkManager::CallbackHandle NetworkManager::AddOnPacketReceived(
   if (!Callback) {
     return 0;
   }
-
-  const CallbackHandle handle = ImplPtr->NextCallbackHandle++;
-  ImplPtr->OnPacketReceivedCallbacks.push_back({handle, std::move(Callback)});
-  return handle;
+  const CallbackHandle Handle = ImplPtr->NextCallbackHandle++;
+  ImplPtr->OnPacketReceivedCallbacks.push_back({Handle, std::move(Callback)});
+  return Handle;
 }
 
 void NetworkManager::RemoveOnConnected(CallbackHandle Handle) {
   if (Handle == 0) {
     return;
   }
-
   ImplPtr->OnConnectedCallbacks.erase(
       std::remove_if(
           ImplPtr->OnConnectedCallbacks.begin(),
@@ -297,7 +254,6 @@ void NetworkManager::RemoveOnDisconnected(CallbackHandle Handle) {
   if (Handle == 0) {
     return;
   }
-
   ImplPtr->OnDisconnectedCallbacks.erase(
       std::remove_if(
           ImplPtr->OnDisconnectedCallbacks.begin(),
@@ -312,7 +268,6 @@ void NetworkManager::RemoveOnPacketReceived(CallbackHandle Handle) {
   if (Handle == 0) {
     return;
   }
-
   ImplPtr->OnPacketReceivedCallbacks.erase(
       std::remove_if(
           ImplPtr->OnPacketReceivedCallbacks.begin(),
@@ -324,70 +279,63 @@ void NetworkManager::RemoveOnPacketReceived(CallbackHandle Handle) {
 }
 
 bool NetworkManager::SendToPeer(
-    ENetPeer* Peer, const FNetBuffer& Buffer, ENetPacketReliability Reliability, uint8_t ChannelId
+    FNetworkPeerId PeerId,
+    const FNetBuffer& Buffer,
+    ENetworkReliability Reliability,
+    uint8_t ChannelId
 ) {
-  if (!Host || !Peer || Buffer.Size() == 0) {
+  if (!IsRunning() || PeerId == 0 || Buffer.Size() == 0) {
     return false;
   }
-
-  const enet_uint32 flags =
-      (Reliability == ENetPacketReliability::Reliable) ? ENET_PACKET_FLAG_RELIABLE : 0;
-  ENetPacket* packet = enet_packet_create(Buffer.Data(), Buffer.Size(), flags);
-  if (!packet) {
-    return false;
-  }
-
-  if (enet_peer_send(Peer, ChannelId, packet) != 0) {
-    enet_packet_destroy(packet);
-    return false;
-  }
-
-  enet_host_flush(Host);
-  return true;
+  return ImplPtr->Transport->Send(PeerId, ChannelId, Reliability, Buffer.Data(), Buffer.Size());
 }
 
-FNetworkConnectionId NetworkManager::RegisterPeer(ENetPeer* Peer) {
-  if (!Peer) {
+void NetworkManager::BindTransportCallbacks() {
+  if (!ImplPtr->Transport) {
+    return;
+  }
+  ImplPtr->Transport->SetConnectedCallback([this](FNetworkPeerId PeerId) {
+    HandleTransportConnected(PeerId);
+  });
+  ImplPtr->Transport->SetDisconnectedCallback([this](FNetworkPeerId PeerId) {
+    HandleTransportDisconnected(PeerId);
+  });
+  ImplPtr->Transport->SetPacketReceivedCallback([this](FReceivedPacket&& Packet) {
+    HandleTransportPacket(std::move(Packet));
+  });
+}
+
+FNetworkConnectionId NetworkManager::RegisterPeer(FNetworkPeerId PeerId) {
+  if (PeerId == 0) {
     return 0;
   }
-
-  const FNetworkConnectionId existingId = FindConnectionId(Peer);
-  if (existingId != 0) {
-    return existingId;
+  const FNetworkConnectionId ExistingId = FindConnectionId(PeerId);
+  if (ExistingId != 0) {
+    return ExistingId;
   }
 
-  const FNetworkConnectionId connectionId = bIsClient ? ServerConnectionId : NextConnectionId++;
-  ImplPtr->PeersByConnectionId[connectionId] = Peer;
-  ImplPtr->ConnectionIdsByPeer[Peer] = connectionId;
+  const FNetworkConnectionId ConnectionId = bIsClient ? ServerConnectionId : NextConnectionId++;
+  ImplPtr->PeersByConnectionId[ConnectionId] = PeerId;
+  ImplPtr->ConnectionIdsByPeer[PeerId] = ConnectionId;
   if (bIsClient) {
-    ServerPeer = Peer;
+    ImplPtr->ServerPeerId = PeerId;
   }
-
-  return connectionId;
+  return ConnectionId;
 }
 
-FNetworkConnectionId NetworkManager::FindConnectionId(ENetPeer* Peer) const {
-  if (!Peer) {
-    return 0;
-  }
-
-  auto it = ImplPtr->ConnectionIdsByPeer.find(Peer);
-  if (it == ImplPtr->ConnectionIdsByPeer.end()) {
-    return 0;
-  }
-
-  return it->second;
+FNetworkConnectionId NetworkManager::FindConnectionId(FNetworkPeerId PeerId) const {
+  const auto Iterator = ImplPtr->ConnectionIdsByPeer.find(PeerId);
+  return Iterator == ImplPtr->ConnectionIdsByPeer.end() ? 0 : Iterator->second;
 }
 
-void NetworkManager::RemovePeer(ENetPeer* Peer) {
-  const FNetworkConnectionId connectionId = FindConnectionId(Peer);
-  if (connectionId != 0) {
-    ImplPtr->PeersByConnectionId.erase(connectionId);
+void NetworkManager::RemovePeer(FNetworkPeerId PeerId) {
+  const FNetworkConnectionId ConnectionId = FindConnectionId(PeerId);
+  if (ConnectionId != 0) {
+    ImplPtr->PeersByConnectionId.erase(ConnectionId);
   }
-  ImplPtr->ConnectionIdsByPeer.erase(Peer);
-
-  if (Peer == ServerPeer) {
-    ServerPeer = nullptr;
+  ImplPtr->ConnectionIdsByPeer.erase(PeerId);
+  if (PeerId == ImplPtr->ServerPeerId) {
+    ImplPtr->ServerPeerId = 0;
   }
 }
 
@@ -395,35 +343,82 @@ void NetworkManager::ClearPeers() {
   if (!ImplPtr) {
     return;
   }
-
   ImplPtr->PeersByConnectionId.clear();
   ImplPtr->ConnectionIdsByPeer.clear();
+  ImplPtr->ServerPeerId = 0;
+}
+
+void NetworkManager::HandleTransportConnected(FNetworkPeerId PeerId) {
+  const FNetworkConnectionId ConnectionId = RegisterPeer(PeerId);
+  M_LOG("[NetworkTransportTest] Connection verified: peer={} connection={}", PeerId, ConnectionId);
+  BroadcastConnected(ConnectionId);
+}
+
+void NetworkManager::HandleTransportDisconnected(FNetworkPeerId PeerId) {
+  const FNetworkConnectionId ConnectionId = FindConnectionId(PeerId);
+  RemovePeer(PeerId);
+  if (ConnectionId != 0) {
+    M_LOG(
+        "[NetworkTransportTest] Disconnect verified: peer={} connection={}", PeerId, ConnectionId
+    );
+    BroadcastDisconnected(ConnectionId);
+  }
+}
+
+void NetworkManager::HandleTransportPacket(FReceivedPacket&& Packet) {
+  const FNetworkConnectionId ConnectionId = FindConnectionId(Packet.Sender);
+  if (ConnectionId == 0 || Packet.Data.empty()) {
+    return;
+  }
+
+  FNetBuffer Buffer(std::move(Packet.Data));
+  ENetPacketType PacketType = ENetPacketType::None;
+  if (!Buffer.Read(PacketType)) {
+    return;
+  }
+  Buffer.ResetRead();
+
+  const uint8_t PacketTypeValue = static_cast<uint8_t>(PacketType);
+  if (ImplPtr->LoggedReceivedPacketTypes.insert(PacketTypeValue).second) {
+    M_LOG(
+        "[NetworkTransportTest] Receive verified: packetType={} peer={} connection={} channel={} "
+        "bytes={}",
+        GetPacketTypeName(PacketType),
+        Packet.Sender,
+        ConnectionId,
+        Packet.Channel,
+        Buffer.Size()
+    );
+  }
+  BroadcastPacketReceived(ConnectionId, Buffer);
 }
 
 void NetworkManager::BroadcastConnected(FNetworkConnectionId ConnectionId) {
-  const auto callbacks = ImplPtr->OnConnectedCallbacks;
-  for (const auto& callbackEntry : callbacks) {
-    if (callbackEntry.second) {
-      callbackEntry.second(ConnectionId);
+  const auto Callbacks = ImplPtr->OnConnectedCallbacks;
+  for (const auto& CallbackEntry : Callbacks) {
+    if (CallbackEntry.second) {
+      CallbackEntry.second(ConnectionId);
     }
   }
 }
 
 void NetworkManager::BroadcastDisconnected(FNetworkConnectionId ConnectionId) {
-  const auto callbacks = ImplPtr->OnDisconnectedCallbacks;
-  for (const auto& callbackEntry : callbacks) {
-    if (callbackEntry.second) {
-      callbackEntry.second(ConnectionId);
+  const auto Callbacks = ImplPtr->OnDisconnectedCallbacks;
+  for (const auto& CallbackEntry : Callbacks) {
+    if (CallbackEntry.second) {
+      CallbackEntry.second(ConnectionId);
     }
   }
 }
 
-void NetworkManager::BroadcastPacketReceived(FNetworkConnectionId ConnectionId, FNetBuffer& Buffer) {
-  const auto callbacks = ImplPtr->OnPacketReceivedCallbacks;
-  for (const auto& callbackEntry : callbacks) {
+void NetworkManager::BroadcastPacketReceived(
+    FNetworkConnectionId ConnectionId, FNetBuffer& Buffer
+) {
+  const auto Callbacks = ImplPtr->OnPacketReceivedCallbacks;
+  for (const auto& CallbackEntry : Callbacks) {
     Buffer.ResetRead();
-    if (callbackEntry.second) {
-      callbackEntry.second(ConnectionId, Buffer);
+    if (CallbackEntry.second) {
+      CallbackEntry.second(ConnectionId, Buffer);
     }
   }
 }

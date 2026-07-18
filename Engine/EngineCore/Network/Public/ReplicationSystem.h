@@ -1,8 +1,7 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
-
 #include <string>
 
+#include "BroccoliEngineAPI.h"
 #include "NetworkManager.h"
 #include "NetworkTypes.h"
 
@@ -27,7 +26,7 @@ class BROCCOLI_ENGINE_API FReplicationSystem {
       AActor* Actor,
       FNetworkRPCId RPCId,
       ENetRPCType RPCType,
-      ENetPacketReliability Reliability,
+      ENetworkReliability Reliability,
       const FNetBuffer& Payload,
       FNetworkComponentId ComponentNetworkId = 0
   );

@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -14,6 +13,7 @@
 #include "ActorComponent.h"
 #include "ActorRegistry.h"
 #include "BaseObject.h"
+#include "BroccoliEngineAPI.h"
 #include "NetBuffer.h"
 #include "NetworkManager.h"
 #include "NetworkTypes.h"
@@ -138,14 +138,14 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   bool InvokeRPCWithPayload(
       FNetworkRPCId RPCId,
       ENetRPCType RPCType,
-      ENetPacketReliability Reliability,
+      ENetworkReliability Reliability,
       const FNetBuffer& Payload
   );
   bool InvokeComponentRPCWithPayload(
       MActorComponent* Component,
       FNetworkRPCId RPCId,
       ENetRPCType RPCType,
-      ENetPacketReliability Reliability,
+      ENetworkReliability Reliability,
       const FNetBuffer& Payload
   );
 
@@ -194,7 +194,7 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   bool InvokeRPC(
       FNetworkRPCId RPCId,
       ENetRPCType RPCType,
-      ENetPacketReliability Reliability,
+      ENetworkReliability Reliability,
       const TArgs&... Args
   ) {
     FNetBuffer payload;
