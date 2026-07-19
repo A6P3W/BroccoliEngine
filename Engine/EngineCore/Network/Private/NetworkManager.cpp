@@ -263,7 +263,7 @@ void NetworkManager::Stop() {
 }
 
 bool NetworkManager::SendToServer(
-    const FNetBuffer& Buffer, ENetworkReliability Reliability, uint8_t ChannelId
+    const FNetBuffer& Buffer, ENetPacketReliability Reliability, uint8_t ChannelId
 ) {
   if (!ImplPtr->bAcceptingSends || !bIsClient || ImplPtr->ServerPeerId == 0) {
     return false;
@@ -274,7 +274,7 @@ bool NetworkManager::SendToServer(
 bool NetworkManager::SendToClient(
     FNetworkConnectionId ConnectionId,
     const FNetBuffer& Buffer,
-    ENetworkReliability Reliability,
+    ENetPacketReliability Reliability,
     uint8_t ChannelId
 ) {
   if (!ImplPtr->bAcceptingSends || !bIsServer) {
@@ -289,7 +289,7 @@ bool NetworkManager::SendToClient(
 }
 
 bool NetworkManager::Broadcast(
-    const FNetBuffer& Buffer, ENetworkReliability Reliability, uint8_t ChannelId
+    const FNetBuffer& Buffer, ENetPacketReliability Reliability, uint8_t ChannelId
 ) {
   if (!ImplPtr->bAcceptingSends || !IsRunning() || !bIsServer || Buffer.Size() == 0) {
     return false;
@@ -398,7 +398,7 @@ void NetworkManager::RemoveOnPacketReceived(CallbackHandle Handle) {
 bool NetworkManager::SendToPeer(
     FNetworkPeerId PeerId,
     const FNetBuffer& Buffer,
-    ENetworkReliability Reliability,
+    ENetPacketReliability Reliability,
     uint8_t ChannelId
 ) {
   if (!IsRunning() || PeerId == 0 || Buffer.Size() == 0) {

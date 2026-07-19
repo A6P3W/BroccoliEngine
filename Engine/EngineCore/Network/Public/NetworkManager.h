@@ -30,18 +30,18 @@ class BROCCOLI_ENGINE_API NetworkManager {
 
   bool SendToServer(
       const FNetBuffer& Buffer,
-      ENetworkReliability Reliability = ENetworkReliability::Reliable,
+      ENetPacketReliability Reliability = ENetPacketReliability::Reliable,
       uint8_t ChannelId = 0
   );
   bool SendToClient(
       FNetworkConnectionId ConnectionId,
       const FNetBuffer& Buffer,
-      ENetworkReliability Reliability = ENetworkReliability::Reliable,
+      ENetPacketReliability Reliability = ENetPacketReliability::Reliable,
       uint8_t ChannelId = 0
   );
   bool Broadcast(
       const FNetBuffer& Buffer,
-      ENetworkReliability Reliability = ENetworkReliability::Reliable,
+      ENetPacketReliability Reliability = ENetPacketReliability::Reliable,
       uint8_t ChannelId = 0
   );
 
@@ -69,7 +69,7 @@ class BROCCOLI_ENGINE_API NetworkManager {
   bool SendToPeer(
       FNetworkPeerId PeerId,
       const FNetBuffer& Buffer,
-      ENetworkReliability Reliability,
+      ENetPacketReliability Reliability,
       uint8_t ChannelId
   );
   bool CreateSelectedTransport();

@@ -26,7 +26,7 @@ class BROCCOLI_ENGINE_API FReplicationSystem {
       AActor* Actor,
       FNetworkRPCId RPCId,
       ENetRPCType RPCType,
-      ENetworkReliability Reliability,
+      ENetPacketReliability Reliability,
       const FNetBuffer& Payload,
       FNetworkComponentId ComponentNetworkId = 0
   );

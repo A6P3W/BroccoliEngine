@@ -91,7 +91,7 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   bool InvokeRPCWithPayload(
       FNetworkRPCId RPCId,
       ENetRPCType RPCType,
-      ENetworkReliability Reliability,
+      ENetPacketReliability Reliability,
       const FNetBuffer& Payload
   );
 
@@ -140,7 +140,7 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   bool InvokeRPC(
       FNetworkRPCId RPCId,
       ENetRPCType RPCType,
-      ENetworkReliability Reliability,
+      ENetPacketReliability Reliability,
       const TArgs&... Args
   ) {
     FNetBuffer payload;

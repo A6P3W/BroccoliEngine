@@ -12,7 +12,7 @@
 
 using FNetworkPeerId = uint64_t;
 
-enum class ENetworkReliability : uint8_t { Unreliable, Reliable };
+enum class ENetPacketReliability : uint8_t { Unreliable, Reliable };
 
 enum class ENetworkTransportType : uint8_t { ENet, EOSP2P };
 
@@ -49,12 +49,12 @@ class BROCCOLI_ENGINE_API INetworkTransport {
   virtual bool Send(
       FNetworkPeerId PeerId,
       uint8_t Channel,
-      ENetworkReliability Reliability,
+      ENetPacketReliability Reliability,
       const uint8_t* Data,
       size_t Size
   ) = 0;
   virtual bool Broadcast(
-      uint8_t Channel, ENetworkReliability Reliability, const uint8_t* Data, size_t Size
+      uint8_t Channel, ENetPacketReliability Reliability, const uint8_t* Data, size_t Size
   ) = 0;
 
   virtual void Disconnect(FNetworkPeerId PeerId) = 0;

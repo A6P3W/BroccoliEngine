@@ -74,7 +74,7 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
       ImplPtr->InFlightMoves.push_back(NewMove);
       SimulateMovement(NewMove);
       InvokeRPC(
-          RPC_ServerReceiveMove, ENetRPCType::Server, ENetworkReliability::Unreliable, NewMove
+          RPC_ServerReceiveMove, ENetRPCType::Server, ENetPacketReliability::Unreliable, NewMove
       );
     }
 
@@ -151,7 +151,7 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
     InvokeRPC(
         RPC_ClientReceiveAck,
         ENetRPCType::Client,
-        ENetworkReliability::Unreliable,
+        ENetPacketReliability::Unreliable,
         ImplPtr->LastConfirmedSequence,
         OwnerActor->GetActorLocation(),
         OwnerActor->GetActorRotation(),
@@ -162,7 +162,7 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
     InvokeRPC(
         RPC_ClientReceiveAuthorityCorrection,
         ENetRPCType::Client,
-        ENetworkReliability::Unreliable,
+        ENetPacketReliability::Unreliable,
         ImplPtr->LastConfirmedSequence,
         ++ImplPtr->CurrentCorrectionSequence,
         OwnerActor->GetActorLocation(),

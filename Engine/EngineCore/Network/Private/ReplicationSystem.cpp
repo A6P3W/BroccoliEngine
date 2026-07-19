@@ -138,7 +138,7 @@ bool FReplicationSystem::SendActorRPC(
     AActor* Actor,
     FNetworkRPCId RPCId,
     ENetRPCType RPCType,
-    ENetworkReliability Reliability,
+    ENetPacketReliability Reliability,
     const FNetBuffer& Payload,
     FNetworkComponentId ComponentNetworkId
 ) {
@@ -195,7 +195,7 @@ bool FReplicationSystem::BroadcastServerTravel(FNetworkSceneId SceneId) {
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ServerTravel);
   WriteServerTravelPayload(buffer, SceneId);
-  return NetworkManager::GetInstance().Broadcast(buffer, ENetworkReliability::Reliable);
+  return NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Reliable);
 }
 
 bool FReplicationSystem::BroadcastServerTravel(const std::string& LevelPath) {
@@ -205,7 +205,7 @@ bool FReplicationSystem::BroadcastServerTravel(const std::string& LevelPath) {
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ServerTravel);
   WriteServerTravelPayload(buffer, LevelPath);
-  return NetworkManager::GetInstance().Broadcast(buffer, ENetworkReliability::Reliable);
+  return NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Reliable);
 }
 
 void FReplicationSystem::NotifySceneLoaded() {
@@ -507,7 +507,7 @@ void FReplicationSystem::SendAssignedConnectionId(FNetworkConnectionId Connectio
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::AssignNetId);
   buffer.Write(ConnectionId);
-  NetworkManager::GetInstance().SendToClient(ConnectionId, buffer, ENetworkReliability::Reliable);
+  NetworkManager::GetInstance().SendToClient(ConnectionId, buffer, ENetPacketReliability::Reliable);
 }
 
 bool FReplicationSystem::SendServerTravelToClient(
@@ -521,7 +521,7 @@ bool FReplicationSystem::SendServerTravelToClient(
   buffer.Write(ENetPacketType::ServerTravel);
   WriteServerTravelPayload(buffer, SceneId);
   return NetworkManager::GetInstance().SendToClient(
-      ConnectionId, buffer, ENetworkReliability::Reliable
+      ConnectionId, buffer, ENetPacketReliability::Reliable
   );
 }
 
@@ -536,7 +536,7 @@ bool FReplicationSystem::SendServerTravelToClient(
   buffer.Write(ENetPacketType::ServerTravel);
   WriteServerTravelPayload(buffer, LevelPath);
   return NetworkManager::GetInstance().SendToClient(
-      ConnectionId, buffer, ENetworkReliability::Reliable
+      ConnectionId, buffer, ENetPacketReliability::Reliable
   );
 }
 
@@ -547,7 +547,7 @@ bool FReplicationSystem::SendClientTravelReady(FNetworkSceneId SceneId) {
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ClientTravelReady);
   WriteServerTravelPayload(buffer, SceneId);
-  return NetworkManager::GetInstance().SendToServer(buffer, ENetworkReliability::Reliable);
+  return NetworkManager::GetInstance().SendToServer(buffer, ENetPacketReliability::Reliable);
 }
 
 bool FReplicationSystem::SendClientTravelReady(const std::string& LevelPath) {
@@ -557,7 +557,7 @@ bool FReplicationSystem::SendClientTravelReady(const std::string& LevelPath) {
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ClientTravelReady);
   WriteServerTravelPayload(buffer, LevelPath);
-  return NetworkManager::GetInstance().SendToServer(buffer, ENetworkReliability::Reliable);
+  return NetworkManager::GetInstance().SendToServer(buffer, ENetPacketReliability::Reliable);
 }
 
 void FReplicationSystem::SendInitialStateToClient(FNetworkConnectionId ConnectionId) {
@@ -590,10 +590,10 @@ bool FReplicationSystem::SendActorSpawn(AActor* Actor, FNetworkConnectionId Targ
   }
   NetworkManager& network = NetworkManager::GetInstance();
   if (TargetConnectionId != 0) {
-    network.SendToClient(TargetConnectionId, buffer, ENetworkReliability::Reliable);
+    network.SendToClient(TargetConnectionId, buffer, ENetPacketReliability::Reliable);
     return true;
   }
-  network.Broadcast(buffer, ENetworkReliability::Reliable);
+  network.Broadcast(buffer, ENetPacketReliability::Reliable);
   return true;
 }
 
@@ -609,7 +609,7 @@ bool FReplicationSystem::SendActorState(AActor* Actor) {
   if (!Actor->SerializeNetworkState(buffer)) {
     return false;
   }
-  NetworkManager::GetInstance().Broadcast(buffer, ENetworkReliability::Unreliable);
+  NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Unreliable);
   Actor->UpdateReplicatedStateCache();
   return true;
 }
@@ -621,7 +621,7 @@ void FReplicationSystem::SendActorDestroy(FNetworkActorId NetworkId) {
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ActorDestroy);
   buffer.Write(NetworkId);
-  NetworkManager::GetInstance().Broadcast(buffer, ENetworkReliability::Reliable);
+  NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Reliable);
 }
 
 bool FReplicationSystem::EnsureServerActorRegistered(AActor* Actor) {

@@ -44,8 +44,8 @@ bool IsExpectedSocket(const EOS_P2P_SocketId* Value) {
   return Value && std::strncmp(Value->SocketName, SocketName, sizeof(Value->SocketName)) == 0;
 }
 
-EOS_EPacketReliability ConvertReliability(ENetworkReliability Value) {
-  return Value == ENetworkReliability::Reliable
+EOS_EPacketReliability ConvertReliability(ENetPacketReliability Value) {
+  return Value == ENetPacketReliability::Reliable
              ? EOS_EPacketReliability::EOS_PR_ReliableOrdered
              : EOS_EPacketReliability::EOS_PR_UnreliableUnordered;
 }
@@ -106,7 +106,7 @@ class FEOSP2PTransport final : public INetworkTransport {
 
     constexpr uint8_t ConnectionProbe = 0;
     if (!Send(
-            OutPeerId, 0, ENetworkReliability::Reliable, &ConnectionProbe, sizeof(ConnectionProbe)
+            OutPeerId, 0, ENetPacketReliability::Reliable, &ConnectionProbe, sizeof(ConnectionProbe)
         )) {
       M_LOG("[EOSP2PTransport] Connect failed: initial connection probe send failed.");
       Stop();
@@ -221,7 +221,7 @@ class FEOSP2PTransport final : public INetworkTransport {
   bool Send(
       FNetworkPeerId PeerId,
       uint8_t Channel,
-      ENetworkReliability Reliability,
+      ENetPacketReliability Reliability,
       const uint8_t* Data,
       size_t Size
   ) override {
@@ -277,12 +277,12 @@ class FEOSP2PTransport final : public INetworkTransport {
     }
 
     bool& ReliabilityLogged =
-        Reliability == ENetworkReliability::Reliable ? LoggedReliableSend : LoggedUnreliableSend;
+        Reliability == ENetPacketReliability::Reliable ? LoggedReliableSend : LoggedUnreliableSend;
     if (!ReliabilityLogged) {
       ReliabilityLogged = true;
       M_LOG(
           "[EOSP2PTransportTest] Send verified: reliability={} peer={} channel={} bytes={}",
-          Reliability == ENetworkReliability::Reliable ? "ReliableOrdered" : "UnreliableUnordered",
+          Reliability == ENetPacketReliability::Reliable ? "ReliableOrdered" : "UnreliableUnordered",
           PeerId,
           Channel,
           Size
@@ -292,7 +292,7 @@ class FEOSP2PTransport final : public INetworkTransport {
   }
 
   bool Broadcast(
-      uint8_t Channel, ENetworkReliability Reliability, const uint8_t* Data, size_t Size
+      uint8_t Channel, ENetPacketReliability Reliability, const uint8_t* Data, size_t Size
   ) override {
     bool SentAny = false;
     bool AllSucceeded = true;

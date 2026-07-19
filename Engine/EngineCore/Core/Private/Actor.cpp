@@ -394,7 +394,7 @@ bool AActor::DispatchRPC(
 bool AActor::InvokeRPCWithPayload(
     FNetworkRPCId RPCId,
     ENetRPCType RPCType,
-    ENetworkReliability Reliability,
+    ENetPacketReliability Reliability,
     const FNetBuffer& Payload
 ) {
   if (RPCId == 0 || !ImplPtr->OwnerWorld) {
@@ -422,7 +422,7 @@ bool AActor::InvokeComponentRPCWithPayload(
     MActorComponent* Component,
     FNetworkRPCId RPCId,
     ENetRPCType RPCType,
-    ENetworkReliability Reliability,
+    ENetPacketReliability Reliability,
     const FNetBuffer& Payload
 ) {
   if (!Component || Component->GetOwner() != this || RPCId == 0 || !ImplPtr->OwnerWorld) {

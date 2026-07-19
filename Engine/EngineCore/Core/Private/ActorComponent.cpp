@@ -235,7 +235,7 @@ bool MActorComponent::DispatchRPC(FNetworkRPCId RPCId, ENetRPCType RPCType, FNet
 bool MActorComponent::InvokeRPCWithPayload(
     FNetworkRPCId RPCId,
     ENetRPCType RPCType,
-    ENetworkReliability Reliability,
+    ENetPacketReliability Reliability,
     const FNetBuffer& Payload
 ) {
   if (RPCId == 0 || !Owner) {

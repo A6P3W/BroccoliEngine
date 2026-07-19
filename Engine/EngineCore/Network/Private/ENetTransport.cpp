@@ -44,8 +44,8 @@ const char* GetENetPeerStateName(ENetPeerState State) {
   }
 }
 
-enet_uint32 GetENetPacketFlags(ENetworkReliability Reliability) {
-  return Reliability == ENetworkReliability::Reliable ? ENET_PACKET_FLAG_RELIABLE : 0;
+enet_uint32 GetENetPacketFlags(ENetPacketReliability Reliability) {
+  return Reliability == ENetPacketReliability::Reliable ? ENET_PACKET_FLAG_RELIABLE : 0;
 }
 
 class FENetTransport final : public INetworkTransport {
@@ -215,7 +215,7 @@ class FENetTransport final : public INetworkTransport {
   bool Send(
       FNetworkPeerId PeerId,
       uint8_t Channel,
-      ENetworkReliability Reliability,
+      ENetPacketReliability Reliability,
       const uint8_t* Data,
       size_t Size
   ) override {
@@ -243,7 +243,7 @@ class FENetTransport final : public INetworkTransport {
   }
 
   bool Broadcast(
-      uint8_t Channel, ENetworkReliability Reliability, const uint8_t* Data, size_t Size
+      uint8_t Channel, ENetPacketReliability Reliability, const uint8_t* Data, size_t Size
   ) override {
     if (!Host || !Data || Size == 0) {
       return false;
@@ -312,10 +312,10 @@ class FENetTransport final : public INetworkTransport {
 
  private:
   void LogSuccessfulSend(
-      ENetworkReliability Reliability, uint8_t Channel, size_t Size, const char* Target
+      ENetPacketReliability Reliability, uint8_t Channel, size_t Size, const char* Target
   ) {
     bool& LoggedSend =
-        Reliability == ENetworkReliability::Reliable ? LoggedReliableSend : LoggedUnreliableSend;
+        Reliability == ENetPacketReliability::Reliable ? LoggedReliableSend : LoggedUnreliableSend;
     if (LoggedSend) {
       return;
     }
@@ -323,7 +323,7 @@ class FENetTransport final : public INetworkTransport {
     LoggedSend = true;
     M_LOG(
         "[ENetTransportTest] Send verified: reliability={} target={} channel={} bytes={}",
-        Reliability == ENetworkReliability::Reliable ? "Reliable" : "Unreliable",
+        Reliability == ENetPacketReliability::Reliable ? "Reliable" : "Unreliable",
         Target,
         Channel,
         Size
