@@ -10,24 +10,27 @@ REGISTER_GAME_MODE(ANetworkTestGameMode)
 REGISTER_GAME_MODE(ANetworkTestLevel2GameMode)
 
 ANetworkTestGameMode::ANetworkTestGameMode() {
-  // マルチプレイ検証用の Pawn と PlayerController を初期割り当てに設定
+  // マルチプレイ検証用の Pawn と PlayerController を初期割り当てに設定する関数
+  // StaticClassName(): クラスのメタデータから登録名を取得するエンジン関数
   SetDefaultPawnClass(ANetworkTestPawn::StaticClassName());
   SetDefaultPlayerControllerClass(ALauncherPlayerController::StaticClassName());
 }
 
 void ANetworkTestGameMode::BeginPlay() {
-  // 一時停止状態などであっても、このアクターの Update 処理を常に実行するよう設定
+  // 一時停止状態などであっても、このアクターの Update 処理を常に実行するよう設定する関数
   SetUpdateableAnytime(true);
 }
 
 APlayerController* ANetworkTestGameMode::OnClientConnected(FNetworkConnectionId ConnectionId) {
-  // 基底クラス AGameModeBase に接続イベントを渡し、接続したクライアント用の PlayerController を生成
+  // 基底クラス AGameModeBase に接続イベントを渡し、接続したクライアント用の PlayerController を生成する関数
   APlayerController* controller = AGameModeBase::OnClientConnected(ConnectionId);
+  // GetWorld(): アクターが属するワールドインスタンスを取得するエンジン関数
   if (GetWorld()) {
-    // ローカル（サーバー実行側）のプレイヤーコントローラーを取得
+    // GetOrCreateLocalPlayerController(): ローカルクライアント（あるいはサーバーホスト）のプレイヤーコントローラーを取得または生成する関数
     if (APlayerController* localPC = GetWorld()->GetOrCreateLocalPlayerController()) {
-      // 操作中の Pawn を取得し、ステータスメッセージに接続通知をセット（画面表示用）
+      // GetPawn(): プレイヤーコントローラーが現在操作（憑依）しているポーンアクターを取得する関数
       if (ANetworkTestPawn* localPawn = dynamic_cast<ANetworkTestPawn*>(localPC->GetPawn())) {
+        // 操作中の Pawn にステータスメッセージを設定する関数
         localPawn->SetStatusMessage("Client connected: " + std::to_string(ConnectionId));
       }
     }

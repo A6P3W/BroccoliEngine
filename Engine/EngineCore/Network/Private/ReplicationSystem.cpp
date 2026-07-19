@@ -5,12 +5,12 @@
 #include <unordered_map>
 
 #include "Actor.h"
+#include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "GameModeBase.h"
 #include "NetBuffer.h"
 #include "NetPacketType.h"
 #include "NetworkManager.h"
-#include "ActorManager.h"
 #include "Pawn.h"
 #include "PlayerController.h"
 #include "SceneManager.h"
@@ -25,9 +25,7 @@ std::string MakeSceneIdTravelKey(FNetworkSceneId SceneId) {
   return "id:" + std::to_string(SceneId);
 }
 
-std::string MakeLevelPathTravelKey(const std::string& LevelPath) {
-  return "path:" + LevelPath;
-}
+std::string MakeLevelPathTravelKey(const std::string& LevelPath) { return "path:" + LevelPath; }
 
 void WriteServerTravelPayload(FNetBuffer& Buffer, FNetworkSceneId SceneId) {
   const bool bIsPathBased = false;
@@ -42,7 +40,6 @@ void WriteServerTravelPayload(FNetBuffer& Buffer, const std::string& LevelPath) 
 }
 }  // namespace
 
-
 struct FReplicationSystem::Impl {
   World* OwnerWorld = nullptr;
   NetworkManager::CallbackHandle ConnectedCallbackHandle = 0;
@@ -54,12 +51,16 @@ struct FReplicationSystem::Impl {
 FReplicationSystem::FReplicationSystem(World* InWorld) : ImplPtr(new Impl()) {
   ImplPtr->OwnerWorld = InWorld;
   NetworkManager& network = NetworkManager::GetInstance();
-  ImplPtr->ConnectedCallbackHandle = network.AddOnConnected([this](FNetworkConnectionId ConnectionId) {
-    HandleConnected(ConnectionId);
-  });
-  ImplPtr->DisconnectedCallbackHandle = network.AddOnDisconnected([this](FNetworkConnectionId ConnectionId) {
-    HandleDisconnected(ConnectionId);
-  });
+  ImplPtr->ConnectedCallbackHandle =
+      network.AddOnConnected([this](FNetworkConnectionId ConnectionId) {
+        HandleConnected(ConnectionId);
+      });
+  ImplPtr->DisconnectedCallbackHandle = network.AddOnDisconnected(
+      [this](FNetworkConnectionId ConnectionId, ESessionDisconnectReason Reason) {
+        HandleDisconnected(ConnectionId);
+        (void)Reason;
+      }
+  );
   ImplPtr->PacketReceivedCallbackHandle =
       network.AddOnPacketReceived([this](FNetworkConnectionId ConnectionId, FNetBuffer& Buffer) {
         HandlePacketReceived(ConnectionId, Buffer);
@@ -75,7 +76,8 @@ FReplicationSystem::~FReplicationSystem() {
 }
 
 void FReplicationSystem::Update() {
-  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() || !ImplPtr->OwnerWorld->GetActorManager()) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() ||
+      !ImplPtr->OwnerWorld->GetActorManager()) {
     return;
   }
   const auto& actors = ImplPtr->OwnerWorld->GetActorManager()->GetAllActors();
@@ -171,7 +173,8 @@ bool FReplicationSystem::SendActorRPC(
         FNetBuffer localPayload(Payload.GetData());
         return Actor->DispatchRPC(ComponentNetworkId, RPCId, RPCType, localPayload);
       }
-      return network.SendToClient(Actor->OwnerConnectionId, buffer, Reliability);
+      return IsConnectionReady(Actor->OwnerConnectionId) &&
+             network.SendToClient(Actor->OwnerConnectionId, buffer, Reliability);
     case ENetRPCType::Multicast:
       if (!ImplPtr->OwnerWorld->IsServer() || !Actor->bHasAuthority) {
         return false;
@@ -180,7 +183,7 @@ bool FReplicationSystem::SendActorRPC(
         FNetBuffer localPayload(Payload.GetData());
         Actor->DispatchRPC(ComponentNetworkId, RPCId, RPCType, localPayload);
       }
-      return network.Broadcast(buffer, Reliability);
+      return SendToReadyClients(buffer, Reliability);
     default:
       return false;
   }
@@ -242,6 +245,7 @@ void FReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId) {
     return;
   }
 
+  ImplPtr->LastReadyTravelByConnection[ConnectionId] = "current";
   InitializeClientForCurrentScene(ConnectionId);
 }
 
@@ -434,20 +438,28 @@ void FReplicationSystem::HandleServerTravel(FNetBuffer& Buffer) {
   }
 
   if (bIsPathBased) {
-    std::string levelPath;
-    if (!Buffer.ReadString(levelPath) || levelPath.empty()) {
+    std::string LevelPath;
+    if (!Buffer.ReadString(LevelPath) || LevelPath.empty()) {
+      M_LOG("[ReplicationSystem] Server travel dropped: invalid level path payload.");
       return;
     }
 
-    SceneManager::GetInstance().OpenLevelByPath(levelPath, ENetMode::Client);
+    const bool Queued = SceneManager::GetInstance().OpenLevelByPath(LevelPath, ENetMode::Client);
+    M_LOG(
+        "[ReplicationSystem] Server travel received: type=path target={} queued={}",
+        LevelPath,
+        Queued
+    );
     return;
   }
 
-  FNetworkSceneId sceneId = 0;
-  if (!Buffer.Read(sceneId)) {
+  FNetworkSceneId SceneId = 0;
+  if (!Buffer.Read(SceneId)) {
+    M_LOG("[ReplicationSystem] Server travel dropped: invalid scene ID payload.");
     return;
   }
-  SceneManager::GetInstance().OpenLevelById(sceneId, ENetMode::Client);
+  const bool Queued = SceneManager::GetInstance().OpenLevelById(SceneId, ENetMode::Client);
+  M_LOG("[ReplicationSystem] Server travel received: type=id target={} queued={}", SceneId, Queued);
 }
 
 void FReplicationSystem::HandleClientTravelReady(
@@ -503,7 +515,8 @@ void FReplicationSystem::SendAssignedConnectionId(FNetworkConnectionId Connectio
 bool FReplicationSystem::SendServerTravelToClient(
     FNetworkConnectionId ConnectionId, FNetworkSceneId SceneId
 ) {
-  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() || ConnectionId == 0 || SceneId == 0) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() || ConnectionId == 0 ||
+      SceneId == 0) {
     return false;
   }
   FNetBuffer buffer;
@@ -517,7 +530,8 @@ bool FReplicationSystem::SendServerTravelToClient(
 bool FReplicationSystem::SendServerTravelToClient(
     FNetworkConnectionId ConnectionId, const std::string& LevelPath
 ) {
-  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() || ConnectionId == 0 || LevelPath.empty()) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer() || ConnectionId == 0 ||
+      LevelPath.empty()) {
     return false;
   }
   FNetBuffer buffer;
@@ -548,6 +562,29 @@ bool FReplicationSystem::SendClientTravelReady(const std::string& LevelPath) {
   return NetworkManager::GetInstance().SendToServer(buffer, ENetPacketReliability::Reliable);
 }
 
+bool FReplicationSystem::IsConnectionReady(FNetworkConnectionId ConnectionId) const {
+  return ImplPtr->LastReadyTravelByConnection.contains(ConnectionId);
+}
+
+bool FReplicationSystem::SendToReadyClients(
+    const FNetBuffer& Buffer, ENetPacketReliability Reliability
+) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer()) {
+    return false;
+  }
+
+  NetworkManager& Network = NetworkManager::GetInstance();
+  bool SentAny = false;
+  bool AllSucceeded = true;
+  for (const auto& ReadyConnection : ImplPtr->LastReadyTravelByConnection) {
+    const FNetworkConnectionId ConnectionId = ReadyConnection.first;
+    const bool Sent = Network.SendToClient(ConnectionId, Buffer, Reliability);
+    SentAny = SentAny || Sent;
+    AllSucceeded = AllSucceeded && Sent;
+  }
+  return SentAny && AllSucceeded;
+}
+
 void FReplicationSystem::SendInitialStateToClient(FNetworkConnectionId ConnectionId) {
   if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->GetActorManager()) {
     return;
@@ -576,13 +613,12 @@ bool FReplicationSystem::SendActorSpawn(AActor* Actor, FNetworkConnectionId Targ
   if (!Actor->SerializeNetworkSpawn(buffer)) {
     return false;
   }
-  NetworkManager& network = NetworkManager::GetInstance();
+  NetworkManager& Network = NetworkManager::GetInstance();
   if (TargetConnectionId != 0) {
-    network.SendToClient(TargetConnectionId, buffer, ENetPacketReliability::Reliable);
-    return true;
+    return IsConnectionReady(TargetConnectionId) &&
+           Network.SendToClient(TargetConnectionId, buffer, ENetPacketReliability::Reliable);
   }
-  network.Broadcast(buffer, ENetPacketReliability::Reliable);
-  return true;
+  return SendToReadyClients(buffer, ENetPacketReliability::Reliable);
 }
 
 bool FReplicationSystem::SendActorState(AActor* Actor) {
@@ -597,9 +633,9 @@ bool FReplicationSystem::SendActorState(AActor* Actor) {
   if (!Actor->SerializeNetworkState(buffer)) {
     return false;
   }
-  NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Unreliable);
+  const bool Sent = SendToReadyClients(buffer, ENetPacketReliability::Unreliable);
   Actor->UpdateReplicatedStateCache();
-  return true;
+  return Sent;
 }
 
 void FReplicationSystem::SendActorDestroy(FNetworkActorId NetworkId) {
@@ -609,7 +645,7 @@ void FReplicationSystem::SendActorDestroy(FNetworkActorId NetworkId) {
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ActorDestroy);
   buffer.Write(NetworkId);
-  NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Reliable);
+  SendToReadyClients(buffer, ENetPacketReliability::Reliable);
 }
 
 bool FReplicationSystem::EnsureServerActorRegistered(AActor* Actor) {

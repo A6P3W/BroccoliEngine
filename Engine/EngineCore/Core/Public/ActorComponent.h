@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -11,6 +10,7 @@
 #include <vector>
 
 #include "BaseObject.h"
+#include "BroccoliEngineAPI.h"
 #include "NetBuffer.h"
 #include "NetworkManager.h"
 #include "NetworkTypes.h"

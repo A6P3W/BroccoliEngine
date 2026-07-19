@@ -230,13 +230,15 @@
     <ClCompile Include="EngineCore\Utils\Private\SimpleCrypto.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\NetworkUtils.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\DebugOverlay.cpp" />
+    <ClCompile Include="EngineCore\Network\Private\ENetTransport.cpp" />
+    <ClCompile Include="EngineCore\Network\Private\EOSP2PTransport.cpp" />
     <ClCompile Include="EngineCore\Network\Private\NetBuffer.cpp" />
     <ClCompile Include="EngineCore\Network\Private\NetworkManager.cpp" />
     <ClCompile Include="EngineCore\Network\Private\ReplicationSystem.cpp" />
     <ClCompile Include="EngineCore\Online\Private\EOSAuthManager.cpp" />
     <ClCompile Include="EngineCore\Online\Private\EOSCoreManager.cpp" />
     <ClCompile Include="EngineCore\Online\Private\EOSLobbyManager.cpp" />
-    <ClCompile Include="EngineCore\Online\Private\OnlineSessionManager.cpp" />
+    <ClCompile Include="EngineCore\Online\Private\OnlinePlayManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Editor\Public\ActorClassGenerator.h" />
@@ -328,13 +330,14 @@
     <ClInclude Include="EngineCore\Network\Public\NetPacketType.h" />
     <ClInclude Include="EngineCore\Network\Public\NetBuffer.h" />
     <ClInclude Include="EngineCore\Network\Public\NetworkManager.h" />
+    <ClInclude Include="EngineCore\Network\Public\NetworkTransport.h" />
     <ClInclude Include="EngineCore\Network\Public\ReplicatedProperty.h" />
     <ClInclude Include="EngineCore\Network\Public\ReplicationSystem.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSAuthManager.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSCoreManager.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSLobbyManager.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSTypes.h" />
-    <ClInclude Include="EngineCore\Online\Public\OnlineSessionManager.h" />
+    <ClInclude Include="EngineCore\Online\Public\OnlinePlayManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Editor\Templates\CreateNewActor\Default.cpp.template" />
@@ -349,4 +352,3 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
-

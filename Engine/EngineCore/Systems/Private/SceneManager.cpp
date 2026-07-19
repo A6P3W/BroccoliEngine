@@ -1,5 +1,35 @@
 ﻿#include "SceneManager.h"
 
+#include <filesystem>
+#include <system_error>
+
+namespace {
+std::string NormalizeRuntimeLevelPath(const std::string& LevelPath) {
+  const std::filesystem::path InputPath = std::filesystem::path(LevelPath).lexically_normal();
+  if (!InputPath.is_absolute()) {
+    return InputPath.generic_string();
+  }
+
+  std::error_code ErrorCode;
+  const std::filesystem::path CurrentPath = std::filesystem::current_path(ErrorCode);
+  if (ErrorCode) {
+    return InputPath.string();
+  }
+
+  const std::filesystem::path RelativePath =
+      std::filesystem::relative(InputPath, CurrentPath, ErrorCode);
+  if (ErrorCode || RelativePath.empty()) {
+    return InputPath.string();
+  }
+
+  const auto FirstComponent = RelativePath.begin();
+  if (FirstComponent != RelativePath.end() && *FirstComponent != "..") {
+    return RelativePath.generic_string();
+  }
+  return InputPath.string();
+}
+}  // namespace
+
 struct SceneManager::Impl {
   std::unique_ptr<World> CurrentScene;
   std::function<std::unique_ptr<World>()> PendingSceneFactory;
@@ -14,22 +44,20 @@ struct SceneManager::Impl {
 
 SceneManager::SceneManager() : ImplPtr(new Impl()) {}
 
-SceneManager::~SceneManager() {
-  delete ImplPtr;
-}
+SceneManager::~SceneManager() { delete ImplPtr; }
 SceneManager& SceneManager::GetInstance() {
   static SceneManager Instance;
   return Instance;
 }
 
 #include "Actor.h"
+#include "ActorManager.h"
 #include "CameraComponent.h"
 #include "CollisionSystem.h"
 #include "EngineDefine.h"
 #include "GameModeBase.h"
 #include "GridLine.h"
 #include "LevelSerializer.h"
-#include "ActorManager.h"
 #include "RenderSystem.h"
 #include "ReplicationSystem.h"
 
@@ -78,7 +106,14 @@ bool SceneManager::OpenLevelByPath(const std::string& LevelPath, ENetMode NetMod
   if (LevelPath.empty()) {
     return false;
   }
-  QueueLevelPath(LevelPath, NetMode, 0);
+  const std::string RuntimeLevelPath = NormalizeRuntimeLevelPath(LevelPath);
+  M_LOG(
+      "[SceneManager] Queue level: requested={} runtime={} netMode={}",
+      LevelPath,
+      RuntimeLevelPath,
+      static_cast<int>(NetMode)
+  );
+  QueueLevelPath(RuntimeLevelPath, NetMode, 0);
   return true;
 }
 
@@ -103,9 +138,8 @@ void SceneManager::QueueSceneFactory(
   if (!Factory) {
     return;
   }
-  ImplPtr->PendingSceneFactory = [Factory = std::move(Factory), NetMode]() -> std::unique_ptr<World> {
-    return Factory(NetMode);
-  };
+  ImplPtr->PendingSceneFactory = [Factory = std::move(Factory),
+                                  NetMode]() -> std::unique_ptr<World> { return Factory(NetMode); };
   ImplPtr->PendingSceneId = SceneId;
   ImplPtr->PendingLevelPath.clear();
 }
@@ -127,28 +161,32 @@ void SceneManager::QueueLevelPath(
 
 void SceneManager::ProcessSceneChanges() {
   if (ImplPtr->PendingSceneFactory) {
-    RenderSystem::GetInstance().SetCameraView(nullptr);
-    auto sceneFactory = std::move(ImplPtr->PendingSceneFactory);
-    const FNetworkSceneId newSceneId = ImplPtr->PendingSceneId;
-    const std::string newLevelPath = ImplPtr->PendingLevelPath;
+    auto SceneFactory = std::move(ImplPtr->PendingSceneFactory);
+    const FNetworkSceneId NewSceneId = ImplPtr->PendingSceneId;
+    const std::string NewLevelPath = ImplPtr->PendingLevelPath;
     ImplPtr->PendingSceneFactory = nullptr;
     ImplPtr->PendingSceneId = 0;
     ImplPtr->PendingLevelPath.clear();
+
+    auto NewScene = SceneFactory();
+    if (!NewScene) {
+      M_LOG(
+          "[SceneManager] Scene change failed; current scene preserved: id={} levelPath={}",
+          NewSceneId,
+          NewLevelPath
+      );
+      return;
+    }
 
     ImplPtr->CurrentScene.reset();
     ImplPtr->CurrentSceneId = 0;
     ImplPtr->CurrentLevelPath.clear();
 
-    auto newScene = sceneFactory();
-    if (!newScene) {
-      return;
-    }
+    NewScene->GetActorManager()->FlushPendingActors();
 
-    newScene->GetActorManager()->FlushPendingActors();
-
-    ImplPtr->CurrentScene = std::move(newScene);
-    ImplPtr->CurrentSceneId = newSceneId;
-    ImplPtr->CurrentLevelPath = newLevelPath;
+    ImplPtr->CurrentScene = std::move(NewScene);
+    ImplPtr->CurrentSceneId = NewSceneId;
+    ImplPtr->CurrentLevelPath = NewLevelPath;
 
     if (ImplPtr->CurrentScene && IsDebug) {
       ImplPtr->CurrentScene->SpawnActor<AGridLine>();
@@ -168,9 +206,10 @@ void SceneManager::ProcessSceneChanges() {
       ImplPtr->CurrentScene->GetReplicationSystem()->NotifySceneLoaded();
     }
     M_LOG(
-        "Scene changed to ID: {}, NetMode: {}",
+        "Scene changed to ID: {}, NetMode: {}, CameraActive: {}",
         ImplPtr->CurrentSceneId,
-        static_cast<int>(ImplPtr->CurrentScene->GetNetMode())
+        static_cast<int>(ImplPtr->CurrentScene->GetNetMode()),
+        RenderSystem::GetInstance().GetCamera() != nullptr
     );
   }
 }

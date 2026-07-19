@@ -23,7 +23,7 @@
 #include "Log.h"
 #include "MouseDevice.h"
 #include "NetworkManager.h"
-#include "OnlineSessionManager.h"
+#include "OnlinePlayManager.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "TimerManager.h"
@@ -184,13 +184,14 @@ bool Application::Run() {
   }
 
   SceneManager::GetInstance().Shutdown();
-  OnlineSessionManager::Get().Shutdown();
-  EOSLobbyManager::Get().Shutdown();
-  EOSAuthManager::Get().Shutdown();
+  OnlinePlayManager::GetInstance().Shutdown();
+  NetworkManager::GetInstance().Stop();
+  EOSLobbyManager::GetInstance().Shutdown();
+  EOSAuthManager::GetInstance().Shutdown();
   for (int TickIndex = 0; TickIndex < 3; ++TickIndex) {
-    EOSCoreManager::Get().Tick();
+    EOSCoreManager::GetInstance().Tick();
   }
-  EOSCoreManager::Get().Shutdown();
+  EOSCoreManager::GetInstance().Shutdown();
   Shutdown();
 
   return true;
@@ -212,8 +213,8 @@ bool Application::Update(float DeltaTime) {
   ImGui::NewFrame();
 
   SceneManager::GetInstance().ProcessSceneChanges();
+  EOSCoreManager::GetInstance().Tick();
   NetworkManager::GetInstance().Service();
-  EOSCoreManager::Get().Tick();
   InputManager::GetInstance().Update();
   HttpManager::GetInstance().Update();
 #if !defined(_RELEASE)

@@ -1,8 +1,7 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
-
 #include <string>
 
+#include "BroccoliEngineAPI.h"
 #include "NetworkManager.h"
 #include "NetworkTypes.h"
 
@@ -53,6 +52,9 @@ class BROCCOLI_ENGINE_API FReplicationSystem {
   bool SendServerTravelToClient(FNetworkConnectionId ConnectionId, const std::string& LevelPath);
   bool SendClientTravelReady(FNetworkSceneId SceneId);
   bool SendClientTravelReady(const std::string& LevelPath);
+
+  bool IsConnectionReady(FNetworkConnectionId ConnectionId) const;
+  bool SendToReadyClients(const FNetBuffer& Buffer, ENetPacketReliability Reliability);
 
   void SendInitialStateToClient(FNetworkConnectionId ConnectionId);
   bool SendActorSpawn(AActor* Actor, FNetworkConnectionId TargetConnectionId = 0);

@@ -10,32 +10,34 @@
 REGISTER_ACTOR(ANetworkTestForceFieldActor)
 
 ANetworkTestForceFieldActor::ANetworkTestForceFieldActor() {
-  // アクターが持つ力場制御コンポーネントを取得
+  // アクターが持つ力場制御コンポーネントを取得する関数
   MForceFieldComponent* ForceField = GetForceFieldComponent();
   if (ForceField) {
-    // 力場の種類を「一方向への力（指向性力場）」に設定
+    // 力場の種類を「一方向への力（指向性力場）」に設定する関数
     ForceField->SetForceType(EForceFieldType::Directional);
-    // 力の方向ベクトルを設定（X軸プラス方向）
+    // 力の方向ベクトルを設定（X軸プラス方向）する関数
     ForceField->SetDirection({1.0f, 0.0f});
-    // 力の強さを設定
+    // 力の強さを設定する関数
     ForceField->SetStrength(0.5f);
-    // この力場の影響を受けるアクターが持つべきタグを設定
+    // この力場の影響を受けるアクターが持つべきタグを設定する関数
     ForceField->SetAffectedActorTags({"ForceFieldAffected"});
-    // 力場を有効化
+    // 力場を有効化する関数
     ForceField->SetActive(true);
   }
 
-  // 力場の範囲を規定するコリジョンコンポーネントを取得
+  // 力場の範囲を規定するコリジョンコンポーネントを取得する関数
   MCircleCollisionComponent* Range = dynamic_cast<MCircleCollisionComponent*>(GetRangeComponent());
   if (Range) {
-    // 影響が及ぶ円の半径を設定
+    // 影響が及ぶ円の半径を設定する関数
     Range->SetRadius(160.0f);
   }
 
   // 指定したアクター（this）を所有者として、描画用のスプライトコンポーネント（MSpriteComponent）を動的に作成するエンジンの関数
   FieldMarker = NewObject<MSpriteComponent>(this);
   if (FieldMarker) {
+    // 描画順の優先度（8）と、描画空間をワールド座標（RenderSpace::World）に設定する関数
     FieldMarker->SetRenderSettings(8, RenderSpace::World);
+    // 半径 18.0f、水色（R:80, G:190, B:255）、塗りつぶしあり(true) の円形描画データを登録する関数
     FieldMarker->SubmitCircle(18.0f, FColor{80, 190, 255}, true);
     // コンポーネントをエンジンシステムに登録し、初期化やアップデート、レンダリングなどのライフサイクル処理の対象にする関数
     FieldMarker->RegisterComponent();

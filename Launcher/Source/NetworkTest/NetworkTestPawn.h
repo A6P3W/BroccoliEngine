@@ -42,12 +42,6 @@ class ANetworkTestPawn : public APawn {
 
   void SetStatusMessage(const std::string& Message);
 
-  // リスンサーバーとしてマルチプレイセッションを起動し、他クライアントの待受を開始する設定関数
-  bool StartListenServer(uint16_t Port);
-
-  // クライアントとして稼働しているサーバーへネットワーク接続を行う設定関数
-  bool ConnectAsClient(const std::string& HostAddress, uint16_t Port);
-
  private:
   void OnMove(const FInputActionValue& Value);
   void OnInteract(const FInputActionValue& Value);
@@ -60,6 +54,4 @@ class ANetworkTestPawn : public APawn {
   MNetworkTestRepComponent* ReplicationTest = nullptr;
   std::unique_ptr<FNetworkTestUI> NetworkTestUI;
   float FlashTimer = 0.0f;
-
-  bool bSessionStarted = false;
 };

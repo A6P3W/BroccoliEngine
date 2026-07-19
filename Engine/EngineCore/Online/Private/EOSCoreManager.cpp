@@ -39,7 +39,7 @@ void EOS_CALL HandleEOSLogMessage(const EOS_LogMessage* Message) {
 }
 }  // namespace
 
-EOSCoreManager& EOSCoreManager::Get() {
+EOSCoreManager& EOSCoreManager::GetInstance() {
   static EOSCoreManager Instance;
   return Instance;
 }
@@ -163,6 +163,12 @@ void EOSCoreManager::Shutdown() {
   TickCount = 0;
 }
 
+EOS_HP2P EOSCoreManager::GetP2PHandle() const {
+  if (!PlatformHandle) {
+    return nullptr;
+  }
+  return EOS_Platform_GetP2PInterface(PlatformHandle);
+}
 bool EOSCoreManager::IsInitialized() const { return bInitialized; }
 EOS_HPlatform EOSCoreManager::GetPlatformHandle() const { return PlatformHandle; }
 EOS_HConnect EOSCoreManager::GetConnectHandle() const {

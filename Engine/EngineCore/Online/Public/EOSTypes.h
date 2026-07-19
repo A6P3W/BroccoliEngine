@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "NetworkTypes.h"
+
 struct FEOSConfig {
   const char* ProductName = nullptr;
   const char* ProductVersion = nullptr;
@@ -19,7 +21,7 @@ struct FEOSConfig {
 
 enum class ELobbyAttributeType { String, Int64, Double, Bool };
 
-enum class ELobbyDisconnectReason { Kicked, HostLeft, NetworkError, LobbyClosed, AuthLost };
+using ELobbyDisconnectReason = ESessionDisconnectReason;
 
 enum class EAuthLossReason { TokenExpired, NetworkError, Unknown };
 
@@ -69,6 +71,7 @@ struct FLobbyAttribute {
 
 struct FLobbyInfo {
   std::string LobbyId;
+  std::string OwnerProductUserId;
   std::string HostIPAddress;
 
   int CurrentMembers = 0;
@@ -111,6 +114,7 @@ struct FCreateLobbyRequest {
   bool bPublicAdvertised = true;
   std::string BucketId = "BroccoliNetworkTest";
   std::string HostIPAddress;
+  uint16_t Port = 7777;
 
   std::vector<FLobbyAttribute> Attributes;
 };

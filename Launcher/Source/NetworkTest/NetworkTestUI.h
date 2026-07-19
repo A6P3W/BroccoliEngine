@@ -25,18 +25,18 @@ class FNetworkTestUI {
 
   // EOS Connect サービスへデバイス ID を用いてログインする関数
   void LoginWithDeviceId();
-  // サーバーとして EOS ロビー（LAN用）を新規作成する関数
-  void CreateLanLobby();
+  // サーバーとして オンラインロビーを新規作成する関数
+  void HostOnlineLobby();
   // アクティブな EOS ロビーを検索する関数
   void SearchOnlineLobbies();
   // 選択された EOS ロビーにクライアントとして参加する関数
-  void JoinSelectedLanLobby();
-  // 現在の EOS ロビーセッションから退出する関数
-  void LeaveOnlineSession();
+  void JoinSelectedLobby();
+  // 現在の オンラインロビーから退出する関数
+  void LeaveOnlineLobby();
 
   ANetworkTestPawn& Owner;
 
-  char ServerAddress[64] = "127.0.0.1";
+  bool UseEOSP2P = false;
   int Port = 7777;
   std::string StatusMessage;
 

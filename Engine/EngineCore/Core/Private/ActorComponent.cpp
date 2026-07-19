@@ -30,7 +30,6 @@ MActorComponent::~MActorComponent() {
   ImplPtr = nullptr;
 }
 
-
 bool MActorComponent::IsPendingDestroy() const { return ImplPtr->PendingDestroy; }
 
 bool MActorComponent::IsRegistered() const {
@@ -98,8 +97,9 @@ void MActorComponent::UnRegisterComponent() {
   }
 
   OnUnregister();
-  ImplPtr->RegistrationState = ImplPtr->PendingDestroy ? EActorComponentRegistrationState::PendingDestroy
-                                      : EActorComponentRegistrationState::Created;
+  ImplPtr->RegistrationState = ImplPtr->PendingDestroy
+                                   ? EActorComponentRegistrationState::PendingDestroy
+                                   : EActorComponentRegistrationState::Created;
 }
 
 bool MActorComponent::CompleteRegistration() {
@@ -150,7 +150,9 @@ void MActorComponent::DestroyComponent() {
   ImplPtr->RegistrationState = EActorComponentRegistrationState::PendingDestroy;
 }
 
-void MActorComponent::SetNetComponentName(std::string Name) { ImplPtr->NetComponentName = std::move(Name); }
+void MActorComponent::SetNetComponentName(std::string Name) {
+  ImplPtr->NetComponentName = std::move(Name);
+}
 
 void MActorComponent::SerializeNetworkState(FNetBuffer& OutBuffer) {
   for (const auto& replicatedProperty : ImplPtr->ReplicatedProperties) {

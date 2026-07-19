@@ -6,12 +6,10 @@
 
 #include "EnhancedInputComponent.h"
 #include "Log.h"
-#include "NetworkManager.h"
 #include "NetworkTestGameMode.h"
 #include "NetworkTestRepComponent.h"
 #include "NetworkTestUI.h"
 #include "SpriteComponent.h"
-#include "World.h"
 
 // このアクタークラスを アクター登録システム (ActorRegistry) に一般アクターとして自動登録するマクロ。
 REGISTER_ACTOR(ANetworkTestPawn)
@@ -97,6 +95,7 @@ void ANetworkTestPawn::OnUpdate(float DeltaTime) {
   }
 
   if (BodySprite) {
+    // 指定されたサイズ（幅・高さ: 48.0f）、色（FColor）、および塗りつぶし設定で矩形（ボックス）の描画データを毎フレーム登録する関数。
     BodySprite->SubmitBox(48.0f, 48.0f, GetDisplayColor(), true);
   }
 }
@@ -169,6 +168,8 @@ void ANetworkTestPawn::BeginOverlap(AActor* OtherActor) {
   AActor::BeginOverlap(OtherActor);
 
   if (auto OtherPawn = dynamic_cast<ANetworkTestPawn*>(OtherActor)) {
+    // コンソールおよびログファイルにデバッグ用メッセージを出力するエンジンログマクロ
+    // NetworkId: アクターが一意に持つネットワーク識別子
     M_LOG(
         "Player overlap detected! My NetworkId: {}, Other NetworkId: {}",
         NetworkId,
@@ -181,28 +182,4 @@ void ANetworkTestPawn::SetStatusMessage(const std::string& Message) {
   if (bIsLocallyControlled && NetworkTestUI) {
     NetworkTestUI->SetStatusMessage(Message);
   }
-}
-
-bool ANetworkTestPawn::StartListenServer(uint16_t Port) {
-  // 指定ポートでサーバーを起動
-  if (NetworkManager::GetInstance().StartServer(Port)) {
-    // ワールドのネットワークモードを ListenServer（サーバー兼ホストプレイヤー）に設定
-    GetWorld()->SetNetMode(ENetMode::ListenServer);
-    bSessionStarted = true;
-    return true;
-  }
-
-  return false;
-}
-
-bool ANetworkTestPawn::ConnectAsClient(const std::string& HostAddress, uint16_t Port) {
-  // 指定されたアドレスとポートへクライアントとして接続を試みる
-  if (NetworkManager::GetInstance().ConnectToServer(HostAddress, Port)) {
-    // ワールドのネットワークモードを Client に設定
-    GetWorld()->SetNetMode(ENetMode::Client);
-    bSessionStarted = true;
-    return true;
-  }
-
-  return false;
 }
