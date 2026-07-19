@@ -53,8 +53,10 @@ void MNetworkTestRepComponent::RequestTest(int PlayerId) {
   );
 
   // クライアント側からサーバー側へ登録された RPC (RPC_ComponentServerTest) の呼び出しを要求するエンジンの関数。
-  // 信頼性設定には、パケットの確実な到達を保証する ENetworkReliability::Reliable を指定。
-  InvokeRPC(RPC_ComponentServerTest, ENetRPCType::Server, ENetworkReliability::Reliable, PlayerId);
+  // 信頼性設定には、パケットの確実な到達を保証する ENetPacketReliability::Reliable を指定。
+  InvokeRPC(
+      RPC_ComponentServerTest, ENetRPCType::Server, ENetPacketReliability::Reliable, PlayerId
+  );
 }
 
 void MNetworkTestRepComponent::OnUpdate(float DeltaTime) {
@@ -100,7 +102,7 @@ void MNetworkTestRepComponent::Server_ComponentTest(int PlayerId) {
   InvokeRPC(
       RPC_ComponentMulticastTest,
       ENetRPCType::Multicast,
-      ENetworkReliability::Reliable,
+      ENetPacketReliability::Reliable,
       PlayerId,
       ReplicatedCounter
   );

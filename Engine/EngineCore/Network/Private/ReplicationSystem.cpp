@@ -173,7 +173,8 @@ bool FReplicationSystem::SendActorRPC(
         FNetBuffer localPayload(Payload.GetData());
         return Actor->DispatchRPC(ComponentNetworkId, RPCId, RPCType, localPayload);
       }
-      return network.SendToClient(Actor->OwnerConnectionId, buffer, Reliability);
+      return IsConnectionReady(Actor->OwnerConnectionId) &&
+             network.SendToClient(Actor->OwnerConnectionId, buffer, Reliability);
     case ENetRPCType::Multicast:
       if (!ImplPtr->OwnerWorld->IsServer() || !Actor->bHasAuthority) {
         return false;
@@ -182,7 +183,7 @@ bool FReplicationSystem::SendActorRPC(
         FNetBuffer localPayload(Payload.GetData());
         Actor->DispatchRPC(ComponentNetworkId, RPCId, RPCType, localPayload);
       }
-      return network.Broadcast(buffer, Reliability);
+      return SendToReadyClients(buffer, Reliability);
     default:
       return false;
   }
@@ -244,6 +245,7 @@ void FReplicationSystem::HandleConnected(FNetworkConnectionId ConnectionId) {
     return;
   }
 
+  ImplPtr->LastReadyTravelByConnection[ConnectionId] = "current";
   InitializeClientForCurrentScene(ConnectionId);
 }
 
@@ -560,6 +562,29 @@ bool FReplicationSystem::SendClientTravelReady(const std::string& LevelPath) {
   return NetworkManager::GetInstance().SendToServer(buffer, ENetPacketReliability::Reliable);
 }
 
+bool FReplicationSystem::IsConnectionReady(FNetworkConnectionId ConnectionId) const {
+  return ImplPtr->LastReadyTravelByConnection.contains(ConnectionId);
+}
+
+bool FReplicationSystem::SendToReadyClients(
+    const FNetBuffer& Buffer, ENetPacketReliability Reliability
+) {
+  if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->IsServer()) {
+    return false;
+  }
+
+  NetworkManager& Network = NetworkManager::GetInstance();
+  bool SentAny = false;
+  bool AllSucceeded = true;
+  for (const auto& ReadyConnection : ImplPtr->LastReadyTravelByConnection) {
+    const FNetworkConnectionId ConnectionId = ReadyConnection.first;
+    const bool Sent = Network.SendToClient(ConnectionId, Buffer, Reliability);
+    SentAny = SentAny || Sent;
+    AllSucceeded = AllSucceeded && Sent;
+  }
+  return SentAny && AllSucceeded;
+}
+
 void FReplicationSystem::SendInitialStateToClient(FNetworkConnectionId ConnectionId) {
   if (!ImplPtr->OwnerWorld || !ImplPtr->OwnerWorld->GetActorManager()) {
     return;
@@ -588,13 +613,12 @@ bool FReplicationSystem::SendActorSpawn(AActor* Actor, FNetworkConnectionId Targ
   if (!Actor->SerializeNetworkSpawn(buffer)) {
     return false;
   }
-  NetworkManager& network = NetworkManager::GetInstance();
+  NetworkManager& Network = NetworkManager::GetInstance();
   if (TargetConnectionId != 0) {
-    network.SendToClient(TargetConnectionId, buffer, ENetPacketReliability::Reliable);
-    return true;
+    return IsConnectionReady(TargetConnectionId) &&
+           Network.SendToClient(TargetConnectionId, buffer, ENetPacketReliability::Reliable);
   }
-  network.Broadcast(buffer, ENetPacketReliability::Reliable);
-  return true;
+  return SendToReadyClients(buffer, ENetPacketReliability::Reliable);
 }
 
 bool FReplicationSystem::SendActorState(AActor* Actor) {
@@ -609,9 +633,9 @@ bool FReplicationSystem::SendActorState(AActor* Actor) {
   if (!Actor->SerializeNetworkState(buffer)) {
     return false;
   }
-  NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Unreliable);
+  const bool Sent = SendToReadyClients(buffer, ENetPacketReliability::Unreliable);
   Actor->UpdateReplicatedStateCache();
-  return true;
+  return Sent;
 }
 
 void FReplicationSystem::SendActorDestroy(FNetworkActorId NetworkId) {
@@ -621,7 +645,7 @@ void FReplicationSystem::SendActorDestroy(FNetworkActorId NetworkId) {
   FNetBuffer buffer;
   buffer.Write(ENetPacketType::ActorDestroy);
   buffer.Write(NetworkId);
-  NetworkManager::GetInstance().Broadcast(buffer, ENetPacketReliability::Reliable);
+  SendToReadyClients(buffer, ENetPacketReliability::Reliable);
 }
 
 bool FReplicationSystem::EnsureServerActorRegistered(AActor* Actor) {

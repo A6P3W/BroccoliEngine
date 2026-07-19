@@ -53,6 +53,9 @@ class BROCCOLI_ENGINE_API FReplicationSystem {
   bool SendClientTravelReady(FNetworkSceneId SceneId);
   bool SendClientTravelReady(const std::string& LevelPath);
 
+  bool IsConnectionReady(FNetworkConnectionId ConnectionId) const;
+  bool SendToReadyClients(const FNetBuffer& Buffer, ENetPacketReliability Reliability);
+
   void SendInitialStateToClient(FNetworkConnectionId ConnectionId);
   bool SendActorSpawn(AActor* Actor, FNetworkConnectionId TargetConnectionId = 0);
   bool SendActorState(AActor* Actor);

@@ -184,30 +184,52 @@ void FNetworkTestUI::DrawOnlineWindow() {
 void FNetworkTestUI::DrawStatusWindow() {
   ImGui::Begin("Network Status");
 
-  const char* modeText = "Standalone";
+  World* OwnerWorld = Owner.GetWorld();
+  const char* ModeText = "Standalone";
   // ワールドが ListenServer（サーバー＆クライアント）か、Client かを判定して表記を分ける
   // IsListenServer(): 現在の実行環境が ListenServer 役割（ホスト＆クライアント）かどうかを判定する関数
   // IsClient(): 現在の実行環境が Client 役割（リモート接続）かどうかを判定する関数
-  if (Owner.GetWorld()->IsListenServer()) {
-    modeText = "ListenServer";
-  } else if (Owner.GetWorld()->IsClient()) {
-    modeText = "Client";
+  if (OwnerWorld->IsListenServer()) {
+    ModeText = "ListenServer";
+  } else if (OwnerWorld->IsClient()) {
+    ModeText = "Client";
   }
 
   // ネットワーク処理の低レイヤーマネージャーを取得する関数
-  NetworkManager& network = NetworkManager::GetInstance();
-  ImGui::Text("Mode: %s", modeText);
+  NetworkManager& Network = NetworkManager::GetInstance();
+  ImGui::Text("Mode: %s", ModeText);
   // ネットワーク接続が現在稼働しているかを取得する関数
-  ImGui::Text("Network running: %s", network.IsRunning() ? "true" : "false");
+  ImGui::Text("Network running: %s", Network.IsRunning() ? "true" : "false");
   // ローカル環境自身のネットワーク接続IDを取得（未接続・単体起動時は無効値）する関数
-  ImGui::Text("Local ConnectionId: %u", network.GetLocalConnectionId());
+  ImGui::Text("Local ConnectionId: %u", Network.GetLocalConnectionId());
 
-  bool bHostSpawned = false;
-  if (auto gameMode = dynamic_cast<ANetworkTestGameMode*>(Owner.GetWorld()->GetGameMode())) {
+  bool HostSpawned = false;
+  ANetworkTestGameMode* GameMode = dynamic_cast<ANetworkTestGameMode*>(OwnerWorld->GetGameMode());
+  if (GameMode) {
     // サーバーのホストプレイヤー（ホスト Pawn）がワールド上に生成済みか判定する関数
-    bHostSpawned = gameMode->IsHostPlayerSpawned();
+    HostSpawned = GameMode->IsHostPlayerSpawned();
   }
-  ImGui::Text("Host player spawned: %s", bHostSpawned ? "true" : "false");
+  ImGui::Text("Host player spawned: %s", HostSpawned ? "true" : "false");
+
+  if (GameMode) {
+    const char* TargetLevelPath = GameMode->GetTravelTargetLevelPath();
+    ImGui::Separator();
+    ImGui::TextWrapped("Server travel target: %s", TargetLevelPath);
+
+    const bool CanServerTravel = OwnerWorld->IsListenServer();
+    if (!CanServerTravel) {
+      ImGui::BeginDisabled();
+    }
+    if (ImGui::Button(GameMode->GetTravelButtonText())) {
+      const bool TravelQueued = OwnerWorld->ServerTravel(std::string(TargetLevelPath));
+      StatusMessage = TravelQueued ? std::string("Server travel queued: ") + TargetLevelPath
+                                   : std::string("Server travel failed: ") + TargetLevelPath;
+    }
+    if (!CanServerTravel) {
+      ImGui::EndDisabled();
+      ImGui::TextDisabled("Server travel is available only on the listen server.");
+    }
+  }
   ImGui::End();
 }
 
