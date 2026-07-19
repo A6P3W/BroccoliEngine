@@ -221,8 +221,13 @@ void NetworkManager::Disconnect() {
   if (bIsClient && ImplPtr->ServerPeerId != 0) {
     ImplPtr->Transport->Disconnect(ImplPtr->ServerPeerId);
   } else {
+    std::vector<FNetworkPeerId> PeerIds;
+    PeerIds.reserve(ImplPtr->PeersByConnectionId.size());
     for (const auto& Pair : ImplPtr->PeersByConnectionId) {
-      ImplPtr->Transport->Disconnect(Pair.second.TransportPeerId);
+      PeerIds.push_back(Pair.second.TransportPeerId);
+    }
+    for (FNetworkPeerId PeerId : PeerIds) {
+      ImplPtr->Transport->Disconnect(PeerId);
     }
   }
   M_LOG("[NetworkManager] Graceful disconnect requested.");
