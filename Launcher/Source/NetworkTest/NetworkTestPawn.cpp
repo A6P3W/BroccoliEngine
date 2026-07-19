@@ -6,12 +6,10 @@
 
 #include "EnhancedInputComponent.h"
 #include "Log.h"
-#include "NetworkManager.h"
 #include "NetworkTestGameMode.h"
 #include "NetworkTestRepComponent.h"
 #include "NetworkTestUI.h"
 #include "SpriteComponent.h"
-#include "World.h"
 
 // このアクタークラスを アクター登録システム (ActorRegistry) に一般アクターとして自動登録するマクロ。
 REGISTER_ACTOR(ANetworkTestPawn)
@@ -184,33 +182,4 @@ void ANetworkTestPawn::SetStatusMessage(const std::string& Message) {
   if (bIsLocallyControlled && NetworkTestUI) {
     NetworkTestUI->SetStatusMessage(Message);
   }
-}
-
-bool ANetworkTestPawn::StartListenServer(uint16_t Port) {
-  // ネットワーク接続全体を管理する NetworkManager のシングルトンインスタンスを取得する関数。
-  NetworkManager& Network = NetworkManager::GetInstance();
-  // OnlineSessionManager がLobby作成後にTransportを開始済みの場合は、ゲーム側の状態だけを反映。
-  // IsRunning(): ネットワーク機能が現在稼働しているかを判定する関数。
-  // IsServer(): 現在の実行環境がサーバーとして動作しているかを判定する関数。
-  // StartServer(): 指定したポート番号でサーバーとしての待受を開始する関数。
-  if ((Network.IsRunning() && Network.IsServer()) || Network.StartServer(Port)) {
-    // ワールドのネットワークモードを ListenServer（サーバー兼ホストプレイヤー）に設定
-    GetWorld()->SetNetMode(ENetMode::ListenServer);
-    bSessionStarted = true;
-    return true;
-  }
-
-  return false;
-}
-
-bool ANetworkTestPawn::ConnectAsClient(const std::string& HostAddress, uint16_t Port) {
-  // 指定されたアドレスとポートへクライアントとして接続を試みる関数。
-  if (NetworkManager::GetInstance().ConnectToServer(HostAddress, Port)) {
-    // ワールドのネットワークモードを Client に設定
-    GetWorld()->SetNetMode(ENetMode::Client);
-    bSessionStarted = true;
-    return true;
-  }
-
-  return false;
 }

@@ -238,7 +238,7 @@
     <ClCompile Include="EngineCore\Online\Private\EOSAuthManager.cpp" />
     <ClCompile Include="EngineCore\Online\Private\EOSCoreManager.cpp" />
     <ClCompile Include="EngineCore\Online\Private\EOSLobbyManager.cpp" />
-    <ClCompile Include="EngineCore\Online\Private\OnlineSessionManager.cpp" />
+    <ClCompile Include="EngineCore\Online\Private\OnlinePlayManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Editor\Public\ActorClassGenerator.h" />
@@ -336,7 +336,7 @@
     <ClInclude Include="EngineCore\Online\Public\EOSCoreManager.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSLobbyManager.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSTypes.h" />
-    <ClInclude Include="EngineCore\Online\Public\OnlineSessionManager.h" />
+    <ClInclude Include="EngineCore\Online\Public\OnlinePlayManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Editor\Templates\CreateNewActor\Default.cpp.template" />

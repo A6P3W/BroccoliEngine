@@ -23,7 +23,7 @@
 #include "Log.h"
 #include "MouseDevice.h"
 #include "NetworkManager.h"
-#include "OnlineSessionManager.h"
+#include "OnlinePlayManager.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "TimerManager.h"
@@ -184,7 +184,7 @@ bool Application::Run() {
   }
 
   SceneManager::GetInstance().Shutdown();
-  OnlineSessionManager::GetInstance().Shutdown();
+  OnlinePlayManager::GetInstance().Shutdown();
   NetworkManager::GetInstance().Stop();
   EOSLobbyManager::GetInstance().Shutdown();
   EOSAuthManager::GetInstance().Shutdown();

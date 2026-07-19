@@ -1,5 +1,7 @@
 ﻿#include <enet/enet.h>
 
+#include <array>
+#include <string>
 #include <unordered_map>
 #include <utility>
 
@@ -7,6 +9,41 @@
 #include "NetworkTransport.h"
 
 namespace {
+std::string GetENetAddressText(const ENetAddress& Address) {
+  std::array<char, 64> AddressBuffer = {};
+  if (enet_address_get_host_ip(&Address, AddressBuffer.data(), AddressBuffer.size()) != 0) {
+    return "<unresolved>:" + std::to_string(Address.port);
+  }
+  return std::string(AddressBuffer.data()) + ":" + std::to_string(Address.port);
+}
+
+const char* GetENetPeerStateName(ENetPeerState State) {
+  switch (State) {
+    case ENET_PEER_STATE_DISCONNECTED:
+      return "Disconnected";
+    case ENET_PEER_STATE_CONNECTING:
+      return "Connecting";
+    case ENET_PEER_STATE_ACKNOWLEDGING_CONNECT:
+      return "AcknowledgingConnect";
+    case ENET_PEER_STATE_CONNECTION_PENDING:
+      return "ConnectionPending";
+    case ENET_PEER_STATE_CONNECTION_SUCCEEDED:
+      return "ConnectionSucceeded";
+    case ENET_PEER_STATE_CONNECTED:
+      return "Connected";
+    case ENET_PEER_STATE_DISCONNECT_LATER:
+      return "DisconnectLater";
+    case ENET_PEER_STATE_DISCONNECTING:
+      return "Disconnecting";
+    case ENET_PEER_STATE_ACKNOWLEDGING_DISCONNECT:
+      return "AcknowledgingDisconnect";
+    case ENET_PEER_STATE_ZOMBIE:
+      return "Zombie";
+    default:
+      return "Unknown";
+  }
+}
+
 enet_uint32 GetENetPacketFlags(ENetworkReliability Reliability) {
   return Reliability == ENetworkReliability::Reliable ? ENET_PACKET_FLAG_RELIABLE : 0;
 }
@@ -83,10 +120,14 @@ class FENetTransport final : public INetworkTransport {
 
     OutPeerId = RegisterPeer(Peer);
     M_LOG(
-        "[NetworkTransport] ENet connection requested: host={} port={} peer={}",
+        "[NetworkTransport] ENet connection requested: host={} port={} peer={} resolved={} "
+        "state={} channels={}",
         Endpoint.HostName,
         Endpoint.Port,
-        OutPeerId
+        OutPeerId,
+        GetENetAddressText(Peer->address),
+        GetENetPeerStateName(Peer->state),
+        ChannelCount
     );
     return true;
   }
@@ -97,14 +138,32 @@ class FENetTransport final : public INetworkTransport {
     }
 
     ENetEvent Event{};
-    if (enet_host_service(Host, &Event, 0) <= 0) {
+    const int ServiceResult = enet_host_service(Host, &Event, 0);
+    if (ServiceResult < 0) {
+      M_LOG(
+          "[NetworkTransport] ENet service error: result={} peerCount={}",
+          ServiceResult,
+          PeersById.size()
+      );
+      return false;
+    }
+    if (ServiceResult == 0) {
       return false;
     }
 
     switch (Event.type) {
       case ENET_EVENT_TYPE_CONNECT: {
         const FNetworkPeerId PeerId = RegisterPeer(Event.peer);
-        M_LOG("[NetworkTransport] ENet peer connected: peer={}", PeerId);
+        M_LOG(
+            "[NetworkTransport] ENet peer connected: peer={} remote={} state={} eventData={} "
+            "roundTripTime={} packetLoss={}",
+            PeerId,
+            GetENetAddressText(Event.peer->address),
+            GetENetPeerStateName(Event.peer->state),
+            Event.data,
+            Event.peer->roundTripTime,
+            Event.peer->packetLoss
+        );
         if (OnConnected) {
           OnConnected(PeerId);
         }
@@ -112,8 +171,21 @@ class FENetTransport final : public INetworkTransport {
       }
       case ENET_EVENT_TYPE_DISCONNECT: {
         const FNetworkPeerId PeerId = FindPeerId(Event.peer);
+        const std::string RemoteEndpoint = GetENetAddressText(Event.peer->address);
+        const std::string PeerState = GetENetPeerStateName(Event.peer->state);
+        const enet_uint32 RoundTripTime = Event.peer->roundTripTime;
+        const enet_uint32 PacketLoss = Event.peer->packetLoss;
         RemovePeer(Event.peer);
-        M_LOG("[NetworkTransport] ENet peer disconnected: peer={}", PeerId);
+        M_LOG(
+            "[NetworkTransport] ENet peer disconnected: peer={} remote={} state={} eventData={} "
+            "roundTripTime={} packetLoss={}",
+            PeerId,
+            RemoteEndpoint,
+            PeerState,
+            Event.data,
+            RoundTripTime,
+            PacketLoss
+        );
         if (PeerId != 0 && OnDisconnected) {
           OnDisconnected(PeerId, ESessionDisconnectReason::RemoteLeave);
         }
