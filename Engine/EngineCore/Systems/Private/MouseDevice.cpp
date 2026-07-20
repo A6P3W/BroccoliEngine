@@ -19,9 +19,7 @@ MouseDevice::MouseDevice() : ImplPtr(new Impl()) {
   ImplPtr->PrevMouseY = ImplPtr->CurrentMouseY;
 }
 
-MouseDevice::~MouseDevice() {
-  delete ImplPtr;
-}
+MouseDevice::~MouseDevice() { delete ImplPtr; }
 
 void MouseDevice::Update() {
   ImplPtr->PrevButtons = ImplPtr->Buttons;
@@ -30,6 +28,13 @@ void MouseDevice::Update() {
   ImplPtr->PrevMouseX = ImplPtr->CurrentMouseX;
   ImplPtr->PrevMouseY = ImplPtr->CurrentMouseY;
   GetMousePoint(&ImplPtr->CurrentMouseX, &ImplPtr->CurrentMouseY);
+}
+
+bool MouseDevice::HasInputThisFrame() const {
+  const bool bButtonPressed = (~ImplPtr->PrevButtons & ImplPtr->Buttons) != 0;
+  const bool bMoved = ImplPtr->CurrentMouseX != ImplPtr->PrevMouseX ||
+                      ImplPtr->CurrentMouseY != ImplPtr->PrevMouseY;
+  return bButtonPressed || ImplPtr->WheelDelta != 0.0f || bMoved;
 }
 
 bool MouseDevice::GetPressStart(int code) const {

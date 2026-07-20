@@ -1,5 +1,6 @@
 ﻿#include "EnhancedInputComponent.h"
 
+#include <cmath>
 #include <unordered_map>
 #include <vector>
 
@@ -14,6 +15,7 @@ struct MEnhancedInputComponent::Impl {
   std::vector<FInputBinding> Bindings;
   std::unordered_map<std::string, FVector2D> LastAxis2DValues;
   std::unordered_map<std::string, float> LastAxis1DValues;
+  std::unordered_map<std::string, EInputDeviceType> LastSourceDevices;
   bool bIsFirstProcess = true;
 };
 
@@ -25,6 +27,7 @@ void MEnhancedInputComponent::ClearBindings() {
   ImplPtr->Bindings.clear();
   ImplPtr->LastAxis2DValues.clear();
   ImplPtr->LastAxis1DValues.clear();
+  ImplPtr->LastSourceDevices.clear();
   ImplPtr->bIsFirstProcess = true;
 }
 
@@ -38,84 +41,107 @@ void MEnhancedInputComponent::AddBinding(
 }
 
 void MEnhancedInputComponent::ProcessInputBindings(
-    const InputMapper& mapper, bool AllowUI, bool AllowGame
+    const InputMapper& Mapper, bool AllowUI, bool AllowGame
 ) {
-  std::unordered_map<std::string, FVector2D> currentFrameAxis2D;
-  std::unordered_map<std::string, float> currentFrameAxis1D;
+  std::unordered_map<std::string, FVector2D> CurrentFrameAxis2D;
+  std::unordered_map<std::string, float> CurrentFrameAxis1D;
+  std::unordered_map<std::string, EInputDeviceType> CurrentFrameSourceDevices;
   constexpr float EpsilonSq = 0.0001f;
 
-  for (const auto& b : ImplPtr->Bindings) {
-    bool is2DAxis = false;
-    FVector2D currentAxis2D = FVector2D::ZeroVector();
-    float currentAxis1D = mapper.GetAxisValue(b.ActionName);
+  for (const auto& Binding : ImplPtr->Bindings) {
+    bool bIs2DAxis = false;
+    FVector2D CurrentAxis2D = FVector2D::ZeroVector();
+    float CurrentAxis1D = Mapper.GetAxisValue(Binding.ActionName);
+    EInputDeviceType CurrentSourceDevice = Mapper.GetAxisValueDevice(Binding.ActionName);
 
-    if (b.ActionName == InputAction::Move) {
-      currentAxis2D = mapper.GetAxis2DValue(InputActionLower::MoveX, InputActionLower::MoveY);
-      is2DAxis = true;
-    } else if (b.ActionName == UIAction::Move) {
-      currentAxis2D = mapper.GetAxis2DValue(UIActionLower::MoveX, UIActionLower::MoveY);
-      is2DAxis = true;
-    } else if (b.ActionName == InputAction::Look) {
-      currentAxis2D = mapper.GetAxis2DValue(InputActionLower::LookX, InputActionLower::LookY);
-      is2DAxis = true;
+    if (Binding.ActionName == InputAction::Move) {
+      CurrentAxis2D = Mapper.GetAxis2DValue(InputActionLower::MoveX, InputActionLower::MoveY);
+      CurrentSourceDevice =
+          Mapper.GetAxis2DValueDevice(InputActionLower::MoveX, InputActionLower::MoveY);
+      bIs2DAxis = true;
+    } else if (Binding.ActionName == UIAction::Move) {
+      CurrentAxis2D = Mapper.GetAxis2DValue(UIActionLower::MoveX, UIActionLower::MoveY);
+      CurrentSourceDevice = Mapper.GetAxis2DValueDevice(UIActionLower::MoveX, UIActionLower::MoveY);
+      bIs2DAxis = true;
+    } else if (Binding.ActionName == InputAction::Look) {
+      CurrentAxis2D = Mapper.GetAxis2DValue(InputActionLower::LookX, InputActionLower::LookY);
+      CurrentSourceDevice =
+          Mapper.GetAxis2DValueDevice(InputActionLower::LookX, InputActionLower::LookY);
+      bIs2DAxis = true;
     }
 
-    if (is2DAxis) {
-      currentFrameAxis2D[b.ActionName] = currentAxis2D;
+    if (bIs2DAxis) {
+      CurrentFrameAxis2D[Binding.ActionName] = CurrentAxis2D;
     } else {
-      currentFrameAxis1D[b.ActionName] = currentAxis1D;
+      CurrentFrameAxis1D[Binding.ActionName] = CurrentAxis1D;
     }
+    CurrentFrameSourceDevices[Binding.ActionName] = CurrentSourceDevice;
 
     if (ImplPtr->bIsFirstProcess) continue;
 
-    bool bIsUIAction = b.bIsUIAction;
-    if (bIsUIAction && !AllowUI) continue;
-    if (!bIsUIAction && !AllowGame) continue;
+    if (Binding.bIsUIAction && !AllowUI) continue;
+    if (!Binding.bIsUIAction && !AllowGame) continue;
 
-    bool trigger = false;
-    switch (b.Event) {
+    bool bTrigger = false;
+    EInputDeviceType SourceDevice = EInputDeviceType::None;
+    switch (Binding.Event) {
       case ETriggerEvent::Started:
-        if (is2DAxis) {
-          const float lastSq = ImplPtr->LastAxis2DValues[b.ActionName].SizeSquared();
-          trigger = (lastSq <= EpsilonSq) && (currentAxis2D.SizeSquared() > EpsilonSq);
+        if (bIs2DAxis) {
+          const float LastSq = ImplPtr->LastAxis2DValues[Binding.ActionName].SizeSquared();
+          bTrigger = LastSq <= EpsilonSq && CurrentAxis2D.SizeSquared() > EpsilonSq;
+          SourceDevice = CurrentSourceDevice;
         } else {
-          const bool isButtonStart = mapper.GetPressStart(b.ActionName);
-          const bool isAxisStart =
-              (std::abs(ImplPtr->LastAxis1DValues[b.ActionName]) <= EpsilonSq) &&
-              (std::abs(currentAxis1D) > EpsilonSq);
-          trigger = isButtonStart || isAxisStart;
+          SourceDevice = Mapper.GetPressStartDevice(Binding.ActionName);
+          const bool bIsButtonStart = SourceDevice != EInputDeviceType::None;
+          const bool bIsAxisStart =
+              std::abs(ImplPtr->LastAxis1DValues[Binding.ActionName]) <= EpsilonSq &&
+              std::abs(CurrentAxis1D) > EpsilonSq;
+          bTrigger = bIsButtonStart || bIsAxisStart;
+          if (!bIsButtonStart) SourceDevice = CurrentSourceDevice;
         }
         break;
       case ETriggerEvent::Triggered:
-        if (is2DAxis) {
-          trigger = (currentAxis2D.SizeSquared() > EpsilonSq);
+        if (bIs2DAxis) {
+          bTrigger = CurrentAxis2D.SizeSquared() > EpsilonSq;
+          SourceDevice = CurrentSourceDevice;
         } else {
-          trigger = mapper.GetPressing(b.ActionName) || (std::abs(currentAxis1D) > EpsilonSq);
+          SourceDevice = Mapper.GetPressingDevice(Binding.ActionName);
+          const bool bIsButtonPressed = SourceDevice != EInputDeviceType::None;
+          bTrigger = bIsButtonPressed || std::abs(CurrentAxis1D) > EpsilonSq;
+          if (!bIsButtonPressed) SourceDevice = CurrentSourceDevice;
         }
         break;
       case ETriggerEvent::Completed:
-        if (is2DAxis) {
-          const float lastSq = ImplPtr->LastAxis2DValues[b.ActionName].SizeSquared();
-          trigger = (lastSq > EpsilonSq) && (currentAxis2D.SizeSquared() <= EpsilonSq);
+        if (bIs2DAxis) {
+          const float LastSq = ImplPtr->LastAxis2DValues[Binding.ActionName].SizeSquared();
+          bTrigger = LastSq > EpsilonSq && CurrentAxis2D.SizeSquared() <= EpsilonSq;
+          SourceDevice = ImplPtr->LastSourceDevices[Binding.ActionName];
         } else {
-          const bool isButtonRelease = mapper.GetRelease(b.ActionName);
-          const bool isAxisRelease =
-              (std::abs(ImplPtr->LastAxis1DValues[b.ActionName]) > EpsilonSq) &&
-              (std::abs(currentAxis1D) <= EpsilonSq);
-          trigger = isButtonRelease || isAxisRelease;
+          SourceDevice = Mapper.GetReleaseDevice(Binding.ActionName);
+          const bool bIsButtonRelease = SourceDevice != EInputDeviceType::None;
+          const bool bIsAxisRelease =
+              std::abs(ImplPtr->LastAxis1DValues[Binding.ActionName]) > EpsilonSq &&
+              std::abs(CurrentAxis1D) <= EpsilonSq;
+          bTrigger = bIsButtonRelease || bIsAxisRelease;
+          if (!bIsButtonRelease) {
+            SourceDevice = ImplPtr->LastSourceDevices[Binding.ActionName];
+          }
         }
         break;
     }
 
-    if (!trigger || !b.Callback) continue;
+    if (!bTrigger || !Binding.Callback) continue;
 
-    FInputActionValue value;
-    value.bIsPressed = true;
-    value.Axis1D = currentAxis1D;
-    value.Axis2D = currentAxis2D;
-    b.Callback(value);
+    FInputActionValue Value;
+    Value.bIsPressed = true;
+    Value.Axis1D = CurrentAxis1D;
+    Value.Axis2D = CurrentAxis2D;
+    Value.SourceDevice = SourceDevice;
+    Binding.Callback(Value);
   }
-  ImplPtr->LastAxis2DValues = currentFrameAxis2D;
-  ImplPtr->LastAxis1DValues = currentFrameAxis1D;
+
+  ImplPtr->LastAxis2DValues = CurrentFrameAxis2D;
+  ImplPtr->LastAxis1DValues = CurrentFrameAxis1D;
+  ImplPtr->LastSourceDevices = CurrentFrameSourceDevices;
   ImplPtr->bIsFirstProcess = false;
 }

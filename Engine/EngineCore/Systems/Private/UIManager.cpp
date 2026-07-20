@@ -20,9 +20,7 @@ struct UIManager::Impl {
 
 UIManager::UIManager() : ImplPtr(new Impl()) {}
 
-UIManager::~UIManager() {
-  delete ImplPtr;
-}
+UIManager::~UIManager() { delete ImplPtr; }
 
 void UIManager::SetTextInputActive(bool bActive) { ImplPtr->TextInputActive = bActive; }
 
@@ -78,13 +76,13 @@ void UIManager::Navigate(const FInputActionValue& Value) {
   }
 }
 
-void UIManager::Submit() {
+void UIManager::Submit(const FInputActionValue& Value) {
   if (ImplPtr->TextInputActive) {
     return;
   }
 
   if (ImplPtr->CurrentFocusedWidget) {
-    ImplPtr->CurrentFocusedWidget->Submit();
+    ImplPtr->CurrentFocusedWidget->Submit(Value);
   }
 }
 

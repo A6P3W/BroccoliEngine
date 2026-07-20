@@ -55,8 +55,12 @@ void AWidgetBase::Navigate(const FInputActionValue& Value) {
 
 void AWidgetBase::StartNavigationCooldown() { NavigationCooldown = 0.2f; }
 
-void AWidgetBase::Submit() {
+void AWidgetBase::Submit(const FInputActionValue& Value) {
   if (FocusedButtonComponent) {
+    if (Value.SourceDevice == EInputDeviceType::Gamepad &&
+        !FocusedButtonComponent->IsGamepadSubmitAllowed()) {
+      return;
+    }
     FocusedButtonComponent->Press();
   }
 }

@@ -9,9 +9,7 @@ struct KeyboardDevice::Impl {
 
 KeyboardDevice::KeyboardDevice() : ImplPtr(new Impl()) {}
 
-KeyboardDevice::~KeyboardDevice() {
-  delete ImplPtr;
-}
+KeyboardDevice::~KeyboardDevice() { delete ImplPtr; }
 
 void KeyboardDevice::Update() {
   char tmp[256];
@@ -20,6 +18,13 @@ void KeyboardDevice::Update() {
     ImplPtr->PrevKey[i] = ImplPtr->Key[i];
     ImplPtr->Key[i] = (tmp[i] != 0);
   }
+}
+
+bool KeyboardDevice::HasInputThisFrame() const {
+  for (int Code = 0; Code < 256; ++Code) {
+    if (!ImplPtr->PrevKey[Code] && ImplPtr->Key[Code]) return true;
+  }
+  return false;
 }
 
 bool KeyboardDevice::GetPressStart(int code) const {

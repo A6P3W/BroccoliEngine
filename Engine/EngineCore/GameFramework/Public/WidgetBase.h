@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include "Actor.h"
+#include "BroccoliEngineAPI.h"
 
 struct FInputActionValue;
 class MUIButtonComponent;
@@ -20,7 +20,7 @@ class BROCCOLI_ENGINE_API AWidgetBase : public AActor {
   void ClearFocusedButton();
   MUIButtonComponent* GetFocusedButton() const { return FocusedButtonComponent; }
   virtual void Navigate(const FInputActionValue& Value);
-  void Submit();
+  void Submit(const FInputActionValue& Value);
   virtual void Cancel();
 
   void SetZOrderOffset(int offset);

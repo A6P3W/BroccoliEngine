@@ -2,6 +2,7 @@
 
 struct InputManager::Impl {
   std::vector<std::unique_ptr<InputDevice>> Devices;
+  EInputDeviceType LastInputDevice = EInputDeviceType::None;
 };
 
 InputManager& InputManager::GetInstance() {
@@ -11,9 +12,7 @@ InputManager& InputManager::GetInstance() {
 
 InputManager::InputManager() : ImplPtr(new Impl()) {}
 
-InputManager::~InputManager() {
-  delete ImplPtr;
-}
+InputManager::~InputManager() { delete ImplPtr; }
 
 void InputManager::AddDevice(std::unique_ptr<InputDevice> Device) {
   ImplPtr->Devices.push_back(std::move(Device));
@@ -29,5 +28,16 @@ std::vector<InputDevice*> InputManager::GetDevices() const {
 }
 
 void InputManager::Update() {
-  for (auto& Device : ImplPtr->Devices) Device->Update();
+  for (auto& Device : ImplPtr->Devices) {
+    Device->Update();
+    if (Device->HasInputThisFrame()) {
+      ImplPtr->LastInputDevice = Device->GetDeviceType();
+    }
+  }
+}
+
+EInputDeviceType InputManager::GetLastInputDevice() const { return ImplPtr->LastInputDevice; }
+
+bool InputManager::IsLastInputDevice(EInputDeviceType DeviceType) const {
+  return ImplPtr->LastInputDevice == DeviceType;
 }

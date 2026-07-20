@@ -41,9 +41,7 @@ GamepadDevice::GamepadDevice(int padIndex) : ImplPtr(new Impl()) {
   }
 }
 
-GamepadDevice::~GamepadDevice() {
-  delete ImplPtr;
-}
+GamepadDevice::~GamepadDevice() { delete ImplPtr; }
 
 void GamepadDevice::Update() {
   ImplPtr->PrevButtons = ImplPtr->Buttons;
@@ -70,6 +68,14 @@ void GamepadDevice::Update() {
     ImplPtr->Axes[(int)AxisID::LeftTrigger] = 0.0f;
     ImplPtr->Axes[(int)AxisID::RightTrigger] = 0.0f;
   }
+}
+
+bool GamepadDevice::HasInputThisFrame() const {
+  if ((~ImplPtr->PrevButtons & ImplPtr->Buttons) != 0) return true;
+  for (float Axis : ImplPtr->Axes) {
+    if (Axis != 0.0f) return true;
+  }
+  return false;
 }
 
 bool GamepadDevice::GetPressStart(int code) const {

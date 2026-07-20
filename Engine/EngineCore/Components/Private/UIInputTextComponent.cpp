@@ -17,7 +17,7 @@
 
 namespace {
 constexpr int ActionHintFontSize = 14;
-const std::string ActionHintText = "決定/インタラクトで入力";
+const std::string ActionHintText = "インタラクトキーで入力/確定";
 
 bool IsShiftPressed(const KeyboardDevice* Keyboard) {
   return Keyboard != nullptr &&
@@ -43,6 +43,7 @@ struct UIInputTextComponent::Impl {
   int MaxLength = 16;
   bool bIsPassword = false;
   bool bIsEditing = false;
+  bool bJustBeganInput = false;
   bool bCaretVisible = true;
   float CaretBlinkTimer = 0.0f;
 
@@ -61,6 +62,7 @@ struct UIInputTextComponent::Impl {
   EButtonState CurrentState = EButtonState::Normal;
 };
 UIInputTextComponent::UIInputTextComponent() : ImplPtr(new Impl()) {
+  SetAllowGamepadSubmit(false);
   SetWidgetSize({ImplPtr->Width, ImplPtr->Height});
   ImplPtr->NormalColor = FColor{80, 80, 80};
   ImplPtr->HoveredColor = FColor{120, 120, 120};
@@ -122,6 +124,11 @@ void UIInputTextComponent::OnUpdate(float DeltaTime) {
   MUIButtonComponent::OnUpdate(DeltaTime);
 
   if (!ImplPtr->bIsEditing) {
+    return;
+  }
+
+  if (ImplPtr->bJustBeganInput) {
+    ImplPtr->bJustBeganInput = false;
     return;
   }
 
@@ -227,6 +234,7 @@ void UIInputTextComponent::OnComponentDestroy() {
 
 void UIInputTextComponent::BeginInput() {
   ImplPtr->bIsEditing = true;
+  ImplPtr->bJustBeganInput = true;
   ImplPtr->EditingText = ImplPtr->Text;
   ImplPtr->CaretBlinkTimer = 0.0f;
   ImplPtr->bCaretVisible = true;
