@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <memory>
 #include <vector>
 
+#include "BroccoliEngineAPI.h"
 #include "InputDevice.h"
 
 class KeyboardDevice;
@@ -27,6 +27,8 @@ class BROCCOLI_ENGINE_API InputManager {
   }
 
   void Update();
+  EInputDeviceType GetLastInputDevice() const;
+  bool IsLastInputDevice(EInputDeviceType DeviceType) const;
 
  private:
   struct Impl;

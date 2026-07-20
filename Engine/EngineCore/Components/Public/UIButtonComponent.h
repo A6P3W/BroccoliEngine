@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <functional>
 
+#include "BroccoliEngineAPI.h"
 #include "UIWidgetComponent.h"
 enum class EButtonState { Normal, Hovered, Pressed, Disabled };
 
@@ -21,6 +21,8 @@ class BROCCOLI_ENGINE_API MUIButtonComponent : public MUIWidgetComponent {
   void SetOnPressed(std::function<void()> Callback);
 
   virtual void Press();
+  void SetAllowGamepadSubmit(bool Allow);
+  bool IsGamepadSubmitAllowed() const;
   virtual void OnStateChanged(EButtonState NewState) {}
   void SetState(EButtonState NewState);
 

@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "BroccoliEngineAPI.h"
 #include "InputDevice.h"
 #include "UMath.h"
 struct InputAction {
@@ -72,6 +72,13 @@ class BROCCOLI_ENGINE_API InputMapper {
   bool GetRelease(const std::string& actionName) const;
   float GetAxisValue(const std::string& actionName) const;
   FVector2D GetAxis2DValue(const std::string& actionNameX, const std::string& actionNameY) const;
+  EInputDeviceType GetPressStartDevice(const std::string& ActionName) const;
+  EInputDeviceType GetPressingDevice(const std::string& ActionName) const;
+  EInputDeviceType GetReleaseDevice(const std::string& ActionName) const;
+  EInputDeviceType GetAxisValueDevice(const std::string& ActionName) const;
+  EInputDeviceType GetAxis2DValueDevice(
+      const std::string& ActionNameX, const std::string& ActionNameY
+  ) const;
 
  private:
   struct FButtonBinding {

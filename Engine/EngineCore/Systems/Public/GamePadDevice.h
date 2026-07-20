@@ -12,6 +12,8 @@ class BROCCOLI_ENGINE_API GamepadDevice : public InputDevice {
   GamepadDevice& operator=(const GamepadDevice&) = delete;
 
   void Update() override;
+  EInputDeviceType GetDeviceType() const override { return EInputDeviceType::Gamepad; }
+  bool HasInputThisFrame() const override;
   bool GetPressStart(int code) const override;
   bool GetPressing(int code) const override;
   bool GetRelease(int code) const override;

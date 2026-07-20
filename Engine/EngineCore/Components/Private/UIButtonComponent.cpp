@@ -1,8 +1,9 @@
-#include "UIButtonComponent.h"
+﻿#include "UIButtonComponent.h"
 
 struct MUIButtonComponent::Impl {
   std::function<void()> OnPressed;
   EButtonState ButtonState = EButtonState::Normal;
+  bool bAllowGamepadSubmit = true;
 };
 
 MUIButtonComponent::MUIButtonComponent() : ImplPtr(new Impl()) {}
@@ -20,6 +21,10 @@ void MUIButtonComponent::Press() {
     ImplPtr->OnPressed();
   }
 }
+
+void MUIButtonComponent::SetAllowGamepadSubmit(bool Allow) { ImplPtr->bAllowGamepadSubmit = Allow; }
+
+bool MUIButtonComponent::IsGamepadSubmitAllowed() const { return ImplPtr->bAllowGamepadSubmit; }
 
 void MUIButtonComponent::SetState(EButtonState NewState) {
   if (NewState == ImplPtr->ButtonState) return;

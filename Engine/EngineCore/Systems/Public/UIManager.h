@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <vector>
 
+#include "BroccoliEngineAPI.h"
 #include "UMath.h"
 
 struct FInputActionValue;
@@ -15,7 +15,7 @@ class BROCCOLI_ENGINE_API UIManager {
   void RemoveWidget(AWidgetBase* Widget);
 
   void Navigate(const FInputActionValue& Value);
-  void Submit();
+  void Submit(const FInputActionValue& Value);
   void Cancel();
 
   void SetTextInputActive(bool bActive);

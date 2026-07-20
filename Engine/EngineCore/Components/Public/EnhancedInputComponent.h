@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <functional>
 #include <string>
 
 #include "ActorComponent.h"
+#include "BroccoliEngineAPI.h"
 #include "InputMapper.h"
 #include "UMath.h"
 
@@ -13,6 +13,7 @@ struct FInputActionValue {
   FVector2D Axis2D = FVector2D::ZeroVector();
   float Axis1D = 0.0f;
   bool bIsPressed = false;
+  EInputDeviceType SourceDevice = EInputDeviceType::None;
 };
 
 class BROCCOLI_ENGINE_API MEnhancedInputComponent : public MActorComponent {
@@ -31,10 +32,7 @@ class BROCCOLI_ENGINE_API MEnhancedInputComponent : public MActorComponent {
       bool isUIAction = false
   ) {
     AddBinding(
-        actionName,
-        event,
-        [obj, func](const FInputActionValue& v) { (obj->*func)(v); },
-        isUIAction
+        actionName, event, [obj, func](const FInputActionValue& v) { (obj->*func)(v); }, isUIAction
     );
   }
   template <class T>

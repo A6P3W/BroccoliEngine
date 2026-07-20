@@ -9,6 +9,8 @@ class BROCCOLI_ENGINE_API KeyboardDevice : public InputDevice {
   KeyboardDevice& operator=(const KeyboardDevice&) = delete;
 
   void Update() override;
+  EInputDeviceType GetDeviceType() const override { return EInputDeviceType::Keyboard; }
+  bool HasInputThisFrame() const override;
   bool GetPressStart(int code) const override;
   bool GetPressing(int code) const override;
   bool GetRelease(int code) const override;

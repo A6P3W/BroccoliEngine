@@ -11,6 +11,8 @@ class BROCCOLI_ENGINE_API MouseDevice : public InputDevice {
   enum AxisID { Wheel = 0, MouseX, MouseY };
 
   void Update() override;
+  EInputDeviceType GetDeviceType() const override { return EInputDeviceType::Mouse; }
+  bool HasInputThisFrame() const override;
   bool GetPressStart(int code) const override;
   bool GetPressing(int code) const override;
   bool GetRelease(int code) const override;
