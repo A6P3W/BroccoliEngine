@@ -34,6 +34,7 @@
     <ClCompile Include="Source\WidgetTest\WidgetTestGameMode.cpp" />
     <ClCompile Include="Source\WidgetTest\WidgetTestPawn.cpp" />
     <ClCompile Include="Source\WidgetTest\WidgetTestUIMain.cpp" />
+    <ClCompile Include="Source\WidgetTest\CanvasTestActor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\BasicGameplay\BasicGameplayGameMode.h" />
@@ -54,6 +55,7 @@
     <ClInclude Include="Source\WidgetTest\WidgetTestGameMode.h" />
     <ClInclude Include="Source\WidgetTest\WidgetTestPawn.h" />
     <ClInclude Include="Source\WidgetTest\WidgetTestUIMain.h" />
+    <ClInclude Include="Source\WidgetTest\CanvasTestActor.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
