@@ -5,6 +5,7 @@
 
 #include "../Common/LauncherPlayerController.h"
 #include "ActorManager.h"
+#include "CanvasTestActor.h"
 #include "DxLibLap/DxLibLap.h"
 #include "HttpManager.h"
 #include "Log.h"
@@ -47,6 +48,10 @@ void AWidgetTestGameMode::BeginPlay() {
   UIManager::GetInstance()->SetFocusedWidget(mainMenuWidget);
 
   M_LOG("WidgetTestGameMode: MUIVerticalBoxComponent sample is available in WidgetTestUIMain.");
+
+  // キャンバステストアクターを動的にスポーン
+  GetWorld()->GetActorManager()->SpawnObject<ACanvasTestActor>();
+  M_LOG("WidgetTestGameMode: CanvasTestActor spawned.");
 }
 
 void AWidgetTestGameMode::OnUpdate(float DeltaTime) { AGameModeBase::OnUpdate(DeltaTime); }
