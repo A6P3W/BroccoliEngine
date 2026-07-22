@@ -1,11 +1,16 @@
 ﻿#include "EOSTitleStorageManager.h"
 
 #include <eos_titlestorage.h>
+#include <minizip/unzip.h>
 
+#include <algorithm>
+#include <array>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <system_error>
 #include <utility>
+#include <vector>
 
 #include "DebugOverlay.h"
 #include "EOSAuthManager.h"
@@ -15,6 +20,7 @@ namespace {
 namespace Fs = std::filesystem;
 
 constexpr uint32_t ReadChunkLengthBytes = 64 * 1024;
+constexpr size_t ArchiveReadBufferBytes = 64 * 1024;
 
 const char* SafeEOSResult(EOS_EResult Result) {
   const char* Text = EOS_EResult_ToString(Result);
@@ -35,7 +41,157 @@ bool IsValidFileName(const std::string& FileName) {
   }
 
   const Fs::path Path(FileName);
-  return !Path.is_absolute() && Path.filename() == Path && Path.extension() == ".BLevel";
+  return !Path.is_absolute() && Path.filename() == Path;
+}
+
+bool IsZipFile(const Fs::path& Path) {
+  std::string Extension = Path.extension().string();
+  std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char Character) {
+    return static_cast<char>(std::tolower(Character));
+  });
+  return Extension == ".zip";
+}
+
+bool IsSafeArchiveEntry(const std::string& EntryName, const Fs::path& EntryPath) {
+  if (EntryName.empty() || EntryName.find('\0') != std::string::npos ||
+      EntryName.find(':') != std::string::npos || EntryPath.empty() || EntryPath.is_absolute() ||
+      EntryPath.has_root_name()) {
+    return false;
+  }
+  for (const Fs::path& Part : EntryPath) {
+    if (Part == "..") {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ExtractZipArchive(const Fs::path& ArchivePath, std::string& ErrorMessage) {
+  unzFile Archive = unzOpen64(ArchivePath.string().c_str());
+  if (!Archive) {
+    ErrorMessage = "Failed to open the downloaded ZIP archive.";
+    return false;
+  }
+
+  const auto CloseArchive = [&Archive]() {
+    if (Archive) {
+      unzClose(Archive);
+      Archive = nullptr;
+    }
+  };
+  const Fs::path ExtractionDirectory = ArchivePath.parent_path();
+  int EntryResult = unzGoToFirstFile(Archive);
+  if (EntryResult == UNZ_END_OF_LIST_OF_FILE) {
+    CloseArchive();
+    return true;
+  }
+
+  while (EntryResult == UNZ_OK) {
+    unz_file_info64 FileInfo = {};
+    if (unzGetCurrentFileInfo64(Archive, &FileInfo, nullptr, 0, nullptr, 0, nullptr, 0) != UNZ_OK) {
+      ErrorMessage = "Failed to read ZIP entry information.";
+      CloseArchive();
+      return false;
+    }
+
+    std::vector<char> EntryNameBuffer(static_cast<size_t>(FileInfo.size_filename) + 1, '\0');
+    if (unzGetCurrentFileInfo64(
+            Archive,
+            &FileInfo,
+            EntryNameBuffer.data(),
+            static_cast<uLong>(EntryNameBuffer.size()),
+            nullptr,
+            0,
+            nullptr,
+            0
+        ) != UNZ_OK) {
+      ErrorMessage = "Failed to read a ZIP entry name.";
+      CloseArchive();
+      return false;
+    }
+
+    const std::string EntryName(EntryNameBuffer.data(), static_cast<size_t>(FileInfo.size_filename));
+    const Fs::path EntryPath(EntryName);
+    if (!IsSafeArchiveEntry(EntryName, EntryPath)) {
+      ErrorMessage = "The ZIP archive contains an unsafe entry path.";
+      CloseArchive();
+      return false;
+    }
+
+    const Fs::path OutputPath = ExtractionDirectory / EntryPath;
+    const bool IsDirectory = EntryName.back() == '/' || EntryName.back() == '\\';
+    std::error_code ErrorCode;
+    if (IsDirectory) {
+      Fs::create_directories(OutputPath, ErrorCode);
+      if (ErrorCode) {
+        ErrorMessage = "Failed to create a directory while extracting the ZIP archive.";
+        CloseArchive();
+        return false;
+      }
+    } else {
+      Fs::create_directories(OutputPath.parent_path(), ErrorCode);
+      if (ErrorCode) {
+        ErrorMessage = "Failed to create a directory while extracting the ZIP archive.";
+        CloseArchive();
+        return false;
+      }
+
+      if (unzOpenCurrentFile(Archive) != UNZ_OK) {
+        ErrorMessage = "Failed to open a file in the ZIP archive.";
+        CloseArchive();
+        return false;
+      }
+
+      const Fs::path TemporaryOutputPath = OutputPath.string() + ".extracting";
+      Fs::remove(TemporaryOutputPath, ErrorCode);
+      ErrorCode.clear();
+      std::ofstream Output(TemporaryOutputPath, std::ios::binary | std::ios::trunc);
+      if (!Output.is_open()) {
+        unzCloseCurrentFile(Archive);
+        ErrorMessage = "Failed to create a file while extracting the ZIP archive.";
+        CloseArchive();
+        return false;
+      }
+
+      std::array<char, ArchiveReadBufferBytes> Buffer = {};
+      int ReadResult = 0;
+      while ((ReadResult = unzReadCurrentFile(
+                  Archive, Buffer.data(), static_cast<unsigned int>(Buffer.size())
+              )) > 0) {
+        Output.write(Buffer.data(), ReadResult);
+        if (!Output.good()) {
+          break;
+        }
+      }
+      Output.close();
+      const int CloseResult = unzCloseCurrentFile(Archive);
+      if (ReadResult < 0 || !Output.good() || CloseResult != UNZ_OK) {
+        Fs::remove(TemporaryOutputPath, ErrorCode);
+        ErrorMessage = "Failed to extract a file from the ZIP archive.";
+        CloseArchive();
+        return false;
+      }
+
+      Fs::remove(OutputPath, ErrorCode);
+      ErrorCode.clear();
+      Fs::rename(TemporaryOutputPath, OutputPath, ErrorCode);
+      if (ErrorCode) {
+        Fs::remove(TemporaryOutputPath, ErrorCode);
+        ErrorMessage = "Failed to finalize an extracted ZIP file.";
+        CloseArchive();
+        return false;
+      }
+    }
+
+    EntryResult = unzGoToNextFile(Archive);
+  }
+
+  CloseArchive();
+  if (EntryResult != UNZ_END_OF_LIST_OF_FILE) {
+    ErrorMessage = "Failed while enumerating ZIP archive entries.";
+    return false;
+  }
+  return true;
 }
 
 FTitleStorageDownloadResult MakeResult(
@@ -244,7 +400,49 @@ struct EOSTitleStorageManager::Impl {
     }
 
     const std::string CompletedFileName = CurrentFileName;
-    const std::string CompletedLocalPath = CurrentLocalPath;
+    std::string CompletedLocalPath = CurrentLocalPath;
+    std::string CompletionMessage = "File download completed.";
+    if (IsZipFile(CurrentFinalPath)) {
+      std::string ExtractionError;
+      if (!ExtractZipArchive(CurrentFinalPath, ExtractionError)) {
+        DRAW_SCREEN_LOG(
+            "EOSTitleStorage",
+            8.0f,
+            "[EOSTitleStorage] ZIP extraction failed: FileName={} Message={}",
+            CompletedFileName,
+            ExtractionError
+        );
+        Complete(
+            MakeResult(
+                false,
+                ETitleStorageDownloadError::ArchiveExtractionFailed,
+                ExtractionError,
+                CompletedFileName,
+                CompletedLocalPath
+            ),
+            false
+        );
+        return;
+      }
+
+      Fs::remove(CurrentFinalPath, ErrorCode);
+      if (ErrorCode) {
+        Complete(
+            MakeResult(
+                false,
+                ETitleStorageDownloadError::ArchiveDeleteFailed,
+                "ZIP extraction completed, but the ZIP file could not be deleted.",
+                CompletedFileName,
+                CompletedLocalPath
+            ),
+            false
+        );
+        return;
+      }
+      CompletedLocalPath = CurrentFinalPath.parent_path().generic_string();
+      CompletionMessage = "ZIP download and extraction completed.";
+    }
+
     DRAW_SCREEN_LOG(
         "EOSTitleStorage",
         8.0f,
@@ -256,7 +454,7 @@ struct EOSTitleStorageManager::Impl {
         MakeResult(
             true,
             ETitleStorageDownloadError::None,
-            "Level download completed.",
+            CompletionMessage,
             CompletedFileName,
             CompletedLocalPath
         ),
@@ -268,6 +466,10 @@ struct EOSTitleStorageManager::Impl {
 EOSTitleStorageManager& EOSTitleStorageManager::GetInstance() {
   static EOSTitleStorageManager Instance;
   return Instance;
+}
+
+std::string EOSTitleStorageManager::GetDownloadDirectoryPath() {
+  return Fs::path("Resources-EOS").generic_string();
 }
 
 EOSTitleStorageManager::EOSTitleStorageManager() : ImplPtr(new Impl()) {}
@@ -307,9 +509,7 @@ bool EOSTitleStorageManager::Download(const std::string& FileName, CompletionCal
     return Reject(ETitleStorageDownloadError::NotLoggedIn, "EOS login is required.");
   }
   if (!IsValidFileName(FileName)) {
-    return Reject(
-        ETitleStorageDownloadError::InvalidFileName, "Enter a .BLevel file name without a path."
-    );
+    return Reject(ETitleStorageDownloadError::InvalidFileName, "Enter a file name without a path.");
   }
 
   EOS_HTitleStorage TitleStorageHandle = EOSCoreManager::GetInstance().GetTitleStorageHandle();
@@ -320,12 +520,12 @@ bool EOSTitleStorageManager::Download(const std::string& FileName, CompletionCal
     );
   }
 
-  const Fs::path DownloadDirectory = Fs::path("Saved") / "Downloaded";
+  const Fs::path DownloadDirectory = GetDownloadDirectoryPath();
   std::error_code ErrorCode;
   Fs::create_directories(DownloadDirectory, ErrorCode);
   if (ErrorCode || !Fs::is_directory(DownloadDirectory, ErrorCode)) {
     return Reject(
-        ETitleStorageDownloadError::DirectoryCreationFailed, "Failed to create Saved/Downloaded."
+        ETitleStorageDownloadError::DirectoryCreationFailed, "Failed to create Resources-EOS."
     );
   }
 

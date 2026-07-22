@@ -18,7 +18,9 @@ enum class ETitleStorageDownloadError : uint8_t {
   DownloadFailed,
   FileWriteFailed,
   FinalFileDeleteFailed,
-  FileRenameFailed
+  FileRenameFailed,
+  ArchiveExtractionFailed,
+  ArchiveDeleteFailed
 };
 
 struct FTitleStorageDownloadResult {
@@ -34,6 +36,7 @@ class BROCCOLI_ENGINE_API EOSTitleStorageManager {
   using CompletionCallback = std::function<void(const FTitleStorageDownloadResult&)>;
 
   static EOSTitleStorageManager& GetInstance();
+  static std::string GetDownloadDirectoryPath();
 
   bool Download(const std::string& FileName, CompletionCallback OnComplete);
   bool IsDownloadPending() const;

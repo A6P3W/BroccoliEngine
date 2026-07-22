@@ -15,8 +15,12 @@
     <!-- 2. ローカル実行用のResourcesコピー (OutDir\Resourcesへ) -->
     <ItemGroup>
       <ProjectResources Include="$(MSBuildProjectDirectory)\Resources\**\*.*" Condition="Exists('$(MSBuildProjectDirectory)\Resources\')" />
+      <ProjectOnlineResources
+          Include="$(MSBuildProjectDirectory)\Resources-EOS\**\*.*"
+          Condition="('$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Editor') And Exists('$(MSBuildProjectDirectory)\Resources-EOS\')" />
     </ItemGroup>
     <Copy SourceFiles="@(ProjectResources)" DestinationFolder="$(OutDir)Resources\%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ProjectOnlineResources)" DestinationFolder="$(OutDir)Resources-EOS\%(RecursiveDir)" SkipUnchangedFiles="true" />
 
     <!-- 3. EXEプロジェクトの場合のみ配布処理を実行 -->
     <CallTarget Targets="BroccoliDeployApplication" Condition="'$(ConfigurationType)' == 'Application'" />
@@ -55,8 +59,12 @@
     <!-- Resourcesを Publish\Resources へコピー -->
     <ItemGroup>
       <ResourcesToPublish Include="$(OutDir)Resources\**\*.*" />
+      <OnlineResourcesToPublish
+          Include="$(MSBuildProjectDirectory)\Resources-EOS\**\*.*"
+          Condition="('$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Editor') And Exists('$(MSBuildProjectDirectory)\Resources-EOS\')" />
     </ItemGroup>
     <Copy SourceFiles="@(ResourcesToPublish)" DestinationFolder="$(BroccoliPublishRootDir)Resources\%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(OnlineResourcesToPublish)" DestinationFolder="$(BroccoliPublishRootDir)Resources-EOS\%(RecursiveDir)" SkipUnchangedFiles="true" />
 
     <!-- Bootstrap (ランチャー) のコンパイル (前のターンのパス修正版) -->
     <Exec Command="&quot;$(VC_ExecutablePath_x64_x64)\cl.exe&quot; /nologo /O2 /EHsc /std:c++17 /I &quot;$(VC_IncludePath.Split(';')[0].TrimEnd('\'))&quot; /I &quot;$(WindowsSDK_IncludePath.Split(';')[0].TrimEnd('\'))&quot; /Fo&quot;$(IntDir)\&quot; /Fe&quot;$(ActualBootstrapExe)&quot; &quot;$(BroccoliBootstrapCpp)&quot; /link /LIBPATH:&quot;$(VC_LibraryPath_x64.Split(';')[0].TrimEnd('\'))&quot; /LIBPATH:&quot;$(WindowsSDK_LibraryPath_x64.Split(';')[0].TrimEnd('\'))&quot; user32.lib shlwapi.lib shell32.lib"
