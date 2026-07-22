@@ -238,6 +238,7 @@
     <ClCompile Include="EngineCore\Network\Private\ReplicationSystem.cpp" />
     <ClCompile Include="EngineCore\Online\Private\EOSAuthManager.cpp" />
     <ClCompile Include="EngineCore\Online\Private\EOSCoreManager.cpp" />
+    <ClCompile Include="EngineCore\Online\Private\EOSTitleStorageManager.cpp" />
     <ClCompile Include="EngineCore\Online\Private\EOSLobbyManager.cpp" />
     <ClCompile Include="EngineCore\Online\Private\OnlinePlayManager.cpp" />
   </ItemGroup>
@@ -337,6 +338,7 @@
     <ClInclude Include="EngineCore\Network\Public\ReplicationSystem.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSAuthManager.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSCoreManager.h" />
+    <ClInclude Include="EngineCore\Online\Public\EOSTitleStorageManager.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSLobbyManager.h" />
     <ClInclude Include="EngineCore\Online\Public\EOSTypes.h" />
     <ClInclude Include="EngineCore\Online\Public\OnlinePlayManager.h" />

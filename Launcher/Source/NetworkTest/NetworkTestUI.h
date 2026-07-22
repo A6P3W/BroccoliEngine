@@ -22,6 +22,8 @@ class FNetworkTestUI {
   void DrawConnectionWindow();
   void DrawOnlineWindow();
   void DrawStatusWindow();
+  void DownloadLevel();
+  void ServerTravelByPath();
 
   // EOS Connect サービスへデバイス ID を用いてログインする関数
   void LoginWithDeviceId();
@@ -39,6 +41,7 @@ class FNetworkTestUI {
   bool UseEOSP2P = false;
   int Port = 7777;
   std::string StatusMessage;
+  char DownloadLevelFileName[260] = "Stage01.BLevel";
 
   char OnlineDisplayName[32] = "BroccoliPlayer";
   int OnlineLobbyMaxMembers = 4;

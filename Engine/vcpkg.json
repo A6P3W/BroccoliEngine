@@ -5,6 +5,7 @@
   "dependencies": [
     "cpr",
     "enet",
+    "minizip",
     {
       "name": "imgui",
       "features": [
