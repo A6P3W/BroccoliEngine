@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include "EOSTitleStorageManager.h"
+#include "FileDialog.h"
 #include "NetworkManager.h"
 #include "NetworkTestGameMode.h"
 #include "NetworkTestPawn.h"
@@ -211,12 +213,26 @@ void FNetworkTestUI::DrawStatusWindow() {
   }
   ImGui::Text("Host player spawned: %s", HostSpawned ? "true" : "false");
 
+  ImGui::Separator();
+  ImGui::InputText("Download file name", DownloadLevelFileName, sizeof(DownloadLevelFileName));
+  const bool DownloadPending = EOSTitleStorageManager::GetInstance().IsDownloadPending();
+  if (DownloadPending) {
+    ImGui::BeginDisabled();
+  }
+  if (ImGui::Button("DownloadLevel")) {
+    DownloadLevel();
+  }
+  if (DownloadPending) {
+    ImGui::EndDisabled();
+    ImGui::TextDisabled("A level download is in progress.");
+  }
+
   if (GameMode) {
     const char* TargetLevelPath = GameMode->GetTravelTargetLevelPath();
     ImGui::Separator();
     ImGui::TextWrapped("Server travel target: %s", TargetLevelPath);
 
-    const bool CanServerTravel = OwnerWorld->IsListenServer();
+    const bool CanServerTravel = OwnerWorld->IsListenServer() && !DownloadPending;
     if (!CanServerTravel) {
       ImGui::BeginDisabled();
     }
@@ -227,10 +243,49 @@ void FNetworkTestUI::DrawStatusWindow() {
     }
     if (!CanServerTravel) {
       ImGui::EndDisabled();
-      ImGui::TextDisabled("Server travel is available only on the listen server.");
+      if (DownloadPending) {
+        ImGui::TextDisabled("Wait for the level download to finish before server travel.");
+      } else {
+        ImGui::TextDisabled("Server travel is available only on the listen server.");
+      }
+    }
+
+    if (!CanServerTravel) {
+      ImGui::BeginDisabled();
+    }
+    if (ImGui::Button("ServerTravelByPath")) {
+      ServerTravelByPath();
+    }
+    if (!CanServerTravel) {
+      ImGui::EndDisabled();
     }
   }
   ImGui::End();
+}
+
+void FNetworkTestUI::DownloadLevel() {
+  StatusMessage = std::string("Level download requested: ") + DownloadLevelFileName;
+  EOSTitleStorageManager::GetInstance().Download(
+      DownloadLevelFileName, [this](const FTitleStorageDownloadResult& Result) {
+        StatusMessage = Result.Message;
+        if (Result.Success) {
+          StatusMessage += " Saved to: " + Result.LocalFilePath;
+        }
+      }
+  );
+}
+
+void FNetworkTestUI::ServerTravelByPath() {
+  const std::string LevelPath =
+      FileDialog::OpenFile("Broccoli Level Files (*.BLevel)\0*.BLevel\0All Files (*.*)\0*.*\0");
+  if (LevelPath.empty()) {
+    return;
+  }
+
+  World* OwnerWorld = Owner.GetWorld();
+  const bool TravelQueued = OwnerWorld && OwnerWorld->ServerTravel(LevelPath);
+  StatusMessage =
+      TravelQueued ? "Server travel queued: " + LevelPath : "Server travel failed: " + LevelPath;
 }
 
 void FNetworkTestUI::LoginWithDeviceId() {

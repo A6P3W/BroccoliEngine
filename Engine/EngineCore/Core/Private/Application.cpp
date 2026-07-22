@@ -12,6 +12,7 @@
 #include "EOSAuthManager.h"
 #include "EOSCoreManager.h"
 #include "EOSLobbyManager.h"
+#include "EOSTitleStorageManager.h"
 #include "EditorMode.h"
 #include "EngineDefine.h"
 #include "GameModeBase.h"
@@ -183,6 +184,7 @@ bool Application::Run() {
     Draw();
   }
 
+  EOSTitleStorageManager::GetInstance().Shutdown();
   SceneManager::GetInstance().Shutdown();
   OnlinePlayManager::GetInstance().Shutdown();
   NetworkManager::GetInstance().Stop();

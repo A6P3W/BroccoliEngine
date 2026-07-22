@@ -3,6 +3,8 @@
 #include <eos_logging.h>
 
 #include <cstring>
+#include <filesystem>
+#include <system_error>
 
 #include "Log.h"
 
@@ -113,6 +115,26 @@ bool EOSCoreManager::Initialize(const FEOSConfig& Config) {
   PlatformOptions.ClientCredentials.ClientId = Config.ClientId;
   PlatformOptions.ClientCredentials.ClientSecret = Config.ClientSecret;
   PlatformOptions.EncryptionKey = EncryptionKey;
+
+  std::error_code CacheError;
+  const std::filesystem::path CacheDirectoryPath =
+      std::filesystem::absolute(std::filesystem::path("Saved") / "EOSCache", CacheError);
+  if (!CacheError) {
+    std::filesystem::create_directories(CacheDirectoryPath, CacheError);
+  }
+  if (CacheError) {
+    M_LOG("EOS cache directory creation failed: {}", CacheError.message());
+    DRAW_SCREEN_LOG(
+        "EOSCacheDirectory", 15.0f, "EOS cache directory creation failed: {}", CacheError.message()
+    );
+    EOS_Shutdown();
+    bSDKInitialized = false;
+    return false;
+  }
+
+  const std::string CacheDirectory = CacheDirectoryPath.string();
+  PlatformOptions.CacheDirectory = CacheDirectory.c_str();
+  DRAW_SCREEN_LOG("EOSCacheDirectory", 8.0f, "EOS cache directory: {}", CacheDirectory);
   PlatformOptions.bIsServer = EOS_FALSE;
   PlatformHandle = EOS_Platform_Create(&PlatformOptions);
   if (!PlatformHandle) {
@@ -182,4 +204,10 @@ EOS_HLobby EOSCoreManager::GetLobbyHandle() const {
     return nullptr;
   }
   return EOS_Platform_GetLobbyInterface(PlatformHandle);
+}
+EOS_HTitleStorage EOSCoreManager::GetTitleStorageHandle() const {
+  if (!PlatformHandle) {
+    return nullptr;
+  }
+  return EOS_Platform_GetTitleStorageInterface(PlatformHandle);
 }

@@ -3,6 +3,7 @@
 #include <eos_lobby.h>
 #include <eos_p2p.h>
 #include <eos_sdk.h>
+#include <eos_titlestorage_types.h>
 
 #include <cstdint>
 
@@ -23,6 +24,7 @@ class BROCCOLI_ENGINE_API EOSCoreManager {
   EOS_HConnect GetConnectHandle() const;
   EOS_HLobby GetLobbyHandle() const;
   EOS_HP2P GetP2PHandle() const;
+  EOS_HTitleStorage GetTitleStorageHandle() const;
 
  private:
   EOSCoreManager() = default;
