@@ -894,7 +894,8 @@ void EOSLobbyManager::FetchLobbyInfoById(
 ) {
   EOS_HLobby LobbyHandle = EOSCoreManager::GetInstance().GetLobbyHandle();
   EOS_ProductUserId LocalUserId = GetLoggedInUserId();
-  if (!EOSCoreManager::GetInstance().IsInitialized() || !LobbyHandle || !LocalUserId || LobbyId.empty()) {
+  if (!EOSCoreManager::GetInstance().IsInitialized() || !LobbyHandle || !LocalUserId ||
+      LobbyId.empty()) {
     M_LOG("[EOSLobby] FetchLobbyInfoById failed: EOS state or lobby id is invalid.");
     CompleteFetchCallback(OnComplete, false, {});
     return;
@@ -1194,7 +1195,12 @@ void EOSLobbyManager::HandleLocalDisconnect(ELobbyDisconnectReason Reason, bool 
     return;
   }
 
-  M_LOG("[EOSLobby] Local lobby disconnected: reason={}", LobbyDisconnectReasonToString(Reason));
+  const std::string PreviousLobbyId = ImplPtr->CurrentLobbyId;
+  M_LOG(
+      "[EOSLobby] Local lobby state cleared: reason={} previousLobbyId={}",
+      LobbyDisconnectReasonToString(Reason),
+      PreviousLobbyId
+  );
   ImplPtr->bInLobby = false;
   ImplPtr->CurrentLobbyId.clear();
   UnregisterLobbyNotifications();
@@ -1212,17 +1218,27 @@ void EOSLobbyManager::HandleMemberStatusReceived(
     return;
   }
 
+  EOS_ProductUserId LocalUserId = GetLoggedInUserId();
   M_LOG(
-      "[EOSLobby] Member status received: lobby={}, status={}",
+      "[EOSLobby] Member status received: lobby={} targetUser={} localUser={} status={} "
+      "inLobby={} currentLobby={}",
       SafeText(Data->LobbyId),
-      LobbyMemberStatusToString(Data->CurrentStatus)
+      ProductUserIdToString(Data->TargetUserId),
+      ProductUserIdToString(LocalUserId),
+      LobbyMemberStatusToString(Data->CurrentStatus),
+      ImplPtr->bInLobby,
+      ImplPtr->CurrentLobbyId
   );
 
   if (ImplPtr->CurrentLobbyId != SafeText(Data->LobbyId)) {
     return;
   }
 
-  EOS_ProductUserId LocalUserId = GetLoggedInUserId();
+  if (Data->CurrentStatus == EOS_ELobbyMemberStatus::EOS_LMS_CLOSED) {
+    HandleLocalDisconnect(ELobbyDisconnectReason::LobbyClosed, true);
+    return;
+  }
+
   if (!IsSameProductUserId(LocalUserId, Data->TargetUserId)) {
     return;
   }
