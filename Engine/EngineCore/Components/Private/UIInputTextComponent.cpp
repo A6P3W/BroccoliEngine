@@ -357,14 +357,14 @@ void UIInputTextComponent::AppendCharacter(char character) {
 
 void UIInputTextComponent::UpdateVisuals() {
   if (ImplPtr->BoxSprite != nullptr) {
-    ImplPtr->BoxSprite->SetRelativeLocation({-ImplPtr->Width * 0.5f, -ImplPtr->Height * 0.5f});
+    ImplPtr->BoxSprite->SetRelativeLocation(FVector2D::ZeroVector());
     ImplPtr->BoxSprite->SubmitBox(
         ImplPtr->Width, ImplPtr->Height, GetCurrentBackgroundColor(), true
     );
   }
 
   if (ImplPtr->BorderSprite != nullptr) {
-    ImplPtr->BorderSprite->SetRelativeLocation({-ImplPtr->Width * 0.5f, -ImplPtr->Height * 0.5f});
+    ImplPtr->BorderSprite->SetRelativeLocation(FVector2D::ZeroVector());
     if (ImplPtr->bIsEditing) {
       ImplPtr->BorderSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, FColor{0, 255, 0}, false);
     } else if (ImplPtr->CurrentState == EButtonState::Hovered) {
