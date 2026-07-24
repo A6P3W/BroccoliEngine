@@ -46,7 +46,7 @@ void UIBoxButtonComponent::UpdateBox() {
   if (BoxSprite == nullptr) {
     return;
   }
-  BoxSprite->SetRelativeLocation({-Width * 0.5f, -Height * 0.5f});
+  BoxSprite->SetRelativeLocation(FVector2D::ZeroVector());
   BoxSprite->SubmitBox(Width, Height, GetColorForState(CurrentState), true);
 }
 

@@ -84,10 +84,15 @@ void MSpriteComponent::Draw() {
               RenderState->CommonData.alpha
           );
         } else if constexpr (std::is_same_v<T, BoxData>) {
-          // Boxは左上座標(worldPos)とサイズ、回転を送信
+          const FVector2D ScaledSize = d.WidthHeight * worldScale;
+          FVector2D TopLeftOffset = ScaledSize * -0.5f;
+          if (RenderState->CommonData.space == RenderSpace::World) {
+            TopLeftOffset = TopLeftOffset.RotateVector(worldRot);
+          }
+
           rs.SubmitBox(
-              worldPos,
-              d.WidthHeight,
+              worldPos + TopLeftOffset,
+              ScaledSize,
               worldRot,
               d.Color,
               d.Fill,
