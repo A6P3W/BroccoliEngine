@@ -7,19 +7,10 @@ m_は不要
 
 ビルドにはmsbuildを使用。
 
-/t:Build /p:Configuration=Debug /p:Platform=x64 /m
-
-editor関連のデバッグ中は Configuration=Editorを使用。
-
 BroccoliEngineソリューションの変更後のビルドテスト方法
+BroccoliEngineフォルダの./build.bat
 
-1. BroccoliEngine.vcxprojのビルド、
-2. 成功したらBroccoliEngine.slnxのビルド。
-
-
-エンジンを使用したゲーム開発時
 ゲームソリューションの変更後のビルドテスト方法
-1. Engineコードが変更された初回のみBroccoliEngine.vcxprojのビルド。pull後など。
-2. ゲーム.slnxのビルド。
+ゲームフォルダの./build.bat
 
-起動方法：Start-Process -FilePath '{SolutionPath}\Publish\Debug\Launcher.exe
+c++20環境

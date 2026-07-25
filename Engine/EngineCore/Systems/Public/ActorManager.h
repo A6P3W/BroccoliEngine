@@ -43,6 +43,7 @@ class BROCCOLI_ENGINE_API FActorManager {
     ptr->SetActorLocation(location);
     ptr->SetActorRotation(rotation);
     RegisterActorId(*ptr);
+    RegisterInstanceName(*ptr);
 
     if (!DeferBeginPlay) ptr->Spawned();
     AddPendingActor(std::move(obj));
@@ -53,11 +54,17 @@ class BROCCOLI_ENGINE_API FActorManager {
   void ClearAllObjects();
   AActor* FindActorById(FActorId ActorId);
   const AActor* FindActorById(FActorId ActorId) const;
+  bool AssignInstanceName(AActor& Actor, const std::string& RequestedName);
 
  private:
   void AddPendingActor(std::unique_ptr<AActor> Actor);
   void RegisterActorId(AActor& Actor);
   void UnregisterActorId(AActor& Actor);
+  void RegisterInstanceName(AActor& Actor);
+  void UnregisterInstanceName(AActor& Actor);
+  std::string AllocateUniqueInstanceName(
+      const std::string& RequestedName, const std::string& ClassName
+  );
 
   struct Impl;
   Impl* ImplPtr = nullptr;

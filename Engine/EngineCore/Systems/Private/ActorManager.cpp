@@ -2,9 +2,11 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <limits>
 #include <stdexcept>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "Actor.h"
@@ -24,12 +26,29 @@ FActorId AllocateActorId() {
   }
   throw std::overflow_error("ActorId allocator exhausted");
 }
+
+std::string RemoveNumericSuffix(const std::string& Name) {
+  const size_t Separator = Name.rfind('_');
+  if (Separator == std::string::npos || Separator == 0 || Separator + 1 >= Name.size()) {
+    return Name;
+  }
+
+  for (size_t Index = Separator + 1; Index < Name.size(); ++Index) {
+    if (!std::isdigit(static_cast<unsigned char>(Name[Index]))) {
+      return Name;
+    }
+  }
+
+  return Name.substr(0, Separator);
+}
 }  // namespace
 
 struct FActorManager::Impl {
   std::vector<std::unique_ptr<AActor>> Actors;
   std::vector<std::unique_ptr<AActor>> PendingActors;
   std::unordered_map<FActorId, AActor*> ActorIdMap;
+  std::unordered_map<std::string, AActor*> InstanceNames;
+  std::unordered_map<std::string, uint64_t> NextInstanceIndex;
   World* World = nullptr;
 };
 
@@ -106,9 +125,69 @@ void FActorManager::UnregisterActorId(AActor& Actor) {
   Actor.InvalidateActorIdInternal();
 }
 
+std::string FActorManager::AllocateUniqueInstanceName(
+    const std::string& RequestedName, const std::string& ClassName
+) {
+  if (!RequestedName.empty() && !ImplPtr->InstanceNames.contains(RequestedName)) {
+    return RequestedName;
+  }
+
+  std::string BaseName =
+      RequestedName.empty() ? ClassName : RemoveNumericSuffix(RequestedName);
+  if (BaseName.empty()) {
+    BaseName = "Actor";
+  }
+
+  uint64_t& NextIndex = ImplPtr->NextInstanceIndex[BaseName];
+  if (NextIndex == 0) {
+    NextIndex = 1;
+  }
+
+  std::string Candidate;
+  do {
+    Candidate = BaseName + "_" + std::to_string(NextIndex++);
+  } while (ImplPtr->InstanceNames.contains(Candidate));
+
+  return Candidate;
+}
+
+void FActorManager::RegisterInstanceName(AActor& Actor) { AssignInstanceName(Actor, ""); }
+
+bool FActorManager::AssignInstanceName(AActor& Actor, const std::string& RequestedName) {
+  if (!ImplPtr->World || Actor.GetWorld() != ImplPtr->World) {
+    return false;
+  }
+
+  const std::string PreviousName = Actor.GetInstanceName();
+  if (!PreviousName.empty()) {
+    const auto PreviousNameIt = ImplPtr->InstanceNames.find(PreviousName);
+    if (PreviousNameIt != ImplPtr->InstanceNames.end() && PreviousNameIt->second == &Actor) {
+      ImplPtr->InstanceNames.erase(PreviousNameIt);
+    }
+  }
+
+  std::string NewName = AllocateUniqueInstanceName(RequestedName, Actor.GetActorClassName());
+  ImplPtr->InstanceNames.emplace(NewName, &Actor);
+  Actor.SetInstanceNameInternal(std::move(NewName));
+  return true;
+}
+
+void FActorManager::UnregisterInstanceName(AActor& Actor) {
+  const std::string& InstanceName = Actor.GetInstanceName();
+  if (!InstanceName.empty()) {
+    const auto InstanceNameIt = ImplPtr->InstanceNames.find(InstanceName);
+    if (InstanceNameIt != ImplPtr->InstanceNames.end() && InstanceNameIt->second == &Actor) {
+      ImplPtr->InstanceNames.erase(InstanceNameIt);
+    }
+  }
+
+  Actor.InvalidateInstanceNameInternal();
+}
+
 void FActorManager::RemovePendingDestroy() {
   auto ShouldRemove = [this](const std::unique_ptr<AActor>& Actor) {
     if (Actor && Actor->IsPendingDestroy()) {
+      UnregisterInstanceName(*Actor);
       UnregisterActorId(*Actor);
       return true;
     }
@@ -148,14 +227,18 @@ void FActorManager::ClearAllObjects() {
   for (auto& Actor : ImplPtr->Actors) {
     if (Actor) {
       Actor->InvalidateActorIdInternal();
+      Actor->InvalidateInstanceNameInternal();
     }
   }
   for (auto& Actor : ImplPtr->PendingActors) {
     if (Actor) {
       Actor->InvalidateActorIdInternal();
+      Actor->InvalidateInstanceNameInternal();
     }
   }
   ImplPtr->ActorIdMap.clear();
+  ImplPtr->InstanceNames.clear();
+  ImplPtr->NextInstanceIndex.clear();
   ImplPtr->Actors.clear();
   ImplPtr->PendingActors.clear();
 }
