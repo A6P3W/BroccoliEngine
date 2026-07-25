@@ -6,6 +6,7 @@
 #include <imgui_impl/imgui_impl_win32.h>
 
 #include "ActorManager.h"
+#include "AutomationCommandQueue.h"
 #include "CollisionSystem.h"
 #include "DebugOverlay.h"
 #include "DxLib.h"
@@ -53,11 +54,13 @@ LRESULT CALLBACK ImGuiHookProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 void Application::SetGameSetupCallback(void (*Callback)()) { GameSetupCallback = Callback; }
 
-Application::Application() {}
+Application::Application() : AutomationCommandQueue(std::make_unique<FAutomationCommandQueue>()) {}
 
 Application::~Application() { Shutdown(); }
 
 void Application::Shutdown() {
+  ShutdownAutomation();
+
   if (bImGuiInitialized) {
     SetHookWinProc(nullptr);
     ImGui_ImplDX11_Shutdown();
@@ -78,6 +81,17 @@ void Application::Shutdown() {
     bDxLibInitialized = false;
     M_LOG("DxLib_End completed.");
   }
+}
+
+void Application::ShutdownAutomation() {
+  if (!AutomationCommandQueue) {
+    return;
+  }
+
+  AutomationCommandQueue->StopAcceptingCommands();
+  AutomationCommandQueue->CancelAll(
+      EAutomationErrorCode::EngineShuttingDown, "The engine is shutting down."
+  );
 }
 
 void Application::InitOffscreenBuffer() {
@@ -184,6 +198,8 @@ bool Application::Run() {
     Draw();
   }
 
+  ShutdownAutomation();
+
   EOSTitleStorageManager::GetInstance().Shutdown();
   SceneManager::GetInstance().Shutdown();
   OnlinePlayManager::GetInstance().Shutdown();
@@ -215,6 +231,9 @@ bool Application::Update(float DeltaTime) {
   ImGui::NewFrame();
 
   SceneManager::GetInstance().ProcessSceneChanges();
+  if (AutomationCommandQueue) {
+    AutomationCommandQueue->ProcessCommands();
+  }
   EOSCoreManager::GetInstance().Tick();
   NetworkManager::GetInstance().Service();
   InputManager::GetInstance().Update();

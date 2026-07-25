@@ -60,6 +60,7 @@ target_include_directories(BroccoliEngine PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore"
 
+  "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore/Automation/Public"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore/Core/Public"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore/Systems/Public"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore/Network/Public"
