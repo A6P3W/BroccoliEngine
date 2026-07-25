@@ -4,6 +4,7 @@
 #include <cmath>
 #include <string>
 #include <typeinfo>
+#include <utility>
 #include <vector>
 
 #include "ActorComponent.h"
@@ -30,6 +31,7 @@ bool IsReplicationSequenceNewer(uint32_t IncomingSequence, uint32_t CurrentSeque
 
 struct AActor::Impl {
   FActorId ActorId = InvalidActorId;
+  std::string InstanceName;
   std::vector<std::string> Tags;
   bool PendingDestroy = false;
   bool HasBegunPlay = false;
@@ -259,9 +261,17 @@ bool AActor::IsPendingDestroy() const { return ImplPtr->PendingDestroy; }
 
 FActorId AActor::GetActorId() const { return ImplPtr->ActorId; }
 
+const std::string& AActor::GetInstanceName() const { return ImplPtr->InstanceName; }
+
 void AActor::SetActorIdInternal(FActorId InActorId) { ImplPtr->ActorId = InActorId; }
 
 void AActor::InvalidateActorIdInternal() { ImplPtr->ActorId = InvalidActorId; }
+
+void AActor::SetInstanceNameInternal(std::string InInstanceName) {
+  ImplPtr->InstanceName = std::move(InInstanceName);
+}
+
+void AActor::InvalidateInstanceNameInternal() { ImplPtr->InstanceName.clear(); }
 
 FScale AActor::GetActorScale() const { return RootComponent->GetWorldScale(); }
 

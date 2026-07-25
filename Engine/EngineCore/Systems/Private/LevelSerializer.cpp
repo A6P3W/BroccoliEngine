@@ -37,6 +37,7 @@ bool LevelSerializer::Save(
       continue;
     FActorSaveData data;
     data.ClassName = name;
+    data.InstanceName = actor->GetInstanceName();
     data.Location = actor->GetActorLocation();
     data.Rotation = actor->GetActorRotation();
     data.Scale = actor->GetActorScale();
@@ -95,6 +96,10 @@ bool LevelSerializer::Load(
     if (world->IsClient() && actor->bReplicates) {
       actor->Destroy();
       continue;
+    }
+
+    if (!data.InstanceName.empty()) {
+      world->GetActorManager()->AssignInstanceName(*actor, data.InstanceName);
     }
 
     actor->SetActorScale(data.Scale);

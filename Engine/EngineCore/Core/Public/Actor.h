@@ -91,6 +91,7 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   void Destroy();
   bool IsPendingDestroy() const;
   FActorId GetActorId() const;
+  const std::string& GetInstanceName() const;
 
   virtual void BeginOverlap(AActor* OtherActor) {}
   virtual void EndOverlap(AActor* OtherActor) {}
@@ -240,6 +241,8 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
 
   void SetActorIdInternal(FActorId InActorId);
   void InvalidateActorIdInternal();
+  void SetInstanceNameInternal(std::string InInstanceName);
+  void InvalidateInstanceNameInternal();
 
   MActorComponent* AcceptNewObjectComponent(std::unique_ptr<MActorComponent> NewComponent);
   void CompletePendingComponentRegistrations();

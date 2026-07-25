@@ -305,7 +305,7 @@ void EditorUI::DrawOutliner(EditorMode* editorMode) {
     AActor* actor = actors[i].get();
     if (!actor || actor->IsPendingDestroy()) continue;
 
-    std::string label = actor->GetActorClassName() + "##" + std::to_string(i);
+    std::string label = actor->GetInstanceName() + "##" + std::to_string(i);
     bool isSelected = (editorMode->GetSelectedActor() == actor);
 
     if (ImGui::Selectable(label.c_str(), isSelected)) {
