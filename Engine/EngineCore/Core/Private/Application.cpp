@@ -4,9 +4,15 @@
 #include <imgui.h>
 #include <imgui_impl/imgui_impl_dx11.h>
 #include <imgui_impl/imgui_impl_win32.h>
+#include <shellapi.h>
+
+#include <filesystem>
 
 #include "ActorManager.h"
+#include "AutomationApiController.h"
 #include "AutomationCommandQueue.h"
+#include "AutomationHttpServer.h"
+#include "AutomationTypes.h"
 #include "CollisionSystem.h"
 #include "DebugOverlay.h"
 #include "DxLib.h"
@@ -32,7 +38,25 @@
 
 namespace {
 void (*GameSetupCallback)() = nullptr;
+
+bool HasCommandLineArgument(const std::wstring& Argument) {
+  int ArgumentCount = 0;
+  LPWSTR* Arguments = CommandLineToArgvW(GetCommandLineW(), &ArgumentCount);
+  if (!Arguments) {
+    return false;
+  }
+
+  bool bFound = false;
+  for (int ArgumentIndex = 1; ArgumentIndex < ArgumentCount; ++ArgumentIndex) {
+    if (Argument == Arguments[ArgumentIndex]) {
+      bFound = true;
+      break;
+    }
+  }
+  LocalFree(Arguments);
+  return bFound;
 }
+}  // namespace
 extern IMGUI_IMPL_API LRESULT
 ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -84,14 +108,77 @@ void Application::Shutdown() {
 }
 
 void Application::ShutdownAutomation() {
-  if (!AutomationCommandQueue) {
+  if (AutomationHttpServer) {
+    AutomationHttpServer->StopAcceptingRequests();
+  }
+
+  if (AutomationCommandQueue) {
+    AutomationCommandQueue->StopAcceptingCommands();
+    AutomationCommandQueue->CancelAll(
+        EAutomationErrorCode::EngineShuttingDown, "The engine is shutting down."
+    );
+  }
+
+  if (AutomationHttpServer) {
+    AutomationHttpServer->Stop();
+  }
+
+  AutomationHttpServer.reset();
+  AutomationApiController.reset();
+  AutomationCommandQueue.reset();
+}
+
+void Application::InitializeAutomation() {
+  FAutomationConfig Config;
+  Config.Enabled = HasCommandLineArgument(L"-automation");
+  if (!Config.Enabled) {
+    M_LOG("Automation disabled.");
     return;
   }
 
-  AutomationCommandQueue->StopAcceptingCommands();
-  AutomationCommandQueue->CancelAll(
-      EAutomationErrorCode::EngineShuttingDown, "The engine is shutting down."
+  if (!AutomationCommandQueue) {
+    AutomationCommandQueue = std::make_unique<FAutomationCommandQueue>();
+  }
+
+  FAutomationStateProvider StateProvider = [this]() {
+    nlohmann::json State = {
+        {"sceneName", ""},
+        {"fps", 0.0f},
+        {"paused", bPosed},
+        {"worldAvailable", false},
+        {"actorCount", 0u}
+    };
+
+    SceneManager& Manager = SceneManager::GetInstance();
+    World* CurrentWorld = Manager.GetCurrentScene();
+    if (!CurrentWorld) {
+      return State;
+    }
+
+    std::string SceneName;
+    const std::string& LevelPath = Manager.GetCurrentLevelPath();
+    if (!LevelPath.empty()) {
+      SceneName = std::filesystem::path(LevelPath).stem().string();
+    }
+
+    State["sceneName"] = std::move(SceneName);
+    State["fps"] = CurrentWorld->GetCurrentFps();
+    State["worldAvailable"] = true;
+    if (const FActorManager* ActorManager = CurrentWorld->GetActorManager()) {
+      State["actorCount"] = ActorManager->GetActiveActorCount();
+    }
+    return State;
+  };
+
+  AutomationApiController = std::make_unique<FAutomationApiController>(
+      *AutomationCommandQueue, Config, std::move(StateProvider)
   );
+  AutomationHttpServer = std::make_unique<FAutomationHttpServer>(Config, *AutomationApiController);
+  if (!AutomationHttpServer->Start()) {
+    M_LOG("Automation server startup failed; the engine will continue without Automation.");
+    AutomationHttpServer.reset();
+    AutomationApiController.reset();
+  }
 }
 
 void Application::InitOffscreenBuffer() {
@@ -170,6 +257,8 @@ bool Application::Run() {
   IM.AddDevice(std::make_unique<KeyboardDevice>());
   IM.AddDevice(std::make_unique<MouseDevice>());
   IM.AddDevice(std::make_unique<GamepadDevice>(1));
+
+  InitializeAutomation();
 
   while (ProcessMessage() == 0 && !ShouldQuitGame) {
     int TargetFps = 120;

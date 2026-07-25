@@ -97,7 +97,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <DisableSpecificWarnings>4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4251;4819;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -109,14 +109,14 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;shell32.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(DXLIB_DIR);$(BroccoliVcpkgLibDir);$(ProjectDir)ThirdParty\EOS\SDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Editor|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <DisableSpecificWarnings>4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4251;4819;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;_EDITOR;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -128,14 +128,14 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;shell32.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(DXLIB_DIR);$(BroccoliVcpkgLibDir);$(ProjectDir)ThirdParty\EOS\SDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <DisableSpecificWarnings>4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4251;4819;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -150,12 +150,14 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;shell32.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(DXLIB_DIR);$(BroccoliVcpkgLibDir);$(ProjectDir)ThirdParty\EOS\SDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="EngineCore\Automation\Private\AutomationApiController.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationCommandQueue.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationHttpServer.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationTypes.cpp" />
     <ClCompile Include="Editor\Private\ActorClassGenerator.cpp" />
     <ClCompile Include="Editor\Private\EditorController.cpp" />
@@ -245,7 +247,9 @@
     <ClCompile Include="EngineCore\Online\Private\OnlinePlayManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EngineCore\Automation\Public\AutomationApiController.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationCommandQueue.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationHttpServer.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationTypes.h" />
     <ClInclude Include="Editor\Public\ActorClassGenerator.h" />
     <ClInclude Include="Editor\Public\EditorController.h" />

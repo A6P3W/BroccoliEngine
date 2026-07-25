@@ -13,6 +13,8 @@ std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode) {
       return "INVALID_JSON";
     case EAutomationErrorCode::InvalidArgument:
       return "INVALID_ARGUMENT";
+    case EAutomationErrorCode::RequestTooLarge:
+      return "REQUEST_TOO_LARGE";
     case EAutomationErrorCode::WorldNotAvailable:
       return "WORLD_NOT_AVAILABLE";
     case EAutomationErrorCode::RequestTimeout:

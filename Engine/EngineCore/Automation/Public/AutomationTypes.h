@@ -11,6 +11,7 @@ enum class EAutomationErrorCode : uint8_t {
   InvalidRequest,
   InvalidJson,
   InvalidArgument,
+  RequestTooLarge,
   WorldNotAvailable,
   RequestTimeout,
   EngineShuttingDown,

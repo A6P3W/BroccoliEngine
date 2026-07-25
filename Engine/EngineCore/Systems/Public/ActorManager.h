@@ -24,6 +24,7 @@ class BROCCOLI_ENGINE_API FActorManager {
   World* GetWorld() const;
 
   const std::vector<std::unique_ptr<AActor>>& GetAllActors() const;
+  size_t GetActiveActorCount() const;
 
   template <class T, std::enable_if_t<std::is_base_of_v<AActor, T>, int> = 0>
   T* SpawnObject(
