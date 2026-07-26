@@ -75,6 +75,18 @@ def get_actor_tool(Client: EngineClient, *, actor_id: int) -> dict[str, object]:
     raise BridgeInternalError(Operation="get actor") from None
 
 
+def get_actor_components_tool(Client: EngineClient, *, actor_id: int) -> dict[str, object]:
+  """Return components held by a world actor."""
+
+  try:
+    return Client.get_actor_components(actor_id).to_dict()
+  except (BridgeError, ValueError):
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while getting actor components")
+    raise BridgeInternalError(Operation="get actor components") from None
+
+
 def find_actors_tool(
   Client: EngineClient,
   *,
@@ -340,6 +352,13 @@ def create_server(Client: EngineClient) -> FastMCP:
   def get_actor(actor_id: int) -> dict[str, object]:
     try:
       return get_actor_tool(Client, actor_id=actor_id)
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(name="get_actor_components", description="Get components held by a world actor.")
+  def get_actor_components(actor_id: int) -> dict[str, object]:
+    try:
+      return get_actor_components_tool(Client, actor_id=actor_id)
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
 

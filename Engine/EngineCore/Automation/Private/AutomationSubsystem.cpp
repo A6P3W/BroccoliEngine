@@ -1,6 +1,7 @@
 ﻿#include "AutomationSubsystem.h"
 
 #include <filesystem>
+
 #include "ActorManager.h"
 #include "AutomationApiController.h"
 #include "AutomationAutoRegistrar.h"
@@ -91,6 +92,7 @@ bool FAutomationSubsystem::Initialize(const FAutomationConfig& Config) {
       std::move(StateProvider),
       WorldAdapter->CreateActorListProvider(),
       WorldAdapter->CreateActorProvider(),
+      WorldAdapter->CreateActorComponentListProvider(),
       WorldAdapter->CreateSpawnActorProvider(),
       WorldAdapter->CreateDestroyActorProvider(),
       WorldAdapter->CreateTransformProvider(),
@@ -123,7 +125,8 @@ void FAutomationSubsystem::RegisterBuiltInSystemCommands() {
             Changed
         );
         return nlohmann::json{
-            {"commandName", "pause_game"}, {"changed", Changed}, {"paused", true}};
+            {"commandName", "pause_game"}, {"changed", Changed}, {"paused", true}
+        };
       }
   );
   AutomationHelper::RegisterSystemCommand(
@@ -135,7 +138,8 @@ void FAutomationSubsystem::RegisterBuiltInSystemCommands() {
             Changed
         );
         return nlohmann::json{
-            {"commandName", "resume_game"}, {"changed", Changed}, {"paused", false}};
+            {"commandName", "resume_game"}, {"changed", Changed}, {"paused", false}
+        };
       }
   );
   AutomationHelper::RegisterSystemCommand(
@@ -148,7 +152,8 @@ void FAutomationSubsystem::RegisterBuiltInSystemCommands() {
         const bool Queued = CurrentWorld ? CurrentWorld->ServerTravel(SceneId)
                                          : Manager.OpenLevelById(SceneId, ENetMode::Standalone);
         return nlohmann::json{
-            {"commandName", "open_level_by_id"}, {"sceneId", SceneId}, {"queued", Queued}};
+            {"commandName", "open_level_by_id"}, {"sceneId", SceneId}, {"queued", Queued}
+        };
       },
       AutomationParam<FNetworkSceneId>("sceneId", "Registered scene ID.")
   );
@@ -162,7 +167,8 @@ void FAutomationSubsystem::RegisterBuiltInSystemCommands() {
         const bool Queued = CurrentWorld ? CurrentWorld->ServerTravel(LevelPath)
                                          : Manager.OpenLevelByPath(LevelPath, ENetMode::Standalone);
         return nlohmann::json{
-            {"commandName", "open_level_by_path"}, {"levelPath", LevelPath}, {"queued", Queued}};
+            {"commandName", "open_level_by_path"}, {"levelPath", LevelPath}, {"queued", Queued}
+        };
       },
       AutomationParam<std::string>("levelPath", "Level file path.")
   );

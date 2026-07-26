@@ -32,6 +32,22 @@ struct FAutomationActorSnapshot {
   FScale Scale;
 };
 
+struct FAutomationActorComponentSnapshot {
+  uint32_t Index = 0;
+  std::string Name;
+  std::string ClassName;
+  bool bRegistered = false;
+  bool bPendingDestroy = false;
+  bool bReplicates = false;
+  uint32_t NetworkId = 0;
+};
+
+struct FAutomationActorComponentListSnapshot {
+  FActorId ActorId = InvalidActorId;
+  std::string ClassName;
+  std::vector<FAutomationActorComponentSnapshot> Components;
+};
+
 struct FAutomationActorListSnapshot {
   std::string SceneName;
   std::vector<FAutomationActorSnapshot> Actors;
@@ -70,6 +86,8 @@ using FAutomationActorListProvider = std::function<
     EAutomationWorldReadStatus(const FAutomationActorQuery&, FAutomationActorListSnapshot&)>;
 using FAutomationActorProvider =
     std::function<EAutomationWorldReadStatus(FActorId, FAutomationActorSnapshot&)>;
+using FAutomationActorComponentListProvider =
+    std::function<EAutomationWorldReadStatus(FActorId, FAutomationActorComponentListSnapshot&)>;
 using FAutomationActorClassListProvider = std::function<std::vector<FAutomationActorClassInfo>()>;
 using FAutomationLevelListProvider = std::function<std::vector<FAutomationLevelInfo>()>;
 using FAutomationActorClassExistsProvider = std::function<bool(std::string_view)>;
@@ -133,6 +151,7 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
       FAutomationStateProvider InStateProvider,
       FAutomationActorListProvider InActorListProvider = {},
       FAutomationActorProvider InActorProvider = {},
+      FAutomationActorComponentListProvider InActorComponentListProvider = {},
       FAutomationSpawnActorProvider InSpawnActorProvider = {},
       FAutomationDestroyActorProvider InDestroyActorProvider = {},
       FAutomationPatchActorTransformProvider InPatchActorTransformProvider = {},
@@ -147,6 +166,7 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
   FAutomationHttpResponse GetState();
   FAutomationHttpResponse GetWorldActors(const FAutomationActorQueryText& Query = {});
   FAutomationHttpResponse GetWorldActor(std::string_view ActorIdText);
+  FAutomationHttpResponse GetWorldActorComponents(std::string_view ActorIdText);
   FAutomationHttpResponse GetActorClasses();
   FAutomationHttpResponse GetLevels();
   FAutomationHttpResponse GetActorClassMethods(std::string_view ClassName);
@@ -183,6 +203,7 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
   FAutomationStateProvider StateProvider;
   FAutomationActorListProvider ActorListProvider;
   FAutomationActorProvider ActorProvider;
+  FAutomationActorComponentListProvider ActorComponentListProvider;
   FAutomationSpawnActorProvider SpawnActorProvider;
   FAutomationDestroyActorProvider DestroyActorProvider;
   FAutomationPatchActorTransformProvider PatchActorTransformProvider;

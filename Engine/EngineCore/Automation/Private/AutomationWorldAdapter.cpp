@@ -98,6 +98,46 @@ EAutomationWorldReadStatus GetActor(FActorId ActorId, FAutomationActorSnapshot& 
                : EAutomationWorldReadStatus::ActorNotFound;
 }
 
+EAutomationWorldReadStatus GetActorComponents(
+    FActorId ActorId, FAutomationActorComponentListSnapshot& OutSnapshot
+) {
+  World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
+  if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
+    return EAutomationWorldReadStatus::WorldNotAvailable;
+  }
+  FActorManager* ActorManager = CurrentWorld->GetActorManager();
+  if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
+    return EAutomationWorldReadStatus::InvalidState;
+  }
+  AActor* Actor = ActorManager->FindActorById(ActorId);
+  if (!Actor || Actor->IsPendingDestroy() || Actor->GetWorld() != CurrentWorld) {
+    return EAutomationWorldReadStatus::ActorNotFound;
+  }
+
+  FAutomationActorComponentListSnapshot Snapshot;
+  Snapshot.ActorId = ActorId;
+  Snapshot.ClassName = Actor->GetActorClassName();
+  const auto& Components = Actor->GetComponents();
+  Snapshot.Components.reserve(Components.size());
+  for (size_t Index = 0; Index < Components.size(); ++Index) {
+    const std::unique_ptr<MActorComponent>& Component = Components[Index];
+    if (!Component) {
+      continue;
+    }
+    Snapshot.Components.push_back(
+        {static_cast<uint32_t>(Index),
+         Component->GetNetComponentName(),
+         Component->GetComponentClassName(),
+         Component->IsRegistered(),
+         Component->IsPendingDestroy(),
+         Component->bReplicates,
+         Component->ComponentNetworkId}
+    );
+  }
+  OutSnapshot = std::move(Snapshot);
+  return EAutomationWorldReadStatus::Success;
+}
+
 EAutomationWorldMutationStatus SpawnActor(
     const FAutomationSpawnActorRequest& Request, FAutomationActorSnapshot& OutSnapshot
 ) {
@@ -221,6 +261,10 @@ FAutomationActorListProvider FAutomationWorldAdapter::CreateActorListProvider() 
 }
 
 FAutomationActorProvider FAutomationWorldAdapter::CreateActorProvider() { return GetActor; }
+
+FAutomationActorComponentListProvider FAutomationWorldAdapter::CreateActorComponentListProvider() {
+  return GetActorComponents;
+}
 
 FAutomationSpawnActorProvider FAutomationWorldAdapter::CreateSpawnActorProvider() {
   return SpawnActor;

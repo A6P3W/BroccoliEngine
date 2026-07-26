@@ -757,6 +757,110 @@ class SystemCommandResult:
     }
 
 
+@dataclass(frozen=True, slots=True)
+class ActorComponentInfo:
+  Index: int
+  Name: str
+  ClassName: str
+  Registered: bool
+  PendingDestroy: bool
+  Replicates: bool
+  NetworkId: int
+
+  @classmethod
+  def from_mapping(Class, Data: Mapping[str, Any], *, Operation: str) -> ActorComponentInfo:
+    Fields = (
+      "index",
+      "name",
+      "className",
+      "registered",
+      "pendingDestroy",
+      "replicates",
+      "networkId",
+    )
+    if any(Field not in Data for Field in Fields):
+      raise InvalidEngineResponse(
+        "Actor component data is missing required fields.", Operation=Operation
+      )
+    if isinstance(Data["index"], bool) or not isinstance(Data["index"], int) or Data["index"] < 0:
+      raise InvalidEngineResponse("Actor component field 'index' is invalid.", Operation=Operation)
+    if (
+      isinstance(Data["networkId"], bool)
+      or not isinstance(Data["networkId"], int)
+      or Data["networkId"] < 0
+    ):
+      raise InvalidEngineResponse(
+        "Actor component field 'networkId' is invalid.", Operation=Operation
+      )
+    if not all(isinstance(Data[Field], str) and Data[Field] for Field in ("name", "className")):
+      raise InvalidEngineResponse(
+        "Actor component name fields must be non-empty strings.", Operation=Operation
+      )
+    if not all(
+      isinstance(Data[Field], bool) for Field in ("registered", "pendingDestroy", "replicates")
+    ):
+      raise InvalidEngineResponse(
+        "Actor component state fields must be booleans.", Operation=Operation
+      )
+    return Class(
+      Data["index"],
+      Data["name"],
+      Data["className"],
+      Data["registered"],
+      Data["pendingDestroy"],
+      Data["replicates"],
+      Data["networkId"],
+    )
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
+      "index": Self.Index,
+      "name": Self.Name,
+      "className": Self.ClassName,
+      "registered": Self.Registered,
+      "pendingDestroy": Self.PendingDestroy,
+      "replicates": Self.Replicates,
+      "networkId": Self.NetworkId,
+    }
+
+
+@dataclass(frozen=True, slots=True)
+class ActorComponentList:
+  ActorId: int
+  ClassName: str
+  Components: tuple[ActorComponentInfo, ...]
+
+  @classmethod
+  def from_mapping(Class, Data: Mapping[str, Any], *, Operation: str) -> ActorComponentList:
+    ActorId = Data.get("actorId")
+    ClassName = Data.get("className")
+    Items = Data.get("components")
+    if (
+      isinstance(ActorId, bool) or not isinstance(ActorId, int) or not 1 <= ActorId <= MAX_ACTOR_ID
+    ):
+      raise InvalidEngineResponse(
+        "Actor component list field 'actorId' is invalid.", Operation=Operation
+      )
+    if not isinstance(ClassName, str) or not ClassName or not isinstance(Items, list):
+      raise InvalidEngineResponse("Actor component list fields are invalid.", Operation=Operation)
+    return Class(
+      ActorId,
+      ClassName,
+      tuple(
+        ActorComponentInfo.from_mapping(Item, Operation=Operation)
+        for Item in Items
+        if isinstance(Item, Mapping)
+      ),
+    )
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
+      "actorId": Self.ActorId,
+      "className": Self.ClassName,
+      "components": [Item.to_dict() for Item in Self.Components],
+    }
+
+
 def _optional_finite_number(Value: object, FieldName: str) -> float | None:
   if Value is None:
     return None

@@ -264,6 +264,24 @@ struct FAutomationHttpServer::Impl {
         }
     );
     Server.Get(
+        R"(/api/v1/world/actors/([0-9]+)/components)",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            const std::string ActorIdText =
+                Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
+            const FAutomationHttpResponse ApiResponse =
+                ApiController.GetWorldActorComponents(ActorIdText);
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Get(
         R"(/api/v1/world/actors/([0-9]+)/methods)",
         [this](const httplib::Request& Request, httplib::Response& Response) {
           try {

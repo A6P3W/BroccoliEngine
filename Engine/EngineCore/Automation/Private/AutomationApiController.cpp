@@ -191,6 +191,7 @@ FAutomationApiController::FAutomationApiController(
     FAutomationStateProvider InStateProvider,
     FAutomationActorListProvider InActorListProvider,
     FAutomationActorProvider InActorProvider,
+    FAutomationActorComponentListProvider InActorComponentListProvider,
     FAutomationSpawnActorProvider InSpawnActorProvider,
     FAutomationDestroyActorProvider InDestroyActorProvider,
     FAutomationPatchActorTransformProvider InPatchActorTransformProvider,
@@ -206,6 +207,7 @@ FAutomationApiController::FAutomationApiController(
       StateProvider(std::move(InStateProvider)),
       ActorListProvider(std::move(InActorListProvider)),
       ActorProvider(std::move(InActorProvider)),
+      ActorComponentListProvider(std::move(InActorComponentListProvider)),
       SpawnActorProvider(std::move(InSpawnActorProvider)),
       DestroyActorProvider(std::move(InDestroyActorProvider)),
       PatchActorTransformProvider(std::move(InPatchActorTransformProvider)),
@@ -379,6 +381,48 @@ FAutomationHttpResponse FAutomationApiController::GetWorldActor(std::string_view
       }
       return MakeAutomationSuccess(SerializeActor(Snapshot));
     });
+    return WaitForResult(std::move(Ticket));
+  } catch (...) {
+    return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
+  }
+}
+
+FAutomationHttpResponse FAutomationApiController::GetWorldActorComponents(
+    std::string_view ActorIdText
+) {
+  FActorId ActorId = InvalidActorId;
+  if (!TryParseActorId(ActorIdText, ActorId)) {
+    return {400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, InvalidActorIdMessage)};
+  }
+  try {
+    if (!ActorComponentListProvider) {
+      return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
+    }
+    FAutomationCommandTicket Ticket =
+        CommandQueue.Enqueue([Provider = ActorComponentListProvider, ActorId]() {
+          FAutomationActorComponentListSnapshot Snapshot;
+          const EAutomationWorldReadStatus Status = Provider(ActorId, Snapshot);
+          if (Status != EAutomationWorldReadStatus::Success) {
+            return MakeWorldReadError(Status);
+          }
+          nlohmann::json Components = nlohmann::json::array();
+          for (const FAutomationActorComponentSnapshot& Component : Snapshot.Components) {
+            Components.push_back(
+                {{"index", Component.Index},
+                 {"name", Component.Name},
+                 {"className", Component.ClassName},
+                 {"registered", Component.bRegistered},
+                 {"pendingDestroy", Component.bPendingDestroy},
+                 {"replicates", Component.bReplicates},
+                 {"networkId", Component.NetworkId}}
+            );
+          }
+          return MakeAutomationSuccess(
+              {{"actorId", Snapshot.ActorId},
+               {"className", Snapshot.ClassName},
+               {"components", std::move(Components)}}
+          );
+        });
     return WaitForResult(std::move(Ticket));
   } catch (...) {
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};

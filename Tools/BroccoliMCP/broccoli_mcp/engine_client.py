@@ -23,6 +23,7 @@ from .models import (
   MAX_ACTOR_ID,
   ActorClassList,
   ActorClassMethodList,
+  ActorComponentList,
   ActorInfo,
   ActorList,
   ActorMethodList,
@@ -126,6 +127,21 @@ class EngineClient:
         Operation=Operation,
       )
     return ActorInfo.from_mapping(Data, Operation=Operation)
+
+  def get_actor_components(Self, ActorId: int) -> ActorComponentList:
+    Self._validate_actor_id(ActorId)
+    Operation = f"get world actor {ActorId} components"
+    Data = Self._request_json("GET", f"world/actors/{ActorId}/components", Operation=Operation)
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.", Operation=Operation
+      )
+    Result = ActorComponentList.from_mapping(Data, Operation=Operation)
+    if Result.ActorId != ActorId:
+      raise InvalidEngineResponse(
+        "Actor component list field 'actorId' does not match the request.", Operation=Operation
+      )
+    return Result
 
   def get_registered_actor_classes(Self) -> ActorClassList:
     Operation = "get registered actor classes"
