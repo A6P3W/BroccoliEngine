@@ -25,6 +25,19 @@ def read_state_resource(Client: EngineClient) -> str:
     raise BridgeInternalError(Operation="read game://state") from None
 
 
+def read_actors_resource(Client: EngineClient) -> str:
+  """Read and serialize actors in the current engine world for MCP."""
+
+  try:
+    Actors = Client.get_actors()
+    return json.dumps(Actors.to_dict(), ensure_ascii=False, separators=(",", ":"))
+  except BridgeError:
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while reading game://world/actors")
+    raise BridgeInternalError(Operation="read game://world/actors") from None
+
+
 def create_server(Client: EngineClient) -> FastMCP:
   """Create an MCP server backed by a process-owned HTTP client."""
 
@@ -44,6 +57,22 @@ def create_server(Client: EngineClient) -> FastMCP:
       LOGGER.warning("Resource game://state failed: %s", Error.Code)
       raise ValueError(format_mcp_error(Error)) from None
     LOGGER.info("Resource game://state completed")
+    return Result
+
+  @Mcp.resource(
+    "game://world/actors",
+    name="BROCCOLI ENGINE World Actors",
+    description="Actors in the current world with identity and transform data.",
+    mime_type="application/json",
+  )
+  def game_world_actors() -> str:
+    LOGGER.info("Reading resource game://world/actors")
+    try:
+      Result = read_actors_resource(Client)
+    except BridgeError as Error:
+      LOGGER.warning("Resource game://world/actors failed: %s", Error.Code)
+      raise ValueError(format_mcp_error(Error)) from None
+    LOGGER.info("Resource game://world/actors completed")
     return Result
 
   return Mcp

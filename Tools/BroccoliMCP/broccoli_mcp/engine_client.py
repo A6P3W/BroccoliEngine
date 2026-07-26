@@ -17,10 +17,11 @@ from .errors import (
   EngineUnavailable,
   InvalidEngineResponse,
 )
-from .models import EngineState
+from .models import MAX_ACTOR_ID, ActorInfo, ActorList, EngineState
 
 LOGGER = logging.getLogger(__name__)
 STATE_OPERATION = "get engine state"
+ACTORS_OPERATION = "get world actors"
 
 
 class EngineClient:
@@ -64,6 +65,29 @@ class EngineClient:
         Operation=STATE_OPERATION,
       )
     return EngineState.from_mapping(Data, Operation=STATE_OPERATION)
+
+  def get_actors(Self) -> ActorList:
+    Data = Self._request_json("GET", "world/actors", Operation=ACTORS_OPERATION)
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.",
+        Operation=ACTORS_OPERATION,
+      )
+    return ActorList.from_mapping(Data, Operation=ACTORS_OPERATION)
+
+  def get_actor(Self, ActorId: int) -> ActorInfo:
+    if (
+      isinstance(ActorId, bool) or not isinstance(ActorId, int) or not 1 <= ActorId <= MAX_ACTOR_ID
+    ):
+      raise ValueError("ActorId must be an unsigned 64-bit integer greater than zero.")
+    Operation = f"get world actor {ActorId}"
+    Data = Self._request_json("GET", f"world/actors/{ActorId}", Operation=Operation)
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.",
+        Operation=Operation,
+      )
+    return ActorInfo.from_mapping(Data, Operation=Operation)
 
   def _request_json(
     Self,

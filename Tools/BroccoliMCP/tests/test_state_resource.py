@@ -64,7 +64,10 @@ def test_server_lists_game_state_resource() -> None:
 
   Resources = Server._resource_manager.list_resources()
 
-  assert [str(Resource.uri) for Resource in Resources] == ["game://state"]
+  assert [str(Resource.uri) for Resource in Resources] == [
+    "game://state",
+    "game://world/actors",
+  ]
 
 
 def test_mcp_client_can_list_and_read_game_state() -> None:
@@ -90,5 +93,5 @@ def test_mcp_client_can_list_and_read_game_state() -> None:
 
   ResourceUris, Content = anyio.run(execute)
 
-  assert ResourceUris == ["game://state"]
+  assert ResourceUris == ["game://state", "game://world/actors"]
   assert json.loads(Content)["sceneName"] == "SceneTest"

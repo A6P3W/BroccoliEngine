@@ -87,9 +87,9 @@ void FAutomationCommandQueue::ProcessCommands() {
 
     try {
       CompleteCommand(Command, Command->Execute());
-    } catch (const std::exception& Exception) {
+    } catch (const std::exception&) {
       CompleteCommand(
-          Command, MakeAutomationError(EAutomationErrorCode::InternalError, Exception.what())
+          Command, MakeAutomationError(EAutomationErrorCode::InternalError, UnknownExceptionMessage)
       );
     } catch (...) {
       CompleteCommand(

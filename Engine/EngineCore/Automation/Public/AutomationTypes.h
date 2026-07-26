@@ -15,7 +15,8 @@ enum class EAutomationErrorCode : uint8_t {
   WorldNotAvailable,
   RequestTimeout,
   EngineShuttingDown,
-  InternalError
+  InternalError,
+  ActorNotFound
 };
 
 struct FAutomationConfig {

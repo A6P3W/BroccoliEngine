@@ -17,6 +17,8 @@ std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode) {
       return "REQUEST_TOO_LARGE";
     case EAutomationErrorCode::WorldNotAvailable:
       return "WORLD_NOT_AVAILABLE";
+    case EAutomationErrorCode::ActorNotFound:
+      return "ACTOR_NOT_FOUND";
     case EAutomationErrorCode::RequestTimeout:
       return "REQUEST_TIMEOUT";
     case EAutomationErrorCode::EngineShuttingDown:

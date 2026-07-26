@@ -6,6 +6,8 @@
 #include <imgui_impl/imgui_impl_win32.h>
 #include <shellapi.h>
 
+#include <algorithm>
+#include <cmath>
 #include <filesystem>
 
 #include "ActorManager.h"
@@ -55,6 +57,37 @@ bool HasCommandLineArgument(const std::wstring& Argument) {
   }
   LocalFree(Arguments);
   return bFound;
+}
+
+std::string GetCurrentSceneName(const SceneManager& Manager) {
+  const std::string& LevelPath = Manager.GetCurrentLevelPath();
+  return LevelPath.empty() ? std::string() : std::filesystem::path(LevelPath).stem().string();
+}
+
+EAutomationWorldReadStatus MakeActorSnapshot(
+    AActor& Actor, World& CurrentWorld, FAutomationActorSnapshot& OutSnapshot
+) {
+  if (Actor.IsPendingDestroy() || Actor.GetWorld() != &CurrentWorld) {
+    return EAutomationWorldReadStatus::ActorNotFound;
+  }
+
+  FAutomationActorSnapshot Snapshot;
+  Snapshot.ActorId = Actor.GetActorId();
+  Snapshot.InstanceName = Actor.GetInstanceName();
+  Snapshot.ClassName = Actor.GetActorClassName();
+  Snapshot.Location = Actor.GetActorLocation();
+  Snapshot.Rotation = Actor.GetActorRotation();
+  Snapshot.Scale = Actor.GetActorScale();
+
+  if (Snapshot.ActorId == InvalidActorId || Snapshot.InstanceName.empty() ||
+      Snapshot.ClassName.empty() || !std::isfinite(Snapshot.Location.X) ||
+      !std::isfinite(Snapshot.Location.Y) || !std::isfinite(Snapshot.Rotation.Rotation) ||
+      !std::isfinite(Snapshot.Scale.Scale)) {
+    return EAutomationWorldReadStatus::InvalidState;
+  }
+
+  OutSnapshot = std::move(Snapshot);
+  return EAutomationWorldReadStatus::Success;
 }
 }  // namespace
 extern IMGUI_IMPL_API LRESULT
@@ -155,13 +188,7 @@ void Application::InitializeAutomation() {
       return State;
     }
 
-    std::string SceneName;
-    const std::string& LevelPath = Manager.GetCurrentLevelPath();
-    if (!LevelPath.empty()) {
-      SceneName = std::filesystem::path(LevelPath).stem().string();
-    }
-
-    State["sceneName"] = std::move(SceneName);
+    State["sceneName"] = GetCurrentSceneName(Manager);
     State["fps"] = CurrentWorld->GetCurrentFps();
     State["worldAvailable"] = true;
     if (const FActorManager* ActorManager = CurrentWorld->GetActorManager()) {
@@ -170,8 +197,70 @@ void Application::InitializeAutomation() {
     return State;
   };
 
+  FAutomationActorListProvider ActorListProvider = [](FAutomationActorListSnapshot& OutSnapshot) {
+    SceneManager& Manager = SceneManager::GetInstance();
+    World* CurrentWorld = Manager.GetCurrentScene();
+    if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
+      return EAutomationWorldReadStatus::WorldNotAvailable;
+    }
+
+    FActorManager* ActorManager = CurrentWorld->GetActorManager();
+    if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
+      return EAutomationWorldReadStatus::InvalidState;
+    }
+
+    FAutomationActorListSnapshot Snapshot;
+    Snapshot.SceneName = GetCurrentSceneName(Manager);
+    for (const std::unique_ptr<AActor>& Actor : ActorManager->GetAllActors()) {
+      if (!Actor || Actor->IsPendingDestroy()) {
+        continue;
+      }
+
+      FAutomationActorSnapshot ActorSnapshot;
+      const EAutomationWorldReadStatus Status =
+          MakeActorSnapshot(*Actor, *CurrentWorld, ActorSnapshot);
+      if (Status != EAutomationWorldReadStatus::Success) {
+        return EAutomationWorldReadStatus::InvalidState;
+      }
+      Snapshot.Actors.push_back(std::move(ActorSnapshot));
+    }
+
+    std::sort(
+        Snapshot.Actors.begin(),
+        Snapshot.Actors.end(),
+        [](const FAutomationActorSnapshot& Left, const FAutomationActorSnapshot& Right) {
+          return Left.ActorId < Right.ActorId;
+        }
+    );
+    OutSnapshot = std::move(Snapshot);
+    return EAutomationWorldReadStatus::Success;
+  };
+
+  FAutomationActorProvider ActorProvider = [](FActorId ActorId,
+                                              FAutomationActorSnapshot& OutSnapshot) {
+    World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
+    if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
+      return EAutomationWorldReadStatus::WorldNotAvailable;
+    }
+
+    FActorManager* ActorManager = CurrentWorld->GetActorManager();
+    if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
+      return EAutomationWorldReadStatus::InvalidState;
+    }
+
+    AActor* Actor = ActorManager->FindActorById(ActorId);
+    if (!Actor) {
+      return EAutomationWorldReadStatus::ActorNotFound;
+    }
+    return MakeActorSnapshot(*Actor, *CurrentWorld, OutSnapshot);
+  };
+
   AutomationApiController = std::make_unique<FAutomationApiController>(
-      *AutomationCommandQueue, Config, std::move(StateProvider)
+      *AutomationCommandQueue,
+      Config,
+      std::move(StateProvider),
+      std::move(ActorListProvider),
+      std::move(ActorProvider)
   );
   AutomationHttpServer = std::make_unique<FAutomationHttpServer>(Config, *AutomationApiController);
   if (!AutomationHttpServer->Start()) {

@@ -25,6 +25,7 @@ constexpr std::string_view InternalErrorMessage =
 
 void SetJsonResponse(httplib::Response& Response, int StatusCode, const nlohmann::json& Body) {
   Response.status = StatusCode;
+  Response.set_header("Cache-Control", "no-store");
   Response.set_content(Body.dump(), std::string(JsonContentType));
 }
 }  // namespace
@@ -52,12 +53,43 @@ struct FAutomationHttpServer::Impl {
 
             const FAutomationHttpResponse ApiResponse = ApiController.GetState();
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
-          } catch (const std::exception& Exception) {
+          } catch (const std::exception&) {
             SetJsonResponse(
                 Response,
                 500,
-                MakeAutomationError(EAutomationErrorCode::InternalError, Exception.what())
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
             );
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Get(
+        "/api/v1/world/actors", [this](const httplib::Request&, httplib::Response& Response) {
+          try {
+            const FAutomationHttpResponse ApiResponse = ApiController.GetWorldActors();
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Get(
+        R"(/api/v1/world/actors/(.*))",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            const std::string ActorIdText =
+                Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
+            const FAutomationHttpResponse ApiResponse = ApiController.GetWorldActor(ActorIdText);
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
                 Response,
@@ -80,6 +112,14 @@ struct FAutomationHttpServer::Impl {
     Server.Patch("/api/v1/state", MethodNotAllowedHandler);
     Server.Delete("/api/v1/state", MethodNotAllowedHandler);
     Server.Options("/api/v1/state", MethodNotAllowedHandler);
+    for (const std::string& Route :
+         {std::string("/api/v1/world/actors"), std::string(R"(/api/v1/world/actors/(.*))")}) {
+      Server.Post(Route, MethodNotAllowedHandler);
+      Server.Put(Route, MethodNotAllowedHandler);
+      Server.Patch(Route, MethodNotAllowedHandler);
+      Server.Delete(Route, MethodNotAllowedHandler);
+      Server.Options(Route, MethodNotAllowedHandler);
+    }
 
     Server.set_error_handler([](const httplib::Request&, httplib::Response& Response) {
       if (Response.status == 413) {
@@ -103,17 +143,17 @@ struct FAutomationHttpServer::Impl {
 
     Server.set_exception_handler(
         [](const httplib::Request&, httplib::Response& Response, std::exception_ptr ExceptionPtr) {
-          std::string Message(InternalErrorMessage);
           try {
             if (ExceptionPtr) {
               std::rethrow_exception(ExceptionPtr);
             }
-          } catch (const std::exception& Exception) {
-            Message = Exception.what();
+          } catch (const std::exception&) {
           } catch (...) {
           }
           SetJsonResponse(
-              Response, 500, MakeAutomationError(EAutomationErrorCode::InternalError, Message)
+              Response,
+              500,
+              MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
           );
         }
     );

@@ -32,6 +32,8 @@ async def run_integration() -> dict[str, object]:
       ResourceUris = [str(Resource.uri) for Resource in Resources.resources]
       if "game://state" not in ResourceUris:
         raise RuntimeError("game://state is not exposed by the bridge.")
+      if "game://world/actors" not in ResourceUris:
+        raise RuntimeError("game://world/actors is not exposed by the bridge.")
 
       Result = await Session.read_resource("game://state")
       if len(Result.contents) != 1 or not isinstance(
@@ -40,6 +42,14 @@ async def run_integration() -> dict[str, object]:
       ):
         raise RuntimeError("game://state did not return one text resource.")
       State = json.loads(Result.contents[0].text)
+
+      ActorResult = await Session.read_resource("game://world/actors")
+      if len(ActorResult.contents) != 1 or not isinstance(
+        ActorResult.contents[0],
+        TextResourceContents,
+      ):
+        raise RuntimeError("game://world/actors did not return one text resource.")
+      Actors = json.loads(ActorResult.contents[0].text)
 
   RequiredFields = {
     "sceneName",
@@ -51,7 +61,13 @@ async def run_integration() -> dict[str, object]:
   MissingFields = RequiredFields.difference(State)
   if MissingFields:
     raise RuntimeError(f"State response is missing fields: {sorted(MissingFields)}")
-  return State
+  RequiredActorListFields = {"sceneName", "actorCount", "actors"}
+  MissingActorListFields = RequiredActorListFields.difference(Actors)
+  if MissingActorListFields:
+    raise RuntimeError(f"Actor response is missing fields: {sorted(MissingActorListFields)}")
+  if Actors["actorCount"] != len(Actors["actors"]):
+    raise RuntimeError("Actor count does not match the actors array.")
+  return {"state": State, "worldActors": Actors}
 
 
 def main() -> int:

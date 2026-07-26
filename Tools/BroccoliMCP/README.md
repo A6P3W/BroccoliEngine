@@ -1,7 +1,8 @@
 # BROCCOLI ENGINE MCP Bridge
 
 BROCCOLI ENGINEのlocalhost限定Automation APIを、MCP Stdio Resourceとして公開する
-Python Bridgeです。初期版では読み取り専用Resource `game://state` のみを提供します。
+Python Bridgeです。読み取り専用Resource `game://state` と`game://world/actors`を
+提供します。
 
 ## 必要環境
 
@@ -89,12 +90,12 @@ uv run --frozen --extra dev ruff check --fix broccoli_mcp tests
 uv run --frozen --extra dev ruff format broccoli_mcp tests
 ```
 
-実Engineとの結合確認では、MCPクライアントから`game://state`を読み取り、Engine停止、
-起動、再起動の各状態で、Bridgeを再起動せず結果または明確な接続エラーが返ることを
-確認してください。
+実Engineとの結合確認では、MCPクライアントから`game://state`と
+`game://world/actors`を読み取り、Engine停止、起動、再起動の各状態で、Bridgeを
+再起動せず結果または明確な接続エラーが返ることを確認してください。
 
 Engineを`-automation`付きで起動した状態では、次のライブ結合スクリプトでMCP Stdio
-初期化、Resource一覧、`game://state`読取をまとめて確認できます。
+初期化、Resource一覧、StateおよびWorld Actor読取をまとめて確認できます。
 
 ```powershell
 uv run --frozen python .\tests\live_engine_integration.py
@@ -105,4 +106,4 @@ uv run --frozen python .\tests\live_engine_integration.py
 - `ENGINE_UNAVAILABLE`: Engineが未起動、`-automation`なし、またはポート不一致
 - `ENGINE_TIMEOUT`: Engineが設定時間内に応答しなかった
 - `INVALID_ENGINE_RESPONSE`: EngineとBridgeのJSON契約が一致しない
-- Engine固有コード: `WORLD_NOT_AVAILABLE`、`REQUEST_TIMEOUT`など
+- Engine固有コード: `WORLD_NOT_AVAILABLE`、`ACTOR_NOT_FOUND`、`REQUEST_TIMEOUT`など

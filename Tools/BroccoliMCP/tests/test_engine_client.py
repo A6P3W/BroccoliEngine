@@ -21,6 +21,16 @@ STATE_DATA = {
   "worldAvailable": True,
   "actorCount": 12,
 }
+ACTOR_DATA = {
+  "actorId": 42,
+  "instanceName": "AForceFieldActor_1",
+  "className": "AForceFieldActor",
+  "transform": {
+    "location": {"x": 100.0, "y": 200.0},
+    "rotation": 45.0,
+    "scale": 1.0,
+  },
+}
 
 
 def run_request(Handler: Callable[[httpx.Request], httpx.Response]):
@@ -149,3 +159,67 @@ def test_oversized_response_is_rejected() -> None:
       Client.get_state()
   finally:
     Client.close()
+
+
+def test_get_actors_uses_world_actors_url() -> None:
+  def handler(Request: httpx.Request) -> httpx.Response:
+    assert Request.url == "http://127.0.0.1:39100/api/v1/world/actors"
+    return json_response(
+      200,
+      {
+        "success": True,
+        "data": {
+          "sceneName": "BasicGameplay",
+          "actorCount": 1,
+          "actors": [ACTOR_DATA],
+        },
+      },
+    )
+
+  Client = EngineClient(BridgeConfig(), Transport=httpx.MockTransport(handler))
+  try:
+    Actors = Client.get_actors()
+  finally:
+    Client.close()
+
+  assert Actors.ActorCount == 1
+  assert Actors.Actors[0].ActorId == 42
+
+
+def test_get_actor_uses_actor_id_url() -> None:
+  def handler(Request: httpx.Request) -> httpx.Response:
+    assert Request.url == "http://127.0.0.1:39100/api/v1/world/actors/42"
+    return json_response(200, {"success": True, "data": ACTOR_DATA})
+
+  Client = EngineClient(BridgeConfig(), Transport=httpx.MockTransport(handler))
+  try:
+    Actor = Client.get_actor(42)
+  finally:
+    Client.close()
+
+  assert Actor.ActorId == 42
+
+
+def test_get_actor_preserves_not_found_error() -> None:
+  def handler(Request: httpx.Request) -> httpx.Response:
+    del Request
+    return json_response(
+      404,
+      {
+        "success": False,
+        "error": {
+          "code": "ACTOR_NOT_FOUND",
+          "message": "The requested actor was not found.",
+        },
+      },
+    )
+
+  Client = EngineClient(BridgeConfig(), Transport=httpx.MockTransport(handler))
+  try:
+    with pytest.raises(EngineApiError) as ErrorInfo:
+      Client.get_actor(42)
+  finally:
+    Client.close()
+
+  assert ErrorInfo.value.Code == "ACTOR_NOT_FOUND"
+  assert ErrorInfo.value.HttpStatus == 404
