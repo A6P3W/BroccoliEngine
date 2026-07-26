@@ -94,6 +94,28 @@ class EngineClient:
       )
     return ActorList.from_mapping(Data, Operation=ACTORS_OPERATION)
 
+  def find_actors(
+    Self,
+    *,
+    ClassName: str | None = None,
+    InstanceName: str | None = None,
+  ) -> ActorList:
+    if ClassName is not None:
+      Self._validate_name(ClassName, "ClassName")
+    if InstanceName is not None:
+      Self._validate_name(InstanceName, "InstanceName")
+    Params: dict[str, str] = {}
+    if ClassName is not None:
+      Params["className"] = ClassName
+    if InstanceName is not None:
+      Params["instanceName"] = InstanceName
+    Data = Self._request_json("GET", "world/actors", Operation="find world actors", Params=Params)
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.", Operation="find world actors"
+      )
+    return ActorList.from_mapping(Data, Operation="find world actors")
+
   def get_actor(Self, ActorId: int) -> ActorInfo:
     Self._validate_actor_id(ActorId)
     Operation = f"get world actor {ActorId}"

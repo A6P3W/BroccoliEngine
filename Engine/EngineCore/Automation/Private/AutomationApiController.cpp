@@ -280,20 +280,26 @@ FAutomationHttpResponse FAutomationApiController::GetLevels() {
 
 FAutomationHttpResponse FAutomationApiController::GetActorClassMethods(std::string_view ClassName) {
   if (ClassName.empty() || ClassName.size() > 128) {
-    return {400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, "The className is invalid.")};
+    return {
+        400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, "The className is invalid.")
+    };
   }
   try {
     if (!MethodRegistry || !ActorClassExistsProvider) {
       return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
     }
-    FAutomationCommandTicket Ticket = CommandQueue.Enqueue(
-        [Registry = MethodRegistry, ExistsProvider = ActorClassExistsProvider,
-         ClassNameText = std::string(ClassName)]() {
+    FAutomationCommandTicket Ticket =
+        CommandQueue.Enqueue([Registry = MethodRegistry,
+                              ExistsProvider = ActorClassExistsProvider,
+                              ClassNameText = std::string(ClassName)]() {
           if (!ExistsProvider(ClassNameText)) {
-            return MakeAutomationError(EAutomationErrorCode::ClassNotRegistered, ClassNotRegisteredMessage);
+            return MakeAutomationError(
+                EAutomationErrorCode::ClassNotRegistered, ClassNotRegisteredMessage
+            );
           }
           nlohmann::json Methods = nlohmann::json::array();
-          for (const FAutomationMethodSnapshot& Snapshot : Registry->GetMethodsForClass(ClassNameText)) {
+          for (const FAutomationMethodSnapshot& Snapshot :
+               Registry->GetMethodsForClass(ClassNameText)) {
             if (!IsActorMethodPermissionAllowed(Snapshot.Permission)) {
               continue;
             }
@@ -304,24 +310,45 @@ FAutomationHttpResponse FAutomationApiController::GetActorClassMethods(std::stri
                  {"permission", ToAutomationPermissionString(Snapshot.Permission)}}
             );
           }
-          return MakeAutomationSuccess({{"className", ClassNameText}, {"methods", std::move(Methods)}});
-        }
-    );
+          return MakeAutomationSuccess(
+              {{"className", ClassNameText}, {"methods", std::move(Methods)}}
+          );
+        });
     return WaitForResult(std::move(Ticket));
   } catch (...) {
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetWorldActors() {
+FAutomationHttpResponse FAutomationApiController::GetWorldActors(
+    const FAutomationActorQueryText& QueryText
+) {
+  if (QueryText.bHasUnknownParameter) {
+    return {
+        400,
+        MakeAutomationError(
+            EAutomationErrorCode::InvalidArgument, "The actor query contains an unknown parameter."
+        )
+    };
+  }
+  if (QueryText.bHasDuplicateParameter) {
+    return {
+        400,
+        MakeAutomationError(
+            EAutomationErrorCode::InvalidArgument,
+            "Each actor query parameter may be specified only once."
+        )
+    };
+  }
+  FAutomationActorQuery Query{QueryText.ClassName, QueryText.InstanceName};
   try {
     if (!ActorListProvider) {
       return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
     }
 
-    FAutomationCommandTicket Ticket = CommandQueue.Enqueue([Provider = ActorListProvider]() {
+    FAutomationCommandTicket Ticket = CommandQueue.Enqueue([Provider = ActorListProvider, Query]() {
       FAutomationActorListSnapshot Snapshot;
-      const EAutomationWorldReadStatus Status = Provider(Snapshot);
+      const EAutomationWorldReadStatus Status = Provider(Query, Snapshot);
       if (Status != EAutomationWorldReadStatus::Success) {
         return MakeWorldReadError(Status);
       }

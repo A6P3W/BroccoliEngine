@@ -39,7 +39,9 @@ EAutomationWorldReadStatus MakeActorSnapshot(
   return EAutomationWorldReadStatus::Success;
 }
 
-EAutomationWorldReadStatus GetActorList(FAutomationActorListSnapshot& OutSnapshot) {
+EAutomationWorldReadStatus GetActorList(
+    const FAutomationActorQuery& Query, FAutomationActorListSnapshot& OutSnapshot
+) {
   SceneManager& Manager = SceneManager::GetInstance();
   World* CurrentWorld = Manager.GetCurrentScene();
   if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
@@ -62,6 +64,10 @@ EAutomationWorldReadStatus GetActorList(FAutomationActorListSnapshot& OutSnapsho
     if (MakeActorSnapshot(*Actor, *CurrentWorld, ActorSnapshot) !=
         EAutomationWorldReadStatus::Success) {
       return EAutomationWorldReadStatus::InvalidState;
+    }
+    if ((Query.ClassName && ActorSnapshot.ClassName != *Query.ClassName) ||
+        (Query.InstanceName && ActorSnapshot.InstanceName != *Query.InstanceName)) {
+      continue;
     }
     Snapshot.Actors.push_back(std::move(ActorSnapshot));
   }

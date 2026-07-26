@@ -75,6 +75,23 @@ def get_actor_tool(Client: EngineClient, *, actor_id: int) -> dict[str, object]:
     raise BridgeInternalError(Operation="get actor") from None
 
 
+def find_actors_tool(
+  Client: EngineClient,
+  *,
+  class_name: str | None = None,
+  instance_name: str | None = None,
+) -> dict[str, object]:
+  """Find actors by optional exact class and instance names."""
+
+  try:
+    return Client.find_actors(ClassName=class_name, InstanceName=instance_name).to_dict()
+  except (BridgeError, ValueError):
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while finding actors")
+    raise BridgeInternalError(Operation="find actors") from None
+
+
 def get_registered_actor_classes_tool(Client: EngineClient) -> dict[str, object]:
   """Return the actor classes registered in the engine."""
 
@@ -323,6 +340,19 @@ def create_server(Client: EngineClient) -> FastMCP:
   def get_actor(actor_id: int) -> dict[str, object]:
     try:
       return get_actor_tool(Client, actor_id=actor_id)
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
+    name="find_actors",
+    description="Find world actors by exact class name and/or instance name.",
+  )
+  def find_actors(
+    class_name: str | None = None,
+    instance_name: str | None = None,
+  ) -> dict[str, object]:
+    try:
+      return find_actors_tool(Client, class_name=class_name, instance_name=instance_name)
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
 

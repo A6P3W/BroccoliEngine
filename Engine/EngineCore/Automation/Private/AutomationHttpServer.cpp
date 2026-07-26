@@ -112,6 +112,27 @@ FAutomationLogQueryText ParseLogQuery(const httplib::Request& Request) {
   }
   return Query;
 }
+
+FAutomationActorQueryText ParseActorQuery(const httplib::Request& Request) {
+  FAutomationActorQueryText Query;
+  for (const auto& [Name, Value] : Request.params) {
+    std::optional<std::string>* Target = nullptr;
+    if (Name == "className") {
+      Target = &Query.ClassName;
+    } else if (Name == "instanceName") {
+      Target = &Query.InstanceName;
+    } else {
+      Query.bHasUnknownParameter = true;
+      continue;
+    }
+    if (*Target) {
+      Query.bHasDuplicateParameter = true;
+    } else {
+      *Target = Value;
+    }
+  }
+  return Query;
+}
 }  // namespace
 
 struct FAutomationHttpServer::Impl {
@@ -153,9 +174,11 @@ struct FAutomationHttpServer::Impl {
         }
     );
     Server.Get(
-        "/api/v1/world/actors", [this](const httplib::Request&, httplib::Response& Response) {
+        "/api/v1/world/actors",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
           try {
-            const FAutomationHttpResponse ApiResponse = ApiController.GetWorldActors();
+            const FAutomationHttpResponse ApiResponse =
+                ApiController.GetWorldActors(ParseActorQuery(Request));
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -210,27 +233,26 @@ struct FAutomationHttpServer::Impl {
           }
         }
     );
-    Server.Get(
-        "/api/v1/levels", [this](const httplib::Request&, httplib::Response& Response) {
-          try {
-            const FAutomationHttpResponse ApiResponse = ApiController.GetLevels();
-            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
-          } catch (...) {
-            SetJsonResponse(
-                Response,
-                500,
-                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
-            );
-          }
-        }
-    );
+    Server.Get("/api/v1/levels", [this](const httplib::Request&, httplib::Response& Response) {
+      try {
+        const FAutomationHttpResponse ApiResponse = ApiController.GetLevels();
+        SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+      } catch (...) {
+        SetJsonResponse(
+            Response,
+            500,
+            MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+        );
+      }
+    });
     Server.Get(
         R"(/api/v1/actor-classes/([^/]+)/methods)",
         [this](const httplib::Request& Request, httplib::Response& Response) {
           try {
             const std::string ClassName =
                 Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
-            const FAutomationHttpResponse ApiResponse = ApiController.GetActorClassMethods(ClassName);
+            const FAutomationHttpResponse ApiResponse =
+                ApiController.GetActorClassMethods(ClassName);
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(

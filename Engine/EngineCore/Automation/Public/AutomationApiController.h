@@ -37,6 +37,18 @@ struct FAutomationActorListSnapshot {
   std::vector<FAutomationActorSnapshot> Actors;
 };
 
+struct FAutomationActorQuery {
+  std::optional<std::string> ClassName;
+  std::optional<std::string> InstanceName;
+};
+
+struct FAutomationActorQueryText {
+  std::optional<std::string> ClassName;
+  std::optional<std::string> InstanceName;
+  bool bHasUnknownParameter = false;
+  bool bHasDuplicateParameter = false;
+};
+
 struct FAutomationActorClassInfo {
   std::string ClassName;
   bool bIsGameMode = false;
@@ -54,8 +66,8 @@ enum class EAutomationWorldReadStatus : uint8_t {
   InvalidState
 };
 
-using FAutomationActorListProvider =
-    std::function<EAutomationWorldReadStatus(FAutomationActorListSnapshot&)>;
+using FAutomationActorListProvider = std::function<
+    EAutomationWorldReadStatus(const FAutomationActorQuery&, FAutomationActorListSnapshot&)>;
 using FAutomationActorProvider =
     std::function<EAutomationWorldReadStatus(FActorId, FAutomationActorSnapshot&)>;
 using FAutomationActorClassListProvider = std::function<std::vector<FAutomationActorClassInfo>()>;
@@ -133,7 +145,7 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
   );
 
   FAutomationHttpResponse GetState();
-  FAutomationHttpResponse GetWorldActors();
+  FAutomationHttpResponse GetWorldActors(const FAutomationActorQueryText& Query = {});
   FAutomationHttpResponse GetWorldActor(std::string_view ActorIdText);
   FAutomationHttpResponse GetActorClasses();
   FAutomationHttpResponse GetLevels();
