@@ -82,40 +82,72 @@ async def run_integration() -> dict[str, object]:
         raise RuntimeError("game://logs/recent did not return one text resource.")
       Logs = json.loads(LogResult.contents[0].text)
 
+      DiscoveryResults: dict[str, object] = {}
+      for ToolName, Arguments in (
+        ("get_system_commands", {}),
+        ("get_registered_actor_classes", {}),
+        ("get_levels", {}),
+        ("find_actors", {}),
+      ):
+        ToolResult = await Session.call_tool(ToolName, Arguments)
+        if ToolResult.isError or not isinstance(ToolResult.structuredContent, dict):
+          raise RuntimeError(f"{ToolName} did not return structured discovery data.")
+        DiscoveryResults[ToolName] = ToolResult.structuredContent
+
+      RegisteredClasses = DiscoveryResults["get_registered_actor_classes"]
+      if not isinstance(RegisteredClasses, dict) or not RegisteredClasses.get("classes"):
+        raise RuntimeError("get_registered_actor_classes returned no registered classes.")
+      DiscoveryClassName = RegisteredClasses["classes"][0]["className"]
+      ClassMethodsResult = await Session.call_tool(
+        "get_class_methods", {"class_name": DiscoveryClassName}
+      )
+      if ClassMethodsResult.isError or not isinstance(ClassMethodsResult.structuredContent, dict):
+        raise RuntimeError("get_class_methods did not return structured discovery data.")
+      DiscoveryResults["get_class_methods"] = ClassMethodsResult.structuredContent
+
+      if Actors["actors"]:
+        DiscoveryActorId = Actors["actors"][0]["actorId"]
+        for ToolName in ("get_actor", "get_actor_components"):
+          ToolResult = await Session.call_tool(ToolName, {"actor_id": DiscoveryActorId})
+          if ToolResult.isError or not isinstance(ToolResult.structuredContent, dict):
+            raise RuntimeError(f"{ToolName} did not return structured discovery data.")
+          DiscoveryResults[ToolName] = ToolResult.structuredContent
+
       LevelStarterActors = [
         Actor for Actor in Actors["actors"] if Actor["className"] == "ALevelStarterWidget"
       ]
-      if not LevelStarterActors:
-        raise RuntimeError("LevelStarter widget was not found.")
-      ActorId = LevelStarterActors[0]["actorId"]
+      ActorId = LevelStarterActors[0]["actorId"] if LevelStarterActors else None
       with EngineClient(BridgeConfig()) as Engine:
-        ActorMethods = Engine.get_actor_methods(ActorId).to_dict()
+        ActorMethods = Engine.get_actor_methods(ActorId).to_dict() if ActorId else None
         SystemCommandList = Engine.get_system_commands().to_dict()
-      if [Method["name"] for Method in ActorMethods["methods"]] != ["get_status"]:
+      if ActorMethods and [Method["name"] for Method in ActorMethods["methods"]] != ["get_status"]:
         raise RuntimeError("LevelStarter actor method list is invalid.")
       if not {"pause_game", "resume_game", "open_level_by_id", "open_level_by_path"}.issubset(
         {Command["name"] for Command in SystemCommandList["commands"]}
       ):
         raise RuntimeError("System command list is invalid.")
 
-      MethodResult = await Session.call_tool(
-        "invoke_actor_method",
-        {
-          "actor_id": ActorId,
-          "method_name": "get_status",
-          "arguments": {},
-        },
-      )
-      if MethodResult.isError:
-        raise RuntimeError("invoke_actor_method returned an MCP error.")
-      MethodData = MethodResult.structuredContent
-      if (
-        not isinstance(MethodData, dict)
-        or MethodData.get("actorId") != ActorId
-        or MethodData.get("methodName") != "get_status"
-        or MethodData.get("result", {}).get("ready") is not True
-      ):
-        raise RuntimeError("invoke_actor_method returned invalid data.")
+      if ActorId:
+        MethodResult = await Session.call_tool(
+          "invoke_actor_method",
+          {
+            "actor_id": ActorId,
+            "method_name": "get_status",
+            "arguments": {},
+          },
+        )
+        if MethodResult.isError:
+          raise RuntimeError("invoke_actor_method returned an MCP error.")
+        MethodData = MethodResult.structuredContent
+        if (
+          not isinstance(MethodData, dict)
+          or MethodData.get("actorId") != ActorId
+          or MethodData.get("methodName") != "get_status"
+          or MethodData.get("result", {}).get("ready") is not True
+        ):
+          raise RuntimeError("invoke_actor_method returned invalid data.")
+      else:
+        MethodData = None
 
       PauseResult = await Session.call_tool(
         "execute_system_command",
@@ -224,6 +256,7 @@ async def run_integration() -> dict[str, object]:
       "repeatedResume": RepeatedResumeData,
       "resumedState": ResumedState,
     },
+    "discovery": DiscoveryResults,
   }
 
 
