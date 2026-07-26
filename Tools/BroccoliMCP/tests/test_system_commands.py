@@ -13,7 +13,12 @@ from broccoli_mcp.models import (
   SystemCommandList,
   SystemCommandResult,
 )
-from broccoli_mcp.server import create_server, execute_system_command_tool
+from broccoli_mcp.server import (
+  create_server,
+  execute_system_command_tool,
+  open_level_by_id_tool,
+  open_level_by_path_tool,
+)
 
 COMMAND_SCHEMA = {
   "type": "object",
@@ -152,6 +157,26 @@ class FakeSystemCommandClient:
     )
 
 
+class FakeOpenLevelClient:
+  def execute_system_command(
+    Self,
+    CommandName: str,
+    Arguments: dict[str, object] | None = None,
+  ) -> SystemCommandResult:
+    if CommandName == "open_level_by_id":
+      assert Arguments == {"sceneId": 3}
+      Result = {"commandName": CommandName, "sceneId": 3, "queued": True}
+    else:
+      assert CommandName == "open_level_by_path"
+      assert Arguments == {"levelPath": "Levels/Test.level"}
+      Result = {
+        "commandName": CommandName,
+        "levelPath": "Levels/Test.level",
+        "queued": True,
+      }
+    return SystemCommandResult(CommandName=CommandName, Result=Result)
+
+
 def test_system_command_tool_returns_data_and_is_registered() -> None:
   Client = FakeSystemCommandClient()
 
@@ -164,3 +189,20 @@ def test_system_command_tool_returns_data_and_is_registered() -> None:
 
   assert Result["result"]["paused"] is True
   assert "execute_system_command" in [Tool.name for Tool in Server._tool_manager.list_tools()]
+
+
+def test_open_level_tools_return_queued_result_and_are_registered() -> None:
+  Client = FakeOpenLevelClient()
+
+  ByIdResult = open_level_by_id_tool(Client, scene_id=3)  # type: ignore[arg-type]
+  ByPathResult = open_level_by_path_tool(  # type: ignore[arg-type]
+    Client,
+    level_path="Levels/Test.level",
+  )
+  Server = create_server(Client)  # type: ignore[arg-type]
+
+  assert ByIdResult["queued"] is True
+  assert ByPathResult["queued"] is True
+  ToolNames = [Tool.name for Tool in Server._tool_manager.list_tools()]
+  assert "open_level_by_id" in ToolNames
+  assert "open_level_by_path" in ToolNames

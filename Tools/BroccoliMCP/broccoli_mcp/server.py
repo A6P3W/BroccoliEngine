@@ -159,6 +159,40 @@ def execute_system_command_tool(
     raise BridgeInternalError(Operation="execute system command") from None
 
 
+def open_level_by_id_tool(
+  Client: EngineClient,
+  *,
+  scene_id: int,
+) -> dict[str, object]:
+  """Queue a registered level to open by scene ID."""
+
+  Result = Client.execute_system_command(
+    "open_level_by_id",
+    Arguments={"sceneId": scene_id},
+  )
+  CommandResult = Result.Result
+  if CommandResult.get("queued") is not True:
+    raise ValueError(f"Level ID {scene_id} could not be queued.")
+  return CommandResult
+
+
+def open_level_by_path_tool(
+  Client: EngineClient,
+  *,
+  level_path: str,
+) -> dict[str, object]:
+  """Queue a level to open by file path."""
+
+  Result = Client.execute_system_command(
+    "open_level_by_path",
+    Arguments={"levelPath": level_path},
+  )
+  CommandResult = Result.Result
+  if CommandResult.get("queued") is not True:
+    raise ValueError(f"Level path '{level_path}' could not be queued.")
+  return CommandResult
+
+
 def create_server(Client: EngineClient) -> FastMCP:
   """Create an MCP server backed by a process-owned HTTP client."""
 
@@ -305,6 +339,20 @@ def create_server(Client: EngineClient) -> FastMCP:
       )
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
+    name="open_level_by_id",
+    description="Open a registered BROCCOLI ENGINE level by scene ID.",
+  )
+  def open_level_by_id(scene_id: int) -> dict[str, object]:
+    return open_level_by_id_tool(Client, scene_id=scene_id)
+
+  @Mcp.tool(
+    name="open_level_by_path",
+    description="Open a BROCCOLI ENGINE level by file path.",
+  )
+  def open_level_by_path(level_path: str) -> dict[str, object]:
+    return open_level_by_path_tool(Client, level_path=level_path)
 
   return Mcp
 
