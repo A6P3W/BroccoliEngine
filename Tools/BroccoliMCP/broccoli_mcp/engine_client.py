@@ -18,11 +18,13 @@ from .errors import (
   InvalidEngineResponse,
 )
 from .models import (
+  LOG_LEVELS,
   MAX_ACTOR_ID,
   ActorInfo,
   ActorList,
   DestroyActorResult,
   EngineState,
+  RecentLogs,
   TransformPatch,
 )
 
@@ -30,6 +32,7 @@ LOGGER = logging.getLogger(__name__)
 STATE_OPERATION = "get engine state"
 ACTORS_OPERATION = "get world actors"
 SPAWN_ACTOR_OPERATION = "spawn world actor"
+RECENT_LOGS_OPERATION = "get recent engine logs"
 
 
 class EngineClient:
@@ -173,6 +176,42 @@ class EngineClient:
         Operation=Operation,
       )
     return ActorInfo.from_mapping(Data, Operation=Operation)
+
+  def get_recent_logs(
+    Self,
+    *,
+    Limit: int = 100,
+    Level: str | None = None,
+    AfterSequence: int | None = None,
+  ) -> RecentLogs:
+    if isinstance(Limit, bool) or not isinstance(Limit, int) or not 1 <= Limit <= 1000:
+      raise ValueError("Limit must be an integer between 1 and 1000.")
+    Params: dict[str, str | int] = {"limit": Limit}
+    if Level is not None:
+      if not isinstance(Level, str) or Level.lower() not in LOG_LEVELS:
+        raise ValueError("Level must be debug, info, warning, or error.")
+      Params["level"] = Level.lower()
+    if AfterSequence is not None:
+      if (
+        isinstance(AfterSequence, bool)
+        or not isinstance(AfterSequence, int)
+        or not 0 <= AfterSequence <= MAX_ACTOR_ID
+      ):
+        raise ValueError("AfterSequence must be an unsigned 64-bit integer.")
+      Params["afterSequence"] = AfterSequence
+
+    Data = Self._request_json(
+      "GET",
+      "logs/recent",
+      Operation=RECENT_LOGS_OPERATION,
+      Params=Params,
+    )
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.",
+        Operation=RECENT_LOGS_OPERATION,
+      )
+    return RecentLogs.from_mapping(Data, Operation=RECENT_LOGS_OPERATION)
 
   def _request_json(
     Self,

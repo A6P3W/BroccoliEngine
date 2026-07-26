@@ -51,4 +51,5 @@ def test_server_lists_world_actors_resource() -> None:
   assert [str(Resource.uri) for Resource in Resources] == [
     "game://state",
     "game://world/actors",
+    "game://logs/recent",
   ]

@@ -88,6 +88,30 @@ bool TryParseJsonBody(
   }
   return true;
 }
+
+FAutomationLogQueryText ParseLogQuery(const httplib::Request& Request) {
+  FAutomationLogQueryText Query;
+  for (const auto& [Name, Value] : Request.params) {
+    std::optional<std::string>* Target = nullptr;
+    if (Name == "limit") {
+      Target = &Query.Limit;
+    } else if (Name == "level") {
+      Target = &Query.Level;
+    } else if (Name == "afterSequence") {
+      Target = &Query.AfterSequence;
+    } else {
+      Query.bHasUnknownParameter = true;
+      continue;
+    }
+
+    if (*Target) {
+      Query.bHasDuplicateParameter = true;
+    } else {
+      *Target = Value;
+    }
+  }
+  return Query;
+}
 }  // namespace
 
 struct FAutomationHttpServer::Impl {
@@ -132,6 +156,22 @@ struct FAutomationHttpServer::Impl {
         "/api/v1/world/actors", [this](const httplib::Request&, httplib::Response& Response) {
           try {
             const FAutomationHttpResponse ApiResponse = ApiController.GetWorldActors();
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Get(
+        "/api/v1/logs/recent",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            const FAutomationHttpResponse ApiResponse =
+                ApiController.GetRecentLogs(ParseLogQuery(Request));
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -230,6 +270,11 @@ struct FAutomationHttpServer::Impl {
     Server.Patch("/api/v1/state", MethodNotAllowedHandler);
     Server.Delete("/api/v1/state", MethodNotAllowedHandler);
     Server.Options("/api/v1/state", MethodNotAllowedHandler);
+    Server.Post("/api/v1/logs/recent", MethodNotAllowedHandler);
+    Server.Put("/api/v1/logs/recent", MethodNotAllowedHandler);
+    Server.Patch("/api/v1/logs/recent", MethodNotAllowedHandler);
+    Server.Delete("/api/v1/logs/recent", MethodNotAllowedHandler);
+    Server.Options("/api/v1/logs/recent", MethodNotAllowedHandler);
     Server.Put("/api/v1/world/actors", MethodNotAllowedHandler);
     Server.Patch("/api/v1/world/actors", MethodNotAllowedHandler);
     Server.Delete("/api/v1/world/actors", MethodNotAllowedHandler);

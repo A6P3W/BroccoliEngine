@@ -10,6 +10,7 @@ from typing import Any
 from .errors import InvalidEngineResponse
 
 MAX_ACTOR_ID = (1 << 64) - 1
+LOG_LEVELS = frozenset({"debug", "info", "warning", "error"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -381,4 +382,190 @@ class DestroyActorResult:
     return {
       "actorId": Self.ActorId,
       "pendingDestroy": Self.PendingDestroy,
+    }
+
+
+@dataclass(frozen=True, slots=True)
+class LogEntry:
+  """Validated in-memory engine log entry."""
+
+  Sequence: int
+  Timestamp: str
+  Level: str
+  Category: str
+  Message: str
+
+  @classmethod
+  def from_mapping(
+    Class,
+    Data: Mapping[str, Any],
+    *,
+    Operation: str,
+  ) -> LogEntry:
+    RequiredFields = ("sequence", "timestamp", "level", "category", "message")
+    for FieldName in RequiredFields:
+      if FieldName not in Data:
+        raise InvalidEngineResponse(
+          f"Log entry is missing required field '{FieldName}'.",
+          Operation=Operation,
+        )
+
+    Sequence = Data["sequence"]
+    if (
+      isinstance(Sequence, bool)
+      or not isinstance(Sequence, int)
+      or not 1 <= Sequence <= MAX_ACTOR_ID
+    ):
+      raise InvalidEngineResponse(
+        "Log entry field 'sequence' must be an unsigned 64-bit integer greater than zero.",
+        Operation=Operation,
+      )
+
+    Timestamp = Data["timestamp"]
+    Level = Data["level"]
+    Category = Data["category"]
+    Message = Data["message"]
+    if not isinstance(Timestamp, str) or not Timestamp:
+      raise InvalidEngineResponse(
+        "Log entry field 'timestamp' must be a non-empty string.",
+        Operation=Operation,
+      )
+    if not isinstance(Level, str) or Level not in LOG_LEVELS:
+      raise InvalidEngineResponse(
+        "Log entry field 'level' is invalid.",
+        Operation=Operation,
+      )
+    if not isinstance(Category, str):
+      raise InvalidEngineResponse(
+        "Log entry field 'category' must be a string.",
+        Operation=Operation,
+      )
+    if not isinstance(Message, str):
+      raise InvalidEngineResponse(
+        "Log entry field 'message' must be a string.",
+        Operation=Operation,
+      )
+    return Class(Sequence, Timestamp, Level, Category, Message)
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
+      "sequence": Self.Sequence,
+      "timestamp": Self.Timestamp,
+      "level": Self.Level,
+      "category": Self.Category,
+      "message": Self.Message,
+    }
+
+
+def _uint64_field(Data: Mapping[str, Any], FieldName: str, Operation: str) -> int:
+  Value = Data.get(FieldName)
+  if isinstance(Value, bool) or not isinstance(Value, int) or not 0 <= Value <= MAX_ACTOR_ID:
+    raise InvalidEngineResponse(
+      f"Recent logs field '{FieldName}' must be an unsigned 64-bit integer.",
+      Operation=Operation,
+    )
+  return Value
+
+
+@dataclass(frozen=True, slots=True)
+class RecentLogs:
+  """Validated result returned by GET /api/v1/logs/recent."""
+
+  Entries: tuple[LogEntry, ...]
+  Count: int
+  OldestAvailableSequence: int
+  LatestSequence: int
+  NextAfterSequence: int
+  HistoryLost: bool
+  HasMore: bool
+
+  @classmethod
+  def from_mapping(
+    Class,
+    Data: Mapping[str, Any],
+    *,
+    Operation: str,
+  ) -> RecentLogs:
+    RequiredFields = (
+      "entries",
+      "count",
+      "oldestAvailableSequence",
+      "latestSequence",
+      "nextAfterSequence",
+      "historyLost",
+      "hasMore",
+    )
+    for FieldName in RequiredFields:
+      if FieldName not in Data:
+        raise InvalidEngineResponse(
+          f"Recent logs data is missing required field '{FieldName}'.",
+          Operation=Operation,
+        )
+
+    EntryData = Data["entries"]
+    Count = Data["count"]
+    if not isinstance(EntryData, list):
+      raise InvalidEngineResponse(
+        "Recent logs field 'entries' must be an array.",
+        Operation=Operation,
+      )
+    if isinstance(Count, bool) or not isinstance(Count, int) or Count < 0:
+      raise InvalidEngineResponse(
+        "Recent logs field 'count' must be a non-negative integer.",
+        Operation=Operation,
+      )
+
+    Entries = []
+    PreviousSequence = 0
+    for Item in EntryData:
+      if not isinstance(Item, Mapping):
+        raise InvalidEngineResponse(
+          "Recent logs contains an invalid entry.",
+          Operation=Operation,
+        )
+      Entry = LogEntry.from_mapping(Item, Operation=Operation)
+      if Entry.Sequence <= PreviousSequence:
+        raise InvalidEngineResponse(
+          "Recent log sequences must be strictly increasing.",
+          Operation=Operation,
+        )
+      PreviousSequence = Entry.Sequence
+      Entries.append(Entry)
+    if Count != len(Entries):
+      raise InvalidEngineResponse(
+        "Recent logs field 'count' does not match the entries array.",
+        Operation=Operation,
+      )
+
+    HistoryLost = Data["historyLost"]
+    HasMore = Data["hasMore"]
+    if not isinstance(HistoryLost, bool) or not isinstance(HasMore, bool):
+      raise InvalidEngineResponse(
+        "Recent logs history flags must be boolean values.",
+        Operation=Operation,
+      )
+
+    return Class(
+      Entries=tuple(Entries),
+      Count=Count,
+      OldestAvailableSequence=_uint64_field(
+        Data,
+        "oldestAvailableSequence",
+        Operation,
+      ),
+      LatestSequence=_uint64_field(Data, "latestSequence", Operation),
+      NextAfterSequence=_uint64_field(Data, "nextAfterSequence", Operation),
+      HistoryLost=HistoryLost,
+      HasMore=HasMore,
+    )
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
+      "entries": [Entry.to_dict() for Entry in Self.Entries],
+      "count": Self.Count,
+      "oldestAvailableSequence": Self.OldestAvailableSequence,
+      "latestSequence": Self.LatestSequence,
+      "nextAfterSequence": Self.NextAfterSequence,
+      "historyLost": Self.HistoryLost,
+      "hasMore": Self.HasMore,
     }

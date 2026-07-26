@@ -36,6 +36,8 @@ async def run_integration() -> dict[str, object]:
         raise RuntimeError("game://state is not exposed by the bridge.")
       if "game://world/actors" not in ResourceUris:
         raise RuntimeError("game://world/actors is not exposed by the bridge.")
+      if "game://logs/recent" not in ResourceUris:
+        raise RuntimeError("game://logs/recent is not exposed by the bridge.")
       for ToolName in ("spawn_actor", "destroy_actor", "set_actor_transform"):
         if ToolName not in ToolNames:
           raise RuntimeError(f"{ToolName} is not exposed by the bridge.")
@@ -56,6 +58,14 @@ async def run_integration() -> dict[str, object]:
         raise RuntimeError("game://world/actors did not return one text resource.")
       Actors = json.loads(ActorResult.contents[0].text)
 
+      LogResult = await Session.read_resource("game://logs/recent")
+      if len(LogResult.contents) != 1 or not isinstance(
+        LogResult.contents[0],
+        TextResourceContents,
+      ):
+        raise RuntimeError("game://logs/recent did not return one text resource.")
+      Logs = json.loads(LogResult.contents[0].text)
+
   RequiredFields = {
     "sceneName",
     "fps",
@@ -72,7 +82,21 @@ async def run_integration() -> dict[str, object]:
     raise RuntimeError(f"Actor response is missing fields: {sorted(MissingActorListFields)}")
   if Actors["actorCount"] != len(Actors["actors"]):
     raise RuntimeError("Actor count does not match the actors array.")
-  return {"state": State, "worldActors": Actors}
+  RequiredLogFields = {
+    "entries",
+    "count",
+    "oldestAvailableSequence",
+    "latestSequence",
+    "nextAfterSequence",
+    "historyLost",
+    "hasMore",
+  }
+  MissingLogFields = RequiredLogFields.difference(Logs)
+  if MissingLogFields:
+    raise RuntimeError(f"Log response is missing fields: {sorted(MissingLogFields)}")
+  if Logs["count"] != len(Logs["entries"]):
+    raise RuntimeError("Log count does not match the entries array.")
+  return {"state": State, "worldActors": Actors, "recentLogs": Logs}
 
 
 def main() -> int:

@@ -2,8 +2,8 @@
 
 BROCCOLI ENGINEのlocalhost限定Automation APIを、MCP Stdio ResourceとToolとして
 公開するPython Bridgeです。読み取り専用Resource `game://state`、
-`game://world/actors`と、Actor操作Tool `spawn_actor`、`destroy_actor`、
-`set_actor_transform`を提供します。
+`game://world/actors`、`game://logs/recent`と、Actor操作Tool `spawn_actor`、
+`destroy_actor`、`set_actor_transform`を提供します。
 
 ## 必要環境
 
@@ -96,7 +96,7 @@ uv run --frozen --extra dev ruff format broccoli_mcp tests
 再起動せず結果または明確な接続エラーが返ることを確認してください。
 
 Engineを`-automation`付きで起動した状態では、次のライブ結合スクリプトでMCP Stdio
-初期化、Resource一覧、StateおよびWorld Actor読取をまとめて確認できます。
+初期化、Resource一覧、State、World Actor、直近ログの読取をまとめて確認できます。
 
 ```powershell
 uv run --frozen python .\tests\live_engine_integration.py

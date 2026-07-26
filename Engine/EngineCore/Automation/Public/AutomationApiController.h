@@ -72,6 +72,14 @@ struct FAutomationTransformPatch {
   bool HasAnyValue() const;
 };
 
+struct FAutomationLogQueryText {
+  std::optional<std::string> Limit;
+  std::optional<std::string> Level;
+  std::optional<std::string> AfterSequence;
+  bool bHasUnknownParameter = false;
+  bool bHasDuplicateParameter = false;
+};
+
 using FAutomationSpawnActorProvider = std::function<
     EAutomationWorldMutationStatus(const FAutomationSpawnActorRequest&, FAutomationActorSnapshot&)>;
 using FAutomationDestroyActorProvider = std::function<EAutomationWorldMutationStatus(FActorId)>;
@@ -100,6 +108,7 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
   FAutomationHttpResponse PatchWorldActorTransform(
       std::string_view ActorIdText, const nlohmann::json& Body
   );
+  FAutomationHttpResponse GetRecentLogs(const FAutomationLogQueryText& Query);
 
  private:
   static bool TryParseActorId(std::string_view Text, FActorId& OutActorId);

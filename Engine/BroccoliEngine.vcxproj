@@ -159,6 +159,7 @@
     <ClCompile Include="EngineCore\Automation\Private\AutomationCommandQueue.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationHttpServer.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationTypes.cpp" />
+    <ClCompile Include="EngineCore\Utils\Private\Log.cpp" />
     <ClCompile Include="Editor\Private\ActorClassGenerator.cpp" />
     <ClCompile Include="Editor\Private\EditorController.cpp" />
     <ClCompile Include="Editor\Private\EditorMode.cpp" />

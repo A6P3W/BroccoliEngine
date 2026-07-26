@@ -1,88 +1,80 @@
 ﻿#pragma once
-#include <Windows.h>
 
-#include <ctime>
-#include <filesystem>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <format>
-#include <fstream>
-#include <iostream>
+#include <optional>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
-class MLog {
- private:
-  static std::wstring Utf8ToWide(const std::string& Value) {
-    if (Value.empty()) {
-      return {};
-    }
+#include "BroccoliEngineAPI.h"
 
-    const int Length = MultiByteToWideChar(
-        CP_UTF8, MB_ERR_INVALID_CHARS, Value.data(), static_cast<int>(Value.size()), nullptr, 0
-    );
-    if (Length <= 0) {
-      return {};
-    }
+enum class ELogLevel : uint8_t { Debug = 0, Info, Warning, Error };
 
-    std::wstring Result(static_cast<size_t>(Length), L'\0');
-    MultiByteToWideChar(
-        CP_UTF8,
-        MB_ERR_INVALID_CHARS,
-        Value.data(),
-        static_cast<int>(Value.size()),
-        Result.data(),
-        Length
-    );
-    return Result;
-  }
-
-  static inline std::filesystem::path log_filepath = []() {
-    std::filesystem::create_directories("Logs");
-
-    std::time_t T = std::time(nullptr);
-    std::tm LocalTime;
-    localtime_s(&LocalTime, &T);
-    char Buf[64];
-    std::strftime(Buf, sizeof(Buf), "%Y-%m-%d_%H-%M-%S", &LocalTime);
-    std::string Filename = std::string(Buf) + ".log";
-
-    return std::filesystem::path("Logs") / Filename;
-  }();
-
- public:
-  template <typename... Args>
-  static void Log(const char* func_name, const std::string_view fmt, Args&&... args) {
-    try {
-      std::string formatted_user_msg = std::vformat(fmt, std::make_format_args(args...));
-      std::string message = std::format("[{}] {}\n", func_name, formatted_user_msg);
-
-      const std::wstring WideMessage = Utf8ToWide(message);
-      if (!WideMessage.empty()) {
-        OutputDebugStringW(WideMessage.c_str());
-
-        const HANDLE Console = GetStdHandle(STD_OUTPUT_HANDLE);
-        DWORD ConsoleMode = 0;
-        if (Console != INVALID_HANDLE_VALUE && GetConsoleMode(Console, &ConsoleMode) != FALSE) {
-          DWORD Written = 0;
-          WriteConsoleW(
-              Console, WideMessage.data(), static_cast<DWORD>(WideMessage.size()), &Written, nullptr
-          );
-        } else {
-          std::cout << message;
-        }
-      } else {
-        OutputDebugStringA(message.c_str());
-        std::cout << message;
-      }
-
-      std::ofstream log_file(log_filepath, std::ios::app);
-      if (log_file.is_open()) {
-        log_file << message;
-      }
-    } catch (const std::exception& e) {
-      std::cerr << "[MLog Error] " << e.what() << std::endl;
-    }
-  }
+struct FLogEntry {
+  uint64_t Sequence = 0;
+  std::chrono::system_clock::time_point Timestamp;
+  ELogLevel Level = ELogLevel::Info;
+  std::string Category;
+  std::string Message;
 };
 
-#define M_LOG(fmt, ...) MLog::Log(__FUNCTION__, fmt, ##__VA_ARGS__)
+struct FLogQuery {
+  size_t Limit = 100;
+  std::optional<ELogLevel> MinimumLevel;
+  std::optional<uint64_t> AfterSequence;
+};
+
+struct FLogQueryResult {
+  std::vector<FLogEntry> Entries;
+  uint64_t OldestAvailableSequence = 0;
+  uint64_t LatestSequence = 0;
+  uint64_t NextAfterSequence = 0;
+  bool bHistoryLost = false;
+  bool bHasMore = false;
+};
+
+class BROCCOLI_ENGINE_API MLog {
+ public:
+  template <typename... Args>
+  static void Log(const char* FunctionName, std::string_view Format, Args&&... Arguments) noexcept {
+    LogWithLevel(ELogLevel::Info, FunctionName, Format, std::forward<Args>(Arguments)...);
+  }
+
+  template <typename... Args>
+  static void LogWithLevel(
+      ELogLevel Level, const char* FunctionName, std::string_view Format, Args&&... Arguments
+  ) noexcept {
+    try {
+      Write(
+          Level,
+          FunctionName ? std::string_view(FunctionName) : std::string_view(),
+          std::vformat(Format, std::make_format_args(Arguments...))
+      );
+    } catch (...) {
+      Write(
+          ELogLevel::Error,
+          FunctionName ? std::string_view(FunctionName) : std::string_view("MLog"),
+          "Log message formatting failed."
+      );
+    }
+  }
+
+  static FLogQueryResult GetRecentEntries(const FLogQuery& Query);
+  static std::string_view ToLevelString(ELogLevel Level);
+  static std::string FormatTimestamp(const std::chrono::system_clock::time_point& Timestamp);
+
+ private:
+  static void Write(ELogLevel Level, std::string_view Category, std::string_view Message) noexcept;
+};
+
+#define M_LOG(fmt, ...) MLog::LogWithLevel(ELogLevel::Info, __FUNCTION__, fmt, ##__VA_ARGS__)
+#define M_LOG_DEBUG(fmt, ...) MLog::LogWithLevel(ELogLevel::Debug, __FUNCTION__, fmt, ##__VA_ARGS__)
+#define M_LOG_WARNING(fmt, ...) \
+  MLog::LogWithLevel(ELogLevel::Warning, __FUNCTION__, fmt, ##__VA_ARGS__)
+#define M_LOG_ERROR(fmt, ...) MLog::LogWithLevel(ELogLevel::Error, __FUNCTION__, fmt, ##__VA_ARGS__)
 
 #include "DebugOverlay.h"

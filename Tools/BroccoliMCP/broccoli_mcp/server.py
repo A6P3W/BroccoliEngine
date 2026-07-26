@@ -38,6 +38,19 @@ def read_actors_resource(Client: EngineClient) -> str:
     raise BridgeInternalError(Operation="read game://world/actors") from None
 
 
+def read_logs_resource(Client: EngineClient) -> str:
+  """Read and serialize recent in-memory engine logs for MCP."""
+
+  try:
+    Logs = Client.get_recent_logs(Limit=100)
+    return json.dumps(Logs.to_dict(), ensure_ascii=False, separators=(",", ":"))
+  except BridgeError:
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while reading game://logs/recent")
+    raise BridgeInternalError(Operation="read game://logs/recent") from None
+
+
 def spawn_actor_tool(
   Client: EngineClient,
   *,
@@ -139,6 +152,22 @@ def create_server(Client: EngineClient) -> FastMCP:
       LOGGER.warning("Resource game://world/actors failed: %s", Error.Code)
       raise ValueError(format_mcp_error(Error)) from None
     LOGGER.info("Resource game://world/actors completed")
+    return Result
+
+  @Mcp.resource(
+    "game://logs/recent",
+    name="BROCCOLI ENGINE Recent Logs",
+    description="Recent in-memory engine logs.",
+    mime_type="application/json",
+  )
+  def game_recent_logs() -> str:
+    LOGGER.info("Reading resource game://logs/recent")
+    try:
+      Result = read_logs_resource(Client)
+    except BridgeError as Error:
+      LOGGER.warning("Resource game://logs/recent failed: %s", Error.Code)
+      raise ValueError(format_mcp_error(Error)) from None
+    LOGGER.info("Resource game://logs/recent completed")
     return Result
 
   @Mcp.tool(
