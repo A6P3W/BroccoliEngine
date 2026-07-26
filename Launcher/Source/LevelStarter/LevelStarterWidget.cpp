@@ -3,8 +3,12 @@
 #include <DxLib.h>
 
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <utility>
 
+#include "AutomationAutoRegistrar.h"
+#include "AutomationMethodRegistry.h"
 #include "FileDialog.h"
 #include "SceneManager.h"
 #include "UIBoxButton.h"
@@ -13,6 +17,7 @@
 
 // このアクタークラスを ActorRegistry に一般アクターとして自動登録するマクロ
 REGISTER_ACTOR(ALevelStarterWidget)
+REGISTER_AUTOMATION_METHODS(ALevelStarterWidget)
 
 ALevelStarterWidget::ALevelStarterWidget() {
   constexpr float ButtonWidth = 300.0f;
@@ -55,6 +60,27 @@ ALevelStarterWidget::ALevelStarterWidget() {
   // 各コンポーネントをエンジンシステムに登録し、初期化やアップデート、レンダリングなどのライフサイクル処理の対象にする関数
   buttonPtr->RegisterComponent();
   text->RegisterComponent();
+}
+
+void ALevelStarterWidget::RegisterAutomationMethods(FAutomationMethodRegistry& Registry) {
+  FAutomationMethodDescriptor Descriptor;
+  Descriptor.Name = "get_status";
+  Descriptor.Description = "Return the LevelStarter widget status for automation verification.";
+  Descriptor.Permission = EAutomationPermission::ReadOnly;
+  Descriptor.Handler = [](AActor& Actor, const nlohmann::json&) {
+    const auto* Widget = dynamic_cast<ALevelStarterWidget*>(&Actor);
+    if (!Widget) {
+      throw std::runtime_error("The LevelStarter widget is unavailable.");
+    }
+    return nlohmann::json{{"ready", true}, {"instanceName", Widget->GetInstanceName()}};
+  };
+
+  std::string Error;
+  if (!Registry.RegisterMethod(
+          ALevelStarterWidget::StaticClassName(), std::move(Descriptor), &Error
+      )) {
+    throw std::runtime_error(Error);
+  }
 }
 
 void ALevelStarterWidget::BeginPlay() {

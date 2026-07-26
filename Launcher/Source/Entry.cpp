@@ -2,38 +2,14 @@
 #include <imgui.h>
 
 #include <iostream>
-#include <stdexcept>
-#include <utility>
 
 #include "Application.h"
-#include "AutomationMethodRegistry.h"
 #include "EOSCoreManager.h"
 #include "LevelStarter/LevelStarterGameMode.h"
 #include "LevelStarter/LevelStarterWidget.h"
 #include "SceneManager.h"
 
 namespace {
-void RegisterAutomationActorMethods(FAutomationMethodRegistry& Registry) {
-  FAutomationMethodDescriptor Descriptor;
-  Descriptor.Name = "get_status";
-  Descriptor.Description = "Return the LevelStarter widget status for automation verification.";
-  Descriptor.Permission = EAutomationPermission::ReadOnly;
-  Descriptor.Handler = [](AActor& Actor, const nlohmann::json&) {
-    const auto* Widget = dynamic_cast<ALevelStarterWidget*>(&Actor);
-    if (!Widget) {
-      throw std::runtime_error("The LevelStarter widget is unavailable.");
-    }
-    return nlohmann::json{{"ready", true}, {"instanceName", Widget->GetInstanceName()}};
-  };
-
-  std::string Error;
-  if (!Registry.RegisterMethod(
-          ALevelStarterWidget::StaticClassName(), std::move(Descriptor), &Error
-      )) {
-    throw std::runtime_error(Error);
-  }
-}
-
 // ゲームの初期セットアップを行うためのコールバック関数
 void SetupGame() {
   // エンジンで管理されている ImGui コンテキストを取得し、ゲーム側の ImGui に設定
@@ -43,7 +19,6 @@ void SetupGame() {
 
   // ゲーム起動時に最初に読み込むレベル（ステージ）ファイルのパスを設定
   SceneManager::GetInstance().SetStartupLevelPath("Resources/LevelStarter.BLevel");
-  Application::SetAutomationMethodRegistrationCallback(&RegisterAutomationActorMethods);
 }
 }  // namespace
 

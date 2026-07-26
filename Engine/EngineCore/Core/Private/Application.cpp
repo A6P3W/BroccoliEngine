@@ -6,19 +6,7 @@
 #include <imgui_impl/imgui_impl_win32.h>
 #include <shellapi.h>
 
-#include <algorithm>
-#include <cmath>
-#include <filesystem>
-
-#include "ActorManager.h"
-#include "ActorRegistry.h"
-#include "AutomationApiController.h"
-#include "AutomationAutoRegistrar.h"
-#include "AutomationCommandQueue.h"
-#include "AutomationHttpServer.h"
-#include "AutomationMethodRegistry.h"
-#include "AutomationSystemCommandRegistry.h"
-#include "AutomationTypes.h"
+#include "AutomationSubsystem.h"
 #include "CollisionSystem.h"
 #include "DebugOverlay.h"
 #include "DxLib.h"
@@ -44,7 +32,6 @@
 
 namespace {
 void (*GameSetupCallback)() = nullptr;
-void (*AutomationMethodRegistrationCallback)(FAutomationMethodRegistry&) = nullptr;
 
 bool HasCommandLineArgument(const std::wstring& Argument) {
   int ArgumentCount = 0;
@@ -64,36 +51,6 @@ bool HasCommandLineArgument(const std::wstring& Argument) {
   return bFound;
 }
 
-std::string GetCurrentSceneName(const SceneManager& Manager) {
-  const std::string& LevelPath = Manager.GetCurrentLevelPath();
-  return LevelPath.empty() ? std::string() : std::filesystem::path(LevelPath).stem().string();
-}
-
-EAutomationWorldReadStatus MakeActorSnapshot(
-    AActor& Actor, World& CurrentWorld, FAutomationActorSnapshot& OutSnapshot
-) {
-  if (Actor.IsPendingDestroy() || Actor.GetWorld() != &CurrentWorld) {
-    return EAutomationWorldReadStatus::ActorNotFound;
-  }
-
-  FAutomationActorSnapshot Snapshot;
-  Snapshot.ActorId = Actor.GetActorId();
-  Snapshot.InstanceName = Actor.GetInstanceName();
-  Snapshot.ClassName = Actor.GetActorClassName();
-  Snapshot.Location = Actor.GetActorLocation();
-  Snapshot.Rotation = Actor.GetActorRotation();
-  Snapshot.Scale = Actor.GetActorScale();
-
-  if (Snapshot.ActorId == InvalidActorId || Snapshot.InstanceName.empty() ||
-      Snapshot.ClassName.empty() || !std::isfinite(Snapshot.Location.X) ||
-      !std::isfinite(Snapshot.Location.Y) || !std::isfinite(Snapshot.Rotation.Rotation) ||
-      !std::isfinite(Snapshot.Scale.Scale)) {
-    return EAutomationWorldReadStatus::InvalidState;
-  }
-
-  OutSnapshot = std::move(Snapshot);
-  return EAutomationWorldReadStatus::Success;
-}
 }  // namespace
 extern IMGUI_IMPL_API LRESULT
 ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -116,18 +73,15 @@ LRESULT CALLBACK ImGuiHookProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 void Application::SetGameSetupCallback(void (*Callback)()) { GameSetupCallback = Callback; }
 
-void Application::SetAutomationMethodRegistrationCallback(
-    void (*Callback)(FAutomationMethodRegistry&)
-) {
-  AutomationMethodRegistrationCallback = Callback;
-}
-
-Application::Application() : AutomationCommandQueue(std::make_unique<FAutomationCommandQueue>()) {}
+Application::Application() = default;
 
 Application::~Application() { Shutdown(); }
 
 void Application::Shutdown() {
-  ShutdownAutomation();
+  if (AutomationSubsystem) {
+    AutomationSubsystem->Shutdown();
+    AutomationSubsystem.reset();
+  }
 
   if (bImGuiInitialized) {
     SetHookWinProc(nullptr);
@@ -151,321 +105,13 @@ void Application::Shutdown() {
   }
 }
 
-void Application::ShutdownAutomation() {
-  if (AutomationHttpServer) {
-    AutomationHttpServer->StopAcceptingRequests();
-  }
-
-  if (AutomationCommandQueue) {
-    AutomationCommandQueue->StopAcceptingCommands();
-    AutomationCommandQueue->CancelAll(
-        EAutomationErrorCode::EngineShuttingDown, "The engine is shutting down."
-    );
-  }
-
-  if (AutomationHttpServer) {
-    AutomationHttpServer->Stop();
-  }
-
-  AutomationHttpServer.reset();
-  AutomationApiController.reset();
-  AutomationSystemCommandRegistry.reset();
-  AutomationMethodRegistry.reset();
-  AutomationCommandQueue.reset();
-}
-
 void Application::InitializeAutomation() {
+  AutomationSubsystem = std::make_unique<FAutomationSubsystem>();
+
   FAutomationConfig Config;
   Config.Enabled = HasCommandLineArgument(L"-automation");
-  if (!Config.Enabled) {
-    M_LOG("Automation disabled.");
-    return;
-  }
-
-  if (!AutomationCommandQueue) {
-    AutomationCommandQueue = std::make_unique<FAutomationCommandQueue>();
-  }
-  AutomationMethodRegistry = std::make_unique<FAutomationMethodRegistry>();
-  try {
-    FAutomationAutoRegistrar::GetInstance().RegisterAll(*AutomationMethodRegistry);
-    if (AutomationMethodRegistrationCallback) {
-      AutomationMethodRegistrationCallback(*AutomationMethodRegistry);
-    }
-    AutomationMethodRegistry->Freeze();
-  } catch (const std::exception& Exception) {
-    M_LOG("Automation actor method registration failed: {}", Exception.what());
-    AutomationMethodRegistry.reset();
-    return;
-  } catch (...) {
-    M_LOG("Automation actor method registration failed with an unknown exception.");
-    AutomationMethodRegistry.reset();
-    return;
-  }
-
-  AutomationSystemCommandRegistry = std::make_unique<FAutomationSystemCommandRegistry>();
-  FAutomationSystemCommandDescriptor PauseDescriptor;
-  PauseDescriptor.Name = "pause_game";
-  PauseDescriptor.Description = "Pause world updates while keeping automation available.";
-  PauseDescriptor.Handler = [this](const nlohmann::json&) {
-    const bool Changed = !bPaused;
-    bPaused = true;
-    M_LOG(
-        "Automation system command state changed: command=pause_game "
-        "changed={} paused=true",
-        Changed
-    );
-    return nlohmann::json{{"commandName", "pause_game"}, {"changed", Changed}, {"paused", true}};
-  };
-
-  FAutomationSystemCommandDescriptor ResumeDescriptor;
-  ResumeDescriptor.Name = "resume_game";
-  ResumeDescriptor.Description = "Resume world updates.";
-  ResumeDescriptor.Handler = [this](const nlohmann::json&) {
-    const bool Changed = bPaused;
-    bPaused = false;
-    M_LOG(
-        "Automation system command state changed: command=resume_game "
-        "changed={} paused=false",
-        Changed
-    );
-    return nlohmann::json{{"commandName", "resume_game"}, {"changed", Changed}, {"paused", false}};
-  };
-
-  std::string RegistrationError;
-  if (!AutomationSystemCommandRegistry->RegisterCommand(
-          std::move(PauseDescriptor), &RegistrationError
-      ) ||
-      !AutomationSystemCommandRegistry->RegisterCommand(
-          std::move(ResumeDescriptor), &RegistrationError
-      )) {
-    M_LOG("Automation system command registration failed: {}", RegistrationError);
-    AutomationSystemCommandRegistry.reset();
-    AutomationMethodRegistry.reset();
-    return;
-  }
-  AutomationSystemCommandRegistry->Freeze();
-
-  FAutomationStateProvider StateProvider = [this]() {
-    nlohmann::json State = {
-        {"sceneName", ""},
-        {"fps", 0.0f},
-        {"paused", bPaused},
-        {"worldAvailable", false},
-        {"actorCount", 0u}
-    };
-
-    SceneManager& Manager = SceneManager::GetInstance();
-    World* CurrentWorld = Manager.GetCurrentScene();
-    if (!CurrentWorld) {
-      return State;
-    }
-
-    State["sceneName"] = GetCurrentSceneName(Manager);
-    State["fps"] = CurrentWorld->GetCurrentFps();
-    State["worldAvailable"] = true;
-    if (const FActorManager* ActorManager = CurrentWorld->GetActorManager()) {
-      State["actorCount"] = ActorManager->GetActiveActorCount();
-    }
-    return State;
-  };
-
-  FAutomationActorListProvider ActorListProvider = [](FAutomationActorListSnapshot& OutSnapshot) {
-    SceneManager& Manager = SceneManager::GetInstance();
-    World* CurrentWorld = Manager.GetCurrentScene();
-    if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
-      return EAutomationWorldReadStatus::WorldNotAvailable;
-    }
-
-    FActorManager* ActorManager = CurrentWorld->GetActorManager();
-    if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
-      return EAutomationWorldReadStatus::InvalidState;
-    }
-
-    FAutomationActorListSnapshot Snapshot;
-    Snapshot.SceneName = GetCurrentSceneName(Manager);
-    for (const std::unique_ptr<AActor>& Actor : ActorManager->GetAllActors()) {
-      if (!Actor || Actor->IsPendingDestroy()) {
-        continue;
-      }
-
-      FAutomationActorSnapshot ActorSnapshot;
-      const EAutomationWorldReadStatus Status =
-          MakeActorSnapshot(*Actor, *CurrentWorld, ActorSnapshot);
-      if (Status != EAutomationWorldReadStatus::Success) {
-        return EAutomationWorldReadStatus::InvalidState;
-      }
-      Snapshot.Actors.push_back(std::move(ActorSnapshot));
-    }
-
-    std::sort(
-        Snapshot.Actors.begin(),
-        Snapshot.Actors.end(),
-        [](const FAutomationActorSnapshot& Left, const FAutomationActorSnapshot& Right) {
-          return Left.ActorId < Right.ActorId;
-        }
-    );
-    OutSnapshot = std::move(Snapshot);
-    return EAutomationWorldReadStatus::Success;
-  };
-
-  FAutomationActorProvider ActorProvider = [](FActorId ActorId,
-                                              FAutomationActorSnapshot& OutSnapshot) {
-    World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
-    if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
-      return EAutomationWorldReadStatus::WorldNotAvailable;
-    }
-
-    FActorManager* ActorManager = CurrentWorld->GetActorManager();
-    if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
-      return EAutomationWorldReadStatus::InvalidState;
-    }
-
-    AActor* Actor = ActorManager->FindActorById(ActorId);
-    if (!Actor) {
-      return EAutomationWorldReadStatus::ActorNotFound;
-    }
-    return MakeActorSnapshot(*Actor, *CurrentWorld, OutSnapshot);
-  };
-
-  FAutomationSpawnActorProvider SpawnActorProvider = [](const FAutomationSpawnActorRequest& Request,
-                                                        FAutomationActorSnapshot& OutSnapshot) {
-    World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
-    if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
-      return EAutomationWorldMutationStatus::WorldNotAvailable;
-    }
-
-    FActorManager* ActorManager = CurrentWorld->GetActorManager();
-    if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
-      return EAutomationWorldMutationStatus::InvalidState;
-    }
-
-    ActorRegistry& Registry = ActorRegistry::GetInstance();
-    if (!Registry.Contains(Request.ClassName)) {
-      return EAutomationWorldMutationStatus::ClassNotRegistered;
-    }
-
-    AActor* Actor =
-        Registry.Spawn(CurrentWorld, Request.ClassName, Request.Location, Request.Rotation);
-    if (!Actor || Actor->GetWorld() != CurrentWorld || Actor->HasBegunPlay()) {
-      if (Actor) {
-        Actor->Destroy();
-      }
-      return EAutomationWorldMutationStatus::InvalidState;
-    }
-    if (!Actor->SetActorScale(Request.Scale) ||
-        (Request.InstanceName &&
-         !ActorManager->AssignInstanceName(*Actor, *Request.InstanceName))) {
-      Actor->Destroy();
-      return EAutomationWorldMutationStatus::InvalidState;
-    }
-
-    Actor->Spawned();
-    return MakeActorSnapshot(*Actor, *CurrentWorld, OutSnapshot) ==
-                   EAutomationWorldReadStatus::Success
-               ? EAutomationWorldMutationStatus::Success
-               : EAutomationWorldMutationStatus::InvalidState;
-  };
-
-  FAutomationDestroyActorProvider DestroyActorProvider = [](FActorId ActorId) {
-    World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
-    if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
-      return EAutomationWorldMutationStatus::WorldNotAvailable;
-    }
-
-    FActorManager* ActorManager = CurrentWorld->GetActorManager();
-    if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
-      return EAutomationWorldMutationStatus::InvalidState;
-    }
-
-    AActor* Actor = ActorManager->FindActorByIdIncludingPendingDestroy(ActorId);
-    if (!Actor) {
-      return EAutomationWorldMutationStatus::ActorNotFound;
-    }
-    if (Actor->IsPendingDestroy()) {
-      return EAutomationWorldMutationStatus::ActorPendingDestroy;
-    }
-
-    Actor->Destroy();
-    return EAutomationWorldMutationStatus::Success;
-  };
-
-  FAutomationPatchActorTransformProvider PatchActorTransformProvider =
-      [](FActorId ActorId,
-         const FAutomationTransformPatch& Patch,
-         FAutomationActorSnapshot& OutSnapshot) {
-        World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
-        if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
-          return EAutomationWorldMutationStatus::WorldNotAvailable;
-        }
-
-        FActorManager* ActorManager = CurrentWorld->GetActorManager();
-        if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
-          return EAutomationWorldMutationStatus::InvalidState;
-        }
-
-        AActor* Actor = ActorManager->FindActorByIdIncludingPendingDestroy(ActorId);
-        if (!Actor) {
-          return EAutomationWorldMutationStatus::ActorNotFound;
-        }
-        if (Actor->IsPendingDestroy()) {
-          return EAutomationWorldMutationStatus::ActorPendingDestroy;
-        }
-
-        if ((Patch.Location && !Actor->SetActorLocation(*Patch.Location)) ||
-            (Patch.Rotation && !Actor->SetActorRotation(*Patch.Rotation)) ||
-            (Patch.Scale && !Actor->SetActorScale(*Patch.Scale))) {
-          return EAutomationWorldMutationStatus::InvalidState;
-        }
-        return MakeActorSnapshot(*Actor, *CurrentWorld, OutSnapshot) ==
-                       EAutomationWorldReadStatus::Success
-                   ? EAutomationWorldMutationStatus::Success
-                   : EAutomationWorldMutationStatus::InvalidState;
-      };
-
-  FAutomationActorResolver ActorResolver = [](FActorId ActorId, AActor*& OutActor) {
-    OutActor = nullptr;
-    World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
-    if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
-      return EAutomationActorResolveStatus::WorldNotAvailable;
-    }
-
-    FActorManager* ActorManager = CurrentWorld->GetActorManager();
-    if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
-      return EAutomationActorResolveStatus::InvalidState;
-    }
-
-    AActor* Actor = ActorManager->FindActorByIdIncludingPendingDestroy(ActorId);
-    if (!Actor || Actor->GetWorld() != CurrentWorld) {
-      return EAutomationActorResolveStatus::ActorNotFound;
-    }
-    if (Actor->IsPendingDestroy()) {
-      return EAutomationActorResolveStatus::ActorPendingDestroy;
-    }
-
-    OutActor = Actor;
-    return EAutomationActorResolveStatus::Success;
-  };
-
-  AutomationApiController = std::make_unique<FAutomationApiController>(
-      *AutomationCommandQueue,
-      Config,
-      std::move(StateProvider),
-      std::move(ActorListProvider),
-      std::move(ActorProvider),
-      std::move(SpawnActorProvider),
-      std::move(DestroyActorProvider),
-      std::move(PatchActorTransformProvider),
-      AutomationMethodRegistry.get(),
-      std::move(ActorResolver),
-      AutomationSystemCommandRegistry.get()
-  );
-  AutomationHttpServer = std::make_unique<FAutomationHttpServer>(Config, *AutomationApiController);
-  if (!AutomationHttpServer->Start()) {
-    M_LOG("Automation server startup failed; the engine will continue without Automation.");
-    AutomationHttpServer.reset();
-    AutomationApiController.reset();
-    AutomationSystemCommandRegistry.reset();
-    AutomationMethodRegistry.reset();
+  if (!AutomationSubsystem->Initialize(Config)) {
+    AutomationSubsystem.reset();
   }
 }
 
@@ -575,7 +221,10 @@ bool Application::Run() {
     Draw();
   }
 
-  ShutdownAutomation();
+  if (AutomationSubsystem) {
+    AutomationSubsystem->Shutdown();
+    AutomationSubsystem.reset();
+  }
 
   EOSTitleStorageManager::GetInstance().Shutdown();
   SceneManager::GetInstance().Shutdown();
@@ -608,8 +257,8 @@ bool Application::Update(float DeltaTime) {
   ImGui::NewFrame();
 
   SceneManager::GetInstance().ProcessSceneChanges();
-  if (AutomationCommandQueue) {
-    AutomationCommandQueue->ProcessCommands();
+  if (AutomationSubsystem) {
+    AutomationSubsystem->Update();
   }
   EOSCoreManager::GetInstance().Tick();
   NetworkManager::GetInstance().Service();
@@ -619,7 +268,7 @@ bool Application::Update(float DeltaTime) {
   DebugOverlayManager::GetInstance().Update(DeltaTime);
 #endif
 
-  if (bPaused) return true;
+  if (AutomationSubsystem && AutomationSubsystem->IsPaused()) return true;
 
   if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
     currentScene->Update(DeltaTime);

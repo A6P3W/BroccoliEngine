@@ -1,5 +1,7 @@
 # BROCCOLI ENGINE MCP Bridge
 
+安定後、リポジトリ分離されます。
+
 BROCCOLI ENGINEのlocalhost限定Automation APIを、MCP Stdio ResourceとToolとして
 公開するPython Bridgeです。読み取り専用Resource `game://state`、
 `game://world/actors`、`game://logs/recent`と、Actor操作Tool `spawn_actor`、

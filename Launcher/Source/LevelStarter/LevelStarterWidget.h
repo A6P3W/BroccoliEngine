@@ -3,6 +3,7 @@
 #include "WidgetBase.h"
 
 class MUIButtonComponent;
+class FAutomationMethodRegistry;
 
 // UI表示機能を持つエンジンのウィジェット基底クラス AWidgetBase を継承したウィジェットアクター
 class ALevelStarterWidget : public AWidgetBase {
@@ -11,6 +12,8 @@ class ALevelStarterWidget : public AWidgetBase {
   DEFINE_ACTOR_CLASS(ALevelStarterWidget)
 
   ALevelStarterWidget();
+
+  static void RegisterAutomationMethods(FAutomationMethodRegistry& Registry);
 
  protected:
   // 初期化用のライフサイクル関数

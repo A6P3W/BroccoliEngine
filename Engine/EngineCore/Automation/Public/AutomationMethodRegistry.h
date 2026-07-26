@@ -21,7 +21,6 @@ struct FAutomationMethodDescriptor {
   EAutomationPermission Permission = EAutomationPermission::ReadOnly;
   std::function<nlohmann::json(AActor&, const nlohmann::json&)> Handler;
 };
-
 struct FAutomationMethodSnapshot {
   std::string Name;
   std::string Description;
@@ -50,5 +49,3 @@ class BROCCOLI_ENGINE_API FAutomationMethodRegistry {
   std::unordered_map<std::string, FMethodMap> MethodsByClass;
   bool Frozen = false;
 };
-
-using FAutomationMethodRegistrationCallback = void (*)(FAutomationMethodRegistry&);
