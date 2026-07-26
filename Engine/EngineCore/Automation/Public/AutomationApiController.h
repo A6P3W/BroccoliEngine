@@ -9,6 +9,7 @@
 
 #include "ActorId.h"
 #include "AutomationCommandQueue.h"
+#include "AutomationMethodRegistry.h"
 #include "AutomationTypes.h"
 #include "BroccoliEngineAPI.h"
 #include "UMath.h"
@@ -46,6 +47,17 @@ using FAutomationActorListProvider =
     std::function<EAutomationWorldReadStatus(FAutomationActorListSnapshot&)>;
 using FAutomationActorProvider =
     std::function<EAutomationWorldReadStatus(FActorId, FAutomationActorSnapshot&)>;
+
+enum class EAutomationActorResolveStatus : uint8_t {
+  Success,
+  WorldNotAvailable,
+  ActorNotFound,
+  ActorPendingDestroy,
+  InvalidState
+};
+
+class AActor;
+using FAutomationActorResolver = std::function<EAutomationActorResolveStatus(FActorId, AActor*&)>;
 
 enum class EAutomationWorldMutationStatus : uint8_t {
   Success,
@@ -97,7 +109,9 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
       FAutomationActorProvider InActorProvider = {},
       FAutomationSpawnActorProvider InSpawnActorProvider = {},
       FAutomationDestroyActorProvider InDestroyActorProvider = {},
-      FAutomationPatchActorTransformProvider InPatchActorTransformProvider = {}
+      FAutomationPatchActorTransformProvider InPatchActorTransformProvider = {},
+      FAutomationMethodRegistry* InMethodRegistry = nullptr,
+      FAutomationActorResolver InActorResolver = {}
   );
 
   FAutomationHttpResponse GetState();
@@ -107,6 +121,10 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
   FAutomationHttpResponse DeleteWorldActor(std::string_view ActorIdText);
   FAutomationHttpResponse PatchWorldActorTransform(
       std::string_view ActorIdText, const nlohmann::json& Body
+  );
+  FAutomationHttpResponse GetWorldActorMethods(std::string_view ActorIdText);
+  FAutomationHttpResponse InvokeWorldActorMethod(
+      std::string_view ActorIdText, std::string_view MethodName, const nlohmann::json& Body
   );
   FAutomationHttpResponse GetRecentLogs(const FAutomationLogQueryText& Query);
 
@@ -131,4 +149,6 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
   FAutomationSpawnActorProvider SpawnActorProvider;
   FAutomationDestroyActorProvider DestroyActorProvider;
   FAutomationPatchActorTransformProvider PatchActorTransformProvider;
+  FAutomationMethodRegistry* MethodRegistry = nullptr;
+  FAutomationActorResolver ActorResolver;
 };

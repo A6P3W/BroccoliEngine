@@ -12,6 +12,8 @@
 #include <string>
 #include <utility>
 
+#include "Actor.h"
+#include "AutomationJsonSchemaValidator.h"
 #include "Log.h"
 
 namespace {
@@ -32,6 +34,12 @@ constexpr std::string_view ActorPendingDestroyMessage =
     "The requested actor is pending destruction.";
 constexpr std::string_view InvalidActorIdMessage =
     "The actorId must be an unsigned decimal integer greater than zero.";
+constexpr std::string_view MethodNotRegisteredMessage =
+    "The requested method is not registered for this actor class.";
+constexpr std::string_view PermissionDeniedMessage =
+    "The requested method permission is not allowed.";
+constexpr std::string_view InvalidMethodNameMessage =
+    "The methodName must match ^[a-z][a-z0-9_]{0,127}$.";
 
 nlohmann::json MakeWorldReadError(EAutomationWorldReadStatus Status) {
   switch (Status) {
@@ -65,6 +73,28 @@ nlohmann::json MakeWorldMutationError(EAutomationWorldMutationStatus Status) {
       return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
   }
   return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
+}
+
+nlohmann::json MakeActorResolveError(EAutomationActorResolveStatus Status) {
+  switch (Status) {
+    case EAutomationActorResolveStatus::WorldNotAvailable:
+      return MakeAutomationError(EAutomationErrorCode::WorldNotAvailable, WorldNotAvailableMessage);
+    case EAutomationActorResolveStatus::ActorNotFound:
+      return MakeAutomationError(EAutomationErrorCode::ActorNotFound, ActorNotFoundMessage);
+    case EAutomationActorResolveStatus::ActorPendingDestroy:
+      return MakeAutomationError(
+          EAutomationErrorCode::ActorPendingDestroy, ActorPendingDestroyMessage
+      );
+    case EAutomationActorResolveStatus::InvalidState:
+    case EAutomationActorResolveStatus::Success:
+      return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
+  }
+  return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
+}
+
+bool IsActorMethodPermissionAllowed(EAutomationPermission Permission) {
+  return Permission == EAutomationPermission::ReadOnly ||
+         Permission == EAutomationPermission::WorldMutation;
 }
 
 bool HasOnlyAllowedFields(
@@ -156,7 +186,9 @@ FAutomationApiController::FAutomationApiController(
     FAutomationActorProvider InActorProvider,
     FAutomationSpawnActorProvider InSpawnActorProvider,
     FAutomationDestroyActorProvider InDestroyActorProvider,
-    FAutomationPatchActorTransformProvider InPatchActorTransformProvider
+    FAutomationPatchActorTransformProvider InPatchActorTransformProvider,
+    FAutomationMethodRegistry* InMethodRegistry,
+    FAutomationActorResolver InActorResolver
 )
     : CommandQueue(InCommandQueue),
       Config(InConfig),
@@ -165,7 +197,9 @@ FAutomationApiController::FAutomationApiController(
       ActorProvider(std::move(InActorProvider)),
       SpawnActorProvider(std::move(InSpawnActorProvider)),
       DestroyActorProvider(std::move(InDestroyActorProvider)),
-      PatchActorTransformProvider(std::move(InPatchActorTransformProvider)) {}
+      PatchActorTransformProvider(std::move(InPatchActorTransformProvider)),
+      MethodRegistry(InMethodRegistry),
+      ActorResolver(std::move(InActorResolver)) {}
 
 FAutomationHttpResponse FAutomationApiController::GetState() {
   try {
@@ -319,6 +353,164 @@ FAutomationHttpResponse FAutomationApiController::PatchWorldActorTransform(
           return MakeAutomationSuccess(SerializeActor(Snapshot));
         }
     );
+    return WaitForResult(std::move(Ticket));
+  } catch (...) {
+    return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
+  }
+}
+
+FAutomationHttpResponse FAutomationApiController::GetWorldActorMethods(
+    std::string_view ActorIdText
+) {
+  FActorId ActorId = InvalidActorId;
+  if (!TryParseActorId(ActorIdText, ActorId)) {
+    return {400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, InvalidActorIdMessage)};
+  }
+
+  try {
+    if (!MethodRegistry || !ActorResolver) {
+      return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
+    }
+
+    FAutomationCommandTicket Ticket =
+        CommandQueue.Enqueue([Registry = MethodRegistry, Resolver = ActorResolver, ActorId]() {
+          AActor* Actor = nullptr;
+          const EAutomationActorResolveStatus ResolveStatus = Resolver(ActorId, Actor);
+          if (ResolveStatus != EAutomationActorResolveStatus::Success) {
+            return MakeActorResolveError(ResolveStatus);
+          }
+          if (!Actor) {
+            return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
+          }
+
+          const std::string ClassName = Actor->GetActorClassName();
+          nlohmann::json Methods = nlohmann::json::array();
+          for (const FAutomationMethodSnapshot& Snapshot :
+               Registry->GetMethodsForClass(ClassName)) {
+            if (!IsActorMethodPermissionAllowed(Snapshot.Permission)) {
+              continue;
+            }
+            Methods.push_back(
+                {{"name", Snapshot.Name},
+                 {"description", Snapshot.Description},
+                 {"inputSchema", Snapshot.InputSchema},
+                 {"permission", ToAutomationPermissionString(Snapshot.Permission)}}
+            );
+          }
+          return MakeAutomationSuccess(
+              {{"actorId", ActorId}, {"className", ClassName}, {"methods", std::move(Methods)}}
+          );
+        });
+    return WaitForResult(std::move(Ticket));
+  } catch (...) {
+    return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
+  }
+}
+
+FAutomationHttpResponse FAutomationApiController::InvokeWorldActorMethod(
+    std::string_view ActorIdText, std::string_view MethodName, const nlohmann::json& Body
+) {
+  FActorId ActorId = InvalidActorId;
+  if (!TryParseActorId(ActorIdText, ActorId)) {
+    return {400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, InvalidActorIdMessage)};
+  }
+  if (!IsValidAutomationOperationName(MethodName)) {
+    return {
+        400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, InvalidMethodNameMessage)
+    };
+  }
+  if (!Body.is_object()) {
+    return {
+        400,
+        MakeAutomationError(
+            EAutomationErrorCode::InvalidArgument, "The actor method arguments must be an object."
+        )
+    };
+  }
+
+  try {
+    if (!MethodRegistry || !ActorResolver) {
+      return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
+    }
+
+    FAutomationCommandTicket Ticket = CommandQueue.Enqueue([Registry = MethodRegistry,
+                                                            Resolver = ActorResolver,
+                                                            ActorId,
+                                                            MethodNameText =
+                                                                std::string(MethodName),
+                                                            Arguments = Body]() {
+      AActor* Actor = nullptr;
+      const EAutomationActorResolveStatus ResolveStatus = Resolver(ActorId, Actor);
+      if (ResolveStatus != EAutomationActorResolveStatus::Success) {
+        return MakeActorResolveError(ResolveStatus);
+      }
+      if (!Actor) {
+        return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
+      }
+
+      const std::string ClassName = Actor->GetActorClassName();
+      const FAutomationMethodDescriptor* Descriptor =
+          Registry->FindMethod(ClassName, MethodNameText);
+      if (!Descriptor) {
+        M_LOG(
+            "Automation actor method rejected: actorId={} class={} "
+            "method={} code=METHOD_NOT_REGISTERED",
+            ActorId,
+            ClassName,
+            MethodNameText
+        );
+        return MakeAutomationError(
+            EAutomationErrorCode::MethodNotRegistered, MethodNotRegisteredMessage
+        );
+      }
+      if (!IsActorMethodPermissionAllowed(Descriptor->Permission)) {
+        M_LOG(
+            "Automation actor method rejected: actorId={} class={} "
+            "method={} code=PERMISSION_DENIED",
+            ActorId,
+            ClassName,
+            MethodNameText
+        );
+        return MakeAutomationError(EAutomationErrorCode::PermissionDenied, PermissionDeniedMessage);
+      }
+
+      FAutomationSchemaValidationError ValidationError;
+      if (!FAutomationJsonSchemaValidator::ValidateValue(
+              Descriptor->InputSchema, Arguments, ValidationError
+          )) {
+        M_LOG(
+            "Automation actor method rejected: actorId={} class={} "
+            "method={} code=INVALID_ARGUMENT",
+            ActorId,
+            ClassName,
+            MethodNameText
+        );
+        return MakeAutomationError(
+            EAutomationErrorCode::InvalidArgument,
+            ValidationError.JsonPath + ": " + ValidationError.Message
+        );
+      }
+
+      M_LOG(
+          "Automation actor method starting: actorId={} class={} method={}",
+          ActorId,
+          ClassName,
+          MethodNameText
+      );
+      nlohmann::json Result = Descriptor->Handler(*Actor, Arguments);
+      M_LOG(
+          "Automation actor method completed: actorId={} class={} method={}",
+          ActorId,
+          ClassName,
+          MethodNameText
+      );
+      return MakeAutomationSuccess(
+          {{"actorId", ActorId},
+           {"className", ClassName},
+           {"methodName", MethodNameText},
+           {"result", std::move(Result)}}
+      );
+    });
     return WaitForResult(std::move(Ticket));
   } catch (...) {
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
@@ -642,6 +834,12 @@ int FAutomationApiController::GetHttpStatusCode(const nlohmann::json& Body) {
   }
   if (ErrorCode == "CLASS_NOT_REGISTERED") {
     return 404;
+  }
+  if (ErrorCode == "METHOD_NOT_REGISTERED") {
+    return 404;
+  }
+  if (ErrorCode == "PERMISSION_DENIED") {
+    return 403;
   }
   if (ErrorCode == "ACTOR_PENDING_DESTROY" || ErrorCode == "CONFLICT") {
     return 409;

@@ -151,4 +151,5 @@ def test_actor_tools_return_json_objects_and_are_registered() -> None:
     "spawn_actor",
     "destroy_actor",
     "set_actor_transform",
+    "invoke_actor_method",
   ]

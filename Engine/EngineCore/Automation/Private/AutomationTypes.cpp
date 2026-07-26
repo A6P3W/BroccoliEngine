@@ -25,6 +25,10 @@ std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode) {
       return "ACTOR_PENDING_DESTROY";
     case EAutomationErrorCode::Conflict:
       return "CONFLICT";
+    case EAutomationErrorCode::MethodNotRegistered:
+      return "METHOD_NOT_REGISTERED";
+    case EAutomationErrorCode::PermissionDenied:
+      return "PERMISSION_DENIED";
     case EAutomationErrorCode::RequestTimeout:
       return "REQUEST_TIMEOUT";
     case EAutomationErrorCode::EngineShuttingDown:
@@ -34,6 +38,33 @@ std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode) {
   }
 
   return "INTERNAL_ERROR";
+}
+
+std::string_view ToAutomationPermissionString(EAutomationPermission Permission) {
+  switch (Permission) {
+    case EAutomationPermission::ReadOnly:
+      return "ReadOnly";
+    case EAutomationPermission::WorldMutation:
+      return "WorldMutation";
+    case EAutomationPermission::SystemMutation:
+      return "SystemMutation";
+    case EAutomationPermission::Dangerous:
+      return "Dangerous";
+  }
+  return "Dangerous";
+}
+
+bool IsValidAutomationOperationName(std::string_view Name) {
+  if (Name.empty() || Name.size() > 128 || Name.front() < 'a' || Name.front() > 'z') {
+    return false;
+  }
+  for (const char Character : Name.substr(1)) {
+    if ((Character < 'a' || Character > 'z') && (Character < '0' || Character > '9') &&
+        Character != '_') {
+      return false;
+    }
+  }
+  return true;
 }
 
 nlohmann::json MakeAutomationSuccess(nlohmann::json Data) {

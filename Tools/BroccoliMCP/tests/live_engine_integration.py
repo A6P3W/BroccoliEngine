@@ -38,7 +38,12 @@ async def run_integration() -> dict[str, object]:
         raise RuntimeError("game://world/actors is not exposed by the bridge.")
       if "game://logs/recent" not in ResourceUris:
         raise RuntimeError("game://logs/recent is not exposed by the bridge.")
-      for ToolName in ("spawn_actor", "destroy_actor", "set_actor_transform"):
+      for ToolName in (
+        "spawn_actor",
+        "destroy_actor",
+        "set_actor_transform",
+        "invoke_actor_method",
+      ):
         if ToolName not in ToolNames:
           raise RuntimeError(f"{ToolName} is not exposed by the bridge.")
 
@@ -65,6 +70,31 @@ async def run_integration() -> dict[str, object]:
       ):
         raise RuntimeError("game://logs/recent did not return one text resource.")
       Logs = json.loads(LogResult.contents[0].text)
+
+      LevelStarterActors = [
+        Actor for Actor in Actors["actors"] if Actor["className"] == "ALevelStarterWidget"
+      ]
+      if not LevelStarterActors:
+        raise RuntimeError("LevelStarter widget was not found.")
+      ActorId = LevelStarterActors[0]["actorId"]
+      MethodResult = await Session.call_tool(
+        "invoke_actor_method",
+        {
+          "actor_id": ActorId,
+          "method_name": "get_status",
+          "arguments": {},
+        },
+      )
+      if MethodResult.isError:
+        raise RuntimeError("invoke_actor_method returned an MCP error.")
+      MethodData = MethodResult.structuredContent
+      if (
+        not isinstance(MethodData, dict)
+        or MethodData.get("actorId") != ActorId
+        or MethodData.get("methodName") != "get_status"
+        or MethodData.get("result", {}).get("ready") is not True
+      ):
+        raise RuntimeError("invoke_actor_method returned invalid data.")
 
   RequiredFields = {
     "sceneName",
@@ -96,7 +126,12 @@ async def run_integration() -> dict[str, object]:
     raise RuntimeError(f"Log response is missing fields: {sorted(MissingLogFields)}")
   if Logs["count"] != len(Logs["entries"]):
     raise RuntimeError("Log count does not match the entries array.")
-  return {"state": State, "worldActors": Actors, "recentLogs": Logs}
+  return {
+    "state": State,
+    "worldActors": Actors,
+    "recentLogs": Logs,
+    "actorMethod": {"actorId": ActorId, "methodName": "get_status"},
+  }
 
 
 def main() -> int:

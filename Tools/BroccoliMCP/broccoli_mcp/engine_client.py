@@ -18,10 +18,13 @@ from .errors import (
   InvalidEngineResponse,
 )
 from .models import (
+  AUTOMATION_NAME_PATTERN,
   LOG_LEVELS,
   MAX_ACTOR_ID,
   ActorInfo,
   ActorList,
+  ActorMethodList,
+  ActorMethodResult,
   DestroyActorResult,
   EngineState,
   RecentLogs,
@@ -96,6 +99,57 @@ class EngineClient:
         Operation=Operation,
       )
     return ActorInfo.from_mapping(Data, Operation=Operation)
+
+  def get_actor_methods(Self, ActorId: int) -> ActorMethodList:
+    Self._validate_actor_id(ActorId)
+    Operation = f"get world actor {ActorId} methods"
+    Data = Self._request_json(
+      "GET",
+      f"world/actors/{ActorId}/methods",
+      Operation=Operation,
+    )
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.",
+        Operation=Operation,
+      )
+    Result = ActorMethodList.from_mapping(Data, Operation=Operation)
+    if Result.ActorId != ActorId:
+      raise InvalidEngineResponse(
+        "Actor method list field 'actorId' does not match the request.",
+        Operation=Operation,
+      )
+    return Result
+
+  def invoke_actor_method(
+    Self,
+    ActorId: int,
+    MethodName: str,
+    Arguments: Mapping[str, Any] | None = None,
+  ) -> ActorMethodResult:
+    Self._validate_actor_id(ActorId)
+    Self._validate_operation_name(MethodName, "MethodName")
+    if Arguments is not None and not isinstance(Arguments, Mapping):
+      raise ValueError("Arguments must be an object.")
+    Body = {} if Arguments is None else dict(Arguments)
+    Operation = f"invoke world actor {ActorId} method {MethodName}"
+    Data = Self._request_json(
+      "POST",
+      f"world/actors/{ActorId}/methods/{MethodName}",
+      Operation=Operation,
+      JsonBody=Body,
+    )
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.",
+        Operation=Operation,
+      )
+    return ActorMethodResult.from_mapping(
+      Data,
+      Operation=Operation,
+      ExpectedActorId=ActorId,
+      ExpectedMethodName=MethodName,
+    )
 
   def spawn_actor(
     Self,
@@ -306,6 +360,11 @@ class EngineClient:
   def _validate_name(Value: str, FieldName: str) -> None:
     if not isinstance(Value, str) or not 1 <= len(Value.encode("utf-8")) <= 128:
       raise ValueError(f"{FieldName} must contain between 1 and 128 UTF-8 bytes.")
+
+  @staticmethod
+  def _validate_operation_name(Value: str, FieldName: str) -> None:
+    if not isinstance(Value, str) or not AUTOMATION_NAME_PATTERN.fullmatch(Value):
+      raise ValueError(f"{FieldName} must match ^[a-z][a-z0-9_]{{0,127}}$.")
 
   @staticmethod
   def _raise_api_error(

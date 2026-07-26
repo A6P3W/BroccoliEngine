@@ -7,6 +7,7 @@ class AGameModeBase;
 class FAutomationApiController;
 class FAutomationCommandQueue;
 class FAutomationHttpServer;
+class FAutomationMethodRegistry;
 class BROCCOLI_ENGINE_API Application {
  public:
   Application();
@@ -15,6 +16,7 @@ class BROCCOLI_ENGINE_API Application {
 
   static void SetWindowResolution(int width, int height);
   static void SetGameSetupCallback(void (*Callback)());
+  static void SetAutomationMethodRegistrationCallback(void (*Callback)(FAutomationMethodRegistry&));
   static void QuitGame();
   static void* GetImGuiContext();
 
@@ -34,6 +36,7 @@ class BROCCOLI_ENGINE_API Application {
   int OffscreenBuffer = -1;
 
   std::unique_ptr<FAutomationCommandQueue> AutomationCommandQueue;
+  std::unique_ptr<FAutomationMethodRegistry> AutomationMethodRegistry;
   std::unique_ptr<FAutomationApiController> AutomationApiController;
   std::unique_ptr<FAutomationHttpServer> AutomationHttpServer;
 };

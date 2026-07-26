@@ -158,6 +158,8 @@
     <ClCompile Include="EngineCore\Automation\Private\AutomationApiController.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationCommandQueue.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationHttpServer.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationJsonSchemaValidator.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationMethodRegistry.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationTypes.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\Log.cpp" />
     <ClCompile Include="Editor\Private\ActorClassGenerator.cpp" />
@@ -251,6 +253,8 @@
     <ClInclude Include="EngineCore\Automation\Public\AutomationApiController.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationCommandQueue.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationHttpServer.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationJsonSchemaValidator.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationMethodRegistry.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationTypes.h" />
     <ClInclude Include="Editor\Public\ActorClassGenerator.h" />
     <ClInclude Include="Editor\Public\EditorController.h" />

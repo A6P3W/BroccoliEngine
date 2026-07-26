@@ -183,6 +183,24 @@ struct FAutomationHttpServer::Impl {
         }
     );
     Server.Get(
+        R"(/api/v1/world/actors/([0-9]+)/methods)",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            const std::string ActorIdText =
+                Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
+            const FAutomationHttpResponse ApiResponse =
+                ApiController.GetWorldActorMethods(ActorIdText);
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Get(
         R"(/api/v1/world/actors/([0-9]+))",
         [this](const httplib::Request& Request, httplib::Response& Response) {
           try {
@@ -257,6 +275,30 @@ struct FAutomationHttpServer::Impl {
           }
         }
     );
+    Server.Post(
+        R"(/api/v1/world/actors/([0-9]+)/methods/([a-z][a-z0-9_]{0,127}))",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            nlohmann::json Body;
+            if (!TryParseJsonBody(Request, Response, Config.MaxRequestBodyBytes, Body)) {
+              return;
+            }
+            const std::string ActorIdText =
+                Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
+            const std::string MethodName =
+                Request.matches.size() > 2 ? Request.matches[2].str() : std::string();
+            const FAutomationHttpResponse ApiResponse =
+                ApiController.InvokeWorldActorMethod(ActorIdText, MethodName, Body);
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
 
     const auto MethodNotAllowedHandler = [](const httplib::Request&, httplib::Response& Response) {
       SetJsonResponse(
@@ -292,6 +334,21 @@ struct FAutomationHttpServer::Impl {
     Server.Put(TransformRoute, MethodNotAllowedHandler);
     Server.Delete(TransformRoute, MethodNotAllowedHandler);
     Server.Options(TransformRoute, MethodNotAllowedHandler);
+
+    const std::string ActorMethodsRoute = R"(/api/v1/world/actors/([0-9]+)/methods)";
+    Server.Post(ActorMethodsRoute, MethodNotAllowedHandler);
+    Server.Put(ActorMethodsRoute, MethodNotAllowedHandler);
+    Server.Patch(ActorMethodsRoute, MethodNotAllowedHandler);
+    Server.Delete(ActorMethodsRoute, MethodNotAllowedHandler);
+    Server.Options(ActorMethodsRoute, MethodNotAllowedHandler);
+
+    const std::string ActorMethodRoute =
+        R"(/api/v1/world/actors/([0-9]+)/methods/([a-z][a-z0-9_]{0,127}))";
+    Server.Get(ActorMethodRoute, MethodNotAllowedHandler);
+    Server.Put(ActorMethodRoute, MethodNotAllowedHandler);
+    Server.Patch(ActorMethodRoute, MethodNotAllowedHandler);
+    Server.Delete(ActorMethodRoute, MethodNotAllowedHandler);
+    Server.Options(ActorMethodRoute, MethodNotAllowedHandler);
 
     Server.set_error_handler([](const httplib::Request&, httplib::Response& Response) {
       if (Response.status == 413) {

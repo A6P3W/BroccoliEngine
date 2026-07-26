@@ -15,6 +15,7 @@
 #include "AutomationApiController.h"
 #include "AutomationCommandQueue.h"
 #include "AutomationHttpServer.h"
+#include "AutomationMethodRegistry.h"
 #include "AutomationTypes.h"
 #include "CollisionSystem.h"
 #include "DebugOverlay.h"
@@ -41,6 +42,7 @@
 
 namespace {
 void (*GameSetupCallback)() = nullptr;
+void (*AutomationMethodRegistrationCallback)(FAutomationMethodRegistry&) = nullptr;
 
 bool HasCommandLineArgument(const std::wstring& Argument) {
   int ArgumentCount = 0;
@@ -112,6 +114,12 @@ LRESULT CALLBACK ImGuiHookProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 void Application::SetGameSetupCallback(void (*Callback)()) { GameSetupCallback = Callback; }
 
+void Application::SetAutomationMethodRegistrationCallback(
+    void (*Callback)(FAutomationMethodRegistry&)
+) {
+  AutomationMethodRegistrationCallback = Callback;
+}
+
 Application::Application() : AutomationCommandQueue(std::make_unique<FAutomationCommandQueue>()) {}
 
 Application::~Application() { Shutdown(); }
@@ -159,6 +167,7 @@ void Application::ShutdownAutomation() {
 
   AutomationHttpServer.reset();
   AutomationApiController.reset();
+  AutomationMethodRegistry.reset();
   AutomationCommandQueue.reset();
 }
 
@@ -172,6 +181,17 @@ void Application::InitializeAutomation() {
 
   if (!AutomationCommandQueue) {
     AutomationCommandQueue = std::make_unique<FAutomationCommandQueue>();
+  }
+  AutomationMethodRegistry = std::make_unique<FAutomationMethodRegistry>();
+  try {
+    if (AutomationMethodRegistrationCallback) {
+      AutomationMethodRegistrationCallback(*AutomationMethodRegistry);
+    }
+    AutomationMethodRegistry->Freeze();
+  } catch (...) {
+    M_LOG("Automation actor method registration failed unexpectedly.");
+    AutomationMethodRegistry.reset();
+    return;
   }
 
   FAutomationStateProvider StateProvider = [this]() {
@@ -351,6 +371,30 @@ void Application::InitializeAutomation() {
                    : EAutomationWorldMutationStatus::InvalidState;
       };
 
+  FAutomationActorResolver ActorResolver = [](FActorId ActorId, AActor*& OutActor) {
+    OutActor = nullptr;
+    World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
+    if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
+      return EAutomationActorResolveStatus::WorldNotAvailable;
+    }
+
+    FActorManager* ActorManager = CurrentWorld->GetActorManager();
+    if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
+      return EAutomationActorResolveStatus::InvalidState;
+    }
+
+    AActor* Actor = ActorManager->FindActorByIdIncludingPendingDestroy(ActorId);
+    if (!Actor || Actor->GetWorld() != CurrentWorld) {
+      return EAutomationActorResolveStatus::ActorNotFound;
+    }
+    if (Actor->IsPendingDestroy()) {
+      return EAutomationActorResolveStatus::ActorPendingDestroy;
+    }
+
+    OutActor = Actor;
+    return EAutomationActorResolveStatus::Success;
+  };
+
   AutomationApiController = std::make_unique<FAutomationApiController>(
       *AutomationCommandQueue,
       Config,
@@ -359,13 +403,16 @@ void Application::InitializeAutomation() {
       std::move(ActorProvider),
       std::move(SpawnActorProvider),
       std::move(DestroyActorProvider),
-      std::move(PatchActorTransformProvider)
+      std::move(PatchActorTransformProvider),
+      AutomationMethodRegistry.get(),
+      std::move(ActorResolver)
   );
   AutomationHttpServer = std::make_unique<FAutomationHttpServer>(Config, *AutomationApiController);
   if (!AutomationHttpServer->Start()) {
     M_LOG("Automation server startup failed; the engine will continue without Automation.");
     AutomationHttpServer.reset();
     AutomationApiController.reset();
+    AutomationMethodRegistry.reset();
   }
 }
 

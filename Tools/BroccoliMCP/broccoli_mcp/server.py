@@ -117,6 +117,28 @@ def set_actor_transform_tool(
     raise BridgeInternalError(Operation="set actor transform") from None
 
 
+def invoke_actor_method_tool(
+  Client: EngineClient,
+  *,
+  actor_id: int,
+  method_name: str,
+  arguments: dict[str, object] | None = None,
+) -> dict[str, object]:
+  """Invoke a registered method on an actor."""
+
+  try:
+    return Client.invoke_actor_method(
+      actor_id,
+      method_name,
+      Arguments=arguments,
+    ).to_dict()
+  except (BridgeError, ValueError):
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while invoking an actor method")
+    raise BridgeInternalError(Operation="invoke actor method") from None
+
+
 def create_server(Client: EngineClient) -> FastMCP:
   """Create an MCP server backed by a process-owned HTTP client."""
 
@@ -224,6 +246,25 @@ def create_server(Client: EngineClient) -> FastMCP:
         location_y=location_y,
         rotation=rotation,
         scale=scale,
+      )
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
+    name="invoke_actor_method",
+    description="Invoke a registered automation method on an actor.",
+  )
+  def invoke_actor_method(
+    actor_id: int,
+    method_name: str,
+    arguments: dict[str, object] | None = None,
+  ) -> dict[str, object]:
+    try:
+      return invoke_actor_method_tool(
+        Client,
+        actor_id=actor_id,
+        method_name=method_name,
+        arguments=arguments,
       )
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -11,6 +12,7 @@ from .errors import InvalidEngineResponse
 
 MAX_ACTOR_ID = (1 << 64) - 1
 LOG_LEVELS = frozenset({"debug", "info", "warning", "error"})
+AUTOMATION_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,127}$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -297,6 +299,171 @@ class ActorList:
       "sceneName": Self.SceneName,
       "actorCount": Self.ActorCount,
       "actors": [Actor.to_dict() for Actor in Self.Actors],
+    }
+
+
+@dataclass(frozen=True, slots=True)
+class ActorMethodInfo:
+  """Validated actor method descriptor."""
+
+  Name: str
+  Description: str
+  InputSchema: dict[str, object]
+  Permission: str
+
+  @classmethod
+  def from_mapping(
+    Class,
+    Data: Mapping[str, Any],
+    *,
+    Operation: str,
+  ) -> ActorMethodInfo:
+    Name = Data.get("name")
+    Description = Data.get("description")
+    InputSchema = Data.get("inputSchema")
+    Permission = Data.get("permission")
+    if not isinstance(Name, str) or not AUTOMATION_NAME_PATTERN.fullmatch(Name):
+      raise InvalidEngineResponse(
+        "Actor method field 'name' is invalid.",
+        Operation=Operation,
+      )
+    if not isinstance(Description, str) or not Description:
+      raise InvalidEngineResponse(
+        "Actor method field 'description' must be a non-empty string.",
+        Operation=Operation,
+      )
+    if not isinstance(InputSchema, dict):
+      raise InvalidEngineResponse(
+        "Actor method field 'inputSchema' must be an object.",
+        Operation=Operation,
+      )
+    if Permission not in {"ReadOnly", "WorldMutation"}:
+      raise InvalidEngineResponse(
+        "Actor method field 'permission' is invalid.",
+        Operation=Operation,
+      )
+    return Class(Name, Description, dict(InputSchema), Permission)
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
+      "name": Self.Name,
+      "description": Self.Description,
+      "inputSchema": Self.InputSchema,
+      "permission": Self.Permission,
+    }
+
+
+@dataclass(frozen=True, slots=True)
+class ActorMethodList:
+  """Validated result returned by GET /world/actors/{actorId}/methods."""
+
+  ActorId: int
+  ClassName: str
+  Methods: tuple[ActorMethodInfo, ...]
+
+  @classmethod
+  def from_mapping(
+    Class,
+    Data: Mapping[str, Any],
+    *,
+    Operation: str,
+  ) -> ActorMethodList:
+    ActorId = Data.get("actorId")
+    ClassName = Data.get("className")
+    MethodData = Data.get("methods")
+    if (
+      isinstance(ActorId, bool) or not isinstance(ActorId, int) or not 1 <= ActorId <= MAX_ACTOR_ID
+    ):
+      raise InvalidEngineResponse(
+        "Actor method list field 'actorId' is invalid.",
+        Operation=Operation,
+      )
+    if not isinstance(ClassName, str) or not ClassName:
+      raise InvalidEngineResponse(
+        "Actor method list field 'className' must be a non-empty string.",
+        Operation=Operation,
+      )
+    if not isinstance(MethodData, list):
+      raise InvalidEngineResponse(
+        "Actor method list field 'methods' must be an array.",
+        Operation=Operation,
+      )
+
+    Methods = []
+    MethodNames = set()
+    for Item in MethodData:
+      if not isinstance(Item, Mapping):
+        raise InvalidEngineResponse(
+          "Actor method list contains an invalid item.",
+          Operation=Operation,
+        )
+      Method = ActorMethodInfo.from_mapping(Item, Operation=Operation)
+      if Method.Name in MethodNames:
+        raise InvalidEngineResponse(
+          "Actor method list contains duplicate names.",
+          Operation=Operation,
+        )
+      MethodNames.add(Method.Name)
+      Methods.append(Method)
+    return Class(ActorId, ClassName, tuple(Methods))
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
+      "actorId": Self.ActorId,
+      "className": Self.ClassName,
+      "methods": [Method.to_dict() for Method in Self.Methods],
+    }
+
+
+@dataclass(frozen=True, slots=True)
+class ActorMethodResult:
+  """Validated result returned by invoking a registered actor method."""
+
+  ActorId: int
+  ClassName: str
+  MethodName: str
+  Result: object
+
+  @classmethod
+  def from_mapping(
+    Class,
+    Data: Mapping[str, Any],
+    *,
+    Operation: str,
+    ExpectedActorId: int,
+    ExpectedMethodName: str,
+  ) -> ActorMethodResult:
+    ActorId = Data.get("actorId")
+    ClassName = Data.get("className")
+    MethodName = Data.get("methodName")
+    if ActorId != ExpectedActorId or isinstance(ActorId, bool):
+      raise InvalidEngineResponse(
+        "Actor method result field 'actorId' does not match the request.",
+        Operation=Operation,
+      )
+    if not isinstance(ClassName, str) or not ClassName:
+      raise InvalidEngineResponse(
+        "Actor method result field 'className' must be a non-empty string.",
+        Operation=Operation,
+      )
+    if MethodName != ExpectedMethodName:
+      raise InvalidEngineResponse(
+        "Actor method result field 'methodName' does not match the request.",
+        Operation=Operation,
+      )
+    if "result" not in Data:
+      raise InvalidEngineResponse(
+        "Actor method result is missing field 'result'.",
+        Operation=Operation,
+      )
+    return Class(ActorId, ClassName, MethodName, Data["result"])
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
+      "actorId": Self.ActorId,
+      "className": Self.ClassName,
+      "methodName": Self.MethodName,
+      "result": Self.Result,
     }
 
 

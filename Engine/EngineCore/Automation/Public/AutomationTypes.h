@@ -19,8 +19,12 @@ enum class EAutomationErrorCode : uint8_t {
   ActorNotFound,
   ClassNotRegistered,
   ActorPendingDestroy,
-  Conflict
+  Conflict,
+  MethodNotRegistered,
+  PermissionDenied
 };
+
+enum class EAutomationPermission : uint8_t { ReadOnly, WorldMutation, SystemMutation, Dangerous };
 
 struct FAutomationConfig {
   bool Enabled = false;
@@ -35,3 +39,7 @@ nlohmann::json MakeAutomationSuccess(nlohmann::json Data = nlohmann::json::objec
 nlohmann::json MakeAutomationError(EAutomationErrorCode ErrorCode, std::string_view Message);
 
 std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode);
+
+std::string_view ToAutomationPermissionString(EAutomationPermission Permission);
+
+bool IsValidAutomationOperationName(std::string_view Name);
