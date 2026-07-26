@@ -297,3 +297,88 @@ class ActorList:
       "actorCount": Self.ActorCount,
       "actors": [Actor.to_dict() for Actor in Self.Actors],
     }
+
+
+def _optional_finite_number(Value: object, FieldName: str) -> float | None:
+  if Value is None:
+    return None
+  if isinstance(Value, bool) or not isinstance(Value, (int, float)):
+    raise ValueError(f"{FieldName} must be a number.")
+  Result = float(Value)
+  if not math.isfinite(Result):
+    raise ValueError(f"{FieldName} must be finite.")
+  return Result
+
+
+@dataclass(frozen=True, slots=True)
+class TransformPatch:
+  """Validated transform values for PATCH /world/actors/{actorId}/transform."""
+
+  LocationX: float | None = None
+  LocationY: float | None = None
+  Rotation: float | None = None
+  Scale: float | None = None
+
+  def __post_init__(Self) -> None:
+    LocationX = _optional_finite_number(Self.LocationX, "location_x")
+    LocationY = _optional_finite_number(Self.LocationY, "location_y")
+    Rotation = _optional_finite_number(Self.Rotation, "rotation")
+    Scale = _optional_finite_number(Self.Scale, "scale")
+    if (LocationX is None) != (LocationY is None):
+      raise ValueError("location_x and location_y must be provided together.")
+    if LocationX is None and Rotation is None and Scale is None:
+      raise ValueError("At least one transform value must be provided.")
+    if Scale is not None and Scale <= 0.0:
+      raise ValueError("scale must be greater than zero.")
+
+    object.__setattr__(Self, "LocationX", LocationX)
+    object.__setattr__(Self, "LocationY", LocationY)
+    object.__setattr__(Self, "Rotation", Rotation)
+    object.__setattr__(Self, "Scale", Scale)
+
+  def to_dict(Self) -> dict[str, Any]:
+    Result: dict[str, Any] = {}
+    if Self.LocationX is not None and Self.LocationY is not None:
+      Result["location"] = {"x": Self.LocationX, "y": Self.LocationY}
+    if Self.Rotation is not None:
+      Result["rotation"] = Self.Rotation
+    if Self.Scale is not None:
+      Result["scale"] = Self.Scale
+    return Result
+
+
+@dataclass(frozen=True, slots=True)
+class DestroyActorResult:
+  """Validated result returned by DELETE /world/actors/{actorId}."""
+
+  ActorId: int
+  PendingDestroy: bool
+
+  @classmethod
+  def from_mapping(
+    Class,
+    Data: Mapping[str, Any],
+    *,
+    Operation: str,
+  ) -> DestroyActorResult:
+    ActorId = Data.get("actorId")
+    PendingDestroy = Data.get("pendingDestroy")
+    if (
+      isinstance(ActorId, bool) or not isinstance(ActorId, int) or not 1 <= ActorId <= MAX_ACTOR_ID
+    ):
+      raise InvalidEngineResponse(
+        "Destroy result field 'actorId' must be an unsigned 64-bit integer greater than zero.",
+        Operation=Operation,
+      )
+    if PendingDestroy is not True:
+      raise InvalidEngineResponse(
+        "Destroy result field 'pendingDestroy' must be true.",
+        Operation=Operation,
+      )
+    return Class(ActorId=ActorId, PendingDestroy=PendingDestroy)
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
+      "actorId": Self.ActorId,
+      "pendingDestroy": Self.PendingDestroy,
+    }

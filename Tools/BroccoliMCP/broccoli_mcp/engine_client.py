@@ -17,11 +17,19 @@ from .errors import (
   EngineUnavailable,
   InvalidEngineResponse,
 )
-from .models import MAX_ACTOR_ID, ActorInfo, ActorList, EngineState
+from .models import (
+  MAX_ACTOR_ID,
+  ActorInfo,
+  ActorList,
+  DestroyActorResult,
+  EngineState,
+  TransformPatch,
+)
 
 LOGGER = logging.getLogger(__name__)
 STATE_OPERATION = "get engine state"
 ACTORS_OPERATION = "get world actors"
+SPAWN_ACTOR_OPERATION = "spawn world actor"
 
 
 class EngineClient:
@@ -76,12 +84,89 @@ class EngineClient:
     return ActorList.from_mapping(Data, Operation=ACTORS_OPERATION)
 
   def get_actor(Self, ActorId: int) -> ActorInfo:
-    if (
-      isinstance(ActorId, bool) or not isinstance(ActorId, int) or not 1 <= ActorId <= MAX_ACTOR_ID
-    ):
-      raise ValueError("ActorId must be an unsigned 64-bit integer greater than zero.")
+    Self._validate_actor_id(ActorId)
     Operation = f"get world actor {ActorId}"
     Data = Self._request_json("GET", f"world/actors/{ActorId}", Operation=Operation)
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.",
+        Operation=Operation,
+      )
+    return ActorInfo.from_mapping(Data, Operation=Operation)
+
+  def spawn_actor(
+    Self,
+    ClassName: str,
+    *,
+    LocationX: float = 0.0,
+    LocationY: float = 0.0,
+    Rotation: float = 0.0,
+    Scale: float = 1.0,
+    InstanceName: str | None = None,
+  ) -> ActorInfo:
+    Self._validate_name(ClassName, "ClassName")
+    if InstanceName is not None:
+      Self._validate_name(InstanceName, "InstanceName")
+    Transform = TransformPatch(
+      LocationX=LocationX,
+      LocationY=LocationY,
+      Rotation=Rotation,
+      Scale=Scale,
+    )
+    Body: dict[str, Any] = {
+      "className": ClassName,
+      "transform": Transform.to_dict(),
+    }
+    if InstanceName is not None:
+      Body["instanceName"] = InstanceName
+
+    Data = Self._request_json(
+      "POST",
+      "world/actors",
+      Operation=SPAWN_ACTOR_OPERATION,
+      JsonBody=Body,
+    )
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.",
+        Operation=SPAWN_ACTOR_OPERATION,
+      )
+    return ActorInfo.from_mapping(Data, Operation=SPAWN_ACTOR_OPERATION)
+
+  def destroy_actor(Self, ActorId: int) -> DestroyActorResult:
+    Self._validate_actor_id(ActorId)
+    Operation = f"destroy world actor {ActorId}"
+    Data = Self._request_json("DELETE", f"world/actors/{ActorId}", Operation=Operation)
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.",
+        Operation=Operation,
+      )
+    return DestroyActorResult.from_mapping(Data, Operation=Operation)
+
+  def set_actor_transform(
+    Self,
+    ActorId: int,
+    *,
+    LocationX: float | None = None,
+    LocationY: float | None = None,
+    Rotation: float | None = None,
+    Scale: float | None = None,
+  ) -> ActorInfo:
+    Self._validate_actor_id(ActorId)
+    Patch = TransformPatch(
+      LocationX=LocationX,
+      LocationY=LocationY,
+      Rotation=Rotation,
+      Scale=Scale,
+    )
+    Operation = f"set world actor {ActorId} transform"
+    Data = Self._request_json(
+      "PATCH",
+      f"world/actors/{ActorId}/transform",
+      Operation=Operation,
+      JsonBody=Patch.to_dict(),
+    )
     if not isinstance(Data, Mapping):
       raise InvalidEngineResponse(
         "The successful response 'data' field must be an object.",
@@ -95,9 +180,11 @@ class EngineClient:
     Path: str,
     *,
     Operation: str,
+    JsonBody: Mapping[str, Any] | None = None,
+    Params: Mapping[str, str | int] | None = None,
   ) -> Any:
     try:
-      with Self.HttpClient.stream(Method, Path) as Response:
+      with Self.HttpClient.stream(Method, Path, json=JsonBody, params=Params) as Response:
         HttpStatus = Response.status_code
         ContentType = Response.headers.get("content-type", "")
         ResponseContent = bytearray()
@@ -168,6 +255,18 @@ class EngineClient:
         Operation=Operation,
       )
     return Body["data"]
+
+  @staticmethod
+  def _validate_actor_id(ActorId: int) -> None:
+    if (
+      isinstance(ActorId, bool) or not isinstance(ActorId, int) or not 1 <= ActorId <= MAX_ACTOR_ID
+    ):
+      raise ValueError("ActorId must be an unsigned 64-bit integer greater than zero.")
+
+  @staticmethod
+  def _validate_name(Value: str, FieldName: str) -> None:
+    if not isinstance(Value, str) or not 1 <= len(Value.encode("utf-8")) <= 128:
+      raise ValueError(f"{FieldName} must contain between 1 and 128 UTF-8 bytes.")
 
   @staticmethod
   def _raise_api_error(

@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -46,6 +47,38 @@ using FAutomationActorListProvider =
 using FAutomationActorProvider =
     std::function<EAutomationWorldReadStatus(FActorId, FAutomationActorSnapshot&)>;
 
+enum class EAutomationWorldMutationStatus : uint8_t {
+  Success,
+  WorldNotAvailable,
+  ClassNotRegistered,
+  ActorNotFound,
+  ActorPendingDestroy,
+  InvalidState
+};
+
+struct FAutomationSpawnActorRequest {
+  std::string ClassName;
+  FVector2D Location = FVector2D::ZeroVector();
+  FRotator Rotation = FRotator(0.0f);
+  FScale Scale = FScale(1.0f);
+  std::optional<std::string> InstanceName;
+};
+
+struct FAutomationTransformPatch {
+  std::optional<FVector2D> Location;
+  std::optional<FRotator> Rotation;
+  std::optional<FScale> Scale;
+
+  bool HasAnyValue() const;
+};
+
+using FAutomationSpawnActorProvider = std::function<
+    EAutomationWorldMutationStatus(const FAutomationSpawnActorRequest&, FAutomationActorSnapshot&)>;
+using FAutomationDestroyActorProvider = std::function<EAutomationWorldMutationStatus(FActorId)>;
+using FAutomationPatchActorTransformProvider = std::function<EAutomationWorldMutationStatus(
+    FActorId, const FAutomationTransformPatch&, FAutomationActorSnapshot&
+)>;
+
 class BROCCOLI_ENGINE_API FAutomationApiController {
  public:
   FAutomationApiController(
@@ -53,15 +86,29 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
       const FAutomationConfig& InConfig,
       FAutomationStateProvider InStateProvider,
       FAutomationActorListProvider InActorListProvider = {},
-      FAutomationActorProvider InActorProvider = {}
+      FAutomationActorProvider InActorProvider = {},
+      FAutomationSpawnActorProvider InSpawnActorProvider = {},
+      FAutomationDestroyActorProvider InDestroyActorProvider = {},
+      FAutomationPatchActorTransformProvider InPatchActorTransformProvider = {}
   );
 
   FAutomationHttpResponse GetState();
   FAutomationHttpResponse GetWorldActors();
   FAutomationHttpResponse GetWorldActor(std::string_view ActorIdText);
+  FAutomationHttpResponse CreateWorldActor(const nlohmann::json& Body);
+  FAutomationHttpResponse DeleteWorldActor(std::string_view ActorIdText);
+  FAutomationHttpResponse PatchWorldActorTransform(
+      std::string_view ActorIdText, const nlohmann::json& Body
+  );
 
  private:
   static bool TryParseActorId(std::string_view Text, FActorId& OutActorId);
+  static bool TryParseSpawnRequest(
+      const nlohmann::json& Body, FAutomationSpawnActorRequest& OutRequest, std::string& OutError
+  );
+  static bool TryParseTransformPatch(
+      const nlohmann::json& Body, FAutomationTransformPatch& OutPatch, std::string& OutError
+  );
   static nlohmann::json SerializeActor(const FAutomationActorSnapshot& Actor);
   static nlohmann::json SerializeActorList(const FAutomationActorListSnapshot& Snapshot);
   FAutomationHttpResponse WaitForResult(FAutomationCommandTicket&& Ticket);
@@ -72,4 +119,7 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
   FAutomationStateProvider StateProvider;
   FAutomationActorListProvider ActorListProvider;
   FAutomationActorProvider ActorProvider;
+  FAutomationSpawnActorProvider SpawnActorProvider;
+  FAutomationDestroyActorProvider DestroyActorProvider;
+  FAutomationPatchActorTransformProvider PatchActorTransformProvider;
 };

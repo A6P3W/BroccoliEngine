@@ -22,11 +22,71 @@ constexpr std::string_view RouteNotFoundMessage =
     "The requested automation endpoint was not found.";
 constexpr std::string_view InternalErrorMessage =
     "The automation HTTP request failed unexpectedly.";
+constexpr std::string_view InvalidContentTypeMessage = "The Content-Type must be application/json.";
+constexpr std::string_view InvalidJsonMessage = "The request body is not valid JSON.";
+constexpr std::string_view InvalidJsonRootMessage = "The JSON request root must be an object.";
 
 void SetJsonResponse(httplib::Response& Response, int StatusCode, const nlohmann::json& Body) {
   Response.status = StatusCode;
   Response.set_header("Cache-Control", "no-store");
   Response.set_content(Body.dump(), std::string(JsonContentType));
+}
+
+bool TryParseJsonBody(
+    const httplib::Request& Request,
+    httplib::Response& Response,
+    size_t MaxRequestBodyBytes,
+    nlohmann::json& OutBody
+) {
+  if (Request.body.size() > MaxRequestBodyBytes) {
+    SetJsonResponse(
+        Response,
+        413,
+        MakeAutomationError(EAutomationErrorCode::RequestTooLarge, RequestTooLargeMessage)
+    );
+    return false;
+  }
+
+  std::string ContentType = Request.get_header_value("Content-Type");
+  const size_t Separator = ContentType.find(';');
+  if (Separator != std::string::npos) {
+    ContentType.resize(Separator);
+  }
+  while (!ContentType.empty() && ContentType.back() == ' ') {
+    ContentType.pop_back();
+  }
+  if (ContentType != "application/json") {
+    SetJsonResponse(
+        Response,
+        400,
+        MakeAutomationError(EAutomationErrorCode::InvalidRequest, InvalidContentTypeMessage)
+    );
+    return false;
+  }
+
+  if (Request.body.empty()) {
+    SetJsonResponse(
+        Response, 400, MakeAutomationError(EAutomationErrorCode::InvalidJson, InvalidJsonMessage)
+    );
+    return false;
+  }
+
+  OutBody = nlohmann::json::parse(Request.body, nullptr, false);
+  if (OutBody.is_discarded()) {
+    SetJsonResponse(
+        Response, 400, MakeAutomationError(EAutomationErrorCode::InvalidJson, InvalidJsonMessage)
+    );
+    return false;
+  }
+  if (!OutBody.is_object()) {
+    SetJsonResponse(
+        Response,
+        400,
+        MakeAutomationError(EAutomationErrorCode::InvalidRequest, InvalidJsonRootMessage)
+    );
+    return false;
+  }
+  return true;
 }
 }  // namespace
 
@@ -83,12 +143,70 @@ struct FAutomationHttpServer::Impl {
         }
     );
     Server.Get(
-        R"(/api/v1/world/actors/(.*))",
+        R"(/api/v1/world/actors/([0-9]+))",
         [this](const httplib::Request& Request, httplib::Response& Response) {
           try {
             const std::string ActorIdText =
                 Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
             const FAutomationHttpResponse ApiResponse = ApiController.GetWorldActor(ActorIdText);
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Post(
+        "/api/v1/world/actors",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            nlohmann::json Body;
+            if (!TryParseJsonBody(Request, Response, Config.MaxRequestBodyBytes, Body)) {
+              return;
+            }
+            const FAutomationHttpResponse ApiResponse = ApiController.CreateWorldActor(Body);
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Delete(
+        R"(/api/v1/world/actors/([0-9]+))",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            const std::string ActorIdText =
+                Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
+            const FAutomationHttpResponse ApiResponse = ApiController.DeleteWorldActor(ActorIdText);
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Patch(
+        R"(/api/v1/world/actors/([0-9]+)/transform)",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            nlohmann::json Body;
+            if (!TryParseJsonBody(Request, Response, Config.MaxRequestBodyBytes, Body)) {
+              return;
+            }
+            const std::string ActorIdText =
+                Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
+            const FAutomationHttpResponse ApiResponse =
+                ApiController.PatchWorldActorTransform(ActorIdText, Body);
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -112,14 +230,23 @@ struct FAutomationHttpServer::Impl {
     Server.Patch("/api/v1/state", MethodNotAllowedHandler);
     Server.Delete("/api/v1/state", MethodNotAllowedHandler);
     Server.Options("/api/v1/state", MethodNotAllowedHandler);
-    for (const std::string& Route :
-         {std::string("/api/v1/world/actors"), std::string(R"(/api/v1/world/actors/(.*))")}) {
-      Server.Post(Route, MethodNotAllowedHandler);
-      Server.Put(Route, MethodNotAllowedHandler);
-      Server.Patch(Route, MethodNotAllowedHandler);
-      Server.Delete(Route, MethodNotAllowedHandler);
-      Server.Options(Route, MethodNotAllowedHandler);
-    }
+    Server.Put("/api/v1/world/actors", MethodNotAllowedHandler);
+    Server.Patch("/api/v1/world/actors", MethodNotAllowedHandler);
+    Server.Delete("/api/v1/world/actors", MethodNotAllowedHandler);
+    Server.Options("/api/v1/world/actors", MethodNotAllowedHandler);
+
+    const std::string ActorRoute = R"(/api/v1/world/actors/([0-9]+))";
+    Server.Post(ActorRoute, MethodNotAllowedHandler);
+    Server.Put(ActorRoute, MethodNotAllowedHandler);
+    Server.Patch(ActorRoute, MethodNotAllowedHandler);
+    Server.Options(ActorRoute, MethodNotAllowedHandler);
+
+    const std::string TransformRoute = R"(/api/v1/world/actors/([0-9]+)/transform)";
+    Server.Get(TransformRoute, MethodNotAllowedHandler);
+    Server.Post(TransformRoute, MethodNotAllowedHandler);
+    Server.Put(TransformRoute, MethodNotAllowedHandler);
+    Server.Delete(TransformRoute, MethodNotAllowedHandler);
+    Server.Options(TransformRoute, MethodNotAllowedHandler);
 
     Server.set_error_handler([](const httplib::Request&, httplib::Response& Response) {
       if (Response.status == 413) {

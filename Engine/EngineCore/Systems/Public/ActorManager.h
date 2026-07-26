@@ -55,6 +55,8 @@ class BROCCOLI_ENGINE_API FActorManager {
   void ClearAllObjects();
   AActor* FindActorById(FActorId ActorId);
   const AActor* FindActorById(FActorId ActorId) const;
+  AActor* FindActorByIdIncludingPendingDestroy(FActorId ActorId);
+  const AActor* FindActorByIdIncludingPendingDestroy(FActorId ActorId) const;
   bool AssignInstanceName(AActor& Actor, const std::string& RequestedName);
 
  private:

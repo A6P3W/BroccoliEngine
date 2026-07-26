@@ -38,6 +38,72 @@ def read_actors_resource(Client: EngineClient) -> str:
     raise BridgeInternalError(Operation="read game://world/actors") from None
 
 
+def spawn_actor_tool(
+  Client: EngineClient,
+  *,
+  class_name: str,
+  location_x: float = 0.0,
+  location_y: float = 0.0,
+  rotation: float = 0.0,
+  scale: float = 1.0,
+  instance_name: str | None = None,
+) -> dict[str, object]:
+  """Spawn a registered actor and return its validated data."""
+
+  try:
+    return Client.spawn_actor(
+      class_name,
+      LocationX=location_x,
+      LocationY=location_y,
+      Rotation=rotation,
+      Scale=scale,
+      InstanceName=instance_name,
+    ).to_dict()
+  except (BridgeError, ValueError):
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while spawning an actor")
+    raise BridgeInternalError(Operation="spawn actor") from None
+
+
+def destroy_actor_tool(Client: EngineClient, *, actor_id: int) -> dict[str, object]:
+  """Request actor destruction and return the pending-destroy result."""
+
+  try:
+    return Client.destroy_actor(actor_id).to_dict()
+  except (BridgeError, ValueError):
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while destroying an actor")
+    raise BridgeInternalError(Operation="destroy actor") from None
+
+
+def set_actor_transform_tool(
+  Client: EngineClient,
+  *,
+  actor_id: int,
+  location_x: float | None = None,
+  location_y: float | None = None,
+  rotation: float | None = None,
+  scale: float | None = None,
+) -> dict[str, object]:
+  """Partially update an actor transform and return its validated data."""
+
+  try:
+    return Client.set_actor_transform(
+      actor_id,
+      LocationX=location_x,
+      LocationY=location_y,
+      Rotation=rotation,
+      Scale=scale,
+    ).to_dict()
+  except (BridgeError, ValueError):
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while setting an actor transform")
+    raise BridgeInternalError(Operation="set actor transform") from None
+
+
 def create_server(Client: EngineClient) -> FastMCP:
   """Create an MCP server backed by a process-owned HTTP client."""
 
@@ -74,6 +140,64 @@ def create_server(Client: EngineClient) -> FastMCP:
       raise ValueError(format_mcp_error(Error)) from None
     LOGGER.info("Resource game://world/actors completed")
     return Result
+
+  @Mcp.tool(
+    name="spawn_actor",
+    description="Spawn a registered actor in the current world.",
+  )
+  def spawn_actor(
+    class_name: str,
+    location_x: float = 0.0,
+    location_y: float = 0.0,
+    rotation: float = 0.0,
+    scale: float = 1.0,
+    instance_name: str | None = None,
+  ) -> dict[str, object]:
+    try:
+      return spawn_actor_tool(
+        Client,
+        class_name=class_name,
+        location_x=location_x,
+        location_y=location_y,
+        rotation=rotation,
+        scale=scale,
+        instance_name=instance_name,
+      )
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
+    name="destroy_actor",
+    description="Request destruction of an actor in the current world.",
+  )
+  def destroy_actor(actor_id: int) -> dict[str, object]:
+    try:
+      return destroy_actor_tool(Client, actor_id=actor_id)
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
+    name="set_actor_transform",
+    description="Partially update an actor transform in the current world.",
+  )
+  def set_actor_transform(
+    actor_id: int,
+    location_x: float | None = None,
+    location_y: float | None = None,
+    rotation: float | None = None,
+    scale: float | None = None,
+  ) -> dict[str, object]:
+    try:
+      return set_actor_transform_tool(
+        Client,
+        actor_id=actor_id,
+        location_x=location_x,
+        location_y=location_y,
+        rotation=rotation,
+        scale=scale,
+      )
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
 
   return Mcp
 

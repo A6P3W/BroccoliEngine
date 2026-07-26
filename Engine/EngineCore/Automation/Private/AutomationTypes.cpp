@@ -19,6 +19,12 @@ std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode) {
       return "WORLD_NOT_AVAILABLE";
     case EAutomationErrorCode::ActorNotFound:
       return "ACTOR_NOT_FOUND";
+    case EAutomationErrorCode::ClassNotRegistered:
+      return "CLASS_NOT_REGISTERED";
+    case EAutomationErrorCode::ActorPendingDestroy:
+      return "ACTOR_PENDING_DESTROY";
+    case EAutomationErrorCode::Conflict:
+      return "CONFLICT";
     case EAutomationErrorCode::RequestTimeout:
       return "REQUEST_TIMEOUT";
     case EAutomationErrorCode::EngineShuttingDown:

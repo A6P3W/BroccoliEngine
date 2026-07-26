@@ -30,10 +30,15 @@ async def run_integration() -> dict[str, object]:
       await Session.initialize()
       Resources = await Session.list_resources()
       ResourceUris = [str(Resource.uri) for Resource in Resources.resources]
+      Tools = await Session.list_tools()
+      ToolNames = [Tool.name for Tool in Tools.tools]
       if "game://state" not in ResourceUris:
         raise RuntimeError("game://state is not exposed by the bridge.")
       if "game://world/actors" not in ResourceUris:
         raise RuntimeError("game://world/actors is not exposed by the bridge.")
+      for ToolName in ("spawn_actor", "destroy_actor", "set_actor_transform"):
+        if ToolName not in ToolNames:
+          raise RuntimeError(f"{ToolName} is not exposed by the bridge.")
 
       Result = await Session.read_resource("game://state")
       if len(Result.contents) != 1 or not isinstance(

@@ -11,6 +11,7 @@
 #include <filesystem>
 
 #include "ActorManager.h"
+#include "ActorRegistry.h"
 #include "AutomationApiController.h"
 #include "AutomationCommandQueue.h"
 #include "AutomationHttpServer.h"
@@ -255,12 +256,110 @@ void Application::InitializeAutomation() {
     return MakeActorSnapshot(*Actor, *CurrentWorld, OutSnapshot);
   };
 
+  FAutomationSpawnActorProvider SpawnActorProvider = [](const FAutomationSpawnActorRequest& Request,
+                                                        FAutomationActorSnapshot& OutSnapshot) {
+    World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
+    if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
+      return EAutomationWorldMutationStatus::WorldNotAvailable;
+    }
+
+    FActorManager* ActorManager = CurrentWorld->GetActorManager();
+    if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
+      return EAutomationWorldMutationStatus::InvalidState;
+    }
+
+    ActorRegistry& Registry = ActorRegistry::GetInstance();
+    if (!Registry.Contains(Request.ClassName)) {
+      return EAutomationWorldMutationStatus::ClassNotRegistered;
+    }
+
+    AActor* Actor =
+        Registry.Spawn(CurrentWorld, Request.ClassName, Request.Location, Request.Rotation);
+    if (!Actor || Actor->GetWorld() != CurrentWorld || Actor->HasBegunPlay()) {
+      if (Actor) {
+        Actor->Destroy();
+      }
+      return EAutomationWorldMutationStatus::InvalidState;
+    }
+    if (!Actor->SetActorScale(Request.Scale) ||
+        (Request.InstanceName &&
+         !ActorManager->AssignInstanceName(*Actor, *Request.InstanceName))) {
+      Actor->Destroy();
+      return EAutomationWorldMutationStatus::InvalidState;
+    }
+
+    Actor->Spawned();
+    return MakeActorSnapshot(*Actor, *CurrentWorld, OutSnapshot) ==
+                   EAutomationWorldReadStatus::Success
+               ? EAutomationWorldMutationStatus::Success
+               : EAutomationWorldMutationStatus::InvalidState;
+  };
+
+  FAutomationDestroyActorProvider DestroyActorProvider = [](FActorId ActorId) {
+    World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
+    if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
+      return EAutomationWorldMutationStatus::WorldNotAvailable;
+    }
+
+    FActorManager* ActorManager = CurrentWorld->GetActorManager();
+    if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
+      return EAutomationWorldMutationStatus::InvalidState;
+    }
+
+    AActor* Actor = ActorManager->FindActorByIdIncludingPendingDestroy(ActorId);
+    if (!Actor) {
+      return EAutomationWorldMutationStatus::ActorNotFound;
+    }
+    if (Actor->IsPendingDestroy()) {
+      return EAutomationWorldMutationStatus::ActorPendingDestroy;
+    }
+
+    Actor->Destroy();
+    return EAutomationWorldMutationStatus::Success;
+  };
+
+  FAutomationPatchActorTransformProvider PatchActorTransformProvider =
+      [](FActorId ActorId,
+         const FAutomationTransformPatch& Patch,
+         FAutomationActorSnapshot& OutSnapshot) {
+        World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
+        if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
+          return EAutomationWorldMutationStatus::WorldNotAvailable;
+        }
+
+        FActorManager* ActorManager = CurrentWorld->GetActorManager();
+        if (!ActorManager || ActorManager->GetWorld() != CurrentWorld) {
+          return EAutomationWorldMutationStatus::InvalidState;
+        }
+
+        AActor* Actor = ActorManager->FindActorByIdIncludingPendingDestroy(ActorId);
+        if (!Actor) {
+          return EAutomationWorldMutationStatus::ActorNotFound;
+        }
+        if (Actor->IsPendingDestroy()) {
+          return EAutomationWorldMutationStatus::ActorPendingDestroy;
+        }
+
+        if ((Patch.Location && !Actor->SetActorLocation(*Patch.Location)) ||
+            (Patch.Rotation && !Actor->SetActorRotation(*Patch.Rotation)) ||
+            (Patch.Scale && !Actor->SetActorScale(*Patch.Scale))) {
+          return EAutomationWorldMutationStatus::InvalidState;
+        }
+        return MakeActorSnapshot(*Actor, *CurrentWorld, OutSnapshot) ==
+                       EAutomationWorldReadStatus::Success
+                   ? EAutomationWorldMutationStatus::Success
+                   : EAutomationWorldMutationStatus::InvalidState;
+      };
+
   AutomationApiController = std::make_unique<FAutomationApiController>(
       *AutomationCommandQueue,
       Config,
       std::move(StateProvider),
       std::move(ActorListProvider),
-      std::move(ActorProvider)
+      std::move(ActorProvider),
+      std::move(SpawnActorProvider),
+      std::move(DestroyActorProvider),
+      std::move(PatchActorTransformProvider)
   );
   AutomationHttpServer = std::make_unique<FAutomationHttpServer>(Config, *AutomationApiController);
   if (!AutomationHttpServer->Start()) {

@@ -95,6 +95,17 @@ AActor* FActorManager::FindActorById(FActorId ActorId) {
 }
 
 const AActor* FActorManager::FindActorById(FActorId ActorId) const {
+  const AActor* Actor = FindActorByIdIncludingPendingDestroy(ActorId);
+  return Actor && !Actor->IsPendingDestroy() ? Actor : nullptr;
+}
+
+AActor* FActorManager::FindActorByIdIncludingPendingDestroy(FActorId ActorId) {
+  return const_cast<AActor*>(
+      static_cast<const FActorManager*>(this)->FindActorByIdIncludingPendingDestroy(ActorId)
+  );
+}
+
+const AActor* FActorManager::FindActorByIdIncludingPendingDestroy(FActorId ActorId) const {
   if (ActorId == InvalidActorId || !ImplPtr->World) {
     return nullptr;
   }
@@ -105,8 +116,7 @@ const AActor* FActorManager::FindActorById(FActorId ActorId) const {
   }
 
   AActor* Actor = Iterator->second;
-  if (!Actor || Actor->IsPendingDestroy() || Actor->GetActorId() != ActorId ||
-      Actor->GetWorld() != ImplPtr->World) {
+  if (!Actor || Actor->GetActorId() != ActorId || Actor->GetWorld() != ImplPtr->World) {
     return nullptr;
   }
   return Actor;
