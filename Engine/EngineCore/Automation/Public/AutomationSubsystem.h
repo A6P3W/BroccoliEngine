@@ -25,9 +25,11 @@ class BROCCOLI_ENGINE_API FAutomationSubsystem {
   void Shutdown();
 
   bool IsRunning() const;
-  bool IsPaused() const;
+ bool IsPaused() const;
 
  private:
+  void RegisterBuiltInSystemCommands();
+
   bool bPaused = false;
   std::unique_ptr<FAutomationCommandQueue> CommandQueue;
   std::unique_ptr<FAutomationMethodRegistry> MethodRegistry;
