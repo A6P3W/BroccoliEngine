@@ -155,6 +155,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="EngineCore\Automation\Private\AutomationAutoRegistrar.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationApiController.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationCommandQueue.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationHttpServer.cpp" />
@@ -251,7 +252,10 @@
     <ClCompile Include="EngineCore\Online\Private\OnlinePlayManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EngineCore\Automation\Public\AutomationAutoRegistrar.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationApiController.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationJsonConverter.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationRegistryHelper.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationCommandQueue.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationHttpServer.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationJsonSchemaValidator.h" />

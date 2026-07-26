@@ -13,6 +13,7 @@
 #include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "AutomationApiController.h"
+#include "AutomationAutoRegistrar.h"
 #include "AutomationCommandQueue.h"
 #include "AutomationHttpServer.h"
 #include "AutomationMethodRegistry.h"
@@ -186,12 +187,17 @@ void Application::InitializeAutomation() {
   }
   AutomationMethodRegistry = std::make_unique<FAutomationMethodRegistry>();
   try {
+    FAutomationAutoRegistrar::GetInstance().RegisterAll(*AutomationMethodRegistry);
     if (AutomationMethodRegistrationCallback) {
       AutomationMethodRegistrationCallback(*AutomationMethodRegistry);
     }
     AutomationMethodRegistry->Freeze();
+  } catch (const std::exception& Exception) {
+    M_LOG("Automation actor method registration failed: {}", Exception.what());
+    AutomationMethodRegistry.reset();
+    return;
   } catch (...) {
-    M_LOG("Automation actor method registration failed unexpectedly.");
+    M_LOG("Automation actor method registration failed with an unknown exception.");
     AutomationMethodRegistry.reset();
     return;
   }

@@ -38,10 +38,11 @@ bool IsSupportedType(std::string_view Type) {
 }
 
 bool IsAllowedKeyword(std::string_view Keyword) {
-  return Keyword == "type" || Keyword == "properties" || Keyword == "required" ||
-         Keyword == "additionalProperties" || Keyword == "items" || Keyword == "enum" ||
-         Keyword == "minimum" || Keyword == "maximum" || Keyword == "minLength" ||
-         Keyword == "maxLength" || Keyword == "minItems" || Keyword == "maxItems";
+  return Keyword == "type" || Keyword == "description" || Keyword == "properties" ||
+         Keyword == "required" || Keyword == "additionalProperties" || Keyword == "items" ||
+         Keyword == "enum" || Keyword == "minimum" || Keyword == "maximum" ||
+         Keyword == "minLength" || Keyword == "maxLength" || Keyword == "minItems" ||
+         Keyword == "maxItems";
 }
 
 std::string ChildPath(std::string_view Parent, std::string_view Property) {
@@ -77,6 +78,9 @@ bool ValidateSchemaNode(
   const std::string Type = Schema["type"].get<std::string>();
   if (!IsSupportedType(Type)) {
     return Fail(OutError, ChildPath(Path, "type"), "unsupported schema type.");
+  }
+  if (Schema.contains("description") && !Schema["description"].is_string()) {
+    return Fail(OutError, ChildPath(Path, "description"), "description must be a string.");
   }
 
   const bool HasObjectKeyword = Schema.contains("properties") || Schema.contains("required") ||

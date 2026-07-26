@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="EngineCore\Automation\Private\AutomationAutoRegistrar.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationApiController.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationCommandQueue.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationHttpServer.cpp" />
@@ -95,7 +96,10 @@
     <ClCompile Include="EngineCore\Systems\Private\ActorRegistry.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EngineCore\Automation\Public\AutomationAutoRegistrar.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationApiController.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationJsonConverter.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationRegistryHelper.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationCommandQueue.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationHttpServer.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationJsonSchemaValidator.h" />

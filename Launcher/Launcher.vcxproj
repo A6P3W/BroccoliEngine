@@ -15,6 +15,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\LevelStarter\DoorActor.cpp" />
     <ClCompile Include="Source\BasicGameplay\BasicGameplayGameMode.cpp" />
     <ClCompile Include="Source\BasicGameplay\BasicGameplayPawn.cpp" />
     <ClCompile Include="Source\BasicGameplay\CollisionTestActors.cpp" />
@@ -37,6 +38,7 @@
     <ClCompile Include="Source\WidgetTest\CanvasTestActor.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\LevelStarter\DoorActor.h" />
     <ClInclude Include="Source\BasicGameplay\BasicGameplayGameMode.h" />
     <ClInclude Include="Source\BasicGameplay\BasicGameplayPawn.h" />
     <ClInclude Include="Source\BasicGameplay\CollisionTestActors.h" />
