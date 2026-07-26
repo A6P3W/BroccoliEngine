@@ -10,6 +10,7 @@
 #include "ActorId.h"
 #include "AutomationCommandQueue.h"
 #include "AutomationMethodRegistry.h"
+#include "AutomationSystemCommandRegistry.h"
 #include "AutomationTypes.h"
 #include "BroccoliEngineAPI.h"
 #include "UMath.h"
@@ -111,7 +112,8 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
       FAutomationDestroyActorProvider InDestroyActorProvider = {},
       FAutomationPatchActorTransformProvider InPatchActorTransformProvider = {},
       FAutomationMethodRegistry* InMethodRegistry = nullptr,
-      FAutomationActorResolver InActorResolver = {}
+      FAutomationActorResolver InActorResolver = {},
+      FAutomationSystemCommandRegistry* InSystemCommandRegistry = nullptr
   );
 
   FAutomationHttpResponse GetState();
@@ -125,6 +127,10 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
   FAutomationHttpResponse GetWorldActorMethods(std::string_view ActorIdText);
   FAutomationHttpResponse InvokeWorldActorMethod(
       std::string_view ActorIdText, std::string_view MethodName, const nlohmann::json& Body
+  );
+  FAutomationHttpResponse GetSystemCommands();
+  FAutomationHttpResponse ExecuteSystemCommand(
+      std::string_view CommandName, const nlohmann::json& Body
   );
   FAutomationHttpResponse GetRecentLogs(const FAutomationLogQueryText& Query);
 
@@ -151,4 +157,5 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
   FAutomationPatchActorTransformProvider PatchActorTransformProvider;
   FAutomationMethodRegistry* MethodRegistry = nullptr;
   FAutomationActorResolver ActorResolver;
+  FAutomationSystemCommandRegistry* SystemCommandRegistry = nullptr;
 };

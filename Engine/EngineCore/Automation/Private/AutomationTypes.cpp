@@ -29,6 +29,8 @@ std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode) {
       return "METHOD_NOT_REGISTERED";
     case EAutomationErrorCode::PermissionDenied:
       return "PERMISSION_DENIED";
+    case EAutomationErrorCode::CommandNotRegistered:
+      return "COMMAND_NOT_REGISTERED";
     case EAutomationErrorCode::RequestTimeout:
       return "REQUEST_TIMEOUT";
     case EAutomationErrorCode::EngineShuttingDown:

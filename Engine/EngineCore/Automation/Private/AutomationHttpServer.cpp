@@ -183,6 +183,20 @@ struct FAutomationHttpServer::Impl {
         }
     );
     Server.Get(
+        "/api/v1/system/commands", [this](const httplib::Request&, httplib::Response& Response) {
+          try {
+            const FAutomationHttpResponse ApiResponse = ApiController.GetSystemCommands();
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Get(
         R"(/api/v1/world/actors/([0-9]+)/methods)",
         [this](const httplib::Request& Request, httplib::Response& Response) {
           try {
@@ -299,6 +313,28 @@ struct FAutomationHttpServer::Impl {
           }
         }
     );
+    Server.Post(
+        R"(/api/v1/system/commands/([a-z][a-z0-9_]{0,127}))",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            nlohmann::json Body;
+            if (!TryParseJsonBody(Request, Response, Config.MaxRequestBodyBytes, Body)) {
+              return;
+            }
+            const std::string CommandName =
+                Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
+            const FAutomationHttpResponse ApiResponse =
+                ApiController.ExecuteSystemCommand(CommandName, Body);
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
 
     const auto MethodNotAllowedHandler = [](const httplib::Request&, httplib::Response& Response) {
       SetJsonResponse(
@@ -317,6 +353,11 @@ struct FAutomationHttpServer::Impl {
     Server.Patch("/api/v1/logs/recent", MethodNotAllowedHandler);
     Server.Delete("/api/v1/logs/recent", MethodNotAllowedHandler);
     Server.Options("/api/v1/logs/recent", MethodNotAllowedHandler);
+    Server.Post("/api/v1/system/commands", MethodNotAllowedHandler);
+    Server.Put("/api/v1/system/commands", MethodNotAllowedHandler);
+    Server.Patch("/api/v1/system/commands", MethodNotAllowedHandler);
+    Server.Delete("/api/v1/system/commands", MethodNotAllowedHandler);
+    Server.Options("/api/v1/system/commands", MethodNotAllowedHandler);
     Server.Put("/api/v1/world/actors", MethodNotAllowedHandler);
     Server.Patch("/api/v1/world/actors", MethodNotAllowedHandler);
     Server.Delete("/api/v1/world/actors", MethodNotAllowedHandler);
@@ -349,6 +390,13 @@ struct FAutomationHttpServer::Impl {
     Server.Patch(ActorMethodRoute, MethodNotAllowedHandler);
     Server.Delete(ActorMethodRoute, MethodNotAllowedHandler);
     Server.Options(ActorMethodRoute, MethodNotAllowedHandler);
+
+    const std::string SystemCommandRoute = R"(/api/v1/system/commands/([a-z][a-z0-9_]{0,127}))";
+    Server.Get(SystemCommandRoute, MethodNotAllowedHandler);
+    Server.Put(SystemCommandRoute, MethodNotAllowedHandler);
+    Server.Patch(SystemCommandRoute, MethodNotAllowedHandler);
+    Server.Delete(SystemCommandRoute, MethodNotAllowedHandler);
+    Server.Options(SystemCommandRoute, MethodNotAllowedHandler);
 
     Server.set_error_handler([](const httplib::Request&, httplib::Response& Response) {
       if (Response.status == 413) {

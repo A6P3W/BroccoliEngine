@@ -16,6 +16,7 @@
 #include "AutomationCommandQueue.h"
 #include "AutomationHttpServer.h"
 #include "AutomationMethodRegistry.h"
+#include "AutomationSystemCommandRegistry.h"
 #include "AutomationTypes.h"
 #include "CollisionSystem.h"
 #include "DebugOverlay.h"
@@ -167,6 +168,7 @@ void Application::ShutdownAutomation() {
 
   AutomationHttpServer.reset();
   AutomationApiController.reset();
+  AutomationSystemCommandRegistry.reset();
   AutomationMethodRegistry.reset();
   AutomationCommandQueue.reset();
 }
@@ -194,11 +196,54 @@ void Application::InitializeAutomation() {
     return;
   }
 
+  AutomationSystemCommandRegistry = std::make_unique<FAutomationSystemCommandRegistry>();
+  FAutomationSystemCommandDescriptor PauseDescriptor;
+  PauseDescriptor.Name = "pause_game";
+  PauseDescriptor.Description = "Pause world updates while keeping automation available.";
+  PauseDescriptor.Handler = [this](const nlohmann::json&) {
+    const bool Changed = !bPaused;
+    bPaused = true;
+    M_LOG(
+        "Automation system command state changed: command=pause_game "
+        "changed={} paused=true",
+        Changed
+    );
+    return nlohmann::json{{"commandName", "pause_game"}, {"changed", Changed}, {"paused", true}};
+  };
+
+  FAutomationSystemCommandDescriptor ResumeDescriptor;
+  ResumeDescriptor.Name = "resume_game";
+  ResumeDescriptor.Description = "Resume world updates.";
+  ResumeDescriptor.Handler = [this](const nlohmann::json&) {
+    const bool Changed = bPaused;
+    bPaused = false;
+    M_LOG(
+        "Automation system command state changed: command=resume_game "
+        "changed={} paused=false",
+        Changed
+    );
+    return nlohmann::json{{"commandName", "resume_game"}, {"changed", Changed}, {"paused", false}};
+  };
+
+  std::string RegistrationError;
+  if (!AutomationSystemCommandRegistry->RegisterCommand(
+          std::move(PauseDescriptor), &RegistrationError
+      ) ||
+      !AutomationSystemCommandRegistry->RegisterCommand(
+          std::move(ResumeDescriptor), &RegistrationError
+      )) {
+    M_LOG("Automation system command registration failed: {}", RegistrationError);
+    AutomationSystemCommandRegistry.reset();
+    AutomationMethodRegistry.reset();
+    return;
+  }
+  AutomationSystemCommandRegistry->Freeze();
+
   FAutomationStateProvider StateProvider = [this]() {
     nlohmann::json State = {
         {"sceneName", ""},
         {"fps", 0.0f},
-        {"paused", bPosed},
+        {"paused", bPaused},
         {"worldAvailable", false},
         {"actorCount", 0u}
     };
@@ -405,13 +450,15 @@ void Application::InitializeAutomation() {
       std::move(DestroyActorProvider),
       std::move(PatchActorTransformProvider),
       AutomationMethodRegistry.get(),
-      std::move(ActorResolver)
+      std::move(ActorResolver),
+      AutomationSystemCommandRegistry.get()
   );
   AutomationHttpServer = std::make_unique<FAutomationHttpServer>(Config, *AutomationApiController);
   if (!AutomationHttpServer->Start()) {
     M_LOG("Automation server startup failed; the engine will continue without Automation.");
     AutomationHttpServer.reset();
     AutomationApiController.reset();
+    AutomationSystemCommandRegistry.reset();
     AutomationMethodRegistry.reset();
   }
 }
@@ -566,7 +613,7 @@ bool Application::Update(float DeltaTime) {
   DebugOverlayManager::GetInstance().Update(DeltaTime);
 #endif
 
-  if (bPosed) return true;
+  if (bPaused) return true;
 
   if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
     currentScene->Update(DeltaTime);

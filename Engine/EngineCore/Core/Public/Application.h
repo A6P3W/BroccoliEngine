@@ -8,6 +8,7 @@ class FAutomationApiController;
 class FAutomationCommandQueue;
 class FAutomationHttpServer;
 class FAutomationMethodRegistry;
+class FAutomationSystemCommandRegistry;
 class BROCCOLI_ENGINE_API Application {
  public:
   Application();
@@ -28,7 +29,7 @@ class BROCCOLI_ENGINE_API Application {
   void ShutdownAutomation();
 
   float DeltaTime = 0.0f;
-  bool bPosed = false;
+  bool bPaused = false;
   bool bDxLibInitialized = false;
   bool bImGuiInitialized = false;
 
@@ -37,6 +38,7 @@ class BROCCOLI_ENGINE_API Application {
 
   std::unique_ptr<FAutomationCommandQueue> AutomationCommandQueue;
   std::unique_ptr<FAutomationMethodRegistry> AutomationMethodRegistry;
+  std::unique_ptr<FAutomationSystemCommandRegistry> AutomationSystemCommandRegistry;
   std::unique_ptr<FAutomationApiController> AutomationApiController;
   std::unique_ptr<FAutomationHttpServer> AutomationHttpServer;
 };

@@ -139,6 +139,26 @@ def invoke_actor_method_tool(
     raise BridgeInternalError(Operation="invoke actor method") from None
 
 
+def execute_system_command_tool(
+  Client: EngineClient,
+  *,
+  command_name: str,
+  arguments: dict[str, object] | None = None,
+) -> dict[str, object]:
+  """Execute a registered engine system command."""
+
+  try:
+    return Client.execute_system_command(
+      command_name,
+      Arguments=arguments,
+    ).to_dict()
+  except (BridgeError, ValueError):
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while executing a system command")
+    raise BridgeInternalError(Operation="execute system command") from None
+
+
 def create_server(Client: EngineClient) -> FastMCP:
   """Create an MCP server backed by a process-owned HTTP client."""
 
@@ -264,6 +284,23 @@ def create_server(Client: EngineClient) -> FastMCP:
         Client,
         actor_id=actor_id,
         method_name=method_name,
+        arguments=arguments,
+      )
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
+    name="execute_system_command",
+    description="Execute a registered BROCCOLI ENGINE system command.",
+  )
+  def execute_system_command(
+    command_name: str,
+    arguments: dict[str, object] | None = None,
+  ) -> dict[str, object]:
+    try:
+      return execute_system_command_tool(
+        Client,
+        command_name=command_name,
         arguments=arguments,
       )
     except BridgeError as Error:

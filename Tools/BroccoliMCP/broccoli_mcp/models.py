@@ -467,6 +467,134 @@ class ActorMethodResult:
     }
 
 
+@dataclass(frozen=True, slots=True)
+class SystemCommandInfo:
+  """Validated system command descriptor."""
+
+  Name: str
+  Description: str
+  InputSchema: dict[str, object]
+  Permission: str
+
+  @classmethod
+  def from_mapping(
+    Class,
+    Data: Mapping[str, Any],
+    *,
+    Operation: str,
+  ) -> SystemCommandInfo:
+    Name = Data.get("name")
+    Description = Data.get("description")
+    InputSchema = Data.get("inputSchema")
+    Permission = Data.get("permission")
+    if not isinstance(Name, str) or not AUTOMATION_NAME_PATTERN.fullmatch(Name):
+      raise InvalidEngineResponse(
+        "System command field 'name' is invalid.",
+        Operation=Operation,
+      )
+    if not isinstance(Description, str) or not Description:
+      raise InvalidEngineResponse(
+        "System command field 'description' must be a non-empty string.",
+        Operation=Operation,
+      )
+    if not isinstance(InputSchema, dict):
+      raise InvalidEngineResponse(
+        "System command field 'inputSchema' must be an object.",
+        Operation=Operation,
+      )
+    if Permission != "SystemMutation":
+      raise InvalidEngineResponse(
+        "System command field 'permission' is invalid.",
+        Operation=Operation,
+      )
+    return Class(Name, Description, dict(InputSchema), Permission)
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
+      "name": Self.Name,
+      "description": Self.Description,
+      "inputSchema": Self.InputSchema,
+      "permission": Self.Permission,
+    }
+
+
+@dataclass(frozen=True, slots=True)
+class SystemCommandList:
+  """Validated result returned by GET /system/commands."""
+
+  Commands: tuple[SystemCommandInfo, ...]
+
+  @classmethod
+  def from_mapping(
+    Class,
+    Data: Mapping[str, Any],
+    *,
+    Operation: str,
+  ) -> SystemCommandList:
+    CommandData = Data.get("commands")
+    if not isinstance(CommandData, list):
+      raise InvalidEngineResponse(
+        "System command list field 'commands' must be an array.",
+        Operation=Operation,
+      )
+
+    Commands = []
+    CommandNames = set()
+    for Item in CommandData:
+      if not isinstance(Item, Mapping):
+        raise InvalidEngineResponse(
+          "System command list contains an invalid item.",
+          Operation=Operation,
+        )
+      Command = SystemCommandInfo.from_mapping(Item, Operation=Operation)
+      if Command.Name in CommandNames:
+        raise InvalidEngineResponse(
+          "System command list contains duplicate names.",
+          Operation=Operation,
+        )
+      CommandNames.add(Command.Name)
+      Commands.append(Command)
+    return Class(tuple(Commands))
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {"commands": [Command.to_dict() for Command in Self.Commands]}
+
+
+@dataclass(frozen=True, slots=True)
+class SystemCommandResult:
+  """Validated result returned by executing a system command."""
+
+  CommandName: str
+  Result: object
+
+  @classmethod
+  def from_mapping(
+    Class,
+    Data: Mapping[str, Any],
+    *,
+    Operation: str,
+    ExpectedCommandName: str,
+  ) -> SystemCommandResult:
+    CommandName = Data.get("commandName")
+    if CommandName != ExpectedCommandName:
+      raise InvalidEngineResponse(
+        "System command result field 'commandName' does not match the request.",
+        Operation=Operation,
+      )
+    if "result" not in Data:
+      raise InvalidEngineResponse(
+        "System command result is missing field 'result'.",
+        Operation=Operation,
+      )
+    return Class(CommandName, Data["result"])
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
+      "commandName": Self.CommandName,
+      "result": Self.Result,
+    }
+
+
 def _optional_finite_number(Value: object, FieldName: str) -> float | None:
   if Value is None:
     return None

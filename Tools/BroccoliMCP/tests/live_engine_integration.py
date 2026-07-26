@@ -12,6 +12,9 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.types import TextResourceContents
 
+from broccoli_mcp.config import BridgeConfig
+from broccoli_mcp.engine_client import EngineClient
+
 
 async def run_integration() -> dict[str, object]:
   ProjectRoot = Path(__file__).resolve().parents[1]
@@ -43,6 +46,7 @@ async def run_integration() -> dict[str, object]:
         "destroy_actor",
         "set_actor_transform",
         "invoke_actor_method",
+        "execute_system_command",
       ):
         if ToolName not in ToolNames:
           raise RuntimeError(f"{ToolName} is not exposed by the bridge.")
@@ -77,6 +81,17 @@ async def run_integration() -> dict[str, object]:
       if not LevelStarterActors:
         raise RuntimeError("LevelStarter widget was not found.")
       ActorId = LevelStarterActors[0]["actorId"]
+      with EngineClient(BridgeConfig()) as Engine:
+        ActorMethods = Engine.get_actor_methods(ActorId).to_dict()
+        SystemCommandList = Engine.get_system_commands().to_dict()
+      if [Method["name"] for Method in ActorMethods["methods"]] != ["get_status"]:
+        raise RuntimeError("LevelStarter actor method list is invalid.")
+      if [Command["name"] for Command in SystemCommandList["commands"]] != [
+        "pause_game",
+        "resume_game",
+      ]:
+        raise RuntimeError("System command list is invalid.")
+
       MethodResult = await Session.call_tool(
         "invoke_actor_method",
         {
@@ -95,6 +110,68 @@ async def run_integration() -> dict[str, object]:
         or MethodData.get("result", {}).get("ready") is not True
       ):
         raise RuntimeError("invoke_actor_method returned invalid data.")
+
+      PauseResult = await Session.call_tool(
+        "execute_system_command",
+        {"command_name": "pause_game", "arguments": {}},
+      )
+      PauseData = PauseResult.structuredContent
+      if (
+        PauseResult.isError
+        or not isinstance(PauseData, dict)
+        or PauseData.get("result", {}).get("changed") is not True
+        or PauseData.get("result", {}).get("paused") is not True
+      ):
+        raise RuntimeError("pause_game did not pause the engine.")
+
+      RepeatedPauseResult = await Session.call_tool(
+        "execute_system_command",
+        {"command_name": "pause_game", "arguments": {}},
+      )
+      RepeatedPauseData = RepeatedPauseResult.structuredContent
+      if (
+        RepeatedPauseResult.isError
+        or not isinstance(RepeatedPauseData, dict)
+        or RepeatedPauseData.get("result", {}).get("changed") is not False
+        or RepeatedPauseData.get("result", {}).get("paused") is not True
+      ):
+        raise RuntimeError("Repeated pause_game was not idempotent.")
+
+      PausedStateResult = await Session.read_resource("game://state")
+      PausedState = json.loads(PausedStateResult.contents[0].text)  # type: ignore[union-attr]
+      if PausedState.get("paused") is not True:
+        raise RuntimeError("State resource did not report paused=true.")
+
+      ResumeResult = await Session.call_tool(
+        "execute_system_command",
+        {"command_name": "resume_game", "arguments": {}},
+      )
+      ResumeData = ResumeResult.structuredContent
+      if (
+        ResumeResult.isError
+        or not isinstance(ResumeData, dict)
+        or ResumeData.get("result", {}).get("changed") is not True
+        or ResumeData.get("result", {}).get("paused") is not False
+      ):
+        raise RuntimeError("resume_game did not resume the engine.")
+
+      RepeatedResumeResult = await Session.call_tool(
+        "execute_system_command",
+        {"command_name": "resume_game", "arguments": {}},
+      )
+      RepeatedResumeData = RepeatedResumeResult.structuredContent
+      if (
+        RepeatedResumeResult.isError
+        or not isinstance(RepeatedResumeData, dict)
+        or RepeatedResumeData.get("result", {}).get("changed") is not False
+        or RepeatedResumeData.get("result", {}).get("paused") is not False
+      ):
+        raise RuntimeError("Repeated resume_game was not idempotent.")
+
+      ResumedStateResult = await Session.read_resource("game://state")
+      ResumedState = json.loads(ResumedStateResult.contents[0].text)  # type: ignore[union-attr]
+      if ResumedState.get("paused") is not False:
+        raise RuntimeError("State resource did not report paused=false.")
 
   RequiredFields = {
     "sceneName",
@@ -131,6 +208,16 @@ async def run_integration() -> dict[str, object]:
     "worldActors": Actors,
     "recentLogs": Logs,
     "actorMethod": {"actorId": ActorId, "methodName": "get_status"},
+    "actorMethods": ActorMethods,
+    "systemCommandList": SystemCommandList,
+    "systemCommands": {
+      "pause": PauseData,
+      "repeatedPause": RepeatedPauseData,
+      "pausedState": PausedState,
+      "resume": ResumeData,
+      "repeatedResume": RepeatedResumeData,
+      "resumedState": ResumedState,
+    },
   }
 
 

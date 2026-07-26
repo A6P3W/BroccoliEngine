@@ -21,7 +21,8 @@ enum class EAutomationErrorCode : uint8_t {
   ActorPendingDestroy,
   Conflict,
   MethodNotRegistered,
-  PermissionDenied
+  PermissionDenied,
+  CommandNotRegistered
 };
 
 enum class EAutomationPermission : uint8_t { ReadOnly, WorldMutation, SystemMutation, Dangerous };

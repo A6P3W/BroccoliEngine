@@ -28,6 +28,8 @@ from .models import (
   DestroyActorResult,
   EngineState,
   RecentLogs,
+  SystemCommandList,
+  SystemCommandResult,
   TransformPatch,
 )
 
@@ -149,6 +151,47 @@ class EngineClient:
       Operation=Operation,
       ExpectedActorId=ActorId,
       ExpectedMethodName=MethodName,
+    )
+
+  def get_system_commands(Self) -> SystemCommandList:
+    Operation = "get system commands"
+    Data = Self._request_json(
+      "GET",
+      "system/commands",
+      Operation=Operation,
+    )
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.",
+        Operation=Operation,
+      )
+    return SystemCommandList.from_mapping(Data, Operation=Operation)
+
+  def execute_system_command(
+    Self,
+    CommandName: str,
+    Arguments: Mapping[str, Any] | None = None,
+  ) -> SystemCommandResult:
+    Self._validate_operation_name(CommandName, "CommandName")
+    if Arguments is not None and not isinstance(Arguments, Mapping):
+      raise ValueError("Arguments must be an object.")
+    Body = {} if Arguments is None else dict(Arguments)
+    Operation = f"execute system command {CommandName}"
+    Data = Self._request_json(
+      "POST",
+      f"system/commands/{CommandName}",
+      Operation=Operation,
+      JsonBody=Body,
+    )
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.",
+        Operation=Operation,
+      )
+    return SystemCommandResult.from_mapping(
+      Data,
+      Operation=Operation,
+      ExpectedCommandName=CommandName,
     )
 
   def spawn_actor(
