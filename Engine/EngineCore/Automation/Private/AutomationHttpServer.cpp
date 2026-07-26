@@ -197,6 +197,51 @@ struct FAutomationHttpServer::Impl {
         }
     );
     Server.Get(
+        "/api/v1/actor-classes", [this](const httplib::Request&, httplib::Response& Response) {
+          try {
+            const FAutomationHttpResponse ApiResponse = ApiController.GetActorClasses();
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Get(
+        "/api/v1/levels", [this](const httplib::Request&, httplib::Response& Response) {
+          try {
+            const FAutomationHttpResponse ApiResponse = ApiController.GetLevels();
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Get(
+        R"(/api/v1/actor-classes/([^/]+)/methods)",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            const std::string ClassName =
+                Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
+            const FAutomationHttpResponse ApiResponse = ApiController.GetActorClassMethods(ClassName);
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Get(
         R"(/api/v1/world/actors/([0-9]+)/methods)",
         [this](const httplib::Request& Request, httplib::Response& Response) {
           try {

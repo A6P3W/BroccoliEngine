@@ -163,6 +163,7 @@
     <ClCompile Include="EngineCore\Automation\Private\AutomationMethodRegistry.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationSystemCommandRegistry.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationSubsystem.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationDiscoveryAdapter.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationTypes.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationWorldAdapter.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\Log.cpp" />
@@ -266,6 +267,7 @@
     <ClInclude Include="EngineCore\Automation\Public\AutomationSubsystem.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationTypes.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationWorldAdapter.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationDiscoveryAdapter.h" />
     <ClInclude Include="Editor\Public\ActorClassGenerator.h" />
     <ClInclude Include="Editor\Public\EditorController.h" />
     <ClInclude Include="Editor\Public\EditorSelectPointComponent.h" />

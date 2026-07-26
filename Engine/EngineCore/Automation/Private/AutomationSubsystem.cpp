@@ -5,6 +5,7 @@
 #include "AutomationApiController.h"
 #include "AutomationAutoRegistrar.h"
 #include "AutomationCommandQueue.h"
+#include "AutomationDiscoveryAdapter.h"
 #include "AutomationHttpServer.h"
 #include "AutomationRegistryHelper.h"
 #include "AutomationSystemCommandRegistry.h"
@@ -83,6 +84,7 @@ bool FAutomationSubsystem::Initialize(const FAutomationConfig& Config) {
   };
 
   WorldAdapter = std::make_unique<FAutomationWorldAdapter>();
+  FAutomationDiscoveryAdapter DiscoveryAdapter;
   ApiController = std::make_unique<FAutomationApiController>(
       *CommandQueue,
       Config,
@@ -94,7 +96,10 @@ bool FAutomationSubsystem::Initialize(const FAutomationConfig& Config) {
       WorldAdapter->CreateTransformProvider(),
       MethodRegistry.get(),
       WorldAdapter->CreateActorResolver(),
-      SystemCommandRegistry.get()
+      SystemCommandRegistry.get(),
+      DiscoveryAdapter.CreateActorClassListProvider(),
+      DiscoveryAdapter.CreateLevelListProvider(),
+      DiscoveryAdapter.CreateActorClassExistsProvider()
   );
   HttpServer = std::make_unique<FAutomationHttpServer>(Config, *ApiController);
   if (!HttpServer->Start()) {
