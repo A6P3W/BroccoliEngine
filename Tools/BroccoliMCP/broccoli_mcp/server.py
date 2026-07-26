@@ -75,6 +75,42 @@ def get_actor_tool(Client: EngineClient, *, actor_id: int) -> dict[str, object]:
     raise BridgeInternalError(Operation="get actor") from None
 
 
+def get_registered_actor_classes_tool(Client: EngineClient) -> dict[str, object]:
+  """Return the actor classes registered in the engine."""
+
+  try:
+    return Client.get_registered_actor_classes().to_dict()
+  except BridgeError:
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while getting registered actor classes")
+    raise BridgeInternalError(Operation="get registered actor classes") from None
+
+
+def get_levels_tool(Client: EngineClient) -> dict[str, object]:
+  """Return levels registered in the engine."""
+
+  try:
+    return Client.get_levels().to_dict()
+  except BridgeError:
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while getting registered levels")
+    raise BridgeInternalError(Operation="get registered levels") from None
+
+
+def get_class_methods_tool(Client: EngineClient, *, class_name: str) -> dict[str, object]:
+  """Return the automation methods registered for an actor class."""
+
+  try:
+    return Client.get_class_methods(class_name).to_dict()
+  except (BridgeError, ValueError):
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while getting actor class methods")
+    raise BridgeInternalError(Operation="get actor class methods") from None
+
+
 def spawn_actor_tool(
   Client: EngineClient,
   *,
@@ -287,6 +323,36 @@ def create_server(Client: EngineClient) -> FastMCP:
   def get_actor(actor_id: int) -> dict[str, object]:
     try:
       return get_actor_tool(Client, actor_id=actor_id)
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
+    name="get_registered_actor_classes",
+    description="Get actor classes registered in BROCCOLI ENGINE.",
+  )
+  def get_registered_actor_classes() -> dict[str, object]:
+    try:
+      return get_registered_actor_classes_tool(Client)
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
+    name="get_levels",
+    description="Get levels registered in BROCCOLI ENGINE.",
+  )
+  def get_levels() -> dict[str, object]:
+    try:
+      return get_levels_tool(Client)
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
+    name="get_class_methods",
+    description="Get automation methods registered for an actor class.",
+  )
+  def get_class_methods(class_name: str) -> dict[str, object]:
+    try:
+      return get_class_methods_tool(Client, class_name=class_name)
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
 

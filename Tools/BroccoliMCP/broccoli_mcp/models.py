@@ -303,6 +303,124 @@ class ActorList:
 
 
 @dataclass(frozen=True, slots=True)
+class ActorClassInfo:
+  """Validated registered actor class data."""
+
+  ClassName: str
+  IsGameMode: bool
+
+  @classmethod
+  def from_mapping(Class, Data: Mapping[str, Any], *, Operation: str) -> ActorClassInfo:
+    ClassName = Data.get("className")
+    IsGameMode = Data.get("isGameMode")
+    if not isinstance(ClassName, str) or not ClassName:
+      raise InvalidEngineResponse(
+        "Actor class field 'className' must be a non-empty string.", Operation=Operation
+      )
+    if not isinstance(IsGameMode, bool):
+      raise InvalidEngineResponse(
+        "Actor class field 'isGameMode' must be a boolean.", Operation=Operation
+      )
+    return Class(ClassName, IsGameMode)
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {"className": Self.ClassName, "isGameMode": Self.IsGameMode}
+
+
+@dataclass(frozen=True, slots=True)
+class ActorClassList:
+  """Validated result returned by GET /actor-classes."""
+
+  Classes: tuple[ActorClassInfo, ...]
+
+  @classmethod
+  def from_mapping(Class, Data: Mapping[str, Any], *, Operation: str) -> ActorClassList:
+    ClassData = Data.get("classes")
+    if not isinstance(ClassData, list):
+      raise InvalidEngineResponse(
+        "Actor class list field 'classes' must be an array.", Operation=Operation
+      )
+    Classes = []
+    Names = set()
+    for Item in ClassData:
+      if not isinstance(Item, Mapping):
+        raise InvalidEngineResponse(
+          "Actor class list contains an invalid item.", Operation=Operation
+        )
+      Info = ActorClassInfo.from_mapping(Item, Operation=Operation)
+      if Info.ClassName in Names:
+        raise InvalidEngineResponse(
+          "Actor class list contains duplicate class names.", Operation=Operation
+        )
+      Names.add(Info.ClassName)
+      Classes.append(Info)
+    return Class(tuple(Classes))
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {"classes": [Info.to_dict() for Info in Self.Classes]}
+
+
+@dataclass(frozen=True, slots=True)
+class LevelInfo:
+  """Validated registered level data."""
+
+  SceneId: int
+  LevelName: str
+  LevelPath: str
+
+  @classmethod
+  def from_mapping(Class, Data: Mapping[str, Any], *, Operation: str) -> LevelInfo:
+    SceneId = Data.get("sceneId")
+    LevelName = Data.get("levelName")
+    LevelPath = Data.get("levelPath")
+    if isinstance(SceneId, bool) or not isinstance(SceneId, int) or SceneId < 1:
+      raise InvalidEngineResponse(
+        "Level field 'sceneId' must be a positive integer.", Operation=Operation
+      )
+    if not isinstance(LevelName, str) or not LevelName:
+      raise InvalidEngineResponse(
+        "Level field 'levelName' must be a non-empty string.", Operation=Operation
+      )
+    if not isinstance(LevelPath, str) or not LevelPath:
+      raise InvalidEngineResponse(
+        "Level field 'levelPath' must be a non-empty string.", Operation=Operation
+      )
+    return Class(SceneId, LevelName, LevelPath)
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {"sceneId": Self.SceneId, "levelName": Self.LevelName, "levelPath": Self.LevelPath}
+
+
+@dataclass(frozen=True, slots=True)
+class LevelList:
+  """Validated result returned by GET /levels."""
+
+  Levels: tuple[LevelInfo, ...]
+
+  @classmethod
+  def from_mapping(Class, Data: Mapping[str, Any], *, Operation: str) -> LevelList:
+    LevelData = Data.get("levels")
+    if not isinstance(LevelData, list):
+      raise InvalidEngineResponse(
+        "Level list field 'levels' must be an array.", Operation=Operation
+      )
+    Levels = []
+    SceneIds = set()
+    for Item in LevelData:
+      if not isinstance(Item, Mapping):
+        raise InvalidEngineResponse("Level list contains an invalid item.", Operation=Operation)
+      Info = LevelInfo.from_mapping(Item, Operation=Operation)
+      if Info.SceneId in SceneIds:
+        raise InvalidEngineResponse("Level list contains duplicate scene IDs.", Operation=Operation)
+      SceneIds.add(Info.SceneId)
+      Levels.append(Info)
+    return Class(tuple(Levels))
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {"levels": [Info.to_dict() for Info in Self.Levels]}
+
+
+@dataclass(frozen=True, slots=True)
 class ActorMethodInfo:
   """Validated actor method descriptor."""
 
@@ -410,6 +528,50 @@ class ActorMethodList:
   def to_dict(Self) -> dict[str, Any]:
     return {
       "actorId": Self.ActorId,
+      "className": Self.ClassName,
+      "methods": [Method.to_dict() for Method in Self.Methods],
+    }
+
+
+@dataclass(frozen=True, slots=True)
+class ActorClassMethodList:
+  """Validated result returned by GET /actor-classes/{className}/methods."""
+
+  ClassName: str
+  Methods: tuple[ActorMethodInfo, ...]
+
+  @classmethod
+  def from_mapping(Class, Data: Mapping[str, Any], *, Operation: str) -> ActorClassMethodList:
+    ClassName = Data.get("className")
+    MethodData = Data.get("methods")
+    if not isinstance(ClassName, str) or not ClassName:
+      raise InvalidEngineResponse(
+        "Actor class method list field 'className' must be a non-empty string.",
+        Operation=Operation,
+      )
+    if not isinstance(MethodData, list):
+      raise InvalidEngineResponse(
+        "Actor class method list field 'methods' must be an array.",
+        Operation=Operation,
+      )
+    Methods = []
+    Names = set()
+    for Item in MethodData:
+      if not isinstance(Item, Mapping):
+        raise InvalidEngineResponse(
+          "Actor class method list contains an invalid item.", Operation=Operation
+        )
+      Method = ActorMethodInfo.from_mapping(Item, Operation=Operation)
+      if Method.Name in Names:
+        raise InvalidEngineResponse(
+          "Actor class method list contains duplicate names.", Operation=Operation
+        )
+      Names.add(Method.Name)
+      Methods.append(Method)
+    return Class(ClassName, tuple(Methods))
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
       "className": Self.ClassName,
       "methods": [Method.to_dict() for Method in Self.Methods],
     }

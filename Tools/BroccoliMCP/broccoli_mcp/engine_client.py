@@ -21,12 +21,15 @@ from .models import (
   AUTOMATION_NAME_PATTERN,
   LOG_LEVELS,
   MAX_ACTOR_ID,
+  ActorClassList,
+  ActorClassMethodList,
   ActorInfo,
   ActorList,
   ActorMethodList,
   ActorMethodResult,
   DestroyActorResult,
   EngineState,
+  LevelList,
   RecentLogs,
   SystemCommandList,
   SystemCommandResult,
@@ -101,6 +104,39 @@ class EngineClient:
         Operation=Operation,
       )
     return ActorInfo.from_mapping(Data, Operation=Operation)
+
+  def get_registered_actor_classes(Self) -> ActorClassList:
+    Operation = "get registered actor classes"
+    Data = Self._request_json("GET", "actor-classes", Operation=Operation)
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.", Operation=Operation
+      )
+    return ActorClassList.from_mapping(Data, Operation=Operation)
+
+  def get_levels(Self) -> LevelList:
+    Operation = "get registered levels"
+    Data = Self._request_json("GET", "levels", Operation=Operation)
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.", Operation=Operation
+      )
+    return LevelList.from_mapping(Data, Operation=Operation)
+
+  def get_class_methods(Self, ClassName: str) -> ActorClassMethodList:
+    Self._validate_name(ClassName, "ClassName")
+    Operation = f"get actor class {ClassName} methods"
+    Data = Self._request_json("GET", f"actor-classes/{ClassName}/methods", Operation=Operation)
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response 'data' field must be an object.", Operation=Operation
+      )
+    Result = ActorClassMethodList.from_mapping(Data, Operation=Operation)
+    if Result.ClassName != ClassName:
+      raise InvalidEngineResponse(
+        "Actor class method list field 'className' does not match the request.", Operation=Operation
+      )
+    return Result
 
   def get_actor_methods(Self, ActorId: int) -> ActorMethodList:
     Self._validate_actor_id(ActorId)
