@@ -51,6 +51,30 @@ def read_logs_resource(Client: EngineClient) -> str:
     raise BridgeInternalError(Operation="read game://logs/recent") from None
 
 
+def get_system_commands_tool(Client: EngineClient) -> dict[str, object]:
+  """Return registered system command descriptors."""
+
+  try:
+    return Client.get_system_commands().to_dict()
+  except BridgeError:
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while getting system commands")
+    raise BridgeInternalError(Operation="get system commands") from None
+
+
+def get_actor_tool(Client: EngineClient, *, actor_id: int) -> dict[str, object]:
+  """Return the current state of an actor by ID."""
+
+  try:
+    return Client.get_actor(actor_id).to_dict()
+  except (BridgeError, ValueError):
+    raise
+  except Exception:
+    LOGGER.exception("Unexpected error while getting an actor")
+    raise BridgeInternalError(Operation="get actor") from None
+
+
 def spawn_actor_tool(
   Client: EngineClient,
   *,
@@ -245,6 +269,26 @@ def create_server(Client: EngineClient) -> FastMCP:
       raise ValueError(format_mcp_error(Error)) from None
     LOGGER.info("Resource game://logs/recent completed")
     return Result
+
+  @Mcp.tool(
+    name="get_system_commands",
+    description="Get registered BROCCOLI ENGINE system command descriptors.",
+  )
+  def get_system_commands() -> dict[str, object]:
+    try:
+      return get_system_commands_tool(Client)
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
+    name="get_actor",
+    description="Get the current state of a world actor by ID.",
+  )
+  def get_actor(actor_id: int) -> dict[str, object]:
+    try:
+      return get_actor_tool(Client, actor_id=actor_id)
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
 
   @Mcp.tool(
     name="spawn_actor",

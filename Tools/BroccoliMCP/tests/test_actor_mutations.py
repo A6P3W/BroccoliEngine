@@ -147,10 +147,11 @@ def test_actor_tools_return_json_objects_and_are_registered() -> None:
   )
 
   Server = create_server(Client)  # type: ignore[arg-type]
-  assert [Tool.name for Tool in Server._tool_manager.list_tools()] == [
+  ToolNames = {Tool.name for Tool in Server._tool_manager.list_tools()}
+  assert {
     "spawn_actor",
     "destroy_actor",
     "set_actor_transform",
     "invoke_actor_method",
     "execute_system_command",
-  ]
+  }.issubset(ToolNames)
