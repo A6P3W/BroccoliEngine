@@ -6,7 +6,9 @@ BROCCOLI ENGINEのlocalhost限定Automation APIを、MCP Stdio ResourceとTool�
 公開するPython Bridgeです。読み取り専用Resource `game://state`、
 `game://world/actors`、`game://logs/recent`と、Actor操作Tool `spawn_actor`、
 `destroy_actor`、`set_actor_transform`、`invoke_actor_method`、System操作Tool
-`execute_system_command`を提供します。
+`execute_system_command`に加え、Discovery Tool `get_system_commands`、
+`get_registered_actor_classes`、`get_levels`、`get_actor`、`find_actors`、
+`get_actor_components`、`get_class_methods`を提供します。
 
 ## 必要環境
 
@@ -107,6 +109,11 @@ LevelStarterを起動している場合は、登録済み`get_status` Actor Meth
 ```powershell
 uv run --frozen python .\tests\live_engine_integration.py
 ```
+
+Discovery Toolは、Actor生成前に `get_registered_actor_classes` と
+`get_class_methods`、登録Level操作前に `get_levels` と
+`get_system_commands` を利用します。World内のActorは `find_actors`、詳細は
+`get_actor`、Component一覧は `get_actor_components` で取得できます。
 
 Actor操作がHTTPタイムアウトになる時点ですでにメインスレッドで処理を開始していた場合、
 Bridgeにはタイムアウトが返っても操作自体は完了することがあります。タイムアウト後は

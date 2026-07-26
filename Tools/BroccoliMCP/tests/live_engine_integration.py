@@ -47,6 +47,13 @@ async def run_integration() -> dict[str, object]:
         "set_actor_transform",
         "invoke_actor_method",
         "execute_system_command",
+        "get_system_commands",
+        "get_registered_actor_classes",
+        "get_levels",
+        "get_actor",
+        "find_actors",
+        "get_actor_components",
+        "get_class_methods",
       ):
         if ToolName not in ToolNames:
           raise RuntimeError(f"{ToolName} is not exposed by the bridge.")
@@ -86,10 +93,9 @@ async def run_integration() -> dict[str, object]:
         SystemCommandList = Engine.get_system_commands().to_dict()
       if [Method["name"] for Method in ActorMethods["methods"]] != ["get_status"]:
         raise RuntimeError("LevelStarter actor method list is invalid.")
-      if [Command["name"] for Command in SystemCommandList["commands"]] != [
-        "pause_game",
-        "resume_game",
-      ]:
+      if not {"pause_game", "resume_game", "open_level_by_id", "open_level_by_path"}.issubset(
+        {Command["name"] for Command in SystemCommandList["commands"]}
+      ):
         raise RuntimeError("System command list is invalid.")
 
       MethodResult = await Session.call_tool(

@@ -843,15 +843,14 @@ class ActorComponentList:
       )
     if not isinstance(ClassName, str) or not ClassName or not isinstance(Items, list):
       raise InvalidEngineResponse("Actor component list fields are invalid.", Operation=Operation)
-    return Class(
-      ActorId,
-      ClassName,
-      tuple(
-        ActorComponentInfo.from_mapping(Item, Operation=Operation)
-        for Item in Items
-        if isinstance(Item, Mapping)
-      ),
-    )
+    Components = []
+    for Item in Items:
+      if not isinstance(Item, Mapping):
+        raise InvalidEngineResponse(
+          "Actor component list contains an invalid item.", Operation=Operation
+        )
+      Components.append(ActorComponentInfo.from_mapping(Item, Operation=Operation))
+    return Class(ActorId, ClassName, tuple(Components))
 
   def to_dict(Self) -> dict[str, Any]:
     return {
