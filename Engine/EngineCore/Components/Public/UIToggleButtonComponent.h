@@ -9,6 +9,7 @@ class MSpriteComponent;
 
 class BROCCOLI_ENGINE_API UIToggleButtonComponent : public MUIButtonComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(UIToggleButtonComponent)
   UIToggleButtonComponent();
   ~UIToggleButtonComponent() override;
 

@@ -4,6 +4,7 @@
 
 class BROCCOLI_ENGINE_API MLineCollisionComponent : public MCollisionComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MLineCollisionComponent)
   MLineCollisionComponent() = default;
 
   ECollisionShape GetShapeType() const override { return ECollisionShape::Line; }

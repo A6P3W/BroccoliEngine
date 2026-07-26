@@ -4,6 +4,7 @@
 
 class BROCCOLI_ENGINE_API MCircleCollisionComponent : public MCollisionComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MCircleCollisionComponent)
   MCircleCollisionComponent() = default;
   ECollisionShape GetShapeType() const override { return ECollisionShape::Circle; }
   float GetRadius() const { return Radius; };

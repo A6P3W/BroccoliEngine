@@ -18,6 +18,11 @@
 
 class AActor;
 
+#define DEFINE_ACTOR_COMPONENT_CLASS(ClassName)                        \
+ public:                                                               \
+  static std::string StaticComponentClassName() { return #ClassName; } \
+  std::string GetComponentClassName() const override { return #ClassName; }
+
 enum class EActorComponentRegistrationState {
   Created,
   RegistrationPending,
@@ -36,6 +41,7 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   void BeginPlay();
   bool Update(float DeltaTime);
   virtual void Draw() {}
+  virtual std::string GetComponentClassName() const { return "MActorComponent"; }
   AActor* GetOwner() const { return Owner; }
 
   void DestroyComponent();

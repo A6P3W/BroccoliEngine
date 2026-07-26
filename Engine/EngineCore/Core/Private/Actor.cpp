@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
-#include <typeinfo>
 #include <utility>
 #include <vector>
 
@@ -507,7 +506,7 @@ void AActor::EnsureNetComponentName(MActorComponent* Component) {
   std::string candidate = Component->GetNetComponentName();
   if (candidate.empty()) {
     candidate =
-        std::string(typeid(*Component).name()) + "_" + std::to_string(ImplPtr->Components.size());
+        Component->GetComponentClassName() + "_" + std::to_string(ImplPtr->Components.size());
   }
 
   const std::string baseName = candidate;

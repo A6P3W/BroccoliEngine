@@ -16,6 +16,7 @@ struct FAABB {
 };
 class BROCCOLI_ENGINE_API MCollisionComponent : public MSceneComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MCollisionComponent)
   MCollisionComponent();
   virtual ~MCollisionComponent();
   virtual ECollisionShape GetShapeType() const = 0;

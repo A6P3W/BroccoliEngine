@@ -18,6 +18,7 @@ struct FInputActionValue {
 
 class BROCCOLI_ENGINE_API MEnhancedInputComponent : public MActorComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MEnhancedInputComponent)
   MEnhancedInputComponent();
   ~MEnhancedInputComponent() override;
 

@@ -8,6 +8,7 @@
 
 class BROCCOLI_ENGINE_API UIInputTextComponent : public MUIButtonComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(UIInputTextComponent)
   UIInputTextComponent();
   ~UIInputTextComponent() override;
 
