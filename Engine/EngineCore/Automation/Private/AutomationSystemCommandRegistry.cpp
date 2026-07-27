@@ -1,51 +1,42 @@
 ﻿#include "AutomationSystemCommandRegistry.h"
 
-#include <algorithm>
 #include <utility>
 
-#include "AutomationJsonSchemaValidator.h"
 #include "AutomationRegistryDetail.h"
+
+namespace {
+bool IsSystemCommandPermissionAllowed(EAutomationPermission Permission) {
+  return Permission == EAutomationPermission::SystemMutation;
+}
+
+constexpr AutomationRegistryDetail::FAutomationRegistryValidationMessages SystemCommandMessages{
+    "system command",
+    "The system command registry is frozen.",
+    "",
+    "CommandName must match ^[a-z][a-z0-9_]{0,127}$.",
+    "Description must not be empty.",
+    "System commands require SystemMutation permission.",
+    "Handler must not be empty.",
+    "The system command is already registered."
+};
+}  // namespace
 
 bool FAutomationSystemCommandRegistry::RegisterCommand(
     FAutomationSystemCommandDescriptor Descriptor, std::string* OutError
 ) {
   if (Frozen) {
     return AutomationRegistryDetail::RejectRegistration(
-        "The system command registry is frozen.", OutError, "system command"
+        std::string(SystemCommandMessages.Frozen), OutError, SystemCommandMessages.RegistryName
     );
   }
-  if (!IsValidAutomationOperationName(Descriptor.Name)) {
-    return AutomationRegistryDetail::RejectRegistration(
-        "CommandName must match ^[a-z][a-z0-9_]{0,127}$.", OutError, "system command"
-    );
-  }
-  if (Descriptor.Description.empty()) {
-    return AutomationRegistryDetail::RejectRegistration(
-        "Description must not be empty.", OutError, "system command"
-    );
-  }
-  if (Descriptor.Permission != EAutomationPermission::SystemMutation) {
-    return AutomationRegistryDetail::RejectRegistration(
-        "System commands require SystemMutation permission.", OutError, "system command"
-    );
-  }
-  if (!Descriptor.Handler) {
-    return AutomationRegistryDetail::RejectRegistration(
-        "Handler must not be empty.", OutError, "system command"
-    );
-  }
-
-  FAutomationSchemaValidationError ValidationError;
-  if (!FAutomationJsonSchemaValidator::ValidateSchemaDefinition(
-          Descriptor.InputSchema, ValidationError
+  if (!AutomationRegistryDetail::ValidateCallableDescriptor(
+          Descriptor, IsSystemCommandPermissionAllowed, SystemCommandMessages, OutError
       )) {
-    return AutomationRegistryDetail::RejectRegistration(
-        ValidationError.JsonPath + ": " + ValidationError.Message, OutError, "system command"
-    );
+    return false;
   }
   if (Commands.contains(Descriptor.Name)) {
     return AutomationRegistryDetail::RejectRegistration(
-        "The system command is already registered.", OutError, "system command"
+        std::string(SystemCommandMessages.Duplicate), OutError, SystemCommandMessages.RegistryName
     );
   }
 
@@ -68,15 +59,10 @@ FAutomationSystemCommandRegistry::GetCommands() const {
   for (const auto& [CommandName, Descriptor] : Commands) {
     (void)CommandName;
     Result.push_back(
-        {Descriptor.Name, Descriptor.Description, Descriptor.InputSchema, Descriptor.Permission}
+        AutomationRegistryDetail::MakeSnapshot<FAutomationSystemCommandSnapshot>(Descriptor)
     );
   }
-  std::sort(
-      Result.begin(),
-      Result.end(),
-      [](const FAutomationSystemCommandSnapshot& Left,
-         const FAutomationSystemCommandSnapshot& Right) { return Left.Name < Right.Name; }
-  );
+  AutomationRegistryDetail::SortSnapshotsByName(Result);
   return Result;
 }
 
