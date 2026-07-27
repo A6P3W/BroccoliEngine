@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "AutomationMethodRegistry.h"
+#include "AutomationComponentMethodRegistry.h"
 #include "AutomationTypes.h"
 #include "BroccoliEngineAPI.h"
 
@@ -33,6 +34,7 @@ class BROCCOLI_ENGINE_API FAutomationSubsystem {
   bool bPaused = false;
   std::unique_ptr<FAutomationCommandQueue> CommandQueue;
   std::unique_ptr<FAutomationMethodRegistry> MethodRegistry;
+  std::unique_ptr<FAutomationComponentMethodRegistry> ComponentMethodRegistry;
   std::unique_ptr<FAutomationSystemCommandRegistry> SystemCommandRegistry;
   std::unique_ptr<FAutomationWorldAdapter> WorldAdapter;
   std::unique_ptr<FAutomationApiController> ApiController;

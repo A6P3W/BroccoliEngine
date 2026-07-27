@@ -11,6 +11,7 @@
 
 #include "BaseObject.h"
 #include "BroccoliEngineAPI.h"
+#include "ComponentId.h"
 #include "NetBuffer.h"
 #include "NetworkManager.h"
 #include "NetworkTypes.h"
@@ -43,6 +44,7 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   virtual void Draw() {}
   virtual std::string GetComponentClassName() const { return "MActorComponent"; }
   AActor* GetOwner() const { return Owner; }
+  FComponentId GetComponentId() const { return ComponentId; }
 
   void DestroyComponent();
   bool IsPendingDestroy() const;
@@ -161,12 +163,14 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   virtual void OnComponentDestroy() {}
 
   AActor* Owner = nullptr;
+  FComponentId ComponentId = InvalidComponentId;
   virtual void OnUpdate(float DeltaTime) {}
 
  private:
   friend class AActor;
 
   void SetOwner(AActor* NewOwner) { Owner = NewOwner; }
+  void SetComponentId(FComponentId InComponentId) { ComponentId = InComponentId; }
   bool CompleteRegistration();
 
   struct Impl;

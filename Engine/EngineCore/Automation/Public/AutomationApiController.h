@@ -8,8 +8,11 @@
 #include <vector>
 
 #include "ActorId.h"
+#include "ComponentId.h"
 #include "AutomationCommandQueue.h"
 #include "AutomationMethodRegistry.h"
+#include "AutomationComponentMethodRegistry.h"
+#include "ComponentId.h"
 #include "AutomationSystemCommandRegistry.h"
 #include "AutomationTypes.h"
 #include "BroccoliEngineAPI.h"
@@ -33,7 +36,7 @@ struct FAutomationActorSnapshot {
 };
 
 struct FAutomationActorComponentSnapshot {
-  uint32_t Index = 0;
+  FComponentId ComponentId = InvalidComponentId;
   std::string Name;
   std::string ClassName;
   bool bRegistered = false;
@@ -103,6 +106,20 @@ enum class EAutomationActorResolveStatus : uint8_t {
 class AActor;
 using FAutomationActorResolver = std::function<EAutomationActorResolveStatus(FActorId, AActor*&)>;
 
+class MActorComponent;
+enum class EAutomationComponentResolveStatus : uint8_t {
+  Success,
+  WorldNotAvailable,
+  ActorNotFound,
+  ActorPendingDestroy,
+  ComponentNotFound,
+  ComponentPendingDestroy,
+  InvalidState
+};
+using FAutomationComponentResolver = std::function<EAutomationComponentResolveStatus(
+    FActorId, FComponentId, MActorComponent*&
+)>;
+
 enum class EAutomationWorldMutationStatus : uint8_t {
   Success,
   WorldNotAvailable,
@@ -157,6 +174,8 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
       FAutomationPatchActorTransformProvider InPatchActorTransformProvider = {},
       FAutomationMethodRegistry* InMethodRegistry = nullptr,
       FAutomationActorResolver InActorResolver = {},
+      FAutomationComponentMethodRegistry* InComponentMethodRegistry = nullptr,
+      FAutomationComponentResolver InComponentResolver = {},
       FAutomationSystemCommandRegistry* InSystemCommandRegistry = nullptr,
       FAutomationActorClassListProvider InActorClassListProvider = {},
       FAutomationLevelListProvider InLevelListProvider = {},
@@ -179,6 +198,15 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
   FAutomationHttpResponse InvokeWorldActorMethod(
       std::string_view ActorIdText, std::string_view MethodName, const nlohmann::json& Body
   );
+  FAutomationHttpResponse GetWorldActorComponentMethods(
+      std::string_view ActorIdText, std::string_view ComponentIdText
+  );
+  FAutomationHttpResponse InvokeWorldActorComponentMethod(
+      std::string_view ActorIdText,
+      std::string_view ComponentIdText,
+      std::string_view MethodName,
+      const nlohmann::json& Body
+  );
   FAutomationHttpResponse GetSystemCommands();
   FAutomationHttpResponse ExecuteSystemCommand(
       std::string_view CommandName, const nlohmann::json& Body
@@ -187,6 +215,7 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
 
  private:
   static bool TryParseActorId(std::string_view Text, FActorId& OutActorId);
+  static bool TryParseComponentId(std::string_view Text, FComponentId& OutComponentId);
   static bool TryParseSpawnRequest(
       const nlohmann::json& Body, FAutomationSpawnActorRequest& OutRequest, std::string& OutError
   );
@@ -209,6 +238,8 @@ class BROCCOLI_ENGINE_API FAutomationApiController {
   FAutomationPatchActorTransformProvider PatchActorTransformProvider;
   FAutomationMethodRegistry* MethodRegistry = nullptr;
   FAutomationActorResolver ActorResolver;
+  FAutomationComponentMethodRegistry* ComponentMethodRegistry = nullptr;
+  FAutomationComponentResolver ComponentResolver;
   FAutomationSystemCommandRegistry* SystemCommandRegistry = nullptr;
   FAutomationActorClassListProvider ActorClassListProvider;
   FAutomationLevelListProvider LevelListProvider;

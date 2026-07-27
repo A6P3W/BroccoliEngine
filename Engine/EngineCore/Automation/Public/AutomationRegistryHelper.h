@@ -9,6 +9,8 @@
 #include <utility>
 
 #include "Actor.h"
+#include "ActorComponent.h"
+#include "AutomationComponentMethodRegistry.h"
 #include "AutomationJsonConverter.h"
 #include "AutomationMethodRegistry.h"
 #include "AutomationSystemCommandRegistry.h"
@@ -52,9 +54,7 @@ struct TAutomationSystemCommandTraits<TReturn (TObject::*)(TArgs...) const> {
 };
 
 template <class T>
-struct TAutomationSystemCommandTraits<
-    T,
-    std::void_t<decltype(&std::remove_cvref_t<T>::operator())>>
+struct TAutomationSystemCommandTraits<T, std::void_t<decltype(&std::remove_cvref_t<T>::operator())>>
     : TAutomationSystemCommandTraits<decltype(&std::remove_cvref_t<T>::operator())> {};
 
 template <class TReturn, class TActor, class... TArgs>
@@ -182,6 +182,46 @@ consteval bool ParametersMatch(std::index_sequence<TIndices...>) {
   );
 }
 
+template <class TReturn>
+nlohmann::json ConvertReturnValue(TReturn&& Result) {
+  return TAutomationJsonConverter<std::remove_cvref_t<TReturn>>::ToJson(
+      std::forward<TReturn>(Result)
+  );
+}
+
+template <class TObject, class TMethod, class TParametersTuple>
+nlohmann::json InvokeRegisteredMethod(
+    TObject& Object,
+    TMethod Method,
+    const nlohmann::json& Arguments,
+    const TParametersTuple& Parameters
+) {
+  using TTraits = TAutomationMethodTraits<TMethod>;
+  using TReturn = typename TTraits::ReturnType;
+
+  auto Values = ReadArguments<TTraits>(
+      Arguments, Parameters, std::make_index_sequence<TTraits::ArgumentCount>{}
+  );
+  if constexpr (std::is_void_v<TReturn>) {
+    std::apply(
+        [&Object, Method](auto&&... MethodArguments) {
+          std::invoke(Method, Object, std::forward<decltype(MethodArguments)>(MethodArguments)...);
+        },
+        std::move(Values)
+    );
+    return nlohmann::json(nullptr);
+  } else {
+    decltype(auto) Result = std::apply(
+        [&Object, Method](auto&&... MethodArguments) -> decltype(auto) {
+          return std::invoke(
+              Method, Object, std::forward<decltype(MethodArguments)>(MethodArguments)...
+          );
+        },
+        std::move(Values)
+    );
+    return ConvertReturnValue(std::forward<decltype(Result)>(Result));
+  }
+}
 inline void RegisterDescriptor(
     FAutomationMethodRegistry& Registry,
     std::string ClassName,
@@ -190,6 +230,18 @@ inline void RegisterDescriptor(
   std::string Error;
   if (!Registry.RegisterMethod(std::move(ClassName), std::move(Descriptor), &Error)) {
     M_LOG_ERROR("Automation method registration failed: {}", Error);
+    throw std::runtime_error(Error);
+  }
+}
+
+inline void RegisterComponentDescriptor(
+    FAutomationComponentMethodRegistry& Registry,
+    std::string ClassName,
+    FAutomationComponentMethodDescriptor Descriptor
+) {
+  std::string Error;
+  if (!Registry.RegisterMethod(std::move(ClassName), std::move(Descriptor), &Error)) {
+    M_LOG_ERROR("Automation component method registration failed: {}", Error);
     throw std::runtime_error(Error);
   }
 }
@@ -256,33 +308,60 @@ void RegisterMethod(
     if (!TypedActor) {
       throw std::runtime_error("Automation actor type mismatch.");
     }
-    auto Values = Detail::ReadArguments<TTraits>(
-        Arguments, ParameterDefinitions, std::make_index_sequence<TTraits::ArgumentCount>{}
-    );
-    if constexpr (std::is_void_v<TReturn>) {
-      std::apply(
-          [TypedActor, Method](auto&&... MethodArguments) {
-            std::invoke(
-                Method, *TypedActor, std::forward<decltype(MethodArguments)>(MethodArguments)...
-            );
-          },
-          std::move(Values)
-      );
-      return nlohmann::json(nullptr);
-    } else {
-      decltype(auto) Result = std::apply(
-          [TypedActor, Method](auto&&... MethodArguments) -> decltype(auto) {
-            return std::invoke(
-                Method, *TypedActor, std::forward<decltype(MethodArguments)>(MethodArguments)...
-            );
-          },
-          std::move(Values)
-      );
-      return TAutomationJsonConverter<std::remove_cvref_t<TReturn>>::ToJson(Result);
-    }
+    return Detail::InvokeRegisteredMethod(*TypedActor, Method, Arguments, ParameterDefinitions);
   };
 
   Detail::RegisterDescriptor(Registry, TActor::StaticClassName(), std::move(Descriptor));
+}
+
+template <class TMethod, class... TParameters>
+void RegisterComponentMethod(
+    FAutomationComponentMethodRegistry& Registry,
+    std::string MethodName,
+    std::string Description,
+    EAutomationPermission Permission,
+    TMethod Method,
+    TParameters... Parameters
+) {
+  using TTraits = TAutomationMethodTraits<TMethod>;
+  using TComponent = typename TTraits::ActorType;
+  using TParametersTuple = std::tuple<TParameters...>;
+  static_assert(
+      std::is_base_of_v<MActorComponent, TComponent>,
+      "Automation component methods must belong to an MActorComponent."
+  );
+  static_assert(
+      TTraits::ArgumentCount == sizeof...(TParameters),
+      "Every automation component method argument requires one parameter definition."
+  );
+  static_assert(
+      Detail::ParametersMatch<TMethod, TParametersTuple>(
+          std::make_index_sequence<sizeof...(TParameters)>{}
+      ),
+      "Automation parameter types must match the method argument types."
+  );
+
+  TParametersTuple ParameterDefinitions(std::move(Parameters)...);
+  FAutomationComponentMethodDescriptor Descriptor;
+  Descriptor.Name = std::move(MethodName);
+  Descriptor.Description = std::move(Description);
+  Descriptor.Permission = Permission;
+  Descriptor.InputSchema = std::apply(
+      [](const auto&... Values) { return Detail::MakeInputSchema(Values...); }, ParameterDefinitions
+  );
+  Descriptor.Handler = [Method, ParameterDefinitions = std::move(ParameterDefinitions)](
+                           MActorComponent& Component, const nlohmann::json& Arguments
+                       ) {
+    auto* TypedComponent = dynamic_cast<TComponent*>(&Component);
+    if (!TypedComponent) {
+      throw std::runtime_error("Automation component type mismatch.");
+    }
+    return Detail::InvokeRegisteredMethod(*TypedComponent, Method, Arguments, ParameterDefinitions);
+  };
+
+  Detail::RegisterComponentDescriptor(
+      Registry, TComponent::StaticComponentClassName(), std::move(Descriptor)
+  );
 }
 
 template <class TMethod, class TResultAdapter, class... TParameters>

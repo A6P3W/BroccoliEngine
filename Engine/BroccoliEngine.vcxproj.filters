@@ -7,6 +7,7 @@
     <ClCompile Include="EngineCore\Automation\Private\AutomationHttpServer.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationJsonSchemaValidator.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationMethodRegistry.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationComponentMethodRegistry.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationSystemCommandRegistry.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationSubsystem.cpp" />
     <ClCompile Include="EngineCore\Automation\Private\AutomationDiscoveryAdapter.cpp" />
@@ -107,6 +108,8 @@
     <ClInclude Include="EngineCore\Automation\Public\AutomationHttpServer.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationJsonSchemaValidator.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationMethodRegistry.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationComponentMethodRegistry.h" />
+    <ClInclude Include="EngineCore\Core\Public\ComponentId.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationSystemCommandRegistry.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationSubsystem.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationWorldAdapter.h" />

@@ -12,6 +12,7 @@
 
 #include "ActorComponent.h"
 #include "ActorId.h"
+#include "ComponentId.h"
 #include "ActorRegistry.h"
 #include "BaseObject.h"
 #include "BroccoliEngineAPI.h"
@@ -72,6 +73,7 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   const std::vector<std::unique_ptr<MActorComponent>>& GetComponents() const;
 
   MActorComponent* FindReplicatedComponent(FNetworkComponentId ComponentNetworkId) const;
+  MActorComponent* FindComponentById(FComponentId ComponentId) const;
   MActorComponent* FindReplicatedComponentByName(std::string_view NetComponentName) const;
   void AssignNetworkComponentIds();
 

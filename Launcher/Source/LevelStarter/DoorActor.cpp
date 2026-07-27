@@ -2,11 +2,12 @@
 
 #include "AutomationAutoRegistrar.h"
 #include "AutomationRegistryHelper.h"
+#include "DoorAutomationTestComponent.h"
 
 REGISTER_ACTOR(ADoorActor)
 REGISTER_AUTOMATION_METHODS(ADoorActor)
 
-ADoorActor::ADoorActor() = default;
+ADoorActor::ADoorActor() { NewObject<MDoorAutomationTestComponent>(this); }
 
 void ADoorActor::OpenDoor() {
   if (!bIsLocked) {

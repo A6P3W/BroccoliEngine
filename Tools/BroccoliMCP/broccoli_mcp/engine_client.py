@@ -227,6 +227,44 @@ class EngineClient:
       ExpectedMethodName=MethodName,
     )
 
+  def get_component_methods(Self, ActorId: int, ComponentId: int) -> Mapping[str, Any]:
+    Self._validate_actor_id(ActorId)
+    Self._validate_actor_id(ComponentId)
+    Operation = f"get world actor {ActorId} component {ComponentId} methods"
+    Data = Self._request_json(
+      "GET", f"world/actors/{ActorId}/components/{ComponentId}/methods", Operation=Operation
+    )
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response data field must be an object.", Operation=Operation
+      )
+    return Data
+
+  def invoke_component_method(
+    Self,
+    ActorId: int,
+    ComponentId: int,
+    MethodName: str,
+    Arguments: Mapping[str, Any] | None = None,
+  ) -> Mapping[str, Any]:
+    Self._validate_actor_id(ActorId)
+    Self._validate_actor_id(ComponentId)
+    Self._validate_operation_name(MethodName, "MethodName")
+    if Arguments is not None and not isinstance(Arguments, Mapping):
+      raise ValueError("Arguments must be an object.")
+    Operation = f"invoke world actor {ActorId} component {ComponentId} method {MethodName}"
+    Data = Self._request_json(
+      "POST",
+      f"world/actors/{ActorId}/components/{ComponentId}/methods/{MethodName}",
+      Operation=Operation,
+      JsonBody={"arguments": {} if Arguments is None else dict(Arguments)},
+    )
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse(
+        "The successful response data field must be an object.", Operation=Operation
+      )
+    return Data
+
   def get_system_commands(Self) -> SystemCommandList:
     Operation = "get system commands"
     Data = Self._request_json(

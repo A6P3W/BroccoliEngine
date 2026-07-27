@@ -5,6 +5,7 @@
 #include "ActorManager.h"
 #include "AutomationApiController.h"
 #include "AutomationAutoRegistrar.h"
+#include "AutomationComponentMethodRegistry.h"
 #include "AutomationCommandQueue.h"
 #include "AutomationDiscoveryAdapter.h"
 #include "AutomationHttpServer.h"
@@ -36,9 +37,12 @@ bool FAutomationSubsystem::Initialize(const FAutomationConfig& Config) {
 
   CommandQueue = std::make_unique<FAutomationCommandQueue>();
   MethodRegistry = std::make_unique<FAutomationMethodRegistry>();
+  ComponentMethodRegistry = std::make_unique<FAutomationComponentMethodRegistry>();
   try {
     FAutomationAutoRegistrar::GetInstance().RegisterAll(*MethodRegistry);
     MethodRegistry->Freeze();
+    FAutomationAutoRegistrar::GetInstance().RegisterAllComponents(*ComponentMethodRegistry);
+    ComponentMethodRegistry->Freeze();
   } catch (const std::exception& Exception) {
     M_LOG("Automation actor method registration failed: {}", Exception.what());
     Shutdown();
@@ -98,6 +102,8 @@ bool FAutomationSubsystem::Initialize(const FAutomationConfig& Config) {
       WorldAdapter->CreateTransformProvider(),
       MethodRegistry.get(),
       WorldAdapter->CreateActorResolver(),
+      ComponentMethodRegistry.get(),
+      WorldAdapter->CreateComponentResolver(),
       SystemCommandRegistry.get(),
       DiscoveryAdapter.CreateActorClassListProvider(),
       DiscoveryAdapter.CreateLevelListProvider(),
@@ -198,6 +204,7 @@ void FAutomationSubsystem::Shutdown() {
   ApiController.reset();
   WorldAdapter.reset();
   SystemCommandRegistry.reset();
+  ComponentMethodRegistry.reset();
   MethodRegistry.reset();
   CommandQueue.reset();
   bPaused = false;

@@ -75,6 +75,23 @@ def get_actor_tool(Client: EngineClient, *, actor_id: int) -> dict[str, object]:
     raise BridgeInternalError(Operation="get actor") from None
 
 
+def get_component_methods_tool(
+  Client: EngineClient, *, actor_id: int, component_id: int
+) -> dict[str, object]:
+  return dict(Client.get_component_methods(actor_id, component_id))
+
+
+def invoke_component_method_tool(
+  Client: EngineClient,
+  *,
+  actor_id: int,
+  component_id: int,
+  method_name: str,
+  arguments: dict[str, object] | None = None,
+) -> dict[str, object]:
+  return dict(Client.invoke_component_method(actor_id, component_id, method_name, arguments))
+
+
 def get_actor_components_tool(Client: EngineClient, *, actor_id: int) -> dict[str, object]:
   """Return components held by a world actor."""
 
@@ -363,6 +380,27 @@ def create_server(Client: EngineClient) -> FastMCP:
       raise ValueError(format_mcp_error(Error)) from None
 
   @Mcp.tool(
+    name="call_component_method",
+    description="Call an automation method on a component identified by actor and component IDs.",
+  )
+  def call_component_method(
+    actor_id: int,
+    component_id: int,
+    method: str,
+    arguments: dict[str, object] | None = None,
+  ) -> dict[str, object]:
+    try:
+      return invoke_component_method_tool(
+        Client,
+        actor_id=actor_id,
+        component_id=component_id,
+        method_name=method,
+        arguments=arguments,
+      )
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
     name="find_actors",
     description="Find world actors by exact class name and/or instance name.",
   )
@@ -512,6 +550,37 @@ def create_server(Client: EngineClient) -> FastMCP:
   )
   def open_level_by_path(level_path: str) -> dict[str, object]:
     return open_level_by_path_tool(Client, level_path=level_path)
+
+  @Mcp.tool(
+    name="get_component_methods",
+    description="Get registered automation methods for a component on an actor.",
+  )
+  def get_component_methods(actor_id: int, component_id: int) -> dict[str, object]:
+    try:
+      return get_component_methods_tool(Client, actor_id=actor_id, component_id=component_id)
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
+
+  @Mcp.tool(
+    name="invoke_component_method",
+    description="Invoke a registered automation method on a component of an actor.",
+  )
+  def invoke_component_method(
+    actor_id: int,
+    component_id: int,
+    method_name: str,
+    arguments: dict[str, object] | None = None,
+  ) -> dict[str, object]:
+    try:
+      return invoke_component_method_tool(
+        Client,
+        actor_id=actor_id,
+        component_id=component_id,
+        method_name=method_name,
+        arguments=arguments,
+      )
+    except BridgeError as Error:
+      raise ValueError(format_mcp_error(Error)) from None
 
   return Mcp
 

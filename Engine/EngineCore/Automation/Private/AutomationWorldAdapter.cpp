@@ -125,7 +125,7 @@ EAutomationWorldReadStatus GetActorComponents(
       continue;
     }
     Snapshot.Components.push_back(
-        {static_cast<uint32_t>(Index),
+        {Component->GetComponentId(),
          Component->GetNetComponentName(),
          Component->GetComponentClassName(),
          Component->IsRegistered(),
@@ -254,6 +254,26 @@ EAutomationActorResolveStatus ResolveActor(FActorId ActorId, AActor*& OutActor) 
   OutActor = Actor;
   return EAutomationActorResolveStatus::Success;
 }
+
+EAutomationComponentResolveStatus ResolveComponent(
+    FActorId ActorId, FComponentId ComponentId, MActorComponent*& OutComponent
+) {
+  OutComponent = nullptr;
+  AActor* Actor = nullptr;
+  const EAutomationActorResolveStatus ActorStatus = ResolveActor(ActorId, Actor);
+  if (ActorStatus != EAutomationActorResolveStatus::Success) {
+    return static_cast<EAutomationComponentResolveStatus>(ActorStatus);
+  }
+  MActorComponent* Component = Actor->FindComponentById(ComponentId);
+  if (!Component) {
+    return EAutomationComponentResolveStatus::ComponentNotFound;
+  }
+  if (Component->IsPendingDestroy()) {
+    return EAutomationComponentResolveStatus::ComponentPendingDestroy;
+  }
+  OutComponent = Component;
+  return EAutomationComponentResolveStatus::Success;
+}
 }  // namespace
 
 FAutomationActorListProvider FAutomationWorldAdapter::CreateActorListProvider() {
@@ -279,3 +299,7 @@ FAutomationPatchActorTransformProvider FAutomationWorldAdapter::CreateTransformP
 }
 
 FAutomationActorResolver FAutomationWorldAdapter::CreateActorResolver() { return ResolveActor; }
+
+FAutomationComponentResolver FAutomationWorldAdapter::CreateComponentResolver() {
+  return ResolveComponent;
+}

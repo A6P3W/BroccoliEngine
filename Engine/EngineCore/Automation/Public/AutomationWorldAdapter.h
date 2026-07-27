@@ -12,4 +12,5 @@ class BROCCOLI_ENGINE_API FAutomationWorldAdapter {
   FAutomationDestroyActorProvider CreateDestroyActorProvider();
   FAutomationPatchActorTransformProvider CreateTransformProvider();
   FAutomationActorResolver CreateActorResolver();
+  FAutomationComponentResolver CreateComponentResolver();
 };

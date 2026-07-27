@@ -421,6 +421,25 @@ struct FAutomationHttpServer::Impl {
         }
     );
 
+    Server.Get(R"(/api/v1/world/actors/([0-9]+)/components/([0-9]+)/methods)", [this](const httplib::Request& Request, httplib::Response& Response) {
+      try {
+        const FAutomationHttpResponse ApiResponse = ApiController.GetWorldActorComponentMethods(Request.matches[1].str(), Request.matches[2].str());
+        SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+      } catch (...) {
+        SetJsonResponse(Response, 500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage));
+      }
+    });
+    Server.Post(R"(/api/v1/world/actors/([0-9]+)/components/([0-9]+)/methods/([a-z][a-z0-9_]{0,127}))", [this](const httplib::Request& Request, httplib::Response& Response) {
+      try {
+        nlohmann::json Body;
+        if (!TryParseJsonBody(Request, Response, Config.MaxRequestBodyBytes, Body)) return;
+        const FAutomationHttpResponse ApiResponse = ApiController.InvokeWorldActorComponentMethod(Request.matches[1].str(), Request.matches[2].str(), Request.matches[3].str(), Body);
+        SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+      } catch (...) {
+        SetJsonResponse(Response, 500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage));
+      }
+    });
+
     const auto MethodNotAllowedHandler = [](const httplib::Request&, httplib::Response& Response) {
       SetJsonResponse(
           Response,

@@ -759,7 +759,7 @@ class SystemCommandResult:
 
 @dataclass(frozen=True, slots=True)
 class ActorComponentInfo:
-  Index: int
+  ComponentId: int
   Name: str
   ClassName: str
   Registered: bool
@@ -770,7 +770,7 @@ class ActorComponentInfo:
   @classmethod
   def from_mapping(Class, Data: Mapping[str, Any], *, Operation: str) -> ActorComponentInfo:
     Fields = (
-      "index",
+      "componentId",
       "name",
       "className",
       "registered",
@@ -782,8 +782,14 @@ class ActorComponentInfo:
       raise InvalidEngineResponse(
         "Actor component data is missing required fields.", Operation=Operation
       )
-    if isinstance(Data["index"], bool) or not isinstance(Data["index"], int) or Data["index"] < 0:
-      raise InvalidEngineResponse("Actor component field 'index' is invalid.", Operation=Operation)
+    if (
+      isinstance(Data["componentId"], bool)
+      or not isinstance(Data["componentId"], int)
+      or Data["componentId"] < 0
+    ):
+      raise InvalidEngineResponse(
+        "Actor component field 'componentId' is invalid.", Operation=Operation
+      )
     if (
       isinstance(Data["networkId"], bool)
       or not isinstance(Data["networkId"], int)
@@ -803,7 +809,7 @@ class ActorComponentInfo:
         "Actor component state fields must be booleans.", Operation=Operation
       )
     return Class(
-      Data["index"],
+      Data["componentId"],
       Data["name"],
       Data["className"],
       Data["registered"],
@@ -814,7 +820,7 @@ class ActorComponentInfo:
 
   def to_dict(Self) -> dict[str, Any]:
     return {
-      "index": Self.Index,
+      "componentId": Self.ComponentId,
       "name": Self.Name,
       "className": Self.ClassName,
       "registered": Self.Registered,

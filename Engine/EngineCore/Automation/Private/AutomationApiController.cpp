@@ -14,6 +14,8 @@
 #include <utility>
 
 #include "Actor.h"
+#include "ActorComponent.h"
+#include "AutomationComponentMethodRegistry.h"
 #include "AutomationJsonSchemaValidator.h"
 #include "Log.h"
 
@@ -197,6 +199,8 @@ FAutomationApiController::FAutomationApiController(
     FAutomationPatchActorTransformProvider InPatchActorTransformProvider,
     FAutomationMethodRegistry* InMethodRegistry,
     FAutomationActorResolver InActorResolver,
+    FAutomationComponentMethodRegistry* InComponentMethodRegistry,
+    FAutomationComponentResolver InComponentResolver,
     FAutomationSystemCommandRegistry* InSystemCommandRegistry,
     FAutomationActorClassListProvider InActorClassListProvider,
     FAutomationLevelListProvider InLevelListProvider,
@@ -213,6 +217,8 @@ FAutomationApiController::FAutomationApiController(
       PatchActorTransformProvider(std::move(InPatchActorTransformProvider)),
       MethodRegistry(InMethodRegistry),
       ActorResolver(std::move(InActorResolver)),
+      ComponentMethodRegistry(InComponentMethodRegistry),
+      ComponentResolver(std::move(InComponentResolver)),
       SystemCommandRegistry(InSystemCommandRegistry),
       ActorClassListProvider(std::move(InActorClassListProvider)),
       LevelListProvider(std::move(InLevelListProvider)),
@@ -408,7 +414,7 @@ FAutomationHttpResponse FAutomationApiController::GetWorldActorComponents(
           nlohmann::json Components = nlohmann::json::array();
           for (const FAutomationActorComponentSnapshot& Component : Snapshot.Components) {
             Components.push_back(
-                {{"index", Component.Index},
+                {{"componentId", Component.ComponentId},
                  {"name", Component.Name},
                  {"className", Component.ClassName},
                  {"registered", Component.bRegistered},
@@ -678,6 +684,78 @@ FAutomationHttpResponse FAutomationApiController::InvokeWorldActorMethod(
   }
 }
 
+FAutomationHttpResponse FAutomationApiController::GetWorldActorComponentMethods(
+    std::string_view ActorIdText, std::string_view ComponentIdText
+) {
+  FActorId ActorId = InvalidActorId;
+  FComponentId ComponentId = InvalidComponentId;
+  if (!TryParseActorId(ActorIdText, ActorId) || !TryParseComponentId(ComponentIdText, ComponentId)) {
+    return {400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, "The actorId and componentId must be unsigned decimal integers greater than zero.")};
+  }
+  if (!ComponentMethodRegistry || !ComponentResolver) {
+    return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
+  }
+  try {
+    FAutomationCommandTicket Ticket = CommandQueue.Enqueue([Registry = ComponentMethodRegistry, Resolver = ComponentResolver, ActorId, ComponentId]() {
+      MActorComponent* Component = nullptr;
+      const EAutomationComponentResolveStatus Status = Resolver(ActorId, ComponentId, Component);
+      if (Status != EAutomationComponentResolveStatus::Success) {
+        return MakeAutomationError(
+            Status == EAutomationComponentResolveStatus::WorldNotAvailable ? EAutomationErrorCode::WorldNotAvailable :
+            Status == EAutomationComponentResolveStatus::ActorPendingDestroy ? EAutomationErrorCode::ActorPendingDestroy :
+            EAutomationErrorCode::ActorNotFound,
+            Status == EAutomationComponentResolveStatus::ComponentNotFound ? "The requested component was not found." : ActorNotFoundMessage
+        );
+      }
+      nlohmann::json Methods = nlohmann::json::array();
+      for (const FAutomationComponentMethodSnapshot& Snapshot : Registry->GetMethodsForClass(Component->GetComponentClassName())) {
+        Methods.push_back({{"name", Snapshot.Name}, {"description", Snapshot.Description}, {"inputSchema", Snapshot.InputSchema}, {"permission", ToAutomationPermissionString(Snapshot.Permission)}});
+      }
+      return MakeAutomationSuccess({{"actorId", ActorId}, {"componentId", ComponentId}, {"className", Component->GetComponentClassName()}, {"methods", std::move(Methods)}});
+    });
+    return WaitForResult(std::move(Ticket));
+  } catch (...) {
+    return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
+  }
+}
+
+FAutomationHttpResponse FAutomationApiController::InvokeWorldActorComponentMethod(
+    std::string_view ActorIdText, std::string_view ComponentIdText, std::string_view MethodName, const nlohmann::json& Body
+) {
+  FActorId ActorId = InvalidActorId;
+  FComponentId ComponentId = InvalidComponentId;
+  if (!TryParseActorId(ActorIdText, ActorId) || !TryParseComponentId(ComponentIdText, ComponentId) || !IsValidAutomationOperationName(MethodName)) {
+    return {400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, "The actorId, componentId, or methodName is invalid.")};
+  }
+  if (!Body.is_object() || !HasOnlyAllowedFields(Body, {"arguments"}) || !Body.contains("arguments") || !Body["arguments"].is_object()) {
+    return {400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, "The component method request must contain an arguments object.")};
+  }
+  if (!ComponentMethodRegistry || !ComponentResolver) {
+    return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
+  }
+  try {
+    FAutomationCommandTicket Ticket = CommandQueue.Enqueue([Registry = ComponentMethodRegistry, Resolver = ComponentResolver, ActorId, ComponentId, MethodNameText = std::string(MethodName), Arguments = Body["arguments"]]() {
+      MActorComponent* Component = nullptr;
+      if (Resolver(ActorId, ComponentId, Component) != EAutomationComponentResolveStatus::Success) {
+        return MakeAutomationError(EAutomationErrorCode::ActorNotFound, "The requested actor or component was not found.");
+      }
+      const std::string ClassName = Component->GetComponentClassName();
+      const FAutomationComponentMethodDescriptor* Descriptor = Registry->FindMethod(ClassName, MethodNameText);
+      if (!Descriptor) {
+        return MakeAutomationError(EAutomationErrorCode::MethodNotRegistered, "The requested method is not registered for this component class.");
+      }
+      FAutomationSchemaValidationError ValidationError;
+      if (!FAutomationJsonSchemaValidator::ValidateValue(Descriptor->InputSchema, Arguments, ValidationError)) {
+        return MakeAutomationError(EAutomationErrorCode::InvalidArgument, ValidationError.JsonPath + ": " + ValidationError.Message);
+      }
+      return MakeAutomationSuccess({{"actorId", ActorId}, {"componentId", ComponentId}, {"className", ClassName}, {"methodName", MethodNameText}, {"result", Descriptor->Handler(*Component, Arguments)}});
+    });
+    return WaitForResult(std::move(Ticket));
+  } catch (...) {
+    return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
+  }
+}
+
 FAutomationHttpResponse FAutomationApiController::GetSystemCommands() {
   try {
     if (!SystemCommandRegistry) {
@@ -885,6 +963,18 @@ bool FAutomationApiController::TryParseActorId(std::string_view Text, FActorId& 
   }
 
   OutActorId = ParsedActorId;
+  return true;
+}
+
+bool FAutomationApiController::TryParseComponentId(
+    std::string_view Text, FComponentId& OutComponentId
+) {
+  OutComponentId = InvalidComponentId;
+  uint64_t ParsedComponentId = 0;
+  if (!TryParseUnsigned(Text, ParsedComponentId) || ParsedComponentId == 0) {
+    return false;
+  }
+  OutComponentId = ParsedComponentId;
   return true;
 }
 
