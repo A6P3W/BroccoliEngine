@@ -3,8 +3,6 @@
 #include "Actor.h"
 #include "AutomationJsonConverter.h"
 
-class FAutomationMethodRegistry;
-
 struct FDoorState {
   bool bIsOpen = false;
   bool bIsLocked = false;
@@ -29,8 +27,6 @@ class ADoorActor : public AActor {
 
   bool IsOpen() const;
   FDoorState GetDoorState() const;
-
-  static void RegisterAutomationMethods(FAutomationMethodRegistry& Registry);
 
  private:
   bool bIsOpen = false;

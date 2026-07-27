@@ -42,7 +42,11 @@ auto ReadUnified(
   return std::tuple<
       TAutomationArgumentStorage<std::tuple_element_t<I, typename T::ArgumentTuple>>...>{
       ReadArgument<TAutomationArgumentStorage<std::tuple_element_t<I, typename T::ArgumentTuple>>>(
-          Args, {P[I].Name, P[I].Description, true}
+          Args,
+          TAutomationParameter<
+              TAutomationArgumentStorage<std::tuple_element_t<I, typename T::ArgumentTuple>>>{
+              P[I].Name, P[I].Description, true
+          }
       )...
   };
 }
@@ -76,6 +80,34 @@ nlohmann::json InvokeUnified(
       return nlohmann::json(std::invoke(ResultAdapter, std::forward<decltype(Result)>(Result)));
   }
 }
+template <class M, size_t... I>
+nlohmann::json MakeUnifiedInputSchema(
+    const FAutomationParameterList& Params, std::index_sequence<I...>
+) {
+  using T = TAutomationMethodTraits<M>;
+  const auto& Parameters = Params.GetParameters();
+  nlohmann::json Properties = nlohmann::json::object();
+  nlohmann::json Required = nlohmann::json::array();
+  (
+      [&] {
+        using ArgumentType =
+            TAutomationArgumentStorage<std::tuple_element_t<I, typename T::ArgumentTuple>>;
+        const auto& Parameter = Parameters[I];
+        Properties[Parameter.Name] = TAutomationJsonConverter<ArgumentType>::GetSchema();
+        if (!Parameter.Description.empty()) {
+          Properties[Parameter.Name]["description"] = Parameter.Description;
+        }
+        Required.push_back(Parameter.Name);
+      }(),
+      ...);
+  nlohmann::json Schema = {
+      {"type", "object"}, {"properties", std::move(Properties)}, {"additionalProperties", false}
+  };
+  if (!Required.empty()) {
+    Schema["required"] = std::move(Required);
+  }
+  return Schema;
+}
 template <class M, class Adapter>
 void RegisterUnified(
     FAutomationMethodRegistry& AR,
@@ -94,26 +126,26 @@ void RegisterUnified(
       std::is_base_of_v<AActor, O> || std::is_base_of_v<MActorComponent, O>,
       "Automation methods must belong to an AActor or MActorComponent."
   );
-  static_assert(
-      std::is_same_v<std::remove_cvref_t<Adapter>, std::nullptr_t> || !std::is_void_v<R>,
-      "Void automation methods cannot use a result adapter."
-  );
-  static_assert(
-      std::is_same_v<std::remove_cvref_t<Adapter>, std::nullptr_t> ||
-          (std::copy_constructible<std::remove_cvref_t<Adapter>> &&
-           std::invocable<Adapter&, const R&>),
-      "Automation result adapters must be copyable and accept the method return value."
-  );
+  if constexpr (!std::is_same_v<std::remove_cvref_t<Adapter>, std::nullptr_t>) {
+    static_assert(!std::is_void_v<R>, "Void automation methods cannot use a result adapter.");
+    if constexpr (!std::is_void_v<R>) {
+      static_assert(
+          std::copy_constructible<std::remove_cvref_t<Adapter>> &&
+              std::invocable<Adapter&, const R&>,
+          "Automation result adapters must be copyable and accept the method return value."
+      );
+      if constexpr (std::invocable<Adapter&, const R&>) {
+        static_assert(
+            std::constructible_from<nlohmann::json, std::invoke_result_t<Adapter&, const R&>>,
+            "Automation result adapters must return a value convertible to nlohmann::json."
+        );
+      }
+    }
+  }
   if (Params.GetParameters().size() != T::ArgumentCount)
     throw std::runtime_error("Automation parameter count does not match method argument count.");
-  nlohmann::json Properties = nlohmann::json::object();
-  for (const auto& P : Params.GetParameters()) {
-    Properties[P.Name] = {{"type", "string"}};
-    if (!P.Description.empty()) Properties[P.Name]["description"] = P.Description;
-  }
-  nlohmann::json Schema = {
-      {"type", "object"}, {"properties", Properties}, {"additionalProperties", false}
-  };
+  nlohmann::json Schema =
+      MakeUnifiedInputSchema<M>(Params, std::make_index_sequence<T::ArgumentCount>{});
   if constexpr (std::is_base_of_v<AActor, O>) {
     FAutomationMethodDescriptor D;
     D.Name = std::move(Name);
@@ -204,6 +236,7 @@ void RegisterMethod(
 #define AUTOMATION_PARAM(...) AutomationHelper::MakeAutomationParameter(__VA_ARGS__)
 #define AUTOMATION_PARAMS(...) \
   FAutomationParameterList { __VA_ARGS__ }
+#define AUTOMATION_RESULT_ADAPTER(...) (__VA_ARGS__)
 #define REGISTER_AUTOMATION_METHOD(...)  \
   REGISTER_AUTOMATION_METHOD_INVOKE(     \
       REGISTER_AUTOMATION_METHOD_SELECT( \
@@ -217,7 +250,7 @@ void RegisterMethod(
 #define REGISTER_AUTOMATION_METHOD_INVOKE(Macro, ...) Macro(__VA_ARGS__)
 #define REGISTER_AUTOMATION_METHOD_SELECT(_1, _2, _3, _4, _5, _6, Name, ...) Name
 #define REGISTER_AUTOMATION_METHOD_4(Name, Description, Permission, MemberFunction) \
-  REGISTER_AUTOMATION_METHOD_REGISTER_EXPANDED(                                     \
+  REGISTER_AUTOMATION_METHOD_REGISTER_NO_ARGUMENTS(                                 \
       __COUNTER__, Name, Description, Permission, MemberFunction                    \
   )
 #define REGISTER_AUTOMATION_METHOD_5(Name, Description, Permission, MemberFunction, Argument) \
@@ -230,6 +263,23 @@ void RegisterMethod(
   REGISTER_AUTOMATION_METHOD_REGISTER_EXPANDED(                                      \
       __COUNTER__, Name, Description, Permission, MemberFunction, Arguments, Adapter \
   )
+#define REGISTER_AUTOMATION_METHOD_REGISTER_NO_ARGUMENTS(                               \
+    Counter, Name, Description, Permission, MemberFunction                              \
+)                                                                                       \
+  namespace {                                                                           \
+  void BROCCOLI_JOIN(GAutomationUnifiedFunction_, Counter)(                             \
+      FAutomationMethodRegistry & ActorRegistry,                                        \
+      FAutomationComponentMethodRegistry& ComponentRegistry                             \
+  ) {                                                                                   \
+    AutomationHelper::RegisterMethod(                                                   \
+        ActorRegistry, ComponentRegistry, Name, Description, Permission, MemberFunction \
+    );                                                                                  \
+  }                                                                                     \
+  const FAutomationUnifiedMethodAutoRegister                                            \
+      BROCCOLI_JOIN(GAutomationUnifiedRegistration_, Counter)(                          \
+          &BROCCOLI_JOIN(GAutomationUnifiedFunction_, Counter)                          \
+      );                                                                                \
+  }
 #define REGISTER_AUTOMATION_METHOD_REGISTER_EXPANDED(                     \
     Counter, Name, Description, Permission, MemberFunction, ...           \
 )                                                                         \
