@@ -2,8 +2,8 @@
 
 #include <algorithm>
 
-#include "AutomationMethodRegistry.h"
 #include "AutomationComponentMethodRegistry.h"
+#include "AutomationMethodRegistry.h"
 
 FAutomationAutoRegistrar& FAutomationAutoRegistrar::GetInstance() {
   static FAutomationAutoRegistrar Instance;
@@ -38,7 +38,9 @@ void FAutomationAutoRegistrar::AddComponentRegistrationFunction(
   if (!Function) {
     return;
   }
-  if (std::find(ComponentRegistrationFunctions.begin(), ComponentRegistrationFunctions.end(), Function) == ComponentRegistrationFunctions.end()) {
+  if (std::find(
+          ComponentRegistrationFunctions.begin(), ComponentRegistrationFunctions.end(), Function
+      ) == ComponentRegistrationFunctions.end()) {
     ComponentRegistrationFunctions.push_back(Function);
   }
 }
@@ -55,4 +57,32 @@ FAutomationComponentMethodAutoRegister::FAutomationComponentMethodAutoRegister(
     FAutomationComponentRegistrationFunction Function
 ) {
   FAutomationAutoRegistrar::GetInstance().AddComponentRegistrationFunction(Function);
+}
+
+void FAutomationAutoRegistrar::AddUnifiedRegistrationFunction(
+    FAutomationUnifiedRegistrationFunction Function
+) {
+  if (!Function) {
+    return;
+  }
+  if (std::find(
+          UnifiedRegistrationFunctions.begin(), UnifiedRegistrationFunctions.end(), Function
+      ) == UnifiedRegistrationFunctions.end()) {
+    UnifiedRegistrationFunctions.push_back(Function);
+  }
+}
+
+void FAutomationAutoRegistrar::RegisterAllUnified(
+    FAutomationMethodRegistry& MethodRegistry,
+    FAutomationComponentMethodRegistry& ComponentMethodRegistry
+) const {
+  for (const FAutomationUnifiedRegistrationFunction Function : UnifiedRegistrationFunctions) {
+    Function(MethodRegistry, ComponentMethodRegistry);
+  }
+}
+
+FAutomationUnifiedMethodAutoRegister::FAutomationUnifiedMethodAutoRegister(
+    FAutomationUnifiedRegistrationFunction Function
+) {
+  FAutomationAutoRegistrar::GetInstance().AddUnifiedRegistrationFunction(Function);
 }

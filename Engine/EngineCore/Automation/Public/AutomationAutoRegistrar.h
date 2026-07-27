@@ -9,6 +9,8 @@ class FAutomationComponentMethodRegistry;
 
 using FAutomationRegistrationFunction = void (*)(FAutomationMethodRegistry&);
 using FAutomationComponentRegistrationFunction = void (*)(FAutomationComponentMethodRegistry&);
+using FAutomationUnifiedRegistrationFunction =
+    void (*)(FAutomationMethodRegistry&, FAutomationComponentMethodRegistry&);
 
 class BROCCOLI_ENGINE_API FAutomationAutoRegistrar {
  public:
@@ -18,10 +20,16 @@ class BROCCOLI_ENGINE_API FAutomationAutoRegistrar {
   void RegisterAll(FAutomationMethodRegistry& Registry) const;
   void AddComponentRegistrationFunction(FAutomationComponentRegistrationFunction Function);
   void RegisterAllComponents(FAutomationComponentMethodRegistry& Registry) const;
+  void AddUnifiedRegistrationFunction(FAutomationUnifiedRegistrationFunction Function);
+  void RegisterAllUnified(
+      FAutomationMethodRegistry& MethodRegistry,
+      FAutomationComponentMethodRegistry& ComponentMethodRegistry
+  ) const;
 
  private:
   std::vector<FAutomationRegistrationFunction> RegistrationFunctions;
   std::vector<FAutomationComponentRegistrationFunction> ComponentRegistrationFunctions;
+  std::vector<FAutomationUnifiedRegistrationFunction> UnifiedRegistrationFunctions;
 };
 
 class BROCCOLI_ENGINE_API FAutomationMethodAutoRegister {
@@ -31,7 +39,14 @@ class BROCCOLI_ENGINE_API FAutomationMethodAutoRegister {
 
 class BROCCOLI_ENGINE_API FAutomationComponentMethodAutoRegister {
  public:
-  explicit FAutomationComponentMethodAutoRegister(FAutomationComponentRegistrationFunction Function);
+  explicit FAutomationComponentMethodAutoRegister(
+      FAutomationComponentRegistrationFunction Function
+  );
+};
+
+class BROCCOLI_ENGINE_API FAutomationUnifiedMethodAutoRegister {
+ public:
+  explicit FAutomationUnifiedMethodAutoRegister(FAutomationUnifiedRegistrationFunction Function);
 };
 
 #define BROCCOLI_JOIN_IMPL(A, B) A##B
@@ -44,10 +59,10 @@ class BROCCOLI_ENGINE_API FAutomationComponentMethodAutoRegister {
   );                                                                                          \
   }
 
-#define REGISTER_AUTOMATION_COMPONENT_METHODS(ClassName)                                      \
-  namespace {                                                                                 \
-  const FAutomationComponentMethodAutoRegister                                                \
-      BROCCOLI_JOIN(GAutomationComponentMethodRegister_, __COUNTER__)(                       \
-          &ClassName::RegisterAutomationMethods                                               \
-      );                                                                                      \
+#define REGISTER_AUTOMATION_COMPONENT_METHODS(ClassName)               \
+  namespace {                                                          \
+  const FAutomationComponentMethodAutoRegister                         \
+      BROCCOLI_JOIN(GAutomationComponentMethodRegister_, __COUNTER__)( \
+          &ClassName::RegisterAutomationMethods                        \
+      );                                                               \
   }

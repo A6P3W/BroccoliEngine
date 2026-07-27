@@ -5,8 +5,8 @@
 #include "ActorManager.h"
 #include "AutomationApiController.h"
 #include "AutomationAutoRegistrar.h"
-#include "AutomationComponentMethodRegistry.h"
 #include "AutomationCommandQueue.h"
+#include "AutomationComponentMethodRegistry.h"
 #include "AutomationDiscoveryAdapter.h"
 #include "AutomationHttpServer.h"
 #include "AutomationRegistryHelper.h"
@@ -40,15 +40,18 @@ bool FAutomationSubsystem::Initialize(const FAutomationConfig& Config) {
   ComponentMethodRegistry = std::make_unique<FAutomationComponentMethodRegistry>();
   try {
     FAutomationAutoRegistrar::GetInstance().RegisterAll(*MethodRegistry);
-    MethodRegistry->Freeze();
     FAutomationAutoRegistrar::GetInstance().RegisterAllComponents(*ComponentMethodRegistry);
+    FAutomationAutoRegistrar::GetInstance().RegisterAllUnified(
+        *MethodRegistry, *ComponentMethodRegistry
+    );
+    MethodRegistry->Freeze();
     ComponentMethodRegistry->Freeze();
   } catch (const std::exception& Exception) {
-    M_LOG("Automation actor method registration failed: {}", Exception.what());
+    M_LOG("Automation method registration failed: {}", Exception.what());
     Shutdown();
     return false;
   } catch (...) {
-    M_LOG("Automation actor method registration failed with an unknown exception.");
+    M_LOG("Automation method registration failed with an unknown exception.");
     Shutdown();
     return false;
   }

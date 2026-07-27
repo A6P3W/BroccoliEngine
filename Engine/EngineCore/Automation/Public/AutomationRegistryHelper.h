@@ -10,6 +10,7 @@
 
 #include "Actor.h"
 #include "ActorComponent.h"
+#include "AutomationAutoRegistrar.h"
 #include "AutomationComponentMethodRegistry.h"
 #include "AutomationJsonConverter.h"
 #include "AutomationMethodRegistry.h"
@@ -560,3 +561,5 @@ void RegisterSystemCommandWithResultAdapter(
   Detail::RegisterSystemCommandDescriptor(Registry, std::move(Descriptor));
 }
 }  // namespace AutomationHelper
+
+#include "AutomationRegistryHelper.inl"
