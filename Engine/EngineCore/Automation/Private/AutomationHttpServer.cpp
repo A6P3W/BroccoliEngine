@@ -616,8 +616,10 @@ void FAutomationHttpServer::StopAcceptingRequests() {
   if (!ImplPtr) {
     return;
   }
-  ImplPtr->bStopRequested.store(true);
-  ImplPtr->Server.stop();
+
+  if (!ImplPtr->bStopRequested.exchange(true)) {
+    ImplPtr->Server.stop();
+  }
 }
 
 void FAutomationHttpServer::Stop() {
