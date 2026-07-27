@@ -21,6 +21,7 @@ enum class EForceFieldType : uint8_t {
 
 class BROCCOLI_ENGINE_API MForceFieldComponent : public MSceneComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MForceFieldComponent)
   MForceFieldComponent();
   ~MForceFieldComponent() override = default;
 

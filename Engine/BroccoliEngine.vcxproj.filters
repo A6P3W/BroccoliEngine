@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="EngineCore\Automation\Private\AutomationAutoRegistrar.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationApiController.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationCommandQueue.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationHttpServer.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationJsonSchemaValidator.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationMethodRegistry.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationComponentMethodRegistry.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationSystemCommandRegistry.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationSubsystem.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationDiscoveryAdapter.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationWorldAdapter.cpp" />
+    <ClCompile Include="EngineCore\Automation\Private\AutomationTypes.cpp" />
+    <ClCompile Include="EngineCore\Utils\Private\Log.cpp" />
     <ClCompile Include="Editor\Private\ActorClassGenerator.cpp" />
     <ClCompile Include="Editor\Private\EditorMode.cpp" />
     <ClCompile Include="Editor\Private\EditorPawn.cpp" />
@@ -87,6 +100,21 @@
     <ClCompile Include="EngineCore\Systems\Private\ActorRegistry.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EngineCore\Automation\Public\AutomationAutoRegistrar.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationApiController.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationJsonConverter.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationRegistryHelper.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationCommandQueue.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationHttpServer.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationJsonSchemaValidator.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationMethodRegistry.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationComponentMethodRegistry.h" />
+    <ClInclude Include="EngineCore\Core\Public\ComponentId.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationSystemCommandRegistry.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationSubsystem.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationWorldAdapter.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationDiscoveryAdapter.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationTypes.h" />
     <ClInclude Include="Editor\Public\ActorClassGenerator.h" />
     <ClInclude Include="EngineCore\Systems\Public\ActorRegistry.h" />
     <ClInclude Include="Editor\Public\EditorMode.h" />

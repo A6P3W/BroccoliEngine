@@ -17,6 +17,7 @@ enum class EUIAnchor {
 
 class BROCCOLI_ENGINE_API MUIWidgetComponent : public MSceneComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MUIWidgetComponent)
   MUIWidgetComponent();
   ~MUIWidgetComponent() override;
 

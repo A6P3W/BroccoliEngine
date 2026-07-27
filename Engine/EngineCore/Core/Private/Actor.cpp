@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
-#include <typeinfo>
 #include <utility>
 #include <vector>
 
@@ -46,6 +45,7 @@ struct AActor::Impl {
   uint32_t ReplicationSequence = 0;
   uint32_t LastReceivedReplicationSequence = 0;
   FNetworkComponentId NextNetworkComponentId = 1;
+  FComponentId NextComponentId = 1;
   std::unordered_map<FNetworkComponentId, MActorComponent*> ComponentsByNetworkId;
   std::unordered_map<FNetworkRPCId, FRPCEntry> RPCHandlers;
 };
@@ -126,6 +126,7 @@ MActorComponent* AActor::AcceptNewObjectComponent(std::unique_ptr<MActorComponen
   MActorComponent* NewComponentPtr = NewComponent.get();
 
   NewComponentPtr->SetOwner(this);
+  NewComponentPtr->SetComponentId(ImplPtr->NextComponentId++);
   EnsureNetComponentName(NewComponentPtr);
   if (auto sceneComp = dynamic_cast<MSceneComponent*>(NewComponentPtr)) {
     if (auto gameObject = dynamic_cast<AActor*>(this)) {
@@ -164,6 +165,18 @@ MActorComponent* AActor::FindReplicatedComponent(FNetworkComponentId ComponentNe
     }
   }
 
+  return nullptr;
+}
+
+MActorComponent* AActor::FindComponentById(FComponentId ComponentId) const {
+  if (ComponentId == InvalidComponentId) {
+    return nullptr;
+  }
+  for (const auto& Component : ImplPtr->Components) {
+    if (Component && Component->GetComponentId() == ComponentId) {
+      return Component.get();
+    }
+  }
   return nullptr;
 }
 
@@ -507,7 +520,7 @@ void AActor::EnsureNetComponentName(MActorComponent* Component) {
   std::string candidate = Component->GetNetComponentName();
   if (candidate.empty()) {
     candidate =
-        std::string(typeid(*Component).name()) + "_" + std::to_string(ImplPtr->Components.size());
+        Component->GetComponentClassName() + "_" + std::to_string(ImplPtr->Components.size());
   }
 
   const std::string baseName = candidate;

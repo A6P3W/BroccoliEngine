@@ -4,6 +4,7 @@
 
 class BROCCOLI_ENGINE_API MRectangleCollisionComponent : public MCollisionComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MRectangleCollisionComponent)
   MRectangleCollisionComponent() = default;
 
   ECollisionShape GetShapeType() const override { return ECollisionShape::Rectangle; }

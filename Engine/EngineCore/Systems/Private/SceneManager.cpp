@@ -1,6 +1,7 @@
 ﻿#include "SceneManager.h"
 
 #include <filesystem>
+#include <algorithm>
 #include <system_error>
 
 namespace {
@@ -123,6 +124,22 @@ bool SceneManager::OpenStartupLevel() {
 
 bool SceneManager::IsSceneRegistered(FNetworkSceneId SceneId) const {
   return ImplPtr->RegisteredLevelPaths.find(SceneId) != ImplPtr->RegisteredLevelPaths.end();
+}
+
+std::vector<SceneManager::FRegisteredLevelSnapshot> SceneManager::GetRegisteredLevels() const {
+  std::vector<FRegisteredLevelSnapshot> Result;
+  Result.reserve(ImplPtr->RegisteredLevelPaths.size());
+  for (const auto& [SceneId, LevelPath] : ImplPtr->RegisteredLevelPaths) {
+    Result.push_back({SceneId, LevelPath});
+  }
+  std::sort(
+      Result.begin(),
+      Result.end(),
+      [](const FRegisteredLevelSnapshot& Left, const FRegisteredLevelSnapshot& Right) {
+        return Left.SceneId < Right.SceneId;
+      }
+  );
+  return Result;
 }
 
 ENetMode SceneManager::GetCurrentNetMode() const {

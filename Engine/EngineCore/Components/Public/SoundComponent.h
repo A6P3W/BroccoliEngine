@@ -1,14 +1,14 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
-
 #include <string>
 
 #include "ActorComponent.h"
+#include "BroccoliEngineAPI.h"
 
 class FSoundManager;
 
 class BROCCOLI_ENGINE_API MSoundComponent : public MActorComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MSoundComponent)
   MSoundComponent();
   ~MSoundComponent() override;
 

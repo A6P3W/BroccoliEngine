@@ -4,6 +4,7 @@
 
 class BROCCOLI_ENGINE_API MCameraComponent : public MSceneComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MCameraComponent)
   ~MCameraComponent();
   float GetFOV() const { return Fov; }
   void SetFOV(float fov) { Fov = fov; }

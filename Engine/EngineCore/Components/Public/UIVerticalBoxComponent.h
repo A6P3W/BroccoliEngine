@@ -1,11 +1,11 @@
 ﻿#pragma once
 #include "BroccoliEngineAPI.h"
-
 #include "UIButtonComponent.h"
 #include "UIWidgetComponent.h"
 
 class BROCCOLI_ENGINE_API MUIVerticalBoxComponent : public MUIWidgetComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MUIVerticalBoxComponent)
   MUIVerticalBoxComponent();
   ~MUIVerticalBoxComponent() override;
 

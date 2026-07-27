@@ -10,6 +10,7 @@
  */
 class BROCCOLI_ENGINE_API MCanvasComponent : public MSpriteComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MCanvasComponent)
   MCanvasComponent();
   ~MCanvasComponent() override;
 

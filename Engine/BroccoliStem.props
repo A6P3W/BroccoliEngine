@@ -34,6 +34,7 @@
 				$(DXLIB_DIR);
 				$(BroccoliVcpkgIncludeDir);
 				$(BroccoliEngineDir)EngineCore\;
+				$(BroccoliEngineDir)EngineCore\Automation\Public;
 				$(BroccoliEngineDir)EngineCore\Core\Public;
 				$(BroccoliEngineDir)EngineCore\Systems\Public;
 				$(BroccoliEngineDir)EngineCore\Network\Public;

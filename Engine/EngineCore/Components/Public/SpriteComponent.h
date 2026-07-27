@@ -7,6 +7,7 @@ class SpriteRenderState;
 
 class BROCCOLI_ENGINE_API MSpriteComponent : public MSceneComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MSpriteComponent)
   MSpriteComponent();
   ~MSpriteComponent() override;
   void SetRenderSettings(int Priority, RenderSpace Space);

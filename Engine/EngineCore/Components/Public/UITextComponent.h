@@ -7,6 +7,7 @@
 
 class BROCCOLI_ENGINE_API UITextComponent : public MUIWidgetComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(UITextComponent)
   UITextComponent();
   ~UITextComponent() override;
 

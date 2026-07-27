@@ -6,6 +6,7 @@
 #include "Application.h"
 #include "EOSCoreManager.h"
 #include "LevelStarter/LevelStarterGameMode.h"
+#include "LevelStarter/LevelStarterWidget.h"
 #include "SceneManager.h"
 
 namespace {

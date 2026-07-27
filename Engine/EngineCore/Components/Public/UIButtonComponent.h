@@ -7,6 +7,7 @@ enum class EButtonState { Normal, Hovered, Pressed, Disabled };
 
 class BROCCOLI_ENGINE_API MUIButtonComponent : public MUIWidgetComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MUIButtonComponent)
   struct FNavigationLinks {
     MUIButtonComponent* Up = nullptr;
     MUIButtonComponent* Down = nullptr;

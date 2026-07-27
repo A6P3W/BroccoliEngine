@@ -16,6 +16,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   set(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "vcpkg target triplet")
   
   find_package(cpr CONFIG REQUIRED)
+  find_package(httplib CONFIG REQUIRED)
   find_package(imgui CONFIG REQUIRED)
   find_package(unofficial-enet CONFIG REQUIRED)
   add_library(enet::enet ALIAS unofficial::enet::enet)
@@ -60,6 +61,7 @@ target_include_directories(BroccoliEngine PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore"
 
+  "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore/Automation/Public"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore/Core/Public"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore/Systems/Public"
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/EngineCore/Network/Public"
@@ -83,6 +85,7 @@ target_link_directories(BroccoliEngine PUBLIC "${DXLIB_DIR}")
 # 外部ライブラリおよびシステムライブラリのリンク
 target_link_libraries(BroccoliEngine PUBLIC
   cpr::cpr
+  httplib::httplib
   imgui::imgui
   enet::enet
   "${CMAKE_CURRENT_SOURCE_DIR}/Engine/ThirdParty/EOS/SDK/Lib/EOSSDK-Win64-Shipping.lib"
@@ -92,6 +95,7 @@ target_link_libraries(BroccoliEngine PUBLIC
   bcrypt
   secur32
   iphlpapi
+  shell32
 )
 
 # プリプロセッサ定義の設定

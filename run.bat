@@ -1,15 +1,29 @@
 @echo off
+setlocal
 
-rem 
-set TARGET=%~1
-if "%TARGET%"=="" set TARGET=Debug
+set "TARGET=Debug"
+set "ARGS="
+
+if /i "%~1"=="Debug" (
+    set "TARGET=Debug"
+    shift
+) else if /i "%~1"=="Release" (
+    set "TARGET=Release"
+    shift
+)
+
+:loop
+if "%~1"=="" goto continue
+set "ARGS=%ARGS% %1"
+shift
+goto loop
+:continue
 
 set "EXE_PATH=%~dp0Publish\%TARGET%\Launcher.exe"
 
-rem 
 if exist "%EXE_PATH%" (
-    echo [run] %EXE_PATH%
-    start "" "%EXE_PATH%"
+    echo [run] %EXE_PATH%%ARGS%
+    start "" "%EXE_PATH%"%ARGS%
 ) else (
     echo [error] not found
     echo path: %EXE_PATH%

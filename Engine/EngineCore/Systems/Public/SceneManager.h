@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "GameInstance.h"
 #include "GameModeBase.h"
@@ -13,6 +14,11 @@
 #include "World.h"
 class BROCCOLI_ENGINE_API SceneManager {
  public:
+  struct FRegisteredLevelSnapshot {
+    FNetworkSceneId SceneId = 0;
+    std::string LevelPath;
+  };
+
   static SceneManager& GetInstance();
   SceneManager(const SceneManager&) = delete;
   SceneManager& operator=(const SceneManager&) = delete;
@@ -32,6 +38,7 @@ class BROCCOLI_ENGINE_API SceneManager {
   bool OpenLevelByPath(const std::string& LevelPath);
   bool OpenLevelByPath(const std::string& LevelPath, ENetMode NetMode);
   bool IsSceneRegistered(FNetworkSceneId SceneId) const;
+  std::vector<FRegisteredLevelSnapshot> GetRegisteredLevels() const;
   FNetworkSceneId GetCurrentSceneId() const;
   const std::string& GetCurrentLevelPath() const;
   ENetMode GetCurrentNetMode() const;

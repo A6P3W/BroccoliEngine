@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include "BroccoliEngineAPI.h"
 #include <string>
 #include <vector>
 
 #include "ActorComponent.h"
+#include "BroccoliEngineAPI.h"
 #include "UMath.h"
 class AActor;
 
@@ -19,9 +19,7 @@ struct FAttachmentTransformRules {
   EAttachmentRule ScaleRule;
 
   constexpr FAttachmentTransformRules(
-      EAttachmentRule InLocationRule,
-      EAttachmentRule InRotationRule,
-      EAttachmentRule InScaleRule
+      EAttachmentRule InLocationRule, EAttachmentRule InRotationRule, EAttachmentRule InScaleRule
   )
       : LocationRule(InLocationRule), RotationRule(InRotationRule), ScaleRule(InScaleRule) {}
 
@@ -31,14 +29,18 @@ struct FAttachmentTransformRules {
 };
 
 inline constexpr FAttachmentTransformRules FAttachmentTransformRules::KeepRelativeTransform{
-    EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative};
+    EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative
+};
 inline constexpr FAttachmentTransformRules FAttachmentTransformRules::KeepWorldTransform{
-    EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld};
+    EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld
+};
 inline constexpr FAttachmentTransformRules FAttachmentTransformRules::SnapToTargetIncludingScale{
-    EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget};
+    EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget
+};
 
 class BROCCOLI_ENGINE_API MSceneComponent : public MActorComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MSceneComponent)
   MSceneComponent();
   virtual ~MSceneComponent();
   virtual void OnUpdate(float DeltaTime);

@@ -7,6 +7,7 @@ class MSpriteComponent;
 
 class BROCCOLI_ENGINE_API UIBoxButtonComponent : public MUIButtonComponent {
  public:
+  DEFINE_ACTOR_COMPONENT_CLASS(UIBoxButtonComponent)
   UIBoxButtonComponent();
 
   void OnRegister() override;

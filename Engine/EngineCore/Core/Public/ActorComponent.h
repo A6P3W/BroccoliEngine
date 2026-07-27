@@ -11,12 +11,18 @@
 
 #include "BaseObject.h"
 #include "BroccoliEngineAPI.h"
+#include "ComponentId.h"
 #include "NetBuffer.h"
 #include "NetworkManager.h"
 #include "NetworkTypes.h"
 #include "ReplicatedProperty.h"
 
 class AActor;
+
+#define DEFINE_ACTOR_COMPONENT_CLASS(ClassName)                        \
+ public:                                                               \
+  static std::string StaticComponentClassName() { return #ClassName; } \
+  std::string GetComponentClassName() const override { return #ClassName; }
 
 enum class EActorComponentRegistrationState {
   Created,
@@ -36,7 +42,9 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   void BeginPlay();
   bool Update(float DeltaTime);
   virtual void Draw() {}
+  virtual std::string GetComponentClassName() const { return "MActorComponent"; }
   AActor* GetOwner() const { return Owner; }
+  FComponentId GetComponentId() const { return ComponentId; }
 
   void DestroyComponent();
   bool IsPendingDestroy() const;
@@ -155,12 +163,14 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   virtual void OnComponentDestroy() {}
 
   AActor* Owner = nullptr;
+  FComponentId ComponentId = InvalidComponentId;
   virtual void OnUpdate(float DeltaTime) {}
 
  private:
   friend class AActor;
 
   void SetOwner(AActor* NewOwner) { Owner = NewOwner; }
+  void SetComponentId(FComponentId InComponentId) { ComponentId = InComponentId; }
   bool CompleteRegistration();
 
   struct Impl;

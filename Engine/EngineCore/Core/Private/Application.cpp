@@ -4,8 +4,9 @@
 #include <imgui.h>
 #include <imgui_impl/imgui_impl_dx11.h>
 #include <imgui_impl/imgui_impl_win32.h>
+#include <shellapi.h>
 
-#include "ActorManager.h"
+#include "AutomationSubsystem.h"
 #include "CollisionSystem.h"
 #include "DebugOverlay.h"
 #include "DxLib.h"
@@ -31,7 +32,26 @@
 
 namespace {
 void (*GameSetupCallback)() = nullptr;
+
+bool HasCommandLineArgument(const std::wstring& Argument) {
+  int ArgumentCount = 0;
+  LPWSTR* Arguments = CommandLineToArgvW(GetCommandLineW(), &ArgumentCount);
+  if (!Arguments) {
+    return false;
+  }
+
+  bool bFound = false;
+  for (int ArgumentIndex = 1; ArgumentIndex < ArgumentCount; ++ArgumentIndex) {
+    if (Argument == Arguments[ArgumentIndex]) {
+      bFound = true;
+      break;
+    }
+  }
+  LocalFree(Arguments);
+  return bFound;
 }
+
+}  // namespace
 extern IMGUI_IMPL_API LRESULT
 ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -53,11 +73,16 @@ LRESULT CALLBACK ImGuiHookProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 void Application::SetGameSetupCallback(void (*Callback)()) { GameSetupCallback = Callback; }
 
-Application::Application() {}
+Application::Application() = default;
 
 Application::~Application() { Shutdown(); }
 
 void Application::Shutdown() {
+  if (AutomationSubsystem) {
+    AutomationSubsystem->Shutdown();
+    AutomationSubsystem.reset();
+  }
+
   if (bImGuiInitialized) {
     SetHookWinProc(nullptr);
     ImGui_ImplDX11_Shutdown();
@@ -77,6 +102,16 @@ void Application::Shutdown() {
     DxLib_End();
     bDxLibInitialized = false;
     M_LOG("DxLib_End completed.");
+  }
+}
+
+void Application::InitializeAutomation() {
+  AutomationSubsystem = std::make_unique<FAutomationSubsystem>();
+
+  FAutomationConfig Config;
+  Config.Enabled = HasCommandLineArgument(L"-automation");
+  if (!AutomationSubsystem->Initialize(Config)) {
+    AutomationSubsystem.reset();
   }
 }
 
@@ -157,6 +192,8 @@ bool Application::Run() {
   IM.AddDevice(std::make_unique<MouseDevice>());
   IM.AddDevice(std::make_unique<GamepadDevice>(1));
 
+  InitializeAutomation();
+
   while (ProcessMessage() == 0 && !ShouldQuitGame) {
     int TargetFps = 120;
     if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
@@ -182,6 +219,11 @@ bool Application::Run() {
     if (DeltaTime > 0.1f) DeltaTime = 0.1f;
     Update(DeltaTime);
     Draw();
+  }
+
+  if (AutomationSubsystem) {
+    AutomationSubsystem->Shutdown();
+    AutomationSubsystem.reset();
   }
 
   EOSTitleStorageManager::GetInstance().Shutdown();
@@ -215,6 +257,9 @@ bool Application::Update(float DeltaTime) {
   ImGui::NewFrame();
 
   SceneManager::GetInstance().ProcessSceneChanges();
+  if (AutomationSubsystem) {
+    AutomationSubsystem->Update();
+  }
   EOSCoreManager::GetInstance().Tick();
   NetworkManager::GetInstance().Service();
   InputManager::GetInstance().Update();
@@ -223,7 +268,7 @@ bool Application::Update(float DeltaTime) {
   DebugOverlayManager::GetInstance().Update(DeltaTime);
 #endif
 
-  if (bPosed) return true;
+  if (AutomationSubsystem && AutomationSubsystem->IsPaused()) return true;
 
   if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
     currentScene->Update(DeltaTime);
