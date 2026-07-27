@@ -4,45 +4,49 @@
 #include <utility>
 
 #include "AutomationJsonSchemaValidator.h"
-#include "Log.h"
-
-namespace {
-bool RejectRegistration(std::string Message, std::string* OutError) {
-  if (OutError) {
-    *OutError = Message;
-  }
-  M_LOG("Automation system command registration rejected: {}", Message);
-  return false;
-}
-}  // namespace
+#include "AutomationRegistryDetail.h"
 
 bool FAutomationSystemCommandRegistry::RegisterCommand(
     FAutomationSystemCommandDescriptor Descriptor, std::string* OutError
 ) {
   if (Frozen) {
-    return RejectRegistration("The system command registry is frozen.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "The system command registry is frozen.", OutError, "system command"
+    );
   }
   if (!IsValidAutomationOperationName(Descriptor.Name)) {
-    return RejectRegistration("CommandName must match ^[a-z][a-z0-9_]{0,127}$.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "CommandName must match ^[a-z][a-z0-9_]{0,127}$.", OutError, "system command"
+    );
   }
   if (Descriptor.Description.empty()) {
-    return RejectRegistration("Description must not be empty.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "Description must not be empty.", OutError, "system command"
+    );
   }
   if (Descriptor.Permission != EAutomationPermission::SystemMutation) {
-    return RejectRegistration("System commands require SystemMutation permission.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "System commands require SystemMutation permission.", OutError, "system command"
+    );
   }
   if (!Descriptor.Handler) {
-    return RejectRegistration("Handler must not be empty.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "Handler must not be empty.", OutError, "system command"
+    );
   }
 
   FAutomationSchemaValidationError ValidationError;
   if (!FAutomationJsonSchemaValidator::ValidateSchemaDefinition(
           Descriptor.InputSchema, ValidationError
       )) {
-    return RejectRegistration(ValidationError.JsonPath + ": " + ValidationError.Message, OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        ValidationError.JsonPath + ": " + ValidationError.Message, OutError, "system command"
+    );
   }
   if (Commands.contains(Descriptor.Name)) {
-    return RejectRegistration("The system command is already registered.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "The system command is already registered.", OutError, "system command"
+    );
   }
 
   const std::string Name = Descriptor.Name;

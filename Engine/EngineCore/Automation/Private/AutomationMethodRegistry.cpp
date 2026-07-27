@@ -4,17 +4,9 @@
 #include <utility>
 
 #include "AutomationJsonSchemaValidator.h"
-#include "Log.h"
+#include "AutomationRegistryDetail.h"
 
 namespace {
-bool RejectRegistration(std::string Message, std::string* OutError) {
-  if (OutError) {
-    *OutError = Message;
-  }
-  M_LOG("Automation actor method registration rejected: {}", Message);
-  return false;
-}
-
 bool IsValidClassName(std::string_view ClassName) {
   return !ClassName.empty() && ClassName.size() <= 128;
 }
@@ -29,36 +21,50 @@ bool FAutomationMethodRegistry::RegisterMethod(
     std::string ClassName, FAutomationMethodDescriptor Descriptor, std::string* OutError
 ) {
   if (Frozen) {
-    return RejectRegistration("The method registry is frozen.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "The method registry is frozen.", OutError, "actor method"
+    );
   }
   if (!IsValidClassName(ClassName)) {
-    return RejectRegistration("ClassName must contain between 1 and 128 UTF-8 bytes.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "ClassName must contain between 1 and 128 UTF-8 bytes.", OutError, "actor method"
+    );
   }
   if (!IsValidAutomationOperationName(Descriptor.Name)) {
-    return RejectRegistration("MethodName must match ^[a-z][a-z0-9_]{0,127}$.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "MethodName must match ^[a-z][a-z0-9_]{0,127}$.", OutError, "actor method"
+    );
   }
   if (Descriptor.Description.empty()) {
-    return RejectRegistration("Description must not be empty.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "Description must not be empty.", OutError, "actor method"
+    );
   }
   if (!IsActorMethodPermissionAllowed(Descriptor.Permission)) {
-    return RejectRegistration(
-        "Actor methods require ReadOnly or WorldMutation permission.", OutError
+    return AutomationRegistryDetail::RejectRegistration(
+        "Actor methods require ReadOnly or WorldMutation permission.", OutError, "actor method"
     );
   }
   if (!Descriptor.Handler) {
-    return RejectRegistration("Handler must not be empty.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "Handler must not be empty.", OutError, "actor method"
+    );
   }
 
   FAutomationSchemaValidationError ValidationError;
   if (!FAutomationJsonSchemaValidator::ValidateSchemaDefinition(
           Descriptor.InputSchema, ValidationError
       )) {
-    return RejectRegistration(ValidationError.JsonPath + ": " + ValidationError.Message, OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        ValidationError.JsonPath + ": " + ValidationError.Message, OutError, "actor method"
+    );
   }
 
   FMethodMap& Methods = MethodsByClass[ClassName];
   if (Methods.contains(Descriptor.Name)) {
-    return RejectRegistration("The method is already registered for this actor class.", OutError);
+    return AutomationRegistryDetail::RejectRegistration(
+        "The method is already registered for this actor class.", OutError, "actor method"
+    );
   }
 
   Methods.emplace(Descriptor.Name, std::move(Descriptor));
