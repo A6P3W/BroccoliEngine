@@ -31,7 +31,7 @@ class BROCCOLI_ENGINE_API AMyPawn : public AActor {
 
 ```cpp
 #include "MyPawn.h"
-#include "AutomationRegistryHelper.h" // 登録用ヘルパーのインクルード
+#include "AutomationMacros.h"
 
 REGISTER_ACTOR(AMyPawn)
 
@@ -116,7 +116,7 @@ REGISTER_AUTOMATION_METHOD(
 ```cpp
 // MyComponent.cpp 内
 #include "MyComponent.h"
-#include "AutomationRegistryHelper.h"
+#include "AutomationMacros.h"
 
 REGISTER_AUTOMATION_METHOD(
     "set_active",
@@ -141,7 +141,7 @@ auto HealthResultAdapter = [](const AMyPawn& Pawn, float OriginalResult) {
   };
 };
 
-REGISTER_AUTOMATION_METHOD_6(
+REGISTER_AUTOMATION_METHOD(
     "get_health_detailed",
     "Returns detailed health information.",
     EAutomationPermission::ReadOnly,
@@ -150,6 +150,9 @@ REGISTER_AUTOMATION_METHOD_6(
     HealthResultAdapter  // 変換用アダプター
 )
 ```
+
+インラインラムダ内で `nlohmann::json{...}` のようにカンマを含む初期化を行う場合は、
+ラムダ全体を `([](...) { ... })` のように丸括弧で囲んでください。
 
 ## 4. テスト方法
 

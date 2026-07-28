@@ -1,6 +1,6 @@
 ﻿#include "DoorActor.h"
 
-#include "AutomationRegistryHelper.h"
+#include "AutomationMacros.h"
 #include "DoorAutomationTestComponent.h"
 
 REGISTER_ACTOR(ADoorActor)
@@ -31,7 +31,8 @@ REGISTER_AUTOMATION_METHOD(
     "Returns the current door state.",
     EAutomationPermission::ReadOnly,
     &ADoorActor::GetDoorState,
-    AUTOMATION_RESULT_ADAPTER([](const FDoorState& State) {
+    AUTOMATION_PARAMS(),
+    ([](const FDoorState& State) {
       return nlohmann::json{{"is_open", State.bIsOpen}, {"is_locked", State.bIsLocked}};
     })
 )
