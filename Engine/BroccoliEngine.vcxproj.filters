@@ -101,9 +101,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineCore\Automation\Public\AutomationAutoRegistrar.h" />
+    <ClInclude Include="EngineCore\Automation\Public\AutomationMacros.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationApiController.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationJsonConverter.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationRegistryHelper.h" />
+    <ClInclude Include="EngineCore\Automation\Public\Detail\AutomationMacroDetail.h" />
+    <ClInclude Include="EngineCore\Automation\Public\Detail\AutomationMethodRegistrar.h" />
+    <ClInclude Include="EngineCore\Automation\Public\Detail\AutomationParameterMetadata.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationCommandQueue.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationHttpServer.h" />
     <ClInclude Include="EngineCore\Automation\Public\AutomationJsonSchemaValidator.h" />

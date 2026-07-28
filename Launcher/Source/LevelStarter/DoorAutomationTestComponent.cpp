@@ -1,6 +1,6 @@
 ﻿#include "DoorAutomationTestComponent.h"
 
-#include "AutomationRegistryHelper.h"
+#include "AutomationMacros.h"
 
 REGISTER_AUTOMATION_METHOD(
     "set_active",
@@ -14,7 +14,8 @@ REGISTER_AUTOMATION_METHOD(
     "Returns the DoorActor automation test component active state.",
     EAutomationPermission::ReadOnly,
     &MDoorAutomationTestComponent::IsActive,
-    AUTOMATION_RESULT_ADAPTER([](const bool Active) { return nlohmann::json{{"active", Active}}; })
+    AUTOMATION_PARAMS(),
+    ([](const bool Active) { return nlohmann::json{{"active", Active}}; })
 )
 
 void MDoorAutomationTestComponent::SetActive(bool bInActive) { bActive = bInActive; }

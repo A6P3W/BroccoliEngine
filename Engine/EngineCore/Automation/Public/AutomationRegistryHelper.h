@@ -561,5 +561,3 @@ void RegisterSystemCommandWithResultAdapter(
   Detail::RegisterSystemCommandDescriptor(Registry, std::move(Descriptor));
 }
 }  // namespace AutomationHelper
-
-#include "AutomationRegistryHelper.inl"
