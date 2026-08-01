@@ -1,7 +1,5 @@
 ﻿#include "LevelStarterWidget.h"
 
-#include <DxLib.h>
-
 #include <memory>
 #include <stdexcept>
 #include <string>

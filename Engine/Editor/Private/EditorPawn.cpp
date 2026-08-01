@@ -1,11 +1,13 @@
 ﻿#include "EditorPawn.h"
 
-#include <DxLib.h>
 #include <imgui.h>
 
+#include "BroccoliRaylib.h"
 #include "CameraComponent.h"
 #include "EditorMode.h"
 #include "EnhancedInputComponent.h"
+#include "InputManager.h"
+#include "MouseDevice.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "SpriteComponent.h"
@@ -64,19 +66,21 @@ void EditorPawn::OnMouseLeftRelease(const FInputActionValue&) {
 }
 
 void EditorPawn::OnMouseRightPress(const FInputActionValue& Value) {
+  if (ImGui::GetIO().WantCaptureMouse) return;
   bRightMousePressed = true;
-  int mx, my;
-  GetMousePoint(&mx, &my);
-  DragStartMousePos = {static_cast<float>(mx), static_cast<float>(my)};
+  const Vector2 MousePosition = GetMousePosition();
+  DragStartMousePos = {MousePosition.x, MousePosition.y};
   DragStartCameraPos = GetActorLocation();
-  SetMouseDispFlag(FALSE);
-  GetMousePoint(&MousePointX, &MousePointY);
+  HideCursor();
+  MousePointX = static_cast<int>(MousePosition.x);
+  MousePointY = static_cast<int>(MousePosition.y);
 }
 
 void EditorPawn::OnMouseRightRelease(const FInputActionValue& Value) {
+  if (!bRightMousePressed) return;
   bRightMousePressed = false;
-  SetMouseDispFlag(true);
-  SetMousePoint(MousePointX, MousePointY);
+  ShowCursor();
+  SetMousePosition(MousePointX, MousePointY);
 }
 
 void EditorPawn::OnMouseMove(const FInputActionValue& Value) {
@@ -84,10 +88,8 @@ void EditorPawn::OnMouseMove(const FInputActionValue& Value) {
     EditorModePtr->OnMouseMove(Value.Axis2D);
   }
   if (bRightMousePressed) {
-    int mx, my;
-    GetMousePoint(&mx, &my);
-
-    FVector2D currentMousePos = {static_cast<float>(mx), static_cast<float>(my)};
+    const Vector2 MousePosition = GetMousePosition();
+    FVector2D currentMousePos = {MousePosition.x, MousePosition.y};
     FVector2D screenDelta = {
         currentMousePos.X - static_cast<float>(MousePointX),
         currentMousePos.Y - static_cast<float>(MousePointY)
@@ -102,7 +104,7 @@ void EditorPawn::OnMouseMove(const FInputActionValue& Value) {
 
       AddActorWorldOffset(worldDelta * -1.0f);
 
-      SetMousePoint(MousePointX, MousePointY);
+      SetMousePosition(MousePointX, MousePointY);
     }
   }
 }
@@ -117,9 +119,9 @@ void EditorPawn::OnWheel(const FInputActionValue& Value) {
 }
 
 FVector2D EditorPawn::GetMouseWorldPosition() const {
-  int mx, my;
-  GetMousePoint(&mx, &my);
+  const MouseDevice* Mouse = InputManager::GetInstance().GetDevice<MouseDevice>();
+  if (Mouse == nullptr) return FVector2D::ZeroVector();
   return RenderSystem::GetInstance().ScreenToWorld(
-      {static_cast<float>(mx), static_cast<float>(my)}
+      {static_cast<float>(Mouse->GetMouseX()), static_cast<float>(Mouse->GetMouseY())}
   );
 }

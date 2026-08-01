@@ -1,7 +1,5 @@
 ﻿#include "UITextComponent.h"
 
-#include <DxLib.h>
-
 #include "Actor.h"
 #include "ResourceManager.h"
 #include "SpriteComponent.h"
@@ -60,14 +58,12 @@ void UITextComponent::UpdateText() {
   if (!ImplPtr->TextSprite) return;
 
   // 文字列の描画ピクセル幅を取得
-  int textWidth = GetDrawStringWidthToHandle(
-      ImplPtr->Text.c_str(), static_cast<int>(ImplPtr->Text.length()), ImplPtr->FontHandle
-  );
+  int TextWidth = ResourceManager::GetInstance().GetTextWidth(ImplPtr->Text, ImplPtr->FontHandle);
   // 高さはフォントサイズを基準にする
-  int textHeight = ImplPtr->FontSize;
+  int TextHeight = ImplPtr->FontSize;
 
   // 文字の中心を原点にするため、幅と高さの半分だけ左上にずらす（自動センタリング）
-  ImplPtr->TextSprite->SetRelativeLocation({-textWidth * 0.5f, -textHeight * 0.5f});
+  ImplPtr->TextSprite->SetRelativeLocation({-TextWidth * 0.5f, -TextHeight * 0.5f});
 
   ImplPtr->TextSprite->SubmitText(ImplPtr->Text, ImplPtr->Color, ImplPtr->FontHandle);
 }

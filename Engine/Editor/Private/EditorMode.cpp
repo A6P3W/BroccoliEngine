@@ -1,16 +1,17 @@
 ﻿#include "EditorMode.h"
 
-#include <DxLib.h>
 #include <PlayerController.h>
 
 #include "Actor.h"
+#include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "EditorController.h"
 #include "EditorPawn.h"
 #include "EditorSelectPointComponent.h"
 #include "EditorUI.h"
+#include "InputManager.h"
 #include "Log.h"
-#include "ActorManager.h"
+#include "MouseDevice.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "SpriteActor.h"
@@ -252,9 +253,9 @@ void EditorMode::BeginPlay() {
 }
 
 FVector2D EditorMode::GetMouseWorldPosition() const {
-  int mx, my;
-  GetMousePoint(&mx, &my);
+  const MouseDevice* Mouse = InputManager::GetInstance().GetDevice<MouseDevice>();
+  if (Mouse == nullptr) return FVector2D::ZeroVector();
   return RenderSystem::GetInstance().ScreenToWorld(
-      {static_cast<float>(mx), static_cast<float>(my)}
+      {static_cast<float>(Mouse->GetMouseX()), static_cast<float>(Mouse->GetMouseY())}
   );
 }

@@ -1,7 +1,5 @@
 ﻿#include "UIInputTextComponent.h"
 
-#include <DxLib.h>
-
 #include <algorithm>
 #include <cctype>
 #include <functional>
@@ -21,7 +19,7 @@ const std::string ActionHintText = "インタラクトキーで入力/確定";
 
 bool IsShiftPressed(const KeyboardDevice* Keyboard) {
   return Keyboard != nullptr &&
-         (Keyboard->GetPressing(KEY_INPUT_LSHIFT) || Keyboard->GetPressing(KEY_INPUT_RSHIFT));
+         (Keyboard->GetPressing(EKey::LeftShift) || Keyboard->GetPressing(EKey::RightShift));
 }
 
 bool IsAlphaNumeric(char Character) {
@@ -273,22 +271,22 @@ void UIInputTextComponent::CancelInput() {
 }
 
 void UIInputTextComponent::HandleKeyboardInput() {
-  const auto* keyboard = InputManager::GetInstance().GetDevice<KeyboardDevice>();
-  if (keyboard == nullptr) {
+  const auto* Keyboard = InputManager::GetInstance().GetDevice<KeyboardDevice>();
+  if (Keyboard == nullptr) {
     return;
   }
 
-  if (keyboard->GetPressStart(KEY_INPUT_RETURN)) {
+  if (Keyboard->GetPressStart(EKey::Enter)) {
     CommitInput();
     return;
   }
 
-  if (keyboard->GetPressStart(KEY_INPUT_ESCAPE)) {
+  if (Keyboard->GetPressStart(EKey::Escape)) {
     CancelInput();
     return;
   }
 
-  if (keyboard->GetPressStart(KEY_INPUT_BACK)) {
+  if (Keyboard->GetPressStart(EKey::Backspace)) {
     if (!ImplPtr->EditingText.empty()) {
       ImplPtr->EditingText.pop_back();
       if (ImplPtr->OnTextChanged) {
@@ -299,40 +297,39 @@ void UIInputTextComponent::HandleKeyboardInput() {
     return;
   }
 
-  const bool bUpper = IsShiftPressed(keyboard);
-  const std::pair<int, char> letterKeys[] = {
-      {KEY_INPUT_A, 'a'}, {KEY_INPUT_B, 'b'}, {KEY_INPUT_C, 'c'}, {KEY_INPUT_D, 'd'},
-      {KEY_INPUT_E, 'e'}, {KEY_INPUT_F, 'f'}, {KEY_INPUT_G, 'g'}, {KEY_INPUT_H, 'h'},
-      {KEY_INPUT_I, 'i'}, {KEY_INPUT_J, 'j'}, {KEY_INPUT_K, 'k'}, {KEY_INPUT_L, 'l'},
-      {KEY_INPUT_M, 'm'}, {KEY_INPUT_N, 'n'}, {KEY_INPUT_O, 'o'}, {KEY_INPUT_P, 'p'},
-      {KEY_INPUT_Q, 'q'}, {KEY_INPUT_R, 'r'}, {KEY_INPUT_S, 's'}, {KEY_INPUT_T, 't'},
-      {KEY_INPUT_U, 'u'}, {KEY_INPUT_V, 'v'}, {KEY_INPUT_W, 'w'}, {KEY_INPUT_X, 'x'},
-      {KEY_INPUT_Y, 'y'}, {KEY_INPUT_Z, 'z'},
+  const bool bUpper = IsShiftPressed(Keyboard);
+  const std::pair<EKey, char> LetterKeys[] = {
+      {EKey::A, 'a'}, {EKey::B, 'b'}, {EKey::C, 'c'}, {EKey::D, 'd'}, {EKey::E, 'e'},
+      {EKey::F, 'f'}, {EKey::G, 'g'}, {EKey::H, 'h'}, {EKey::I, 'i'}, {EKey::J, 'j'},
+      {EKey::K, 'k'}, {EKey::L, 'l'}, {EKey::M, 'm'}, {EKey::N, 'n'}, {EKey::O, 'o'},
+      {EKey::P, 'p'}, {EKey::Q, 'q'}, {EKey::R, 'r'}, {EKey::S, 's'}, {EKey::T, 't'},
+      {EKey::U, 'u'}, {EKey::V, 'v'}, {EKey::W, 'w'}, {EKey::X, 'x'}, {EKey::Y, 'y'},
+      {EKey::Z, 'z'},
   };
 
-  for (const auto& [keyCode, character] : letterKeys) {
-    if (keyboard->GetPressStart(keyCode)) {
-      AppendCharacter(static_cast<char>(bUpper ? std::toupper(character) : character));
+  for (const auto& [KeyCode, Character] : LetterKeys) {
+    if (Keyboard->GetPressStart(KeyCode)) {
+      AppendCharacter(static_cast<char>(bUpper ? std::toupper(Character) : Character));
       return;
     }
   }
 
-  const std::pair<int, char> digitKeys[] = {
-      {KEY_INPUT_0, '0'},
-      {KEY_INPUT_1, '1'},
-      {KEY_INPUT_2, '2'},
-      {KEY_INPUT_3, '3'},
-      {KEY_INPUT_4, '4'},
-      {KEY_INPUT_5, '5'},
-      {KEY_INPUT_6, '6'},
-      {KEY_INPUT_7, '7'},
-      {KEY_INPUT_8, '8'},
-      {KEY_INPUT_9, '9'},
+  const std::pair<EKey, char> DigitKeys[] = {
+      {EKey::Zero, '0'},
+      {EKey::One, '1'},
+      {EKey::Two, '2'},
+      {EKey::Three, '3'},
+      {EKey::Four, '4'},
+      {EKey::Five, '5'},
+      {EKey::Six, '6'},
+      {EKey::Seven, '7'},
+      {EKey::Eight, '8'},
+      {EKey::Nine, '9'},
   };
 
-  for (const auto& [keyCode, character] : digitKeys) {
-    if (keyboard->GetPressStart(keyCode)) {
-      AppendCharacter(character);
+  for (const auto& [KeyCode, Character] : DigitKeys) {
+    if (Keyboard->GetPressStart(KeyCode)) {
+      AppendCharacter(Character);
       return;
     }
   }
@@ -380,11 +377,10 @@ void UIInputTextComponent::UpdateVisuals() {
 
   if (ImplPtr->ActionHintSprite != nullptr) {
     if (ImplPtr->CurrentState == EButtonState::Hovered && !ImplPtr->bIsEditing) {
-      const int hintWidth = GetDrawStringWidthToHandle(
-          ActionHintText.c_str(), static_cast<int>(ActionHintText.length()), ImplPtr->HintFontHandle
-      );
+      const int HintWidth =
+          ResourceManager::GetInstance().GetTextWidth(ActionHintText, ImplPtr->HintFontHandle);
       ImplPtr->ActionHintSprite->SetRelativeLocation(
-          {-hintWidth * 0.5f, ImplPtr->Height * 0.5f + ImplPtr->ActionHintOffsetY}
+          {-HintWidth * 0.5f, ImplPtr->Height * 0.5f + ImplPtr->ActionHintOffsetY}
       );
       ImplPtr->ActionHintSprite->SubmitText(
           ActionHintText, FColor{255, 230, 64}, ImplPtr->HintFontHandle
@@ -398,22 +394,21 @@ void UIInputTextComponent::UpdateVisuals() {
     return;
   }
 
-  const std::string displayText = GetDisplayText();
+  const std::string DisplayText = GetDisplayText();
   const bool bShowHint =
       !ImplPtr->bIsEditing && ImplPtr->Text.empty() && !ImplPtr->HintText.empty();
-  FColor color = bShowHint ? ImplPtr->HintColor : ImplPtr->TextColor;
-  const int textWidth = GetDrawStringWidthToHandle(
-      displayText.c_str(), static_cast<int>(displayText.length()), ImplPtr->FontHandle
-  );
+  FColor Color = bShowHint ? ImplPtr->HintColor : ImplPtr->TextColor;
+  const int TextWidth =
+      ResourceManager::GetInstance().GetTextWidth(DisplayText, ImplPtr->FontHandle);
 
-  const float leftPadding = 16.0f;
-  const float maxTextWidth = (std::max)(0.0f, ImplPtr->Width - leftPadding * 2.0f);
-  const float textX = -ImplPtr->Width * 0.5f + leftPadding;
-  const float textY = -ImplPtr->FontSize * 0.5f + ImplPtr->TextOffsetY;
-  ImplPtr->TextSprite->SetRelativeLocation({textX, textY});
+  const float LeftPadding = 16.0f;
+  const float MaxTextWidth = (std::max)(0.0f, ImplPtr->Width - LeftPadding * 2.0f);
+  const float TextX = -ImplPtr->Width * 0.5f + LeftPadding;
+  const float TextY = -ImplPtr->FontSize * 0.5f + ImplPtr->TextOffsetY;
+  ImplPtr->TextSprite->SetRelativeLocation({TextX, TextY});
   ImplPtr->TextSprite->SubmitText(
-      displayText,
-      (color.A = static_cast<uint8_t>(textWidth > maxTextWidth ? 220 : 255), color),
+      DisplayText,
+      (Color.A = static_cast<uint8_t>(TextWidth > MaxTextWidth ? 220 : 255), Color),
       ImplPtr->FontHandle
   );
 }

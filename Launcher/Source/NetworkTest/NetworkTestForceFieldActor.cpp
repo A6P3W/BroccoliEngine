@@ -1,7 +1,5 @@
 ﻿#include "NetworkTestForceFieldActor.h"
 
-#include <DxLib.h>
-
 #include "CircleCollisionComponent.h"
 #include "ForceFieldComponent.h"
 #include "SpriteComponent.h"
