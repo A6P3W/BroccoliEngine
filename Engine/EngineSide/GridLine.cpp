@@ -1,13 +1,12 @@
 ﻿#include "GridLine.h"
 
-#include <DxLib.h>
-
 #include <cmath>
 #include <format>
 #include <string>
 
 #include "CameraComponent.h"
 #include "CollisionSystem.h"
+#include "EngineDefine.h"
 #include "RenderSystem.h"
 #include "ResourceManager.h"
 #include "UMath.h"
@@ -35,10 +34,9 @@ void AGridLine::SimpleDraw(float cellSize, FColor color) {
 
   float visualCellSize = cellSize * skipFactor;
 
-  int screenW, screenH;
-  GetDrawScreenSize(&screenW, &screenH);
-  float screenDiagonal = std::sqrt((float)screenW * screenW + (float)screenH * screenH);
-  float worldRadius = (screenDiagonal * 0.5f) / fov;
+  const float ScreenDiagonal =
+      std::sqrt(static_cast<float>(VirtualWidth * VirtualWidth + VirtualHeight * VirtualHeight));
+  float worldRadius = (ScreenDiagonal * 0.5f) / fov;
 
   float startX = std::floor((CamPos.X - worldRadius) / visualCellSize) * visualCellSize;
   float endX = std::ceil((CamPos.X + worldRadius) / visualCellSize) * visualCellSize;

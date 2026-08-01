@@ -14,7 +14,6 @@
 #include "World.h"
 
 #ifdef _EDITOR
-#include <DxLib.h>
 
 #include "EditorSelectPointComponent.h"
 #endif

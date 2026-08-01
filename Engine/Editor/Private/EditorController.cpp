@@ -1,7 +1,5 @@
 ﻿#include "EditorController.h"
 
-#include <DxLib.h>
-
 #include "EditorMode.h"
 #include "EnhancedInputComponent.h"
 #include "InputManager.h"
@@ -66,17 +64,17 @@ void EditorController::SetupInputMappings() {
   auto* Mapper = GetInputMapper();
 
   if (kb) {
-    Mapper->AddMapping(EditorInputAction::SelectMode, kb, KEY_INPUT_Q);
-    Mapper->AddMapping(EditorInputAction::MoveMode, kb, KEY_INPUT_W);
-    Mapper->AddMapping(EditorInputAction::RotateMode, kb, KEY_INPUT_E);
-    Mapper->AddMapping(EditorInputAction::ScaleMode, kb, KEY_INPUT_R);
+    Mapper->AddMapping(EditorInputAction::SelectMode, kb, EKey::Q);
+    Mapper->AddMapping(EditorInputAction::MoveMode, kb, EKey::W);
+    Mapper->AddMapping(EditorInputAction::RotateMode, kb, EKey::E);
+    Mapper->AddMapping(EditorInputAction::ScaleMode, kb, EKey::R);
 
-    Mapper->AddMapping(EditorInputAction::ModifierCtrl, kb, KEY_INPUT_LCONTROL);
-    Mapper->AddMapping(EditorInputAction::Copy, kb, KEY_INPUT_C, EditorInputAction::ModifierCtrl);
-    Mapper->AddMapping(EditorInputAction::Paste, kb, KEY_INPUT_V, EditorInputAction::ModifierCtrl);
-    Mapper->AddMapping(EditorInputAction::Cut, kb, KEY_INPUT_X, EditorInputAction::ModifierCtrl);
-    Mapper->AddMapping("Save", kb, KEY_INPUT_S, EditorInputAction::ModifierCtrl);
-    Mapper->AddMapping("Delete", kb, KEY_INPUT_DELETE);
+    Mapper->AddMapping(EditorInputAction::ModifierCtrl, kb, EKey::LeftControl);
+    Mapper->AddMapping(EditorInputAction::Copy, kb, EKey::C, EditorInputAction::ModifierCtrl);
+    Mapper->AddMapping(EditorInputAction::Paste, kb, EKey::V, EditorInputAction::ModifierCtrl);
+    Mapper->AddMapping(EditorInputAction::Cut, kb, EKey::X, EditorInputAction::ModifierCtrl);
+    Mapper->AddMapping("Save", kb, EKey::S, EditorInputAction::ModifierCtrl);
+    Mapper->AddMapping("Delete", kb, EKey::Delete);
   }
 }
 

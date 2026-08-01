@@ -111,15 +111,6 @@
   <PropertyGroup Label="UserMacros">
     <OutDir>$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PublicIncludeDirectories>$(DXLIB_DIR);%(AdditionalLibraryDirectories)</PublicIncludeDirectories>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Editor|x64'">
-    <PublicIncludeDirectories>$(DXLIB_DIR);%(AdditionalLibraryDirectories)</PublicIncludeDirectories>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PublicIncludeDirectories>$(DXLIB_DIR);%(AdditionalLibraryDirectories)</PublicIncludeDirectories>
-  </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <VcpkgTriplet>x64-windows-static-md</VcpkgTriplet>
   </PropertyGroup>
@@ -142,13 +133,13 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:preprocessor /execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DXLIB_DIR);$(MSBuildThisFileDirectory)Game;$(MSBuildThisFileDirectory)..\BroccoliEngine;$(ProjectDir)Config</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)Game;$(MSBuildThisFileDirectory)..\BroccoliEngine;$(ProjectDir)Config</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Engine\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Engine\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>winmm.lib;delayimp.lib;BroccoliEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>BroccoliEngine.dll</DelayLoadDLLs>
     </Link>
@@ -165,13 +156,13 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:preprocessor /execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DXLIB_DIR);$(MSBuildThisFileDirectory)Game;$(MSBuildThisFileDirectory)..\BroccoliEngine;$(ProjectDir)Config</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)Game;$(MSBuildThisFileDirectory)..\BroccoliEngine;$(ProjectDir)Config</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Engine\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Engine\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>winmm.lib;BroccoliEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -189,13 +180,13 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:preprocessor /execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DXLIB_DIR);$(MSBuildThisFileDirectory)Game;$(MSBuildThisFileDirectory)..\BroccoliEngine;$(ProjectDir)Config</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)Game;$(MSBuildThisFileDirectory)..\BroccoliEngine;$(ProjectDir)Config</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Engine\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories);$(DXLIB_DIR)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\Engine\Bin\$(Platform)\$(Configuration);$(MSBuildThisFileDirectory)..\Bin\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>winmm.lib;BroccoliEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>

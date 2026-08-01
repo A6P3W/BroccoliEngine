@@ -1,7 +1,5 @@
 ﻿#include "NetworkTestBreakableActor.h"
 
-#include <DxLib.h>
-
 #include <memory>
 
 #include "CollisionComponent.h"
@@ -24,8 +22,6 @@ ANetworkTestBreakableActor::ANetworkTestBreakableActor() {
   BodySprite->SetRenderSettings(9, RenderSpace::World);
   // 指定されたサイズ（幅・高さ: 40.0f）、色（FColor）、および塗りつぶし設定で矩形（ボックス）の描画データを登録する関数
   BodySprite->SubmitBox(40.0f, 40.0f, FColor{255, 150, 40}, true);
-  // 親コンポーネント（ここではルート）に対する相対的な位置座標（FVector2D）を設定する関数
-  BodySprite->SetRelativeLocation({-20.0f, -20.0f});
   // コンポーネントをエンジンシステムに登録し、初期化やアップデート、レンダリングなどのライフサイクル処理の対象にする関数
   BodySprite->RegisterComponent();
 

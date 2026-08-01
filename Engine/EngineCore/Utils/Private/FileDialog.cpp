@@ -1,12 +1,25 @@
 ﻿#include "FileDialog.h"
 
-#include <DxLib.h>
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#define Rectangle Win32Rectangle
+#define CloseWindow Win32CloseWindow
+#define ShowCursor Win32ShowCursor
 #include <Windows.h>
 #include <commdlg.h>
 #include <shobjidl.h>
+#undef Rectangle
+#undef CloseWindow
+#undef ShowCursor
+#undef LoadImage
+#undef DrawText
+#undef DrawTextEx
+#undef PlaySound
 
 #include <filesystem>
 #include <system_error>
+
+#include "BroccoliRaylib.h"
 
 namespace {
 std::string WideToUtf8(const std::wstring& Value) {
@@ -50,7 +63,7 @@ std::string FileDialog::OpenFile(const char* filter) {
   CHAR szFile[260] = {0};
   ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
   ofn.lStructSize = sizeof(OPENFILENAMEA);
-  ofn.hwndOwner = GetMainWindowHandle();
+  ofn.hwndOwner = reinterpret_cast<HWND>(GetWindowHandle());
   ofn.lpstrFile = szFile;
   ofn.nMaxFile = sizeof(szFile);
   ofn.lpstrFilter = filter;
@@ -73,7 +86,7 @@ std::string FileDialog::SaveFile(const char* filter, const char* defaultExt) {
   CHAR szFile[260] = {0};
   ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
   ofn.lStructSize = sizeof(OPENFILENAMEA);
-  ofn.hwndOwner = GetMainWindowHandle();
+  ofn.hwndOwner = reinterpret_cast<HWND>(GetWindowHandle());
   ofn.lpstrFile = szFile;
   ofn.nMaxFile = sizeof(szFile);
   ofn.lpstrFilter = filter;
@@ -111,7 +124,7 @@ std::string FileDialog::SelectFolder() {
     }
 
     if (SUCCEEDED(Result)) {
-      Result = Dialog->Show(GetMainWindowHandle());
+      Result = Dialog->Show(reinterpret_cast<HWND>(GetWindowHandle()));
     }
     if (SUCCEEDED(Result)) {
       IShellItem* SelectedItem = nullptr;

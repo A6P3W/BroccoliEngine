@@ -6,7 +6,6 @@
 #include "../Common/LauncherPlayerController.h"
 #include "ActorManager.h"
 #include "CanvasTestActor.h"
-#include "DxLibLap/DxLibLap.h"
 #include "HttpManager.h"
 #include "Log.h"
 #include "UIManager.h"
@@ -25,20 +24,6 @@ AWidgetTestGameMode::AWidgetTestGameMode() {
 
 void AWidgetTestGameMode::BeginPlay() {
   AGameModeBase::BeginPlay();
-
-  constexpr int ScreenWidth = 800;
-  constexpr int ScreenHeight = 600;
-  // 低レベル描画ラッパー（DxLibLap）を使用して、オフスクリーンバッファを一時生成テスト
-  const int ScreenHandle = DxLibLap::MakeScreen(ScreenWidth, ScreenHeight);
-  if (ScreenHandle == -1) {
-    M_LOG("WidgetTest MakeScreen failed: {}x{}.", ScreenWidth, ScreenHeight);
-  } else {
-    M_LOG(
-        "WidgetTest MakeScreen succeeded: {}x{}, handle={}", ScreenWidth, ScreenHeight, ScreenHandle
-    );
-    // 生成した一時オフスクリーンバッファを解放
-    DxLibLap::ReleaseScreen(ScreenHandle);
-  }
 
   // アクターマネージャーを介して、UIウィジェットアクター（AWidgetTestUIMain）を動的に生成
   auto* mainMenuWidget = GetWorld()->GetActorManager()->SpawnObject<AWidgetTestUIMain>();

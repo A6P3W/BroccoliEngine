@@ -1,7 +1,5 @@
 ﻿#include "WidgetTestUIMain.h"
 
-#include <DxLib.h>
-
 #include "Application.h"
 #include "Log.h"
 #include "UIBoxButton.h"

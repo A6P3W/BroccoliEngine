@@ -1,6 +1,9 @@
 ﻿#include "InputMapper.h"
 
+#include "GamePadDevice.h"
 #include "InputDevice.h"
+#include "KeyboardDevice.h"
+#include "MouseDevice.h"
 #include "UMath.h"
 
 struct InputMapper::Impl {
@@ -11,91 +14,139 @@ struct InputMapper::Impl {
 InputMapper::InputMapper() : ImplPtr(new Impl()) {}
 
 InputMapper::~InputMapper() { delete ImplPtr; }
+
 void InputMapper::AddMapping(
-    const std::string& actionName,
-    InputDevice* device,
-    int code,
-    const std::string& modifierAction,
-    float scale
+    const std::string& ActionName,
+    KeyboardDevice* Device,
+    EKey Key,
+    const std::string& ModifierAction,
+    float Scale
 ) {
-  ImplPtr->ButtonBindings[actionName].push_back({device, code, scale, modifierAction});
+  AddButtonMapping(ActionName, Device, static_cast<int>(Key), ModifierAction, Scale);
 }
+
+void InputMapper::AddMapping(
+    const std::string& ActionName,
+    MouseDevice* Device,
+    EMouseButton Button,
+    const std::string& ModifierAction,
+    float Scale
+) {
+  AddButtonMapping(ActionName, Device, static_cast<int>(Button), ModifierAction, Scale);
+}
+
+void InputMapper::AddMapping(
+    const std::string& ActionName,
+    GamepadDevice* Device,
+    EGamepadButton Button,
+    const std::string& ModifierAction,
+    float Scale
+) {
+  AddButtonMapping(ActionName, Device, static_cast<int>(Button), ModifierAction, Scale);
+}
+
+void InputMapper::AddButtonMapping(
+    const std::string& ActionName,
+    InputDevice* Device,
+    int Code,
+    const std::string& ModifierAction,
+    float Scale
+) {
+  if (Device == nullptr) {
+    return;
+  }
+  ImplPtr->ButtonBindings[ActionName].push_back({Device, Code, Scale, ModifierAction});
+}
+
 void InputMapper::AddAxisMapping(
-    const std::string& actionName, InputDevice* device, int axisId, float scale
+    const std::string& ActionName, InputDevice* Device, int AxisId, float Scale
 ) {
-  ImplPtr->AxisBindings[actionName].push_back({device, axisId, scale});
+  if (Device == nullptr) {
+    return;
+  }
+  ImplPtr->AxisBindings[ActionName].push_back({Device, AxisId, Scale});
 }
-void InputMapper::RemoveMapping(const std::string& actionName) {
-  ImplPtr->ButtonBindings.erase(actionName);
-  ImplPtr->AxisBindings.erase(actionName);
+
+void InputMapper::RemoveMapping(const std::string& ActionName) {
+  ImplPtr->ButtonBindings.erase(ActionName);
+  ImplPtr->AxisBindings.erase(ActionName);
 }
-bool InputMapper::GetPressStart(const std::string& actionName) const {
-  auto it = ImplPtr->ButtonBindings.find(actionName);
-  if (it == ImplPtr->ButtonBindings.end()) return false;
-  for (const auto& b : it->second) {
-    bool bModifierMet = true;
-    if (!b.ModifierAction.empty()) {
-      bModifierMet = GetPressing(b.ModifierAction);
+
+bool InputMapper::GetPressStart(const std::string& ActionName) const {
+  const auto It = ImplPtr->ButtonBindings.find(ActionName);
+  if (It == ImplPtr->ButtonBindings.end()) return false;
+  for (const auto& Binding : It->second) {
+    bool ModifierMet = true;
+    if (!Binding.ModifierAction.empty()) {
+      ModifierMet = GetPressing(Binding.ModifierAction);
     }
-    if (bModifierMet && b.Device->GetPressStart(b.Code)) return true;
+    if (ModifierMet && Binding.Device->GetPressStart(Binding.Code)) return true;
   }
   return false;
 }
-bool InputMapper::GetPressing(const std::string& actionName) const {
-  auto it = ImplPtr->ButtonBindings.find(actionName);
-  if (it == ImplPtr->ButtonBindings.end()) return false;
-  for (const auto& b : it->second) {
-    bool bModifierMet = true;
-    if (!b.ModifierAction.empty()) {
-      bModifierMet = GetPressing(b.ModifierAction);
+
+bool InputMapper::GetPressing(const std::string& ActionName) const {
+  const auto It = ImplPtr->ButtonBindings.find(ActionName);
+  if (It == ImplPtr->ButtonBindings.end()) return false;
+  for (const auto& Binding : It->second) {
+    bool ModifierMet = true;
+    if (!Binding.ModifierAction.empty()) {
+      ModifierMet = GetPressing(Binding.ModifierAction);
     }
-    if (bModifierMet && b.Device->GetPressing(b.Code)) return true;
+    if (ModifierMet && Binding.Device->GetPressing(Binding.Code)) return true;
   }
   return false;
 }
-bool InputMapper::GetRelease(const std::string& actionName) const {
-  auto it = ImplPtr->ButtonBindings.find(actionName);
-  if (it == ImplPtr->ButtonBindings.end()) return false;
-  for (const auto& b : it->second) {
-    bool bModifierMet = true;
-    if (!b.ModifierAction.empty()) {
-      bModifierMet = GetPressing(b.ModifierAction);
+
+bool InputMapper::GetRelease(const std::string& ActionName) const {
+  const auto It = ImplPtr->ButtonBindings.find(ActionName);
+  if (It == ImplPtr->ButtonBindings.end()) return false;
+  for (const auto& Binding : It->second) {
+    bool ModifierMet = true;
+    if (!Binding.ModifierAction.empty()) {
+      ModifierMet = GetPressing(Binding.ModifierAction);
     }
-    if (bModifierMet && b.Device->GetRelease(b.Code)) return true;
+    if (ModifierMet && Binding.Device->GetRelease(Binding.Code)) return true;
   }
   return false;
 }
-float InputMapper::GetAxisValue(const std::string& actionName) const {
-  float result = 0.0f;
-  auto it = ImplPtr->AxisBindings.find(actionName);
-  if (it != ImplPtr->AxisBindings.end())
-    for (auto& b : it->second) result += b.Device->GetAxis(b.AxisId) * b.Scale;
-  // ボタンでの軸エミュレート
-  auto bit = ImplPtr->ButtonBindings.find(actionName);
-  if (bit != ImplPtr->ButtonBindings.end())
-    for (auto& b : bit->second) {
-      if (b.Device->GetPressing(b.Code)) result += b.Scale;
+
+float InputMapper::GetAxisValue(const std::string& ActionName) const {
+  float Result = 0.0f;
+  const auto AxisIt = ImplPtr->AxisBindings.find(ActionName);
+  if (AxisIt != ImplPtr->AxisBindings.end()) {
+    for (const auto& Binding : AxisIt->second) {
+      Result += Binding.Device->GetAxis(Binding.AxisId) * Binding.Scale;
     }
-  return result;
+  }
+
+  const auto ButtonIt = ImplPtr->ButtonBindings.find(ActionName);
+  if (ButtonIt != ImplPtr->ButtonBindings.end()) {
+    for (const auto& Binding : ButtonIt->second) {
+      if (Binding.Device->GetPressing(Binding.Code)) Result += Binding.Scale;
+    }
+  }
+  return Result;
 }
 
 FVector2D InputMapper::GetAxis2DValue(
-    const std::string& actionNameX, const std::string& actionNameY
+    const std::string& ActionNameX, const std::string& ActionNameY
 ) const {
-  FVector2D result = FVector2D::ZeroVector();
-  result.X = GetAxisValue(actionNameX);
-  result.Y = GetAxisValue(actionNameY);
-  return result;
+  FVector2D Result = FVector2D::ZeroVector();
+  Result.X = GetAxisValue(ActionNameX);
+  Result.Y = GetAxisValue(ActionNameY);
+  return Result;
 }
+
 EInputDeviceType InputMapper::GetPressStartDevice(const std::string& ActionName) const {
-  auto It = ImplPtr->ButtonBindings.find(ActionName);
+  const auto It = ImplPtr->ButtonBindings.find(ActionName);
   if (It == ImplPtr->ButtonBindings.end()) return EInputDeviceType::None;
   for (const auto& Binding : It->second) {
-    bool bModifierMet = true;
+    bool ModifierMet = true;
     if (!Binding.ModifierAction.empty()) {
-      bModifierMet = GetPressing(Binding.ModifierAction);
+      ModifierMet = GetPressing(Binding.ModifierAction);
     }
-    if (bModifierMet && Binding.Device->GetPressStart(Binding.Code)) {
+    if (ModifierMet && Binding.Device->GetPressStart(Binding.Code)) {
       return Binding.Device->GetDeviceType();
     }
   }
@@ -103,14 +154,14 @@ EInputDeviceType InputMapper::GetPressStartDevice(const std::string& ActionName)
 }
 
 EInputDeviceType InputMapper::GetPressingDevice(const std::string& ActionName) const {
-  auto It = ImplPtr->ButtonBindings.find(ActionName);
+  const auto It = ImplPtr->ButtonBindings.find(ActionName);
   if (It == ImplPtr->ButtonBindings.end()) return EInputDeviceType::None;
   for (const auto& Binding : It->second) {
-    bool bModifierMet = true;
+    bool ModifierMet = true;
     if (!Binding.ModifierAction.empty()) {
-      bModifierMet = GetPressing(Binding.ModifierAction);
+      ModifierMet = GetPressing(Binding.ModifierAction);
     }
-    if (bModifierMet && Binding.Device->GetPressing(Binding.Code)) {
+    if (ModifierMet && Binding.Device->GetPressing(Binding.Code)) {
       return Binding.Device->GetDeviceType();
     }
   }
@@ -118,14 +169,14 @@ EInputDeviceType InputMapper::GetPressingDevice(const std::string& ActionName) c
 }
 
 EInputDeviceType InputMapper::GetReleaseDevice(const std::string& ActionName) const {
-  auto It = ImplPtr->ButtonBindings.find(ActionName);
+  const auto It = ImplPtr->ButtonBindings.find(ActionName);
   if (It == ImplPtr->ButtonBindings.end()) return EInputDeviceType::None;
   for (const auto& Binding : It->second) {
-    bool bModifierMet = true;
+    bool ModifierMet = true;
     if (!Binding.ModifierAction.empty()) {
-      bModifierMet = GetPressing(Binding.ModifierAction);
+      ModifierMet = GetPressing(Binding.ModifierAction);
     }
-    if (bModifierMet && Binding.Device->GetRelease(Binding.Code)) {
+    if (ModifierMet && Binding.Device->GetRelease(Binding.Code)) {
       return Binding.Device->GetDeviceType();
     }
   }
@@ -133,7 +184,7 @@ EInputDeviceType InputMapper::GetReleaseDevice(const std::string& ActionName) co
 }
 
 EInputDeviceType InputMapper::GetAxisValueDevice(const std::string& ActionName) const {
-  auto AxisIt = ImplPtr->AxisBindings.find(ActionName);
+  const auto AxisIt = ImplPtr->AxisBindings.find(ActionName);
   if (AxisIt != ImplPtr->AxisBindings.end()) {
     for (const auto& Binding : AxisIt->second) {
       if (Binding.Device->GetAxis(Binding.AxisId) * Binding.Scale != 0.0f) {
@@ -142,7 +193,7 @@ EInputDeviceType InputMapper::GetAxisValueDevice(const std::string& ActionName) 
     }
   }
 
-  auto ButtonIt = ImplPtr->ButtonBindings.find(ActionName);
+  const auto ButtonIt = ImplPtr->ButtonBindings.find(ActionName);
   if (ButtonIt != ImplPtr->ButtonBindings.end()) {
     for (const auto& Binding : ButtonIt->second) {
       if (Binding.Device->GetPressing(Binding.Code) && Binding.Scale != 0.0f) {
@@ -156,7 +207,7 @@ EInputDeviceType InputMapper::GetAxisValueDevice(const std::string& ActionName) 
 EInputDeviceType InputMapper::GetAxis2DValueDevice(
     const std::string& ActionNameX, const std::string& ActionNameY
 ) const {
-  EInputDeviceType DeviceType = GetAxisValueDevice(ActionNameX);
+  const EInputDeviceType DeviceType = GetAxisValueDevice(ActionNameX);
   if (DeviceType != EInputDeviceType::None) return DeviceType;
   return GetAxisValueDevice(ActionNameY);
 }
