@@ -497,4 +497,5 @@ Build/ConvertedLevels/
 /PrivateConfig
 
 **.repomixignore
-
+/CMakeUserPresets.json
+/.vs/

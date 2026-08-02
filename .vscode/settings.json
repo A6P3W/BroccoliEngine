@@ -1,8 +1,6 @@
 {
-  "cmake.generatorPlatform": "x64",
-  "cmake.configureArgs": [
-    "-DVCPKG_TARGET_TRIPLET=x64-windows-static-md"
-  ],
+  "cmake.useCMakePresets": "always",
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
