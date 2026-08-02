@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+  <PropertyGroup>
+    <BroccoliPythonExecutable Condition="'$(BroccoliPythonExecutable)' == ''">python</BroccoliPythonExecutable>
+  </PropertyGroup>
+
   <!-- ビルド完了後に自動実行 -->
   <Target Name="BroccoliEngineAfterBuild" AfterTargets="Build">
     <Message Importance="high" Text="[Broccoli Engine] --- Post-Build Processing ---" />
@@ -65,6 +69,10 @@
     </ItemGroup>
     <Copy SourceFiles="@(ResourcesToPublish)" DestinationFolder="$(BroccoliPublishRootDir)Resources\%(RecursiveDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(OnlineResourcesToPublish)" DestinationFolder="$(BroccoliPublishRootDir)Resources-EOS\%(RecursiveDir)" SkipUnchangedFiles="true" />
+
+    <!-- Publish用レベルの変換（.BLevel.json は変換後に削除） -->
+    <Exec Command="&quot;$(BroccoliPythonExecutable)&quot; &quot;$(MSBuildThisFileDirectory)..\Tools\ConvertLevels.py&quot; --input &quot;$(BroccoliPublishRootDir)Resources&quot; --output &quot;$(BroccoliPublishRootDir)Resources&quot; --force --verify --delete-source --clean"
+          Condition="Exists('$(BroccoliPublishRootDir)Resources\')" />
 
     <!-- Bootstrap (ランチャー) のコンパイル (前のターンのパス修正版) -->
     <Exec Command="&quot;$(VC_ExecutablePath_x64_x64)\cl.exe&quot; /nologo /O2 /EHsc /std:c++17 /I &quot;$(VC_IncludePath.Split(';')[0].TrimEnd('\'))&quot; /I &quot;$(WindowsSDK_IncludePath.Split(';')[0].TrimEnd('\'))&quot; /Fo&quot;$(IntDir)\&quot; /Fe&quot;$(ActualBootstrapExe)&quot; &quot;$(BroccoliBootstrapCpp)&quot; /link /LIBPATH:&quot;$(VC_LibraryPath_x64.Split(';')[0].TrimEnd('\'))&quot; /LIBPATH:&quot;$(WindowsSDK_LibraryPath_x64.Split(';')[0].TrimEnd('\'))&quot; user32.lib shlwapi.lib shell32.lib"

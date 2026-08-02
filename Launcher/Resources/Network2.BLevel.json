@@ -1,0 +1,175 @@
+{
+  "actors": [
+    {
+      "class": "ANetworkTestBreakableActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -435.0,
+          "y": -340.0
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ANetworkTestBreakableActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -441.0,
+          "y": -257.0
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ANetworkTestBreakableActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -441.0,
+          "y": -174.0
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ANetworkTestBreakableActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -449.0,
+          "y": -88.0
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ANetworkTestBreakableActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -445.0,
+          "y": 7.0
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ANetworkTestBreakableActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -452.0,
+          "y": 97.0
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ANetworkTestBreakableActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -451.0,
+          "y": 161.0
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ANetworkTestBreakableActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -436.0,
+          "y": -406.0
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultCircleCollisionActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -192.73626708984375,
+          "y": -229.16897583007812
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultCircleCollisionActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -104.50143432617188,
+          "y": -259.3251953125
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultRectangleCollisionActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": 255.13922119140625,
+          "y": -225.8182830810547
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultRectangleCollisionActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": 321.0361328125,
+          "y": -154.3369140625
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultLineCollisionActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -119.02108764648438,
+          "y": 127.12100219726562
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultLineCollisionActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -27.435577392578125,
+          "y": 92.49722290039062
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    }
+  ],
+  "meta": {
+    "game_mode": "ANetworkTestLevel2GameMode"
+  }
+}

@@ -9,6 +9,7 @@
 #include "EditorPawn.h"
 #include "EditorSelectPointComponent.h"
 #include "EditorUI.h"
+#include "FileDialog.h"
 #include "InputManager.h"
 #include "Log.h"
 #include "MouseDevice.h"
@@ -135,11 +136,39 @@ bool EditorMode::LoadLevel(const std::string& filePath) {
   return true;
 }
 bool EditorMode::QuickSaveLevel() {
-  if (CurrentLevelPath == "") {
-    return false;
+  if (CurrentLevelPath.empty()) {
+    const std::string FilePath = FileDialog::SaveFile(
+        "Broccoli Level JSON (*.BLevel.json)\0*.BLevel.json\0All Files (*.*)\0*.*\0", "BLevel.json"
+    );
+    if (FilePath.empty()) {
+      return false;
+    }
+    std::string PathStr = FilePath;
+    std::string LowerPath = PathStr;
+    std::transform(
+        LowerPath.begin(), LowerPath.end(), LowerPath.begin(), [](unsigned char Character) {
+          return static_cast<char>(std::tolower(Character));
+        }
+    );
+    const std::string JsonSuffix = ".blevel.json";
+    const std::string BLevelSuffix = ".blevel";
+    if (LowerPath.size() >= JsonSuffix.size() &&
+        LowerPath.compare(LowerPath.size() - JsonSuffix.size(), JsonSuffix.size(), JsonSuffix) ==
+            0) {
+      PathStr = PathStr.substr(0, PathStr.size() - JsonSuffix.size()) + ".BLevel.json";
+    } else if (
+        LowerPath.size() >= BLevelSuffix.size() &&
+        LowerPath.compare(
+            LowerPath.size() - BLevelSuffix.size(), BLevelSuffix.size(), BLevelSuffix
+        ) == 0
+    ) {
+      PathStr = PathStr.substr(0, PathStr.size() - BLevelSuffix.size()) + ".BLevel.json";
+    } else {
+      PathStr += ".BLevel.json";
+    }
+    return SaveLevel(PathStr);
   }
-  SaveLevel(CurrentLevelPath);
-  return true;
+  return SaveLevel(CurrentLevelPath);
 }
 std::string EditorMode::PendingLoadPath = "";
 void EditorMode::Simulate() { GetWorld()->SetSimulating(!GetWorld()->IsSimulating()); }
