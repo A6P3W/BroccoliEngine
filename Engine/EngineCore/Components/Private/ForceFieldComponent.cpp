@@ -1,4 +1,4 @@
-﻿#include "ForceFieldComponent.h"
+#include "ForceFieldComponent.h"
 
 #include <algorithm>
 #include <cmath>

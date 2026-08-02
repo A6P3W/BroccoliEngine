@@ -1,4 +1,4 @@
-﻿#include "AutomationDiscoveryAdapter.h"
+#include "AutomationDiscoveryAdapter.h"
 
 #include <algorithm>
 #include "ActorRegistry.h"

@@ -1,4 +1,4 @@
-﻿#include "NetworkTestRepComponent.h"
+#include "NetworkTestRepComponent.h"
 
 #include "Actor.h"
 #include "Log.h"

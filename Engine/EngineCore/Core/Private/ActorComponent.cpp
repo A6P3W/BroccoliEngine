@@ -1,4 +1,4 @@
-﻿#include <algorithm>
+#include <algorithm>
 #include <utility>
 
 #include "Actor.h"

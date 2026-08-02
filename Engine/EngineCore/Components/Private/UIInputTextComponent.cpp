@@ -1,4 +1,4 @@
-﻿#include "UIInputTextComponent.h"
+#include "UIInputTextComponent.h"
 
 #include <algorithm>
 #include <cctype>

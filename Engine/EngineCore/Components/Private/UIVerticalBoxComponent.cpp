@@ -1,4 +1,4 @@
-﻿#include "UIVerticalBoxComponent.h"
+#include "UIVerticalBoxComponent.h"
 
 #include <algorithm>
 #include <vector>

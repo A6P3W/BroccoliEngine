@@ -1,4 +1,4 @@
-﻿#include "AutomationTypes.h"
+#include "AutomationTypes.h"
 
 #include <string>
 #include <utility>

@@ -4,6 +4,6 @@ ColumnLimit: 100
 AlignAfterOpenBracket: BlockIndent
 BinPackArguments: false
 BinPackParameters: false
-LineEnding: CRLF
+LineEnding: LF
 IndentWidth: 2
 ReflowComments: false

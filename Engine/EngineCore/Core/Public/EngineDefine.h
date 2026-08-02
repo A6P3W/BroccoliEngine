@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 constexpr bool IsDebug =
 #if defined _DEBUG

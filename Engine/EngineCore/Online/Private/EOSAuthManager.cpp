@@ -1,4 +1,4 @@
-﻿#include "EOSAuthManager.h"
+#include "EOSAuthManager.h"
 
 #include <array>
 #include <utility>

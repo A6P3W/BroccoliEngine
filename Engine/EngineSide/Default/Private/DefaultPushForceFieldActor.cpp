@@ -1,4 +1,4 @@
-﻿#include "DefaultPushForceFieldActor.h"
+#include "DefaultPushForceFieldActor.h"
 
 #include "ForceFieldComponent.h"
 

@@ -1,4 +1,4 @@
-﻿#include "SimpleCrypto.h"
+#include "SimpleCrypto.h"
 
 #include <cstddef>
 

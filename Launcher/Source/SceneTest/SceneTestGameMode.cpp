@@ -1,4 +1,4 @@
-﻿#include "SceneTestGameMode.h"
+#include "SceneTestGameMode.h"
 
 #include "../Common/LauncherPlayerController.h"
 

@@ -1,4 +1,4 @@
-﻿#include "AutomationWorldAdapter.h"
+#include "AutomationWorldAdapter.h"
 
 #include <algorithm>
 #include <cmath>

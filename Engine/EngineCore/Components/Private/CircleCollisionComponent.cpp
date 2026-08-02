@@ -1,4 +1,4 @@
-﻿#include "CircleCollisionComponent.h"
+#include "CircleCollisionComponent.h"
 
 #include <RenderSystem.h>
 

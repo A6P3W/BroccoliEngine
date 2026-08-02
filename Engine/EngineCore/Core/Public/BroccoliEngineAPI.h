@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #if defined(_WIN32)
   #if defined(BROCCOLI_ENGINE_BUILD)

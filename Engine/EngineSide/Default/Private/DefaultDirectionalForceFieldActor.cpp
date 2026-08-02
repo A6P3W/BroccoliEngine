@@ -1,4 +1,4 @@
-﻿#include "DefaultDirectionalForceFieldActor.h"
+#include "DefaultDirectionalForceFieldActor.h"
 
 #include "ForceFieldComponent.h"
 

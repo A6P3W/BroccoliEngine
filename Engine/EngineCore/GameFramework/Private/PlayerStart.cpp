@@ -1,4 +1,4 @@
-﻿#include "PlayerStart.h"
+#include "PlayerStart.h"
 
 #include "SceneComponent.h"
 #ifdef _EDITOR

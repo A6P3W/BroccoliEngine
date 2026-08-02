@@ -1,4 +1,4 @@
-﻿#include "NetMovementComponent.h"
+#include "NetMovementComponent.h"
 
 #include <algorithm>
 #include <vector>

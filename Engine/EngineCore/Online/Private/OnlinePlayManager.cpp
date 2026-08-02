@@ -1,4 +1,4 @@
-﻿#include "OnlinePlayManager.h"
+#include "OnlinePlayManager.h"
 
 #include <algorithm>
 #include <utility>

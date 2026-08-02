@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <eos_connect.h>
 #include <eos_lobby.h>
 #include <eos_p2p.h>

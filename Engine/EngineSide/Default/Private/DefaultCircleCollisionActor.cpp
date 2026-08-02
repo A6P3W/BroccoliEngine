@@ -1,4 +1,4 @@
-﻿#include "DefaultCircleCollisionActor.h"
+#include "DefaultCircleCollisionActor.h"
 
 #include <CircleCollisionComponent.h>
 

@@ -1,4 +1,4 @@
-﻿#include "BasicGameplayPawn.h"
+#include "BasicGameplayPawn.h"
 
 #include "CircleCollisionComponent.h"
 #include "EnhancedInputComponent.h"

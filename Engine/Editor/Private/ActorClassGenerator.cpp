@@ -1,4 +1,4 @@
-﻿#include "ActorClassGenerator.h"
+#include "ActorClassGenerator.h"
 
 #include <algorithm>
 #include <cctype>

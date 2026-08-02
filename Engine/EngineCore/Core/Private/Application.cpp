@@ -1,4 +1,4 @@
-﻿#include "Application.h"
+#include "Application.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

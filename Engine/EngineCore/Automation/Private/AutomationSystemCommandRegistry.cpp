@@ -1,4 +1,4 @@
-﻿#include "AutomationSystemCommandRegistry.h"
+#include "AutomationSystemCommandRegistry.h"
 
 #include <utility>
 

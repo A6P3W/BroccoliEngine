@@ -1,4 +1,4 @@
-﻿#include "InputDevice.h"
+#include "InputDevice.h"
 
 struct InputDevice::Impl {};
 

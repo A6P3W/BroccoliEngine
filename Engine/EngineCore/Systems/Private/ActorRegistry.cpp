@@ -1,4 +1,4 @@
-﻿#include "ActorRegistry.h"
+#include "ActorRegistry.h"
 
 struct ActorRegistry::Impl {
   std::unordered_map<std::string, FactoryFn> Factories;

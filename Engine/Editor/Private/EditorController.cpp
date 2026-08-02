@@ -1,4 +1,4 @@
-﻿#include "EditorController.h"
+#include "EditorController.h"
 
 #include "EditorMode.h"
 #include "EnhancedInputComponent.h"

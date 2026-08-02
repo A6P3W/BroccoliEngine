@@ -1,4 +1,4 @@
-﻿#include "CanvasTestActor.h"
+#include "CanvasTestActor.h"
 
 #include "CameraComponent.h"
 #include "CanvasComponent.h"

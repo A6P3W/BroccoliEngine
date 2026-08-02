@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "WidgetBase.h"
 // 各種 UI コントロール（ボタン、トグル、テキスト入力等）の配置・制御を行うメイン UI ウィジェットアクター
 class AWidgetTestUIMain : public AWidgetBase {

@@ -1,4 +1,4 @@
-﻿#include <enet/enet.h>
+#include <enet/enet.h>
 
 #include <array>
 #include <string>

@@ -1,4 +1,4 @@
-﻿#include "WidgetTestGameMode.h"
+#include "WidgetTestGameMode.h"
 
 #include <PlayerController.h>
 #include <SpriteComponent.h>

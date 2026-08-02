@@ -1,4 +1,4 @@
-﻿#include "PlayerController.h"
+#include "PlayerController.h"
 
 #include <EnhancedInputComponent.h>
 #include <GamePadDevice.h>
