@@ -48,7 +48,8 @@ std::string ResolveRuntimeLevelPath(const std::string& LevelPath) {
     return NormalizeRuntimeLevelPath(InputPath.string());
   }
 
-  const std::filesystem::path JsonPath = InputPath.string() + ".json";
+  std::filesystem::path JsonPath = InputPath;
+  JsonPath.replace_extension(".BLevel.json");
   ErrorCode.clear();
   if (std::filesystem::exists(JsonPath, ErrorCode)) {
     return NormalizeRuntimeLevelPath(JsonPath.string());

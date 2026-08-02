@@ -71,7 +71,7 @@
     <Copy SourceFiles="@(OnlineResourcesToPublish)" DestinationFolder="$(BroccoliPublishRootDir)Resources-EOS\%(RecursiveDir)" SkipUnchangedFiles="true" />
 
     <!-- Publish用レベルの変換（.BLevel.json は変換後に削除） -->
-    <Exec Command="&quot;$(BroccoliPythonExecutable)&quot; &quot;$(MSBuildThisFileDirectory)..\Tools\ConvertLevels.py&quot; --input &quot;$(BroccoliPublishRootDir)Resources&quot; --output &quot;$(BroccoliPublishRootDir)Resources&quot; --force --verify --delete-source"
+    <Exec Command="&quot;$(BroccoliPythonExecutable)&quot; &quot;$(MSBuildThisFileDirectory)..\Tools\ConvertLevels.py&quot; --input &quot;$(BroccoliPublishRootDir)Resources&quot; --output &quot;$(BroccoliPublishRootDir)Resources&quot; --force --verify --delete-source --clean"
           Condition="Exists('$(BroccoliPublishRootDir)Resources\')" />
 
     <!-- Bootstrap (ランチャー) のコンパイル (前のターンのパス修正版) -->

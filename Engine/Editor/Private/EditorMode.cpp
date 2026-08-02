@@ -143,7 +143,30 @@ bool EditorMode::QuickSaveLevel() {
     if (FilePath.empty()) {
       return false;
     }
-    return SaveLevel(FilePath);
+    std::string PathStr = FilePath;
+    std::string LowerPath = PathStr;
+    std::transform(
+        LowerPath.begin(), LowerPath.end(), LowerPath.begin(), [](unsigned char Character) {
+          return static_cast<char>(std::tolower(Character));
+        }
+    );
+    const std::string JsonSuffix = ".blevel.json";
+    const std::string BLevelSuffix = ".blevel";
+    if (LowerPath.size() >= JsonSuffix.size() &&
+        LowerPath.compare(LowerPath.size() - JsonSuffix.size(), JsonSuffix.size(), JsonSuffix) ==
+            0) {
+      PathStr = PathStr.substr(0, PathStr.size() - JsonSuffix.size()) + ".BLevel.json";
+    } else if (
+        LowerPath.size() >= BLevelSuffix.size() &&
+        LowerPath.compare(
+            LowerPath.size() - BLevelSuffix.size(), BLevelSuffix.size(), BLevelSuffix
+        ) == 0
+    ) {
+      PathStr = PathStr.substr(0, PathStr.size() - BLevelSuffix.size()) + ".BLevel.json";
+    } else {
+      PathStr += ".BLevel.json";
+    }
+    return SaveLevel(PathStr);
   }
   return SaveLevel(CurrentLevelPath);
 }
