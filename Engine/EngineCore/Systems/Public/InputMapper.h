@@ -1,15 +1,17 @@
 ﻿#pragma once
+
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "BroccoliEngineAPI.h"
 #include "InputDevice.h"
+#include "InputTypes.h"
 #include "UMath.h"
+
 struct InputAction {
   static constexpr auto Move = "Move";
   static constexpr auto Look = "Look";
-
   static constexpr auto Interact = "Interact";
   static constexpr auto Cancel = "Cancel";
   static constexpr auto Pause = "Pause";
@@ -25,7 +27,6 @@ struct InputActionMouse {
   static constexpr auto MouseRight = "MouseRight";
   static constexpr auto Wheel = "Wheel";
 };
-
 struct EditorInputAction {
   static constexpr auto SelectMode = "SelectMode";
   static constexpr auto MoveMode = "MoveMode";
@@ -46,6 +47,10 @@ struct UIActionLower {
   static constexpr auto MoveY = "UI_MoveY";
 };
 
+class GamepadDevice;
+class KeyboardDevice;
+class MouseDevice;
+
 class BROCCOLI_ENGINE_API InputMapper {
  public:
   InputMapper();
@@ -54,24 +59,37 @@ class BROCCOLI_ENGINE_API InputMapper {
   InputMapper& operator=(const InputMapper&) = delete;
 
   void AddMapping(
-      const std::string& actionName,
-      InputDevice* device,
-      int code,
-      const std::string& modifierAction = "",
-      float scale = 1.0f
+      const std::string& ActionName,
+      KeyboardDevice* Device,
+      EKey Key,
+      const std::string& ModifierAction = "",
+      float Scale = 1.0f
+  );
+  void AddMapping(
+      const std::string& ActionName,
+      MouseDevice* Device,
+      EMouseButton Button,
+      const std::string& ModifierAction = "",
+      float Scale = 1.0f
+  );
+  void AddMapping(
+      const std::string& ActionName,
+      GamepadDevice* Device,
+      EGamepadButton Button,
+      const std::string& ModifierAction = "",
+      float Scale = 1.0f
   );
 
   void AddAxisMapping(
-      const std::string& actionName, InputDevice* device, int axisId, float scale = 1.0f
+      const std::string& ActionName, InputDevice* Device, int AxisId, float Scale = 1.0f
   );
+  void RemoveMapping(const std::string& ActionName);
 
-  void RemoveMapping(const std::string& actionName);
-
-  bool GetPressStart(const std::string& actionName) const;
-  bool GetPressing(const std::string& actionName) const;
-  bool GetRelease(const std::string& actionName) const;
-  float GetAxisValue(const std::string& actionName) const;
-  FVector2D GetAxis2DValue(const std::string& actionNameX, const std::string& actionNameY) const;
+  bool GetPressStart(const std::string& ActionName) const;
+  bool GetPressing(const std::string& ActionName) const;
+  bool GetRelease(const std::string& ActionName) const;
+  float GetAxisValue(const std::string& ActionName) const;
+  FVector2D GetAxis2DValue(const std::string& ActionNameX, const std::string& ActionNameY) const;
   EInputDeviceType GetPressStartDevice(const std::string& ActionName) const;
   EInputDeviceType GetPressingDevice(const std::string& ActionName) const;
   EInputDeviceType GetReleaseDevice(const std::string& ActionName) const;
@@ -92,6 +110,15 @@ class BROCCOLI_ENGINE_API InputMapper {
     int AxisId;
     float Scale;
   };
+
+  void AddButtonMapping(
+      const std::string& ActionName,
+      InputDevice* Device,
+      int Code,
+      const std::string& ModifierAction,
+      float Scale
+  );
+
   struct Impl;
   Impl* ImplPtr = nullptr;
 };

@@ -1,6 +1,5 @@
 ﻿#include "PlayerController.h"
 
-#include <DxLib.h>
 #include <EnhancedInputComponent.h>
 #include <GamePadDevice.h>
 #include <InputDevice.h>
@@ -63,8 +62,11 @@ void APlayerController::OnUpdate(float DeltaTime) {
 
   if (bIsLocallyControlled) {
     if (MEnhancedInputComponent* InputComp = GetInputComponent()) {
-      bool bAllowUI = (ImplPtr->InputMode == EInputMode::UIOnly || ImplPtr->InputMode == EInputMode::GameAndUI);
-      bool bAllowGame = (ImplPtr->InputMode == EInputMode::GameOnly || ImplPtr->InputMode == EInputMode::GameAndUI);
+      bool bAllowUI =
+          (ImplPtr->InputMode == EInputMode::UIOnly || ImplPtr->InputMode == EInputMode::GameAndUI);
+      bool bAllowGame =
+          (ImplPtr->InputMode == EInputMode::GameOnly ||
+           ImplPtr->InputMode == EInputMode::GameAndUI);
       InputComp->ProcessInputBindings(*ImplPtr->InputMapperPtr, bAllowUI, bAllowGame);
     }
   }
@@ -100,33 +102,39 @@ void APlayerController::SetupInputMappings() {
 
   if (kb) {
     // ゲーム移動
-    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_A, "", 1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveX, kb, KEY_INPUT_D, "", -1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_W, "", 1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveY, kb, KEY_INPUT_S, "", -1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveX, kb, EKey::A, "", 1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveX, kb, EKey::D, "", -1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveY, kb, EKey::W, "", 1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveY, kb, EKey::S, "", -1.0f);
 
     // UI操作
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_A, "", 1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_D, "", -1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_W, "", 1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_S, "", -1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_UP, "", 1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, KEY_INPUT_DOWN, "", -1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_LEFT, "", 1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, KEY_INPUT_RIGHT, "", -1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, EKey::A, "", 1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, EKey::D, "", -1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, EKey::W, "", 1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, EKey::S, "", -1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, EKey::Up, "", 1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveY, kb, EKey::Down, "", -1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, EKey::Left, "", 1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveX, kb, EKey::Right, "", -1.0f);
 
-    ImplPtr->InputMapperPtr->AddMapping(InputAction::Interact, kb, KEY_INPUT_F);
-    ImplPtr->InputMapperPtr->AddMapping(UIAction::Submit, kb, KEY_INPUT_SPACE);
-    ImplPtr->InputMapperPtr->AddMapping(UIAction::Submit, kb, KEY_INPUT_RETURN);
-    ImplPtr->InputMapperPtr->AddMapping(UIAction::Cancel, kb, KEY_INPUT_ESCAPE);
-    ImplPtr->InputMapperPtr->AddMapping(InputAction::Pause, kb, KEY_INPUT_ESCAPE);
+    ImplPtr->InputMapperPtr->AddMapping(InputAction::Interact, kb, EKey::F);
+    ImplPtr->InputMapperPtr->AddMapping(UIAction::Submit, kb, EKey::Space);
+    ImplPtr->InputMapperPtr->AddMapping(UIAction::Submit, kb, EKey::Enter);
+    ImplPtr->InputMapperPtr->AddMapping(UIAction::Cancel, kb, EKey::Escape);
+    ImplPtr->InputMapperPtr->AddMapping(InputAction::Pause, kb, EKey::Escape);
   }
   if (mouse) {
-    ImplPtr->InputMapperPtr->AddMapping(InputActionMouse::MouseLeft, mouse, MOUSE_INPUT_LEFT);
-    ImplPtr->InputMapperPtr->AddMapping(InputActionMouse::MouseRight, mouse, MOUSE_INPUT_RIGHT);
-    ImplPtr->InputMapperPtr->AddAxisMapping(InputActionMouse::Wheel, mouse, MouseDevice::AxisID::Wheel);
-    ImplPtr->InputMapperPtr->AddAxisMapping(InputActionLower::LookX, mouse, MouseDevice::AxisID::MouseX);
-    ImplPtr->InputMapperPtr->AddAxisMapping(InputActionLower::LookY, mouse, MouseDevice::AxisID::MouseY);
+    ImplPtr->InputMapperPtr->AddMapping(InputActionMouse::MouseLeft, mouse, EMouseButton::Left);
+    ImplPtr->InputMapperPtr->AddMapping(InputActionMouse::MouseRight, mouse, EMouseButton::Right);
+    ImplPtr->InputMapperPtr->AddAxisMapping(
+        InputActionMouse::Wheel, mouse, MouseDevice::AxisID::Wheel
+    );
+    ImplPtr->InputMapperPtr->AddAxisMapping(
+        InputActionLower::LookX, mouse, MouseDevice::AxisID::MouseX
+    );
+    ImplPtr->InputMapperPtr->AddAxisMapping(
+        InputActionLower::LookY, mouse, MouseDevice::AxisID::MouseY
+    );
   }
   if (pad) {
     // ゲーム移動
@@ -144,14 +152,22 @@ void APlayerController::SetupInputMappings() {
     ImplPtr->InputMapperPtr->AddAxisMapping(
         UIActionLower::MoveY, pad, static_cast<int>(AxisID::LeftY), 1.0f
     );
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveY, pad, PAD_INPUT_UP, "", 1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveY, pad, PAD_INPUT_DOWN, "", -1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveX, pad, PAD_INPUT_LEFT, "", 1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(UIActionLower::MoveX, pad, PAD_INPUT_RIGHT, "", -1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(
+        UIActionLower::MoveY, pad, EGamepadButton::DPadUp, "", 1.0f
+    );
+    ImplPtr->InputMapperPtr->AddMapping(
+        UIActionLower::MoveY, pad, EGamepadButton::DPadDown, "", -1.0f
+    );
+    ImplPtr->InputMapperPtr->AddMapping(
+        UIActionLower::MoveX, pad, EGamepadButton::DPadLeft, "", 1.0f
+    );
+    ImplPtr->InputMapperPtr->AddMapping(
+        UIActionLower::MoveX, pad, EGamepadButton::DPadRight, "", -1.0f
+    );
 
-    ImplPtr->InputMapperPtr->AddMapping(InputAction::Interact, pad, PAD_INPUT_1);
-    ImplPtr->InputMapperPtr->AddMapping(UIAction::Submit, pad, PAD_INPUT_1);
-    ImplPtr->InputMapperPtr->AddMapping(UIAction::Cancel, pad, PAD_INPUT_2);
-    ImplPtr->InputMapperPtr->AddMapping(InputAction::Pause, pad, PAD_INPUT_8);
+    ImplPtr->InputMapperPtr->AddMapping(InputAction::Interact, pad, EGamepadButton::South);
+    ImplPtr->InputMapperPtr->AddMapping(UIAction::Submit, pad, EGamepadButton::South);
+    ImplPtr->InputMapperPtr->AddMapping(UIAction::Cancel, pad, EGamepadButton::East);
+    ImplPtr->InputMapperPtr->AddMapping(InputAction::Pause, pad, EGamepadButton::Start);
   }
 }

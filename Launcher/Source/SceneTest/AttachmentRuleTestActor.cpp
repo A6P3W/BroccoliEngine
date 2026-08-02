@@ -1,7 +1,5 @@
 ﻿#include "AttachmentRuleTestActor.h"
 
-#include <DxLib.h>
-
 #include "SceneComponent.h"
 #include "SpriteComponent.h"
 

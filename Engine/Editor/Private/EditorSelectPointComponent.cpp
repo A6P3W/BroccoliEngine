@@ -1,7 +1,5 @@
 ﻿#include "EditorSelectPointComponent.h"
 
-#include <DxLib.h>
-
 #include "Actor.h"
 #include "SpriteComponent.h"
 EditorSelectPointComponent::EditorSelectPointComponent() {}

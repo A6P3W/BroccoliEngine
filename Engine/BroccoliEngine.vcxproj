@@ -59,15 +59,12 @@
     <OutDir>$(ProjectDir)Bin\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PublicIncludeDirectories>$(DXLIB_DIR)</PublicIncludeDirectories>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Editor|x64'">
-    <PublicIncludeDirectories>$(DXLIB_DIR)</PublicIncludeDirectories>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PublicIncludeDirectories>$(DXLIB_DIR)</PublicIncludeDirectories>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
@@ -99,18 +96,18 @@
       <WarningLevel>Level3</WarningLevel>
       <DisableSpecificWarnings>4251;4819;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;NO_FONT_AWESOME;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:preprocessor /execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Automation/Public;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Automation/Public;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;shell32.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(DXLIB_DIR);$(BroccoliVcpkgLibDir);$(ProjectDir)ThirdParty\EOS\SDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(BroccoliVcpkgLibDir);$(ProjectDir)ThirdParty\EOS\SDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Editor|x64'">
@@ -118,18 +115,18 @@
       <WarningLevel>Level3</WarningLevel>
       <DisableSpecificWarnings>4251;4819;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;_EDITOR;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;NO_FONT_AWESOME;_EDITOR;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:preprocessor /execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Automation/Public;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Automation/Public;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;shell32.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(DXLIB_DIR);$(BroccoliVcpkgLibDir);$(ProjectDir)ThirdParty\EOS\SDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(BroccoliVcpkgLibDir);$(ProjectDir)ThirdParty\EOS\SDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -139,19 +136,19 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;_RELEASE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;NO_FONT_AWESOME;_RELEASE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:preprocessor /execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(DXLIB_DIR);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Automation/Public;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BroccoliVcpkgIncludeDir);$(ProjectDir)EngineCore/;$(ProjectDir)EngineCore/Automation/Public;$(ProjectDir)EngineCore/Core/Public;$(ProjectDir)EngineCore/Systems/Public;$(ProjectDir)EngineCore/Components/Public;$(ProjectDir)EngineCore/Network/Public;$(ProjectDir)EngineSide/;$(ProjectDir)EngineCore/GameFramework/Public;$(ProjectDir)EngineSide/Default/Public;$(ProjectDir)ThirdParty;$(ProjectDir)Editor/Public;$(ProjectDir)EngineCore/Utils/Public;$(ProjectDir)ThirdParty/EOS/SDK/Include;$(ProjectDir)EngineCore/Online/Public;$(ProjectDir)../PrivateConfig</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <AdditionalDependencies>enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;shell32.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(DXLIB_DIR);$(BroccoliVcpkgLibDir);$(ProjectDir)ThirdParty\EOS\SDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(BroccoliVcpkgLibDir);$(ProjectDir)ThirdParty\EOS\SDK\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -223,9 +220,7 @@
     <ClCompile Include="EngineSide\GridLine.cpp" />
     <ClCompile Include="EngineCore\Components\Private\EnhancedInputComponent.cpp" />
     <ClCompile Include="EngineCore\Systems\Private\LevelSerializer.cpp" />
-    <ClCompile Include="ThirdParty\imgui_impl\Private\imgui_impl_dx11.cpp" />
-    <ClCompile Include="ThirdParty\imgui_impl\Private\imgui_impl_win32.cpp" />
-    <ClCompile Include="ThirdParty\DxLibLap\DxLibLap.cpp" />
+    <ClCompile Include="ThirdParty\rlImGui\rlImGui.cpp" />
     <ClCompile Include="EngineCore\Core\Private\World.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\FileDialog.cpp" />
     <ClCompile Include="EngineSide\StressTestActor.cpp" />
@@ -316,6 +311,9 @@
     <ClInclude Include="EngineCore\Systems\Public\InputDevice.h" />
     <ClInclude Include="EngineCore\Systems\Public\InputManager.h" />
     <ClInclude Include="EngineCore\Systems\Public\InputMapper.h" />
+    <ClInclude Include="EngineCore\Systems\Public\InputTypes.h" />
+    <ClInclude Include="EngineCore\Systems\Public\BroccoliRaylib.h" />
+    <ClInclude Include="EngineCore\Systems\Private\RaylibResourceBridge.h" />
     <ClInclude Include="EngineCore\Systems\Public\KeyboardDevice.h" />
     <ClInclude Include="EngineCore\Systems\Public\GamepadDevice.h" />
     <ClInclude Include="EngineCore\Systems\Public\MouseDevice.h" />
@@ -334,9 +332,8 @@
     <ClInclude Include="EngineSide\Default\Public\DefaultPushForceFieldActor.h" />
     <ClInclude Include="EngineSide\Default\Public\DefaultRectangleCollisionActor.h" />
     <ClInclude Include="EngineSide\GridLine.h" />
-    <ClInclude Include="ThirdParty\imgui_impl\imgui_impl_dx11.h" />
-    <ClInclude Include="ThirdParty\imgui_impl\imgui_impl_win32.h" />
-    <ClInclude Include="ThirdParty\DxLibLap\DxLibLap.h" />
+    <ClInclude Include="ThirdParty\rlImGui\imgui_impl_raylib.h" />
+    <ClInclude Include="ThirdParty\rlImGui\rlImGui.h" />
     <ClInclude Include="ThirdParty\nlohmann\json.hpp" />
     <ClInclude Include="Utils\Log.h" />
     <ClInclude Include="Utils\UMath.h" />

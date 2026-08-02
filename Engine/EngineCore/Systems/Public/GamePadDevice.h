@@ -1,12 +1,13 @@
 ﻿#pragma once
-#include "InputDevice.h"
 
-// アナログ軸の識別ID
+#include "InputDevice.h"
+#include "InputTypes.h"
+
 enum class AxisID { LeftX, LeftY, RightX, RightY, LeftTrigger, RightTrigger };
 
 class BROCCOLI_ENGINE_API GamepadDevice : public InputDevice {
  public:
-  GamepadDevice(int padIndex);
+  explicit GamepadDevice(int PadIndex);
   ~GamepadDevice() override;
   GamepadDevice(const GamepadDevice&) = delete;
   GamepadDevice& operator=(const GamepadDevice&) = delete;
@@ -14,13 +15,19 @@ class BROCCOLI_ENGINE_API GamepadDevice : public InputDevice {
   void Update() override;
   EInputDeviceType GetDeviceType() const override { return EInputDeviceType::Gamepad; }
   bool HasInputThisFrame() const override;
-  bool GetPressStart(int code) const override;
-  bool GetPressing(int code) const override;
-  bool GetRelease(int code) const override;
-  float GetAxis(int axisID) const override;
+  bool GetPressStart(int Code) const override;
+  bool GetPressing(int Code) const override;
+  bool GetRelease(int Code) const override;
+  float GetAxis(int AxisId) const override;
+
+  bool GetPressStart(EGamepadButton Button) const {
+    return GetPressStart(static_cast<int>(Button));
+  }
+  bool GetPressing(EGamepadButton Button) const { return GetPressing(static_cast<int>(Button)); }
+  bool GetRelease(EGamepadButton Button) const { return GetRelease(static_cast<int>(Button)); }
 
  private:
-  float ApplyDeadzone(int val, float deadzone);
+  static float ApplyDeadzone(float Value, float Deadzone);
 
   struct Impl;
   Impl* ImplPtr = nullptr;

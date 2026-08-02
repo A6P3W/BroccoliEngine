@@ -1,6 +1,5 @@
 ﻿#include "NetworkTestPawn.h"
 
-#include <DxLib.h>
 #include <NetMovementComponent.h>
 #include <RectangleCollisionComponent.h>
 
@@ -34,9 +33,6 @@ ANetworkTestPawn::ANetworkTestPawn() {
 
   // 指定されたサイズ（幅・高さ: 48.0f）、色（FColor）、および塗りつぶし設定で矩形（ボックス）の描画データを登録する関数。
   BodySprite->SubmitBox(48.0f, 48.0f, GetDisplayColor(), true);
-
-  // 親コンポーネント（ここではルート）に対する相対的な位置座標（FVector2D）を設定する関数。
-  BodySprite->SetRelativeLocation({-24.0f, -24.0f});
 
   // コンポーネントをエンジンシステムに登録し、アップデートや描画などのライフサイクル処理を有効化する関数。
   BodySprite->RegisterComponent();

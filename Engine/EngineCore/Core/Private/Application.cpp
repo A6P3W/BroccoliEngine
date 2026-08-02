@@ -1,75 +1,152 @@
 ﻿#include "Application.h"
 
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#define Rectangle Win32Rectangle
+#define CloseWindow Win32CloseWindow
+#define ShowCursor Win32ShowCursor
 #include <Windows.h>
-#include <imgui.h>
-#include <imgui_impl/imgui_impl_dx11.h>
-#include <imgui_impl/imgui_impl_win32.h>
 #include <shellapi.h>
+#undef Rectangle
+#undef CloseWindow
+#undef ShowCursor
+#undef LoadImage
+#undef DrawText
+#undef DrawTextEx
+#undef PlaySound
+
+#include <imgui.h>
+
+#include <algorithm>
+#include <chrono>
+#include <functional>
+#include <string>
+#include <utility>
 
 #include "AutomationSubsystem.h"
-#include "CollisionSystem.h"
+#include "BroccoliRaylib.h"
 #include "DebugOverlay.h"
-#include "DxLib.h"
 #include "EOSAuthManager.h"
 #include "EOSCoreManager.h"
 #include "EOSLobbyManager.h"
 #include "EOSTitleStorageManager.h"
 #include "EditorMode.h"
 #include "EngineDefine.h"
-#include "GameModeBase.h"
 #include "GamePadDevice.h"
 #include "HttpManager.h"
 #include "InputManager.h"
-#include "InputMapper.h"
 #include "KeyboardDevice.h"
 #include "Log.h"
 #include "MouseDevice.h"
 #include "NetworkManager.h"
 #include "OnlinePlayManager.h"
 #include "RenderSystem.h"
+#include "ResourceManager.h"
 #include "SceneManager.h"
+#include "SoundManager.h"
 #include "TimerManager.h"
+#include "World.h"
+#include "rlImGui/rlImGui.h"
 
 namespace {
 void (*GameSetupCallback)() = nullptr;
+bool ShouldQuitGame = false;
+constexpr UINT_PTR LiveResizeTimerId = 0xB0CC011;
+constexpr UINT LiveResizeIntervalMilliseconds = 16;
+HWND LiveResizeWindowHandle = nullptr;
+WNDPROC PreviousWindowProcedure = nullptr;
+std::function<void(float)> LiveResizeTickCallback;
+std::chrono::steady_clock::time_point LastLiveResizeTick;
+bool LiveResizeTickInProgress = false;
+
+void TickDuringLiveResize() {
+  if (!LiveResizeTickCallback || LiveResizeTickInProgress || IsWindowMinimized()) return;
+
+  const auto CurrentTick = std::chrono::steady_clock::now();
+  const float ResizeDeltaTime =
+      (std::min)(std::chrono::duration<float>(CurrentTick - LastLiveResizeTick).count(), 0.1f);
+  LastLiveResizeTick = CurrentTick;
+  if (ResizeDeltaTime <= 0.0f) return;
+
+  LiveResizeTickInProgress = true;
+  LiveResizeTickCallback(ResizeDeltaTime);
+  LiveResizeTickInProgress = false;
+}
+
+LRESULT CALLBACK
+LiveResizeWindowProcedure(HWND WindowHandle, UINT Message, WPARAM WParam, LPARAM LParam) {
+  const LRESULT Result =
+      CallWindowProcW(PreviousWindowProcedure, WindowHandle, Message, WParam, LParam);
+
+  switch (Message) {
+    case WM_ENTERSIZEMOVE:
+      LastLiveResizeTick = std::chrono::steady_clock::now();
+      SetTimer(WindowHandle, LiveResizeTimerId, LiveResizeIntervalMilliseconds, nullptr);
+      break;
+    case WM_TIMER:
+      if (WParam == LiveResizeTimerId) TickDuringLiveResize();
+      break;
+    case WM_EXITSIZEMOVE:
+      KillTimer(WindowHandle, LiveResizeTimerId);
+      TickDuringLiveResize();
+      break;
+    default:
+      break;
+  }
+  return Result;
+}
+
+bool InstallLiveResizeHook(std::function<void(float)> Callback) {
+  if (PreviousWindowProcedure != nullptr) return true;
+
+  HWND WindowHandle = static_cast<HWND>(GetWindowHandle());
+  if (WindowHandle == nullptr) return false;
+
+  SetLastError(ERROR_SUCCESS);
+  const LONG_PTR PreviousProcedure = SetWindowLongPtrW(
+      WindowHandle, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&LiveResizeWindowProcedure)
+  );
+  if (PreviousProcedure == 0 && GetLastError() != ERROR_SUCCESS) return false;
+
+  LiveResizeWindowHandle = WindowHandle;
+  PreviousWindowProcedure = reinterpret_cast<WNDPROC>(PreviousProcedure);
+  LiveResizeTickCallback = std::move(Callback);
+  return true;
+}
+
+void RemoveLiveResizeHook() {
+  if (LiveResizeWindowHandle != nullptr) {
+    KillTimer(LiveResizeWindowHandle, LiveResizeTimerId);
+    if (PreviousWindowProcedure != nullptr) {
+      SetWindowLongPtrW(
+          LiveResizeWindowHandle, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(PreviousWindowProcedure)
+      );
+    }
+  }
+  LiveResizeTickCallback = {};
+  PreviousWindowProcedure = nullptr;
+  LiveResizeWindowHandle = nullptr;
+  LiveResizeTickInProgress = false;
+}
 
 bool HasCommandLineArgument(const std::wstring& Argument) {
   int ArgumentCount = 0;
   LPWSTR* Arguments = CommandLineToArgvW(GetCommandLineW(), &ArgumentCount);
-  if (!Arguments) {
-    return false;
-  }
+  if (Arguments == nullptr) return false;
 
-  bool bFound = false;
+  bool Found = false;
   for (int ArgumentIndex = 1; ArgumentIndex < ArgumentCount; ++ArgumentIndex) {
     if (Argument == Arguments[ArgumentIndex]) {
-      bFound = true;
+      Found = true;
       break;
     }
   }
   LocalFree(Arguments);
-  return bFound;
+  return Found;
 }
 
+RenderTexture2D* AsRenderTexture(void* Buffer) { return static_cast<RenderTexture2D*>(Buffer); }
 }  // namespace
-extern IMGUI_IMPL_API LRESULT
-ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-LRESULT CALLBACK ImGuiHookProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-  if (msg == WM_MOUSEMOVE || msg == WM_LBUTTONDOWN || msg == WM_LBUTTONUP ||
-      msg == WM_LBUTTONDBLCLK || msg == WM_RBUTTONDOWN || msg == WM_RBUTTONUP ||
-      msg == WM_RBUTTONDBLCLK || msg == WM_MBUTTONDOWN || msg == WM_MBUTTONUP ||
-      msg == WM_MBUTTONDBLCLK) {
-    int mx = 0, my = 0;
-    GetMousePoint(&mx, &my);
-    lParam = MAKELPARAM(static_cast<WORD>(mx), static_cast<WORD>(my));
-  }
-
-  if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
-    return 1;
-  }
-  return 0;
-}
 
 void Application::SetGameSetupCallback(void (*Callback)()) { GameSetupCallback = Callback; }
 
@@ -78,154 +155,164 @@ Application::Application() = default;
 Application::~Application() { Shutdown(); }
 
 void Application::Shutdown() {
+  RemoveLiveResizeHook();
+
   if (AutomationSubsystem) {
     AutomationSubsystem->Shutdown();
     AutomationSubsystem.reset();
   }
 
-  if (bImGuiInitialized) {
-    SetHookWinProc(nullptr);
-    ImGui_ImplDX11_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
-    bImGuiInitialized = false;
+  if (ImGuiInitialized) {
+    rlImGuiShutdown();
+    ImGuiInitialized = false;
     M_LOG("Application ImGui shutdown completed.");
   }
 
-  if (OffscreenBuffer != -1) {
-    DeleteGraph(OffscreenBuffer);
-    OffscreenBuffer = -1;
+  if (OffscreenBuffer != nullptr) {
+    RenderTexture2D* Buffer = AsRenderTexture(OffscreenBuffer);
+    UnloadRenderTexture(*Buffer);
+    delete Buffer;
+    OffscreenBuffer = nullptr;
     M_LOG("Application offscreen buffer released.");
   }
 
-  if (bDxLibInitialized) {
-    DxLib_End();
-    bDxLibInitialized = false;
-    M_LOG("DxLib_End completed.");
+  if (RaylibInitialized) {
+    ResourceManager::GetInstance().ReleaseResourceGraph();
+  }
+
+  if (AudioInitialized) {
+    CloseAudioDevice();
+    AudioInitialized = false;
+  }
+
+  if (RaylibInitialized) {
+    CloseWindow();
+    RaylibInitialized = false;
+    M_LOG("raylib shutdown completed.");
   }
 }
 
 void Application::InitializeAutomation() {
   AutomationSubsystem = std::make_unique<FAutomationSubsystem>();
-
   FAutomationConfig Config;
   Config.Enabled = HasCommandLineArgument(L"-automation");
-  if (!AutomationSubsystem->Initialize(Config)) {
-    AutomationSubsystem.reset();
-  }
+  if (!AutomationSubsystem->Initialize(Config)) AutomationSubsystem.reset();
 }
 
 void Application::InitOffscreenBuffer() {
-  if (OffscreenBuffer != -1) {
-    DeleteGraph(OffscreenBuffer);
+  if (OffscreenBuffer != nullptr) {
+    RenderTexture2D* ExistingBuffer = AsRenderTexture(OffscreenBuffer);
+    UnloadRenderTexture(*ExistingBuffer);
+    delete ExistingBuffer;
   }
-  OffscreenBuffer = MakeScreen(VirtualWidth, VirtualHeight, true);
+
+  auto* Buffer = new RenderTexture2D(LoadRenderTexture(VirtualWidth, VirtualHeight));
+  if (!IsRenderTextureValid(*Buffer)) {
+    delete Buffer;
+    OffscreenBuffer = nullptr;
+    return;
+  }
+  SetTextureFilter(Buffer->texture, TEXTURE_FILTER_BILINEAR);
+  OffscreenBuffer = Buffer;
 }
 
-void Application::SetWindowResolution(int width, int height) { SetWindowSize(width, height); }
-static bool ShouldQuitGame = false;
+void Application::SetWindowResolution(int Width, int Height) {
+  if (IsWindowReady() && Width > 0 && Height > 0) SetWindowSize(Width, Height);
+}
+
 void Application::QuitGame() { ShouldQuitGame = true; }
 
 bool Application::Run() {
   SetProcessDPIAware();
-  SetGraphMode(1920, 1080, 32);
-  SetUseDirect3D11(true);
-  bool bFitScreen = !IsEditor;
-  bool bFullScreen = !IsRelease;
-  SetWindowSizeChangeEnableFlag(true, bFitScreen);
-  ChangeWindowMode(bFullScreen);
-  SetDoubleStartValidFlag(TRUE);
-  SetOutApplicationLogValidFlag(FALSE);
-  SetAlwaysRunFlag(TRUE);
-  SetWaitVSyncFlag(false);
-  SetUseCharCodeFormat(DX_CHARCODEFORMAT_UTF8);
-  std::string mode;
-  if (IsEditor) {
-    mode = "Editor";
-  } else if (IsRelease) {
-    mode = "Release";
-  } else {
-    mode = "Game";
-  }
-  M_LOG("Starting: {}", mode);
-  LONGLONG LastTime = GetNowHiPerformanceCount();
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
-  if (DxLib_Init() == -1) {
-    M_LOG("DxLib_Init failed.");
+  std::string Mode;
+  if (IsEditor) {
+    Mode = "Editor";
+  } else if (IsRelease) {
+    Mode = "Release";
+  } else {
+    Mode = "Game";
+  }
+  M_LOG("Starting: {}", Mode);
+
+  const std::string WindowTitle = "BroccoliEngine - " + Mode;
+  InitWindow(1920, 1080, WindowTitle.c_str());
+  if (!IsWindowReady()) {
+    M_LOG("raylib InitWindow failed.");
     return false;
   }
-  bDxLibInitialized = true;
+  RaylibInitialized = true;
+  ShouldQuitGame = false;
+  SetExitKey(KEY_NULL);
 
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  (void)io;
-  ImGui::StyleColorsDark();
+  if (IsRelease) {
+    ToggleFullscreen();
+  } else {
+    SetWindowSize(960, 540);
+    SetWindowPosition(0, 0);
+  }
 
-  ImGui_ImplWin32_Init(GetMainWindowHandle());
-  ImGui_ImplDX11_Init(
-      reinterpret_cast<ID3D11Device*>(const_cast<void*>(GetUseDirect3D11Device())),
-      reinterpret_cast<ID3D11DeviceContext*>(const_cast<void*>(GetUseDirect3D11DeviceContext()))
-  );
-  SetHookWinProc(ImGuiHookProc);
-  bImGuiInitialized = true;
+  InitAudioDevice();
+  AudioInitialized = IsAudioDeviceReady();
+  if (!AudioInitialized) M_LOG("raylib InitAudioDevice failed.");
 
+  rlImGuiSetup(true);
+  ImGuiInitialized = ImGui::GetCurrentContext() != nullptr;
   InitOffscreenBuffer();
+  if (OffscreenBuffer == nullptr) {
+    M_LOG("raylib LoadRenderTexture failed for the virtual screen.");
+    Shutdown();
+    return false;
+  }
 
+  ResourceManager::GetInstance();
   if (IsEditor) {
     SceneManager::GetInstance().OpenGameMode<EditorMode>();
   } else {
-    if (GameSetupCallback) {
-      GameSetupCallback();
-    }
+    if (GameSetupCallback != nullptr) GameSetupCallback();
     SceneManager::GetInstance().OpenStartupLevel();
   }
 
-  if (!IsRelease) {
-    HWND hwnd = GetMainWindowHandle();
-    SetWindowPos(hwnd, NULL, 0, 0, 960, 540, SWP_NOZORDER | SWP_SHOWWINDOW);
-    SetWindowLong(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
-  }
-
-  auto& IM = InputManager::GetInstance();
-  IM.AddDevice(std::make_unique<KeyboardDevice>());
-  IM.AddDevice(std::make_unique<MouseDevice>());
-  IM.AddDevice(std::make_unique<GamepadDevice>(1));
-
+  auto& Input = InputManager::GetInstance();
+  Input.AddDevice(std::make_unique<KeyboardDevice>());
+  Input.AddDevice(std::make_unique<MouseDevice>());
+  Input.AddDevice(std::make_unique<GamepadDevice>(1));
   InitializeAutomation();
 
-  while (ProcessMessage() == 0 && !ShouldQuitGame) {
+  if (!InstallLiveResizeHook([this](float ResizeDeltaTime) {
+        DeltaTime = ResizeDeltaTime;
+        if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
+          CurrentScene->UpdateCurrentFps(DeltaTime);
+        }
+        Update(DeltaTime, false);
+        Draw(false);
+      })) {
+    M_LOG("Live window resize redraw hook installation failed.");
+  }
+
+  while (!WindowShouldClose() && !ShouldQuitGame) {
     int TargetFps = 120;
     if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
       TargetFps = CurrentScene->GetTargetFps();
     }
-    const LONGLONG TargetFrameTime = 1000000 / TargetFps;
+    SetTargetFPS((std::max)(1, TargetFps));
 
-    LONGLONG CurrentTime = GetNowHiPerformanceCount();
-    LONGLONG ElapsedTime = CurrentTime - LastTime;
-    if (ElapsedTime < TargetFrameTime) {
-      LONGLONG SleepTime = (TargetFrameTime - ElapsedTime) / 1000;
-      if (SleepTime > 0) Sleep((DWORD)SleepTime);
-      CurrentTime = GetNowHiPerformanceCount();
-      ElapsedTime = CurrentTime - LastTime;
-    }
-    DeltaTime = static_cast<float>(ElapsedTime) / 1000000.0f;
-    LastTime = CurrentTime;
-
+    DeltaTime = (std::min)(GetFrameTime(), 0.1f);
     if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
       CurrentScene->UpdateCurrentFps(DeltaTime);
     }
 
-    if (DeltaTime > 0.1f) DeltaTime = 0.1f;
-    Update(DeltaTime);
-    Draw();
+    Update(DeltaTime, true);
+    Draw(true);
   }
+
+  RemoveLiveResizeHook();
 
   if (AutomationSubsystem) {
     AutomationSubsystem->Shutdown();
     AutomationSubsystem.reset();
   }
-
   EOSTitleStorageManager::GetInstance().Shutdown();
   SceneManager::GetInstance().Shutdown();
   OnlinePlayManager::GetInstance().Shutdown();
@@ -237,81 +324,84 @@ bool Application::Run() {
   }
   EOSCoreManager::GetInstance().Shutdown();
   Shutdown();
-
   return true;
 }
 
-bool Application::Update(float DeltaTime) {
-  ImGui_ImplDX11_NewFrame();
-  ImGui_ImplWin32_NewFrame();
-  ImGuiIO& io = ImGui::GetIO();
-
-  int screenW, screenH;
-  GetDrawScreenSize(&screenW, &screenH);
-  io.DisplaySize = ImVec2((float)screenW, (float)screenH);
-
-  int mx, my;
-  GetMousePoint(&mx, &my);
-  io.AddMousePosEvent((float)mx, (float)my);
-
-  ImGui::NewFrame();
+bool Application::Update(float FrameDeltaTime, bool ProcessInput) {
+  if (ImGuiInitialized) rlImGuiBeginDelta(FrameDeltaTime);
 
   SceneManager::GetInstance().ProcessSceneChanges();
-  if (AutomationSubsystem) {
-    AutomationSubsystem->Update();
-  }
+  if (AutomationSubsystem) AutomationSubsystem->Update();
   EOSCoreManager::GetInstance().Tick();
   NetworkManager::GetInstance().Service();
-  InputManager::GetInstance().Update();
+  if (ProcessInput) InputManager::GetInstance().Update();
   HttpManager::GetInstance().Update();
 #if !defined(_RELEASE)
-  DebugOverlayManager::GetInstance().Update(DeltaTime);
+  DebugOverlayManager::GetInstance().Update(FrameDeltaTime);
 #endif
 
-  if (AutomationSubsystem && AutomationSubsystem->IsPaused()) return true;
-
-  if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
-    currentScene->Update(DeltaTime);
+  World* CurrentScene = SceneManager::GetInstance().GetCurrentScene();
+  if (CurrentScene != nullptr && CurrentScene->GetSoundManager() != nullptr) {
+    CurrentScene->GetSoundManager()->Update();
   }
-
+  if (AutomationSubsystem && AutomationSubsystem->IsPaused()) return true;
+  if (CurrentScene != nullptr) CurrentScene->Update(FrameDeltaTime);
   return true;
 }
 
-bool Application::Draw() {
-  SetDrawScreen(OffscreenBuffer);
-  ClearDrawScreen();
+bool Application::Draw(bool CompleteFrame) {
+  RenderTexture2D* Buffer = AsRenderTexture(OffscreenBuffer);
+  if (Buffer == nullptr) return false;
 
-  if (World* currentScene = SceneManager::GetInstance().GetCurrentScene()) {
-    currentScene->Draw();
+  BeginTextureMode(*Buffer);
+  ClearBackground(BLANK);
+  rlSetBlendFactorsSeparate(
+      RL_SRC_ALPHA, RL_ONE_MINUS_SRC_ALPHA, RL_ONE, RL_ONE_MINUS_SRC_ALPHA, RL_FUNC_ADD, RL_FUNC_ADD
+  );
+  BeginBlendMode(BLEND_CUSTOM_SEPARATE);
+  if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
+    CurrentScene->Draw();
   }
   RenderSystem::GetInstance().Draw();
+  EndBlendMode();
+  EndTextureMode();
 
-  SetDrawScreen(DX_SCREEN_BACK);
-  ClearDrawScreen();
+  BeginDrawing();
+  ClearBackground(BLACK);
 
-  int screenW, screenH;
-  GetDrawScreenSize(&screenW, &screenH);
-  float scaleX = (float)screenW / VirtualWidth;
-  float scaleY = (float)screenH / VirtualHeight;
-  float scale = (scaleX < scaleY) ? scaleX : scaleY;
+  const int ScreenWidth = GetScreenWidth();
+  const int ScreenHeight = GetScreenHeight();
+  const float ScaleX = static_cast<float>(ScreenWidth) / VirtualWidth;
+  const float ScaleY = static_cast<float>(ScreenHeight) / VirtualHeight;
+  const float Scale = (std::min)(ScaleX, ScaleY);
+  const float DrawWidth = VirtualWidth * Scale;
+  const float DrawHeight = VirtualHeight * Scale;
+  const Rectangle Source = {
+      0.0f,
+      0.0f,
+      static_cast<float>(VirtualWidth),
+      -static_cast<float>(VirtualHeight),
+  };
+  const Rectangle Destination = {
+      (ScreenWidth - DrawWidth) * 0.5f,
+      (ScreenHeight - DrawHeight) * 0.5f,
+      DrawWidth,
+      DrawHeight,
+  };
+  BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
+  DrawTexturePro(Buffer->texture, Source, Destination, {0.0f, 0.0f}, 0.0f, WHITE);
+  EndBlendMode();
 
-  int drawW = (int)(VirtualWidth * scale);
-  int drawH = (int)(VirtualHeight * scale);
-  int drawX = (screenW - drawW) / 2;
-  int drawY = (screenH - drawH) / 2;
-
-  SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 255);
-  DrawExtendGraph(drawX, drawY, drawX + drawW, drawY + drawH, OffscreenBuffer, false);
-  SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
-
-  SetDrawScreen(DX_SCREEN_BACK);
 #if !defined(_RELEASE)
   DebugOverlayManager::GetInstance().Draw();
 #endif
-  ImGui::Render();
-  ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-  ScreenFlip();
-
+  if (ImGuiInitialized) rlImGuiEnd();
+  if (CompleteFrame) {
+    EndDrawing();
+  } else {
+    rlDrawRenderBatchActive();
+    SwapScreenBuffer();
+  }
   return true;
 }
 

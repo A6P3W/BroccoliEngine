@@ -1,7 +1,5 @@
 ﻿#include "CanvasTestActor.h"
 
-#include <DxLib.h>
-
 #include "CameraComponent.h"
 #include "CanvasComponent.h"
 #include "EnhancedInputComponent.h"
@@ -68,7 +66,7 @@ void ACanvasTestActor::OnUpdate(float DeltaTime) {
   //     ScreenPos.X, ScreenPos.Y, LocalPaintPos.X, LocalPaintPos.Y);
 
   // 範囲内かつ左クリック中の場合、キャンバスに描画
-  if (Mouse->GetPressing(MOUSE_INPUT_LEFT)) {
+  if (Mouse->GetPressing(EMouseButton::Left)) {
     if (LocalPaintPos.X >= 0 && LocalPaintPos.X < Canvas->GetCanvasWidth() &&
         LocalPaintPos.Y >= 0 && LocalPaintPos.Y < Canvas->GetCanvasHeight()) {
       if (Canvas->BeginDrawing()) {
@@ -91,7 +89,7 @@ void ACanvasTestActor::OnUpdate(float DeltaTime) {
   }
 
   // 右クリックでキャンバスをクリア
-  if (Mouse->GetPressStart(MOUSE_INPUT_RIGHT)) {
+  if (Mouse->GetPressStart(EMouseButton::Right)) {
     if (Canvas->BeginDrawing()) {
       Canvas->Clear(FColor{255, 255, 255, 255});
       Canvas->EndDrawing();

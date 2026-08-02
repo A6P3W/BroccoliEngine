@@ -31,7 +31,6 @@
 		<ClCompile>
 			<DisableSpecificWarnings>4251;%(DisableSpecificWarnings)</DisableSpecificWarnings>
 			<AdditionalIncludeDirectories>
-				$(DXLIB_DIR);
 				$(BroccoliVcpkgIncludeDir);
 				$(BroccoliEngineDir)EngineCore\;
 				$(BroccoliEngineDir)EngineCore\Automation\Public;
@@ -57,7 +56,6 @@
 		<Link>
 			<AdditionalDependencies>$(BroccoliImguiLib);BroccoliEngine.lib;enet.lib;ws2_32.lib;winmm.lib;crypt32.lib;bcrypt.lib;secur32.lib;iphlpapi.lib;EOSSDK-Win64-Shipping.lib;%(AdditionalDependencies)</AdditionalDependencies>
 			<AdditionalLibraryDirectories>
-				$(DXLIB_DIR);
 				$(BroccoliEngineBinDir);
 				$(BroccoliVcpkgLibDir);
 				$(BroccoliEngineDir)ThirdParty\EOS\SDK\Lib;

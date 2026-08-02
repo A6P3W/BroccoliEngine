@@ -1,14 +1,13 @@
 ﻿#include "Pawn.h"
 
-#include <DxLib.h>
-#include <NetMovementComponent.h>
 #include <EnhancedInputComponent.h>
+#include <NetMovementComponent.h>
 
+#include "ActorManager.h"
 #include "CameraComponent.h"
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "Log.h"
-#include "ActorManager.h"
 #include "PlayerController.h"
 #include "ResourceManager.h"
 #include "SpriteComponent.h"

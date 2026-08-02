@@ -4,18 +4,25 @@
 #include <cmath>
 #include <type_traits>
 
+#include "BroccoliRaylib.h"
 #include "CameraComponent.h"
-#include "DxLib.h"
 #include "EngineDefine.h"
 #include "Log.h"
+#include "RaylibResourceBridge.h"
 
 namespace {
+constexpr float DefaultStrokeThickness = 2.0f;
+
 struct FScreenBounds {
   float MinX = 0.0f;
   float MinY = 0.0f;
   float MaxX = 0.0f;
   float MaxY = 0.0f;
 };
+
+Color ToRaylibColor(const FColor& Value, int Alpha = -1) {
+  return {Value.R, Value.G, Value.B, static_cast<unsigned char>(Alpha < 0 ? Value.A : Alpha)};
+}
 
 FScreenBounds MakeScreenBounds(float X1, float Y1, float X2, float Y2) {
   return {(std::min)(X1, X2), (std::min)(Y1, Y2), (std::max)(X1, X2), (std::max)(Y1, Y2)};
@@ -196,8 +203,7 @@ struct FVisibilityVisitor {
     const FGraphDrawParameters Parameters = BuildGraphDrawParameters(Graph, Common.space, Context);
     int GraphWidth = 0;
     int GraphHeight = 0;
-    if (GetGraphSize(Graph.Handle, &GraphWidth, &GraphHeight) != 0 || GraphWidth <= 0 ||
-        GraphHeight <= 0) {
+    if (!GetRaylibTextureSize(Graph.Handle, GraphWidth, GraphHeight)) {
       return true;
     }
 
@@ -245,21 +251,13 @@ struct FVisibilityVisitor {
     }
 
     const FVector2D Position = Context.ToScreenPosition(Text.Location, Common.space);
-    const int TextWidth = GetDrawStringWidthToHandle(
-        Text.Text.c_str(), static_cast<int>(Text.Text.length()), Text.Handle
-    );
-    const int TextHeight = GetFontSizeToHandle(Text.Handle);
-    if (TextWidth < 0 || TextHeight <= 0) {
+    const Vector2 TextSize = MeasureRaylibText(Text.Handle, Text.Text);
+    if (TextSize.x <= 0.0f || TextSize.y <= 0.0f) {
       return true;
     }
 
     return Intersects(
-        MakeScreenBounds(
-            Position.X,
-            Position.Y,
-            Position.X + static_cast<float>(TextWidth),
-            Position.Y + static_cast<float>(TextHeight)
-        ),
+        MakeScreenBounds(Position.X, Position.Y, Position.X + TextSize.x, Position.Y + TextSize.y),
         Context.ViewBounds
     );
   }
@@ -483,16 +481,7 @@ void RenderSystem::SortCommands() {
 }
 
 void RenderSystem::DrawCommands(const FRenderContext& Context) {
-  int CurrentBlend = 0;
-  int CurrentAlpha = 0;
-  GetDrawBlendMode(&CurrentBlend, &CurrentAlpha);
-
   for (const RenderCommand& Command : Impl->CommandBuffer) {
-    if (Command.common.alpha != CurrentAlpha) {
-      CurrentAlpha = std::clamp(Command.common.alpha, 0, 255);
-      SetDrawBlendMode(DX_BLENDMODE_ALPHA, CurrentAlpha);
-    }
-
     DrawCommand(Command, Context);
   }
 }
@@ -503,84 +492,121 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
         using T = std::decay_t<decltype(Data)>;
 
         if constexpr (std::is_same_v<T, GraphData>) {
+          const Texture2D* Texture = GetRaylibTexture(Data.Handle);
+          if (Texture == nullptr) return;
+          const bool IsRenderTexture = IsRaylibRenderTexture(Data.Handle);
+
           const FGraphDrawParameters Parameters =
               BuildGraphDrawParameters(Data, Command.common.space, Context);
-          DrawRotaGraphFastF(
+          Rectangle Source = GetRaylibTextureSource(Data.Handle);
+          if (Parameters.Scale < 0.0f) {
+            Source.width *= -1.0f;
+            Source.height *= -1.0f;
+          }
+          const float DrawWidth = std::abs(static_cast<float>(Texture->width) * Parameters.Scale);
+          const float DrawHeight = std::abs(static_cast<float>(Texture->height) * Parameters.Scale);
+          const Rectangle Destination = {
               Parameters.Position.X,
               Parameters.Position.Y,
-              Parameters.Scale,
-              Parameters.Rotation,
-              Data.Handle,
-              TRUE
+              DrawWidth,
+              DrawHeight,
+          };
+          const unsigned char Alpha =
+              static_cast<unsigned char>(std::clamp(Command.common.alpha, 0, 255));
+          const Color Tint =
+              IsRenderTexture ? Color{Alpha, Alpha, Alpha, Alpha} : Color{255, 255, 255, Alpha};
+          if (IsRenderTexture) BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
+          DrawTexturePro(
+              *Texture,
+              Source,
+              Destination,
+              {DrawWidth * 0.5f, DrawHeight * 0.5f},
+              Parameters.Rotation * RAD2DEG,
+              Tint
           );
+          if (IsRenderTexture) BeginBlendMode(BLEND_CUSTOM_SEPARATE);
         } else if constexpr (std::is_same_v<T, BoxData>) {
-          if (Command.common.space == RenderSpace::World) {
-            const FBoxDrawParameters Parameters =
-                BuildBoxDrawParameters(Data, Command.common.space, Context);
-            DrawQuadrangle(
-                static_cast<int>(Parameters.V1.X),
-                static_cast<int>(Parameters.V1.Y),
-                static_cast<int>(Parameters.V2.X),
-                static_cast<int>(Parameters.V2.Y),
-                static_cast<int>(Parameters.V3.X),
-                static_cast<int>(Parameters.V3.Y),
-                static_cast<int>(Parameters.V4.X),
-                static_cast<int>(Parameters.V4.Y),
-                Data.Color.ToRGB(),
-                Data.Fill
-            );
+          const FBoxDrawParameters Parameters =
+              BuildBoxDrawParameters(Data, Command.common.space, Context);
+          const Color DrawColor = ToRaylibColor(Data.Color);
+          const Vector2 V1{Parameters.V1.X, Parameters.V1.Y};
+          const Vector2 V2{Parameters.V2.X, Parameters.V2.Y};
+          const Vector2 V3{Parameters.V3.X, Parameters.V3.Y};
+          const Vector2 V4{Parameters.V4.X, Parameters.V4.Y};
+          if (Data.Fill) {
+            DrawTriangle(V1, V4, V3, DrawColor);
+            DrawTriangle(V1, V3, V2, DrawColor);
           } else {
-            DrawBox(
-                static_cast<int>(Data.Location.X),
-                static_cast<int>(Data.Location.Y),
-                static_cast<int>(Data.Location.X + Data.WidthHeight.X),
-                static_cast<int>(Data.Location.Y + Data.WidthHeight.Y),
-                Data.Color.ToRGB(),
-                Data.Fill
-            );
+            DrawLineEx(V1, V2, DefaultStrokeThickness, DrawColor);
+            DrawLineEx(V2, V3, DefaultStrokeThickness, DrawColor);
+            DrawLineEx(V3, V4, DefaultStrokeThickness, DrawColor);
+            DrawLineEx(V4, V1, DefaultStrokeThickness, DrawColor);
           }
         } else if constexpr (std::is_same_v<T, CircleData>) {
           const FCircleDrawParameters Parameters =
               BuildCircleDrawParameters(Data, Command.common.space, Context);
-          DrawCircle(
-              static_cast<int>(Parameters.Position.X),
-              static_cast<int>(Parameters.Position.Y),
-              static_cast<int>(Parameters.Radius),
-              Data.Color.ToRGB(),
-              Data.Fill
-          );
+          const Vector2 Center{Parameters.Position.X, Parameters.Position.Y};
+          if (Data.Fill) {
+            DrawCircleV(Center, std::abs(Parameters.Radius), ToRaylibColor(Data.Color));
+          } else {
+            const float Radius = std::abs(Parameters.Radius);
+            DrawRing(
+                Center,
+                (std::max)(0.0f, Radius - DefaultStrokeThickness * 0.5f),
+                Radius + DefaultStrokeThickness * 0.5f,
+                0.0f,
+                360.0f,
+                0,
+                ToRaylibColor(Data.Color)
+            );
+          }
         } else if constexpr (std::is_same_v<T, TextData>) {
           const FVector2D Position = Context.ToScreenPosition(Data.Location, Command.common.space);
-          DrawStringToHandle(
-              static_cast<int>(Position.X),
-              static_cast<int>(Position.Y),
-              Data.Text.c_str(),
-              Data.Color.ToRGB(),
-              Data.Handle
-          );
+          const Font* FontData = GetRaylibFont(Data.Handle, Data.Text);
+          const float FontSize = GetRaylibFontSize(Data.Handle);
+          if (FontData != nullptr && FontSize > 0.0f) {
+            DrawTextEx(
+                *FontData,
+                Data.Text.c_str(),
+                {Position.X, Position.Y},
+                FontSize,
+                0.0f,
+                ToRaylibColor(Data.Color)
+            );
+          }
         } else if constexpr (std::is_same_v<T, LineData>) {
           const FLineDrawParameters Parameters =
               BuildLineDrawParameters(Data, Command.common.space, Context);
-          DrawLine(
-              static_cast<int>(Parameters.Start.X),
-              static_cast<int>(Parameters.Start.Y),
-              static_cast<int>(Parameters.End.X),
-              static_cast<int>(Parameters.End.Y),
-              Data.Color.ToRGB()
+          DrawLineEx(
+              {Parameters.Start.X, Parameters.Start.Y},
+              {Parameters.End.X, Parameters.End.Y},
+              DefaultStrokeThickness,
+              ToRaylibColor(Data.Color)
           );
         } else if constexpr (std::is_same_v<T, RectGraphData>) {
+          const Texture2D* Texture = GetRaylibTexture(Data.Handle);
+          if (Texture == nullptr) return;
+          const bool IsRenderTexture = IsRaylibRenderTexture(Data.Handle);
+
           const FRectGraphDrawParameters Parameters =
               BuildRectGraphDrawParameters(Data, Command.common.space, Context);
-          DrawRectGraphF(
-              Parameters.Position.X,
-              Parameters.Position.Y,
-              static_cast<int>(Data.SrcLocation.X),
-              static_cast<int>(Data.SrcLocation.Y),
-              static_cast<int>(Data.SrcSize.X),
-              static_cast<int>(Data.SrcSize.Y),
-              Data.Handle,
-              TRUE
-          );
+          Rectangle Source = {
+              Data.SrcLocation.X,
+              Data.SrcLocation.Y,
+              Data.SrcSize.X,
+              Data.SrcSize.Y,
+          };
+          if (GetRaylibTextureSource(Data.Handle).height < 0.0f) {
+            Source.y = static_cast<float>(Texture->height) - Data.SrcLocation.Y;
+            Source.height *= -1.0f;
+          }
+          const unsigned char Alpha =
+              static_cast<unsigned char>(std::clamp(Command.common.alpha, 0, 255));
+          const Color Tint =
+              IsRenderTexture ? Color{Alpha, Alpha, Alpha, Alpha} : Color{255, 255, 255, Alpha};
+          if (IsRenderTexture) BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
+          DrawTextureRec(*Texture, Source, {Parameters.Position.X, Parameters.Position.Y}, Tint);
+          if (IsRenderTexture) BeginBlendMode(BLEND_CUSTOM_SEPARATE);
         }
       },
       Command.data
@@ -598,6 +624,7 @@ void RenderSystem::Draw() {
   CullCommands(Context);
 
   if (Impl->CommandBuffer.empty()) {
+    Impl->CommandBuffer.clear();
     return;
   }
 

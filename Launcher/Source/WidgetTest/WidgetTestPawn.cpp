@@ -1,7 +1,6 @@
 ﻿#include "WidgetTestPawn.h"
 
 #include <CircleCollisionComponent.h>
-#include <DxLib.h>
 #include <EnhancedInputComponent.h>
 #include <MovementComponent.h>
 

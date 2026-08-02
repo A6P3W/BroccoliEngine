@@ -1,0 +1,64 @@
+diff --git a/src/raylib.h b/src/raylib.h
+--- a/src/raylib.h
++++ b/src/raylib.h
+@@ -984,7 +984,7 @@ extern "C" {            // Prevents name mangling of functions
+ 
+ // Window-related functions
+ RLAPI void InitWindow(int width, int height, const char *title);  // Initialize window and OpenGL context
+-RLAPI void CloseWindow(void);                                     // Close window and unload OpenGL context
++RLAPI void BroccoliRaylibCloseWindow(void);                       // Close window and unload OpenGL context
+ RLAPI bool WindowShouldClose(void);                               // Check if application should close (KEY_ESCAPE pressed or windows close icon clicked)
+ RLAPI bool IsWindowReady(void);                                   // Check if window has been initialized successfully
+ RLAPI bool IsWindowFullscreen(void);                              // Check if window is currently fullscreen
+@@ -1034,6 +1034,6 @@ RLAPI void DisableEventWaiting(void);                             // Disable waiting
+ 
+ // Cursor-related functions
+-RLAPI void ShowCursor(void);                                      // Shows cursor
++RLAPI void BroccoliRaylibShowCursor(void);                        // Shows cursor
+ RLAPI void HideCursor(void);                                      // Hides cursor
+ RLAPI bool IsCursorHidden(void);                                  // Check if cursor is not visible
+ RLAPI void EnableCursor(void);                                    // Enables cursor (unlock cursor)
+@@ -1681,6 +1681,6 @@ RLAPI bool ExportWaveAsCode(Wave wave, const char *fileName);      // Export wave
+ 
+ // Wave/Sound management functions
+-RLAPI void PlaySound(Sound sound);                                    // Play a sound
++RLAPI void BroccoliRaylibPlaySound(Sound sound);                      // Play a sound
+ RLAPI void StopSound(Sound sound);                                    // Stop playing a sound
+ RLAPI void PauseSound(Sound sound);                                   // Pause a sound
+ RLAPI void ResumeSound(Sound sound);                                  // Resume a paused sound
+diff --git a/src/rcore.c b/src/rcore.c
+--- a/src/rcore.c
++++ b/src/rcore.c
+@@ -742,7 +742,7 @@ void InitWindow(int width, int height, const char *title)
+ }
+ 
+ // Close window and unload OpenGL context
+-void CloseWindow(void)
++void BroccoliRaylibCloseWindow(void)
+ {
+ #if SUPPORT_MODULE_RTEXT
+     UnloadFontDefault();        // WARNING: Module required: rtext
+diff --git a/src/platforms/rcore_desktop_glfw.c b/src/platforms/rcore_desktop_glfw.c
+--- a/src/platforms/rcore_desktop_glfw.c
++++ b/src/platforms/rcore_desktop_glfw.c
+@@ -1122,7 +1122,7 @@ Image GetClipboardImage(void)
+ }
+ 
+ // Show mouse cursor
+-void ShowCursor(void)
++void BroccoliRaylibShowCursor(void)
+ {
+     glfwSetInputMode(platform.handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+ 
+diff --git a/src/raudio.c b/src/raudio.c
+--- a/src/raudio.c
++++ b/src/raudio.c
+@@ -1190,7 +1190,7 @@ bool ExportWaveAsCode(Wave wave, const char *fileName)
+ }
+ 
+ // Play a sound
+-void PlaySound(Sound sound)
++void BroccoliRaylibPlaySound(Sound sound)
+ {
+     PlayAudioBuffer(sound.stream.buffer);
+ }
