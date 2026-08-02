@@ -496,4 +496,5 @@ $RECYCLE.BIN/
 /PrivateConfig
 
 **.repomixignore
-
+/CMakeUserPresets.json
+/.vs/
