@@ -1,4 +1,4 @@
-﻿#include "ActorManager.h"
+#include "ActorManager.h"
 
 #include <algorithm>
 #include <atomic>

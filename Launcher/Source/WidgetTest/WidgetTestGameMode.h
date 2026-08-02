@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "GameModeBase.h"
 // UIコントロールのナビゲーション検証用のゲームモードクラス AGameModeBase を継承
 class AWidgetTestGameMode : public AGameModeBase {

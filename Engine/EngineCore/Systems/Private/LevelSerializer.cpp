@@ -1,4 +1,4 @@
-﻿#include "LevelSerializer.h"
+#include "LevelSerializer.h"
 
 #include <algorithm>
 #include <cctype>

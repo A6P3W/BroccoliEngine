@@ -1,4 +1,4 @@
-﻿#include "GridLine.h"
+#include "GridLine.h"
 
 #include <cmath>
 #include <format>

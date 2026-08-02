@@ -1,4 +1,4 @@
-﻿#include "WidgetTestUIMain.h"
+#include "WidgetTestUIMain.h"
 
 #include "Application.h"
 #include "Log.h"

@@ -1,4 +1,4 @@
-﻿#include "AutomationMethodRegistry.h"
+#include "AutomationMethodRegistry.h"
 
 #include <utility>
 

@@ -1,4 +1,4 @@
-﻿#include "UIManager.h"
+#include "UIManager.h"
 
 UIManager* UIManager::GetInstance() {
   static UIManager Instance;

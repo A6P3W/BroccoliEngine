@@ -1,4 +1,4 @@
-﻿#include "AutomationHttpServer.h"
+#include "AutomationHttpServer.h"
 
 #include <httplib.h>
 

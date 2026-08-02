@@ -1,4 +1,4 @@
-﻿#include "LevelStarterWidget.h"
+#include "LevelStarterWidget.h"
 
 #include <memory>
 #include <stdexcept>

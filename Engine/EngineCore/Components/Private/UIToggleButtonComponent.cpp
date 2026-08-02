@@ -1,4 +1,4 @@
-﻿#include "UIToggleButtonComponent.h"
+#include "UIToggleButtonComponent.h"
 
 #include <memory>
 

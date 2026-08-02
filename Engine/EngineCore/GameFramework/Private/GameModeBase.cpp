@@ -1,4 +1,4 @@
-﻿#include "GameModeBase.h"
+#include "GameModeBase.h"
 
 #include <vector>
 #include <unordered_set>

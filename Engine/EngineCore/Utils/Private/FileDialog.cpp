@@ -1,4 +1,4 @@
-﻿#include "FileDialog.h"
+#include "FileDialog.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

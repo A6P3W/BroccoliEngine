@@ -1,4 +1,4 @@
-﻿#include "World.h"
+#include "World.h"
 
 #include "ActorRegistry.h"
 #include "CameraComponent.h"

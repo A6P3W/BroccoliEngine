@@ -12,7 +12,7 @@ endif()
 function(broccoli_apply_common_msvc_options Target)
   if(MSVC)
     target_compile_options("${Target}" PRIVATE
-      /W3 /sdl /MP /Zc:preprocessor /execution-charset:utf-8
+      /W3 /sdl /MP /Zc:preprocessor /utf-8
       /wd4251 /wd4819
     )
   endif()

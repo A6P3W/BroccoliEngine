@@ -1,4 +1,4 @@
-﻿#include "WidgetBase.h"
+#include "WidgetBase.h"
 
 #include "EnhancedInputComponent.h"
 #include "Log.h"

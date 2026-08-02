@@ -1,4 +1,4 @@
-﻿#include "LevelStarterGameMode.h"
+#include "LevelStarterGameMode.h"
 
 #include "LevelStarterWidget.h"
 #include "PlayerController.h"

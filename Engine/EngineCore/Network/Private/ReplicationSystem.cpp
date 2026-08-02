@@ -1,4 +1,4 @@
-﻿#include "ReplicationSystem.h"
+#include "ReplicationSystem.h"
 
 #include <cstdint>
 #include <string>

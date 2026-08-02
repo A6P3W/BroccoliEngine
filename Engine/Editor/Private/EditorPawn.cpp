@@ -1,4 +1,4 @@
-﻿#include "EditorPawn.h"
+#include "EditorPawn.h"
 
 #include <imgui.h>
 

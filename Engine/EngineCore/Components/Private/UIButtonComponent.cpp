@@ -1,4 +1,4 @@
-﻿#include "UIButtonComponent.h"
+#include "UIButtonComponent.h"
 
 struct MUIButtonComponent::Impl {
   std::function<void()> OnPressed;

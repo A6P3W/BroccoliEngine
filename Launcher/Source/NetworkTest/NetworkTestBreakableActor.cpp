@@ -1,4 +1,4 @@
-﻿#include "NetworkTestBreakableActor.h"
+#include "NetworkTestBreakableActor.h"
 
 #include <memory>
 

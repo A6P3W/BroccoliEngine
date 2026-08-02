@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "AutomationApiController.h"
 #include "BroccoliEngineAPI.h"

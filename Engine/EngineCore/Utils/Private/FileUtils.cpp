@@ -1,4 +1,4 @@
-﻿#include "FileUtils.h"
+#include "FileUtils.h"
 #include "UMath.h"
 
 #include <algorithm>

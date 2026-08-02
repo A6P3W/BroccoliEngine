@@ -1,4 +1,4 @@
-﻿#include "AutomationCommandQueue.h"
+#include "AutomationCommandQueue.h"
 
 #include <exception>
 #include <utility>

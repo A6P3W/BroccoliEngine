@@ -1,4 +1,4 @@
-﻿#include "CollisionTestActors.h"
+#include "CollisionTestActors.h"
 
 #include "CircleCollisionComponent.h"
 #include "CollisionComponent.h"

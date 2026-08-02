@@ -1,4 +1,4 @@
-﻿#include "NetBuffer.h"
+#include "NetBuffer.h"
 
 #include <cstddef>
 #include <limits>

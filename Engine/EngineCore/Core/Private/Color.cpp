@@ -1,4 +1,4 @@
-﻿#include "Color.h"
+#include "Color.h"
 
 const FColor FColor::Transparent{0, 0, 0, 0};
 const FColor FColor::Black{0, 0, 0, 255};

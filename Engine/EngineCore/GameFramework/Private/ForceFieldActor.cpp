@@ -1,4 +1,4 @@
-﻿#include "ForceFieldActor.h"
+#include "ForceFieldActor.h"
 
 #include <cstdint>
 #include <string>

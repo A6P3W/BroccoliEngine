@@ -1,4 +1,4 @@
-﻿#include "SceneLifecycleActor.h"
+#include "SceneLifecycleActor.h"
 
 #include "Log.h"
 #include "SpriteComponent.h"

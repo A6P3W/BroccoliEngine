@@ -1,4 +1,4 @@
-﻿#include "EOSCoreManager.h"
+#include "EOSCoreManager.h"
 
 #include <eos_logging.h>
 

@@ -1,4 +1,4 @@
-﻿#include "UIWidgetComponent.h"
+#include "UIWidgetComponent.h"
 
 #include <cmath>
 

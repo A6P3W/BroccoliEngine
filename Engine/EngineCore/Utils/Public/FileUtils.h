@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "BroccoliEngineAPI.h"
 
 #include <filesystem>

@@ -1,4 +1,4 @@
-﻿#include "HttpManager.h"
+#include "HttpManager.h"
 
 #include <cpr/cpr.h>
 

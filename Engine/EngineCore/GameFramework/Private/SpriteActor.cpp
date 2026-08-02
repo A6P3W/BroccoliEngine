@@ -1,4 +1,4 @@
-﻿#include "SpriteActor.h"
+#include "SpriteActor.h"
 
 #include "FileUtils.h"
 #include "ResourceManager.h"
