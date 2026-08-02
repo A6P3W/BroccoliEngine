@@ -1,6 +1,8 @@
 ﻿#include "LevelSerializer.h"
 
 #include <algorithm>
+#include <cctype>
+#include <filesystem>
 #include <fstream>
 
 #include "Actor.h"
@@ -15,6 +17,26 @@
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
+
+namespace {
+std::string GetLowercaseExtension(const std::string& FilePath) {
+  std::string Extension = std::filesystem::path(FilePath).extension().string();
+  std::transform(
+      Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char Character) {
+        return static_cast<char>(std::tolower(Character));
+      }
+  );
+  return Extension;
+}
+
+std::string GetLowercaseFileName(const std::string& FilePath) {
+  std::string FileName = std::filesystem::path(FilePath).filename().string();
+  std::transform(FileName.begin(), FileName.end(), FileName.begin(), [](unsigned char Character) {
+    return static_cast<char>(std::tolower(Character));
+  });
+  return FileName;
+}
+}  // namespace
 
 bool LevelSerializer::Save(
     World* world, const std::string& filePath, const std::string& gameModeClassName
@@ -145,11 +167,26 @@ bool LevelSerializer::SaveData(
     arr.push_back(obj);
   }
   root["actors"] = arr;
-  const std::string encryptedData = SimpleCrypto::Process(root.dump());
+  const std::string JsonData = root.dump(2);
+  const std::string Extension = GetLowercaseExtension(filePath);
+  const bool IsLevelJson = GetLowercaseFileName(filePath).ends_with(".blevel.json");
+  std::string DataToWrite;
+  if (IsLevelJson) {
+    DataToWrite = JsonData;
+  } else if (Extension == ".blevel") {
+    DataToWrite = SimpleCrypto::Process(JsonData);
+  } else {
+    M_LOG("Level data save failed: unsupported file extension '{}'.", Extension);
+    return false;
+  }
+
   std::ofstream ofs(filePath, std::ios::binary);
-  if (!ofs.is_open()) return false;
-  ofs.write(encryptedData.data(), static_cast<std::streamsize>(encryptedData.size()));
-  return true;
+  if (!ofs.is_open()) {
+    M_LOG("Level data save failed: could not open '{}'.", filePath);
+    return false;
+  }
+  ofs.write(DataToWrite.data(), static_cast<std::streamsize>(DataToWrite.size()));
+  return ofs.good();
 }
 
 bool LevelSerializer::LoadData(
@@ -165,16 +202,30 @@ bool LevelSerializer::LoadData(
   outMeta = FLevelMetaData{};
   outActors.clear();
   std::ifstream ifs(filePath, std::ios::binary);
-  if (!ifs.is_open()) return false;
-  const std::string encryptedData(
+  if (!ifs.is_open()) {
+    M_LOG("Level data load failed: could not open '{}'.", filePath);
+    return false;
+  }
+  const std::string FileData(
       (std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>()
   );
-  const std::string decryptedData = SimpleCrypto::Process(encryptedData);
+  const std::string Extension = GetLowercaseExtension(filePath);
+  const bool IsLevelJson = GetLowercaseFileName(filePath).ends_with(".blevel.json");
+  std::string JsonData;
+  if (IsLevelJson) {
+    JsonData = FileData;
+  } else if (Extension == ".blevel") {
+    JsonData = SimpleCrypto::Process(FileData);
+  } else {
+    M_LOG("Level data load failed: unsupported file extension '{}'.", Extension);
+    return false;
+  }
+
   json root;
   try {
-    root = json::parse(decryptedData);
+    root = json::parse(JsonData);
   } catch (const json::exception& e) {
-    M_LOG("Level data load failed: tampered or corrupted data. {}", e.what());
+    M_LOG("Level data load failed: invalid or corrupted JSON. {}", e.what());
     return false;
   }
   if (root.contains("meta") && root["meta"].is_object()) {

@@ -4,13 +4,14 @@
 #include <PlayerController.h>
 
 #include "Actor.h"
+#include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "EditorController.h"
 #include "EditorPawn.h"
 #include "EditorSelectPointComponent.h"
 #include "EditorUI.h"
+#include "FileDialog.h"
 #include "Log.h"
-#include "ActorManager.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "SpriteActor.h"
@@ -134,11 +135,16 @@ bool EditorMode::LoadLevel(const std::string& filePath) {
   return true;
 }
 bool EditorMode::QuickSaveLevel() {
-  if (CurrentLevelPath == "") {
-    return false;
+  if (CurrentLevelPath.empty()) {
+    const std::string FilePath = FileDialog::SaveFile(
+        "Broccoli Level JSON (*.BLevel.json)\0*.BLevel.json\0All Files (*.*)\0*.*\0", "BLevel.json"
+    );
+    if (FilePath.empty()) {
+      return false;
+    }
+    return SaveLevel(FilePath);
   }
-  SaveLevel(CurrentLevelPath);
-  return true;
+  return SaveLevel(CurrentLevelPath);
 }
 std::string EditorMode::PendingLoadPath = "";
 void EditorMode::Simulate() { GetWorld()->SetSimulating(!GetWorld()->IsSimulating()); }
