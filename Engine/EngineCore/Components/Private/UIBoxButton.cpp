@@ -1,4 +1,4 @@
-﻿#include "UIBoxButton.h"
+#include "UIBoxButton.h"
 
 #include <memory>
 

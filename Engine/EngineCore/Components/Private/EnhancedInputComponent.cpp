@@ -1,4 +1,4 @@
-﻿#include "EnhancedInputComponent.h"
+#include "EnhancedInputComponent.h"
 
 #include <cmath>
 #include <unordered_map>

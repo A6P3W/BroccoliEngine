@@ -1,4 +1,4 @@
-﻿#include "MovementComponent.h"
+#include "MovementComponent.h"
 
 #include <Actor.h>
 #include <SceneComponent.h>

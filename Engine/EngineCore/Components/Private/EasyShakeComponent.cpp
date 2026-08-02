@@ -1,4 +1,4 @@
-﻿#include "EasyShakeComponent.h"
+#include "EasyShakeComponent.h"
 
 #include <algorithm>
 #include <cmath>

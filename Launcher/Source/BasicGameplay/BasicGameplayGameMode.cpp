@@ -1,4 +1,4 @@
-﻿#include "BasicGameplayGameMode.h"
+#include "BasicGameplayGameMode.h"
 
 #include "../Common/LauncherPlayerController.h"
 #include "BasicGameplayPawn.h"

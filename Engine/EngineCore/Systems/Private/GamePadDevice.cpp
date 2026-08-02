@@ -1,4 +1,4 @@
-﻿#include "GamePadDevice.h"
+#include "GamePadDevice.h"
 
 #include <algorithm>
 #include <array>

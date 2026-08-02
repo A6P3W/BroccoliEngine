@@ -1,4 +1,4 @@
-﻿#include "NetworkTestForceFieldActor.h"
+#include "NetworkTestForceFieldActor.h"
 
 #include "CircleCollisionComponent.h"
 #include "ForceFieldComponent.h"

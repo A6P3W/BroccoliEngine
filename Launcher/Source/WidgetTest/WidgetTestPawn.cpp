@@ -1,4 +1,4 @@
-﻿#include "WidgetTestPawn.h"
+#include "WidgetTestPawn.h"
 
 #include <CircleCollisionComponent.h>
 #include <EnhancedInputComponent.h>

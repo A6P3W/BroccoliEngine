@@ -1,4 +1,4 @@
-﻿#include "EOSTitleStorageManager.h"
+#include "EOSTitleStorageManager.h"
 
 #include <eos_titlestorage.h>
 #include <minizip/unzip.h>

@@ -1,4 +1,4 @@
-﻿#include "DebugOverlay.h"
+#include "DebugOverlay.h"
 
 #include <algorithm>
 #include <cstdint>

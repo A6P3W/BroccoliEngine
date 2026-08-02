@@ -1,4 +1,4 @@
-﻿#include "EditorSelectPointComponent.h"
+#include "EditorSelectPointComponent.h"
 
 #include "Actor.h"
 #include "SpriteComponent.h"

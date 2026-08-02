@@ -1,4 +1,4 @@
-﻿#include "AutomationApiController.h"
+#include "AutomationApiController.h"
 
 #include <algorithm>
 #include <cctype>

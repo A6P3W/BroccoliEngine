@@ -1,4 +1,4 @@
-﻿#include "TimerManager.h"
+#include "TimerManager.h"
 
 #include <algorithm>
 #include <atomic>

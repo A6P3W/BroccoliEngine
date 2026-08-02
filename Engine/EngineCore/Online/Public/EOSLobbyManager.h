@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <eos_lobby_types.h>
 
 #include <functional>

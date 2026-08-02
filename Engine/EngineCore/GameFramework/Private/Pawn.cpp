@@ -1,4 +1,4 @@
-﻿#include "Pawn.h"
+#include "Pawn.h"
 
 #include <EnhancedInputComponent.h>
 #include <NetMovementComponent.h>

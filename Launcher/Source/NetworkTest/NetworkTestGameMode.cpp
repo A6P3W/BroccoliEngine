@@ -1,4 +1,4 @@
-﻿#include "NetworkTestGameMode.h"
+#include "NetworkTestGameMode.h"
 
 #include "../Common/LauncherPlayerController.h"
 #include "NetworkTestPawn.h"

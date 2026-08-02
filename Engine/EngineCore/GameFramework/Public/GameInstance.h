@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "BaseObject.h"
 #include "EOSTypes.h"
 #include "BroccoliEngineAPI.h"

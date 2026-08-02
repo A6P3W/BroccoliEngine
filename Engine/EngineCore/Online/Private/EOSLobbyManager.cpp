@@ -1,4 +1,4 @@
-﻿#include "EOSLobbyManager.h"
+#include "EOSLobbyManager.h"
 
 #include <eos_lobby.h>
 

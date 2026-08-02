@@ -1,4 +1,4 @@
-﻿ImGuiインストール済み
+ImGuiインストール済み
 
 ```text
 ThirdParty(パス追加済み)

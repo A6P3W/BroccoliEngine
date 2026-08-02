@@ -1,4 +1,4 @@
-﻿#include "SceneComponent.h"
+#include "SceneComponent.h"
 
 #include <algorithm>
 #include <cmath>

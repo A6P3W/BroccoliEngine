@@ -1,4 +1,4 @@
-﻿#include "AttachmentRuleTestActor.h"
+#include "AttachmentRuleTestActor.h"
 
 #include "SceneComponent.h"
 #include "SpriteComponent.h"

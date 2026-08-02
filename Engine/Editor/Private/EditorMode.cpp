@@ -1,4 +1,4 @@
-﻿#include "EditorMode.h"
+#include "EditorMode.h"
 
 #include <PlayerController.h>
 

@@ -1,4 +1,4 @@
-﻿#include "AutomationAutoRegistrar.h"
+#include "AutomationAutoRegistrar.h"
 
 #include <algorithm>
 

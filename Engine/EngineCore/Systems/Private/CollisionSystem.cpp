@@ -1,4 +1,4 @@
-﻿#include "CollisionSystem.h"
+#include "CollisionSystem.h"
 
 #include <algorithm>
 #include <atomic>

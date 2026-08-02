@@ -1,4 +1,4 @@
-﻿#include "NetworkTestUI.h"
+#include "NetworkTestUI.h"
 
 #include <imgui.h>
 

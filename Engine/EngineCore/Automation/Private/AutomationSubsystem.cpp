@@ -1,4 +1,4 @@
-﻿#include "AutomationSubsystem.h"
+#include "AutomationSubsystem.h"
 
 #include <filesystem>
 

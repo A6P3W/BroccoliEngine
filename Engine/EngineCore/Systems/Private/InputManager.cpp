@@ -1,4 +1,4 @@
-﻿#include "InputManager.h"
+#include "InputManager.h"
 
 struct InputManager::Impl {
   std::vector<std::unique_ptr<InputDevice>> Devices;

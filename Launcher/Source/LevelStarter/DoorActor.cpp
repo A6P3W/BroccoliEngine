@@ -1,4 +1,4 @@
-﻿#include "DoorActor.h"
+#include "DoorActor.h"
 
 #include "AutomationMacros.h"
 #include "DoorAutomationTestComponent.h"

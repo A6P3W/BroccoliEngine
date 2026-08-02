@@ -1,4 +1,4 @@
-﻿#include "RectangleCollisionComponent.h"
+#include "RectangleCollisionComponent.h"
 
 #include <RenderSystem.h>
 

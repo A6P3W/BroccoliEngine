@@ -1,4 +1,4 @@
-﻿#include "StressTestActor.h"
+#include "StressTestActor.h"
 
 #include "RectangleCollisionComponent.h"
 #include "ResourceManager.h"

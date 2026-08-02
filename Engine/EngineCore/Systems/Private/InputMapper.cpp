@@ -1,4 +1,4 @@
-﻿#include "InputMapper.h"
+#include "InputMapper.h"
 
 #include "GamePadDevice.h"
 #include "InputDevice.h"

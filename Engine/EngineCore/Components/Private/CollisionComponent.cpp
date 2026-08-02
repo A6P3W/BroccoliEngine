@@ -1,4 +1,4 @@
-﻿#include "CollisionComponent.h"
+#include "CollisionComponent.h"
 
 #include <CollisionSystem.h>
 

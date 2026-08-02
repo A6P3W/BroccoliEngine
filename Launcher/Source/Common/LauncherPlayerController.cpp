@@ -1,4 +1,4 @@
-﻿#include "LauncherPlayerController.h"
+#include "LauncherPlayerController.h"
 
 #include "EnhancedInputComponent.h"
 #include "Log.h"

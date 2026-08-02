@@ -1,1 +1,1 @@
-﻿#include "UISpriteComponent.h"
+#include "UISpriteComponent.h"

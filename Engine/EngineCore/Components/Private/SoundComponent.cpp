@@ -1,4 +1,4 @@
-﻿#include "SoundComponent.h"
+#include "SoundComponent.h"
 
 #include <algorithm>
 #include <vector>

@@ -1,4 +1,4 @@
-﻿#include "KeyboardDevice.h"
+#include "KeyboardDevice.h"
 
 #include <array>
 #include <cstddef>

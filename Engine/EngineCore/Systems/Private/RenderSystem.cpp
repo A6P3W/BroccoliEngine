@@ -1,4 +1,4 @@
-﻿#include "RenderSystem.h"
+#include "RenderSystem.h"
 
 #include <algorithm>
 #include <cmath>

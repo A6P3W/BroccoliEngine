@@ -1,4 +1,4 @@
-﻿#include "LineCollisionComponent.h"
+#include "LineCollisionComponent.h"
 
 #include <RenderSystem.h>
 

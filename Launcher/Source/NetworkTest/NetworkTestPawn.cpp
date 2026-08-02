@@ -1,4 +1,4 @@
-﻿#include "NetworkTestPawn.h"
+#include "NetworkTestPawn.h"
 
 #include <NetMovementComponent.h>
 #include <RectangleCollisionComponent.h>

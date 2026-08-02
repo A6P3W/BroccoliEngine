@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Actor.h"
 #include "Color.h"
 class AGridLine : public AActor {
