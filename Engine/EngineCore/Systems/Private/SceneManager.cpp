@@ -1,7 +1,8 @@
 ﻿#include "SceneManager.h"
 
-#include <filesystem>
 #include <algorithm>
+#include <cctype>
+#include <filesystem>
 #include <system_error>
 
 namespace {
@@ -28,6 +29,32 @@ std::string NormalizeRuntimeLevelPath(const std::string& LevelPath) {
     return RelativePath.generic_string();
   }
   return InputPath.string();
+}
+
+std::string ResolveRuntimeLevelPath(const std::string& LevelPath) {
+  const std::filesystem::path InputPath = std::filesystem::path(LevelPath).lexically_normal();
+  std::error_code ErrorCode;
+  if (std::filesystem::exists(InputPath, ErrorCode)) {
+    return NormalizeRuntimeLevelPath(InputPath.string());
+  }
+
+  std::string Extension = InputPath.extension().string();
+  std::transform(
+      Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char Character) {
+        return static_cast<char>(std::tolower(Character));
+      }
+  );
+  if (Extension != ".blevel") {
+    return NormalizeRuntimeLevelPath(InputPath.string());
+  }
+
+  std::filesystem::path JsonPath = InputPath;
+  JsonPath.replace_extension(".BLevel.json");
+  ErrorCode.clear();
+  if (std::filesystem::exists(JsonPath, ErrorCode)) {
+    return NormalizeRuntimeLevelPath(JsonPath.string());
+  }
+  return NormalizeRuntimeLevelPath(InputPath.string());
 }
 }  // namespace
 
@@ -95,7 +122,7 @@ bool SceneManager::OpenLevelById(FNetworkSceneId SceneId, ENetMode NetMode) {
   if (it == ImplPtr->RegisteredLevelPaths.end()) {
     return false;
   }
-  QueueLevelPath(it->second, NetMode, SceneId);
+  QueueLevelPath(ResolveRuntimeLevelPath(it->second), NetMode, SceneId);
   return true;
 }
 
@@ -107,7 +134,7 @@ bool SceneManager::OpenLevelByPath(const std::string& LevelPath, ENetMode NetMod
   if (LevelPath.empty()) {
     return false;
   }
-  const std::string RuntimeLevelPath = NormalizeRuntimeLevelPath(LevelPath);
+  const std::string RuntimeLevelPath = ResolveRuntimeLevelPath(LevelPath);
   M_LOG(
       "[SceneManager] Queue level: requested={} runtime={} netMode={}",
       LevelPath,

@@ -46,7 +46,8 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode) {
       if (ImGui::MenuItem("Save Level")) {
         // 保存ダイアログを開く
         std::string filepath = FileDialog::SaveFile(
-            "Broccoli Level Files (*.BLevel)\0*.BLevel\0All Files (*.*)\0*.*\0", "BLevel"
+            "Broccoli Level JSON (*.BLevel.json)\0*.BLevel.json\0All Files (*.*)\0*.*\0",
+            "BLevel.json"
         );
         if (!filepath.empty()) {
           editorMode->SaveLevel(filepath);
@@ -55,7 +56,8 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode) {
       if (ImGui::MenuItem("Load Level")) {
         // 開くダイアログを開く
         std::string filepath = FileDialog::OpenFile(
-            "Broccoli Level Files (*.BLevel)\0*.BLevel\0All Files (*.*)\0*.*\0"
+            "Broccoli Level Files (*.BLevel;*.BLevel.json)\0*.BLevel;*.BLevel.json\0All Files "
+            "(*.*)\0*.*\0"
         );
         if (!filepath.empty()) {
           editorMode->LoadLevel(filepath);
