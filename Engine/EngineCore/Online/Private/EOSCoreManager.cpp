@@ -132,7 +132,10 @@ bool EOSCoreManager::Initialize(const FEOSConfig& Config) {
     return false;
   }
 
-  const std::string CacheDirectory = CacheDirectoryPath.string();
+  const std::u8string CacheDirectoryU8 = CacheDirectoryPath.u8string();
+  const std::string CacheDirectory(
+      reinterpret_cast<const char*>(CacheDirectoryU8.c_str()), CacheDirectoryU8.length()
+  );
   PlatformOptions.CacheDirectory = CacheDirectory.c_str();
   DRAW_SCREEN_LOG("EOSCacheDirectory", 8.0f, "EOS cache directory: {}", CacheDirectory);
   PlatformOptions.bIsServer = EOS_FALSE;
