@@ -7,6 +7,40 @@ CMake Presets separate repository settings from developer-local configuration.
 
 Set `CMAKE_TOOLCHAIN_FILE` in `CMakeUserPresets.json` to the vcpkg installation on your machine.
 
+Here is an example `CMakeUserPresets.json` file:
+
+```json
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "local-windows-x64",
+      "inherits": "windows-x64",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "local-debug",
+      "inherits": "debug",
+      "configurePreset": "local-windows-x64"
+    },
+    {
+      "name": "local-editor",
+      "inherits": "editor",
+      "configurePreset": "local-windows-x64"
+    },
+    {
+      "name": "local-release",
+      "inherits": "release",
+      "configurePreset": "local-windows-x64"
+    }
+  ]
+}
+```
+
 ## Command line
 
 Configure with the local preset:

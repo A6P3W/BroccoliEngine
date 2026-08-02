@@ -6,15 +6,7 @@ set(VCPKG_MANIFEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE PATH
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   project(BroccoliEngine LANGUAGES CXX)
-  set(CMAKE_CXX_STANDARD 20)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
-  if(CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_CONFIGURATION_TYPES "Debug;Editor;Release" CACHE STRING "" FORCE)
-  elseif(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build configuration" FORCE)
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Editor Release)
-  endif()
+  include("${CMAKE_CURRENT_LIST_DIR}/../ProjectDefaults.cmake")
 endif()
 
 file(GLOB_RECURSE BROCCOLI_ENGINE_FILES
@@ -77,10 +69,7 @@ target_include_directories(BroccoliEngine
 )
 
 if(MSVC)
-  target_compile_options(BroccoliEngine PRIVATE
-    /W3 /sdl /MP /Zc:preprocessor /execution-charset:utf-8
-    /wd4251 /wd4819
-  )
+  broccoli_apply_common_msvc_options(BroccoliEngine)
   set_property(TARGET BroccoliEngine PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<OR:$<CONFIG:Debug>,$<CONFIG:Editor>>:Debug>DLL")
 endif()
@@ -123,7 +112,7 @@ if(WIN32)
   set(BROCCOLI_EOS_LIBRARY "${BROCCOLI_EOS_ROOT}/Lib/EOSSDK-Win64-Shipping.lib")
   set(BROCCOLI_EOS_DLL "${BROCCOLI_EOS_ROOT}/Bin/EOSSDK-Win64-Shipping.dll")
 
-  if(EXISTS "${BROCCOLI_EOS_LIBRARY}")
+  if(EXISTS "${BROCCOLI_EOS_LIBRARY}" AND EXISTS "${BROCCOLI_EOS_DLL}")
     add_library(BroccoliEOS SHARED IMPORTED GLOBAL)
     set_target_properties(BroccoliEOS PROPERTIES
       IMPORTED_IMPLIB "${BROCCOLI_EOS_LIBRARY}"
@@ -132,7 +121,14 @@ if(WIN32)
     )
     target_link_libraries(BroccoliEngine PRIVATE BroccoliEOS)
   else()
-    message(FATAL_ERROR "EOS SDK library was not found: ${BROCCOLI_EOS_LIBRARY}")
+    set(MISSING_EOS_DETAILS "")
+    if(NOT EXISTS "${BROCCOLI_EOS_LIBRARY}")
+      string(APPEND MISSING_EOS_DETAILS "  Library not found: ${BROCCOLI_EOS_LIBRARY}\n")
+    endif()
+    if(NOT EXISTS "${BROCCOLI_EOS_DLL}")
+      string(APPEND MISSING_EOS_DETAILS "  DLL not found: ${BROCCOLI_EOS_DLL}\n")
+    endif()
+    message(FATAL_ERROR "EOS SDK components are missing:\n${MISSING_EOS_DETAILS}")
   endif()
 endif()
 
