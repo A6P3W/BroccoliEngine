@@ -1,15 +1,12 @@
 #include "PathResolver.h"
 
+#include <cctype>
 #include <filesystem>
 #include <string>
 
 #include "EngineDefine.h"
 #include "FileUtils.h"
 #include "Log.h"
-
-#ifndef BROCCOLI_GAME_NAME
-#define BROCCOLI_GAME_NAME "Game"
-#endif
 
 namespace {
 std::string NormalizePath(const std::string& Path) {
@@ -20,24 +17,34 @@ std::string NormalizePath(const std::string& Path) {
   return Result;
 }
 
-bool StartsWithCaseInsensitive(const std::string& FullStr, const std::string& Prefix) {
-  if (FullStr.length() < Prefix.length()) return false;
-  for (size_t i = 0; i < Prefix.length(); ++i) {
-    if (std::tolower(static_cast<unsigned char>(FullStr[i])) !=
-        std::tolower(static_cast<unsigned char>(Prefix[i]))) {
+bool EqualsCaseInsensitiveAt(const std::string& FullStr, size_t Offset, const std::string& Value) {
+  if (FullStr.length() - Offset < Value.length()) return false;
+  for (size_t Index = 0; Index < Value.length(); ++Index) {
+    if (std::tolower(static_cast<unsigned char>(FullStr[Offset + Index])) !=
+        std::tolower(static_cast<unsigned char>(Value[Index]))) {
       return false;
     }
   }
   return true;
 }
 
+bool StartsWithCaseInsensitive(const std::string& FullStr, const std::string& Prefix) {
+  return EqualsCaseInsensitiveAt(FullStr, 0, Prefix);
+}
+
 size_t FindCaseInsensitive(const std::string& FullStr, const std::string& Value) {
   if (Value.empty() || FullStr.length() < Value.length()) return std::string::npos;
 
   for (size_t Start = 0; Start <= FullStr.length() - Value.length(); ++Start) {
-    if (StartsWithCaseInsensitive(FullStr.substr(Start), Value)) return Start;
+    if (EqualsCaseInsensitiveAt(FullStr, Start, Value)) return Start;
   }
   return std::string::npos;
+}
+
+bool IsInsideBase(const std::filesystem::path& RelPath) {
+  if (RelPath.empty()) return false;
+  const auto FirstComp = *RelPath.begin();
+  return FirstComp != "..";
 }
 
 std::string g_GameName =
@@ -93,8 +100,8 @@ const std::string& PathResolver::GetGameName() {
     std::error_code ErrorCode;
     if (std::filesystem::exists("Resources", ErrorCode)) {
       for (const auto& Entry : std::filesystem::directory_iterator("Resources", ErrorCode)) {
-        if (Entry.is_directory()) {
-          std::string FolderName = Entry.path().filename().string();
+        if (Entry.is_directory(ErrorCode)) {
+          std::string FolderName = FileUtils::PathToUtf8(Entry.path().filename());
           if (FolderName != "Engine" && FolderName != "Game" && !FolderName.empty() &&
               FolderName[0] != '.') {
             g_GameName = FolderName;
@@ -182,8 +189,8 @@ std::string PathResolver::SanitizeResourcePath(const std::string& Path) {
       ErrorCode.clear();
       std::filesystem::path RelEngine =
           std::filesystem::relative(PathObj, FileUtils::Utf8ToPath(AbsEngineStr), ErrorCode);
-      if (!ErrorCode && !RelEngine.empty() && RelEngine.string().find("..") == std::string::npos) {
-        return "/Engine/" + NormalizePath(FileUtils::PathToUtf8(RelEngine));
+      if (!ErrorCode && IsInsideBase(RelEngine)) {
+        return "/Engine/" + NormalizePath(FileUtils::PathToUtf8Generic(RelEngine));
       }
     }
 
@@ -191,8 +198,8 @@ std::string PathResolver::SanitizeResourcePath(const std::string& Path) {
       ErrorCode.clear();
       std::filesystem::path RelGame =
           std::filesystem::relative(PathObj, FileUtils::Utf8ToPath(AbsGameStr), ErrorCode);
-      if (!ErrorCode && !RelGame.empty() && RelGame.string().find("..") == std::string::npos) {
-        return "/Game/" + NormalizePath(FileUtils::PathToUtf8(RelGame));
+      if (!ErrorCode && IsInsideBase(RelGame)) {
+        return "/Game/" + NormalizePath(FileUtils::PathToUtf8Generic(RelGame));
       }
     }
 
@@ -237,7 +244,9 @@ std::string PathResolver::Resolve(const std::string& Path) {
   const std::filesystem::path PathObj = FileUtils::Utf8ToPath(Path);
   if (PathObj.is_absolute()) {
     std::string Normalized = NormalizePath(Path);
+#if defined(_DEBUG)
     M_LOG("[PathResolver] Resolve (absolute): input='{}' -> result='{}'", Path, Normalized);
+#endif
     return Normalized;
   }
 
@@ -254,9 +263,11 @@ std::string PathResolver::Resolve(const std::string& Path) {
     Result = GetGameResourceDir() + Sanitized;
   }
 
+#if defined(_DEBUG)
   M_LOG(
       "[PathResolver] Resolve: input='{}' sanitized='{}' -> result='{}'", Path, Sanitized, Result
   );
+#endif
   return Result;
 }
 
@@ -283,6 +294,7 @@ std::string PathResolver::GetGameResourceDir() {
 
     std::string GameDir = DetectGameSourceDir();
     if (!GameDir.empty()) {
+      g_GameSourceDir = GameDir;
       return GameDir + "Resources/";
     }
     return "Resources/";

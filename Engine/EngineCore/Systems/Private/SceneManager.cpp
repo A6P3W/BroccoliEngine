@@ -9,9 +9,12 @@
 #include "PathResolver.h"
 
 namespace {
+std::string NormalizeRuntimeLevelPath(const std::filesystem::path& LevelPath) {
+  return FileUtils::PathToUtf8Generic(LevelPath.lexically_normal());
+}
+
 std::string NormalizeRuntimeLevelPath(const std::string& LevelPath) {
-  const std::filesystem::path InputPath = FileUtils::Utf8ToPath(LevelPath).lexically_normal();
-  return FileUtils::PathToUtf8(InputPath.generic_string());
+  return NormalizeRuntimeLevelPath(FileUtils::Utf8ToPath(LevelPath));
 }
 
 std::string ResolveRuntimeLevelPath(const std::string& LevelPath) {
@@ -19,9 +22,13 @@ std::string ResolveRuntimeLevelPath(const std::string& LevelPath) {
   const std::filesystem::path InputPath = FileUtils::Utf8ToPath(ResolvedPathStr).lexically_normal();
   std::error_code ErrorCode;
   bool InputExists = std::filesystem::exists(InputPath, ErrorCode);
-  M_LOG("[SceneManager] ResolveRuntimeLevelPath: ResolvedPathStr='{}' exists={}", ResolvedPathStr, InputExists);
+  M_LOG(
+      "[SceneManager] ResolveRuntimeLevelPath: ResolvedPathStr='{}' exists={}",
+      ResolvedPathStr,
+      InputExists
+  );
   if (InputExists) {
-    return NormalizeRuntimeLevelPath(FileUtils::PathToUtf8(InputPath));
+    return NormalizeRuntimeLevelPath(InputPath);
   }
 
   std::string Extension = FileUtils::PathToUtf8(InputPath.extension());
@@ -32,18 +39,22 @@ std::string ResolveRuntimeLevelPath(const std::string& LevelPath) {
   );
   if (Extension != ".blevel") {
     M_LOG("[SceneManager] ResolveRuntimeLevelPath: Extension '{}' != '.blevel'", Extension);
-    return NormalizeRuntimeLevelPath(FileUtils::PathToUtf8(InputPath));
+    return NormalizeRuntimeLevelPath(InputPath);
   }
 
   std::filesystem::path JsonPath = InputPath;
   JsonPath.replace_extension(".BLevel.json");
   ErrorCode.clear();
   bool JsonExists = std::filesystem::exists(JsonPath, ErrorCode);
-  M_LOG("[SceneManager] ResolveRuntimeLevelPath: JsonPath='{}' jsonExists={}", FileUtils::PathToUtf8(JsonPath), JsonExists);
+  M_LOG(
+      "[SceneManager] ResolveRuntimeLevelPath: JsonPath='{}' jsonExists={}",
+      FileUtils::PathToUtf8(JsonPath),
+      JsonExists
+  );
   if (JsonExists) {
-    return NormalizeRuntimeLevelPath(FileUtils::PathToUtf8(JsonPath));
+    return NormalizeRuntimeLevelPath(JsonPath);
   }
-  return NormalizeRuntimeLevelPath(FileUtils::PathToUtf8(InputPath));
+  return NormalizeRuntimeLevelPath(InputPath);
 }
 }  // namespace
 

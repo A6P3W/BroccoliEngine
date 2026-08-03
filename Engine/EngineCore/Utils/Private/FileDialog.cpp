@@ -20,11 +20,25 @@
 #include <system_error>
 #include <vector>
 
+#include <wrl/client.h>
+
 #include "BroccoliRaylib.h"
 #include "FileUtils.h"
 #include "Log.h"
+#include "PathResolver.h"
+
+using Microsoft::WRL::ComPtr;
 
 namespace {
+struct ScopeCoUninitialize {
+  bool bActive = false;
+  ~ScopeCoUninitialize() {
+    if (bActive) {
+      CoUninitialize();
+    }
+  }
+};
+
 std::string WideToUtf8(const std::wstring& Value) {
   if (Value.empty()) {
     return {};
@@ -68,6 +82,14 @@ std::wstring Utf8ToWide(const std::string& Value) {
 }
 
 std::string GetDefaultInitialDir() {
+  const std::string GameResourceDir = PathResolver::GetGameResourceDir();
+  if (!GameResourceDir.empty()) {
+    std::error_code ErrorCode;
+    if (std::filesystem::exists(FileUtils::Utf8ToPath(GameResourceDir), ErrorCode)) {
+      return GameResourceDir;
+    }
+  }
+
   std::error_code ErrorCode;
   const std::filesystem::path CurrentPath = std::filesystem::current_path(ErrorCode);
   if (ErrorCode) return {};
@@ -124,29 +146,35 @@ std::wstring GetDialogFolderPath(const std::string& ResourceDir) {
   if (ErrorCode) return {};
   return AbsolutePath.wstring();
 }
-}  // namespace
 
-std::string FileDialog::OpenFile(const char* Filter, const std::string& InitialDir) {
+template <typename TDialogInterface>
+std::string ShowFileDialog(
+    const CLSID& DialogClsid,
+    const IID& DialogIid,
+    const char* Filter,
+    const char* DefaultExt,
+    FILEOPENDIALOGOPTIONS ExtraOptions,
+    const char* DialogName,
+    const std::string& InitialDir
+) {
   const std::string ResourceDir = InitialDir.empty() ? GetDefaultInitialDir() : InitialDir;
   const std::wstring WideResourceDir = GetDialogFolderPath(ResourceDir);
-  LogInitialDirectory("OpenFile", ResourceDir);
+  const std::wstring WideDefaultExt = DefaultExt != nullptr ? Utf8ToWide(DefaultExt) : L"";
+  LogInitialDirectory(DialogName, ResourceDir);
 
   const HRESULT InitializeResult =
       CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-  const bool bShouldUninitialize = SUCCEEDED(InitializeResult);
+  ScopeCoUninitialize ScopeGuard{SUCCEEDED(InitializeResult)};
   if (FAILED(InitializeResult) && InitializeResult != RPC_E_CHANGED_MODE) return {};
 
-  IFileOpenDialog* Dialog = nullptr;
+  ComPtr<TDialogInterface> Dialog;
   std::string SelectedPath;
-  HRESULT Result =
-      CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&Dialog));
+  HRESULT Result = CoCreateInstance(DialogClsid, nullptr, CLSCTX_INPROC_SERVER, DialogIid, &Dialog);
   if (SUCCEEDED(Result)) {
     FILEOPENDIALOGOPTIONS Options = 0;
     Result = Dialog->GetOptions(&Options);
     if (SUCCEEDED(Result)) {
-      Result = Dialog->SetOptions(
-          Options | FOS_FORCEFILESYSTEM | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR
-      );
+      Result = Dialog->SetOptions(Options | ExtraOptions);
     }
 
     std::vector<std::wstring> FilterStrings;
@@ -155,15 +183,22 @@ std::string FileDialog::OpenFile(const char* Filter, const std::string& InitialD
       Result = Dialog->SetFileTypes(static_cast<UINT>(FilterSpecs.size()), FilterSpecs.data());
     }
 
-    IShellItem* InitialFolder = nullptr;
+    if (SUCCEEDED(Result) && !WideDefaultExt.empty()) {
+      ComPtr<IFileSaveDialog> SaveDialog;
+      if (SUCCEEDED(Dialog.As(&SaveDialog))) {
+        SaveDialog->SetDefaultExtension(WideDefaultExt.c_str());
+      }
+    }
+
+    ComPtr<IShellItem> InitialFolder;
     if (SUCCEEDED(Result) && !WideResourceDir.empty()) {
       const HRESULT FolderResult = SHCreateItemFromParsingName(
           WideResourceDir.c_str(), nullptr, IID_PPV_ARGS(&InitialFolder)
       );
-      M_LOG("[FileDialog] {} SHCreateItemFromParsingName result={}", "OpenFile", FolderResult);
+      M_LOG("[FileDialog] {} SHCreateItemFromParsingName result={}", DialogName, FolderResult);
       if (SUCCEEDED(FolderResult)) {
-        const HRESULT SetFolderResult = Dialog->SetFolder(InitialFolder);
-        M_LOG("[FileDialog] {} SetFolder result={}", "OpenFile", SetFolderResult);
+        const HRESULT SetFolderResult = Dialog->SetFolder(InitialFolder.Get());
+        M_LOG("[FileDialog] {} SetFolder result={}", DialogName, SetFolderResult);
       }
     }
 
@@ -171,116 +206,58 @@ std::string FileDialog::OpenFile(const char* Filter, const std::string& InitialD
       Result = Dialog->Show(reinterpret_cast<HWND>(GetWindowHandle()));
     }
     if (SUCCEEDED(Result)) {
-      IShellItem* SelectedItem = nullptr;
+      ComPtr<IShellItem> SelectedItem;
       Result = Dialog->GetResult(&SelectedItem);
-      if (SUCCEEDED(Result)) {
+      if (SUCCEEDED(Result) && SelectedItem != nullptr) {
         PWSTR WidePath = nullptr;
         Result = SelectedItem->GetDisplayName(SIGDN_FILESYSPATH, &WidePath);
         if (SUCCEEDED(Result) && WidePath != nullptr) {
           SelectedPath = WideToUtf8(WidePath);
           CoTaskMemFree(WidePath);
         }
-        SelectedItem->Release();
       }
     }
-
-    if (InitialFolder != nullptr) {
-      InitialFolder->Release();
-    }
-    Dialog->Release();
   }
 
-  if (bShouldUninitialize) {
-    CoUninitialize();
-  }
   return SelectedPath;
+}
+}  // namespace
+
+std::string FileDialog::OpenFile(const char* Filter, const std::string& InitialDir) {
+  return ShowFileDialog<IFileOpenDialog>(
+      CLSID_FileOpenDialog,
+      IID_IFileOpenDialog,
+      Filter,
+      nullptr,
+      FOS_FORCEFILESYSTEM | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR,
+      "OpenFile",
+      InitialDir
+  );
 }
 
 std::string FileDialog::SaveFile(
     const char* Filter, const char* DefaultExt, const std::string& InitialDir
 ) {
-  const std::string ResourceDir = InitialDir.empty() ? GetDefaultInitialDir() : InitialDir;
-  const std::wstring WideResourceDir = GetDialogFolderPath(ResourceDir);
-  const std::wstring WideDefaultExt = DefaultExt != nullptr ? Utf8ToWide(DefaultExt) : L"";
-  LogInitialDirectory("SaveFile", ResourceDir);
-
-  const HRESULT InitializeResult =
-      CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-  const bool bShouldUninitialize = SUCCEEDED(InitializeResult);
-  if (FAILED(InitializeResult) && InitializeResult != RPC_E_CHANGED_MODE) return {};
-
-  IFileSaveDialog* Dialog = nullptr;
-  std::string SelectedPath;
-  HRESULT Result =
-      CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&Dialog));
-  if (SUCCEEDED(Result)) {
-    FILEOPENDIALOGOPTIONS Options = 0;
-    Result = Dialog->GetOptions(&Options);
-    if (SUCCEEDED(Result)) {
-      Result = Dialog->SetOptions(
-          Options | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_OVERWRITEPROMPT | FOS_NOCHANGEDIR
-      );
-    }
-
-    std::vector<std::wstring> FilterStrings;
-    const std::vector<COMDLG_FILTERSPEC> FilterSpecs = ParseFilterSpecs(Filter, FilterStrings);
-    if (SUCCEEDED(Result) && !FilterSpecs.empty()) {
-      Result = Dialog->SetFileTypes(static_cast<UINT>(FilterSpecs.size()), FilterSpecs.data());
-    }
-    if (SUCCEEDED(Result) && !WideDefaultExt.empty()) {
-      Result = Dialog->SetDefaultExtension(WideDefaultExt.c_str());
-    }
-
-    IShellItem* InitialFolder = nullptr;
-    if (SUCCEEDED(Result) && !WideResourceDir.empty()) {
-      const HRESULT FolderResult = SHCreateItemFromParsingName(
-          WideResourceDir.c_str(), nullptr, IID_PPV_ARGS(&InitialFolder)
-      );
-      M_LOG("[FileDialog] {} SHCreateItemFromParsingName result={}", "SaveFile", FolderResult);
-      if (SUCCEEDED(FolderResult)) {
-        const HRESULT SetFolderResult = Dialog->SetFolder(InitialFolder);
-        M_LOG("[FileDialog] {} SetFolder result={}", "SaveFile", SetFolderResult);
-      }
-    }
-
-    if (SUCCEEDED(Result)) {
-      Result = Dialog->Show(reinterpret_cast<HWND>(GetWindowHandle()));
-    }
-    if (SUCCEEDED(Result)) {
-      IShellItem* SelectedItem = nullptr;
-      Result = Dialog->GetResult(&SelectedItem);
-      if (SUCCEEDED(Result)) {
-        PWSTR WidePath = nullptr;
-        Result = SelectedItem->GetDisplayName(SIGDN_FILESYSPATH, &WidePath);
-        if (SUCCEEDED(Result) && WidePath != nullptr) {
-          SelectedPath = WideToUtf8(WidePath);
-          CoTaskMemFree(WidePath);
-        }
-        SelectedItem->Release();
-      }
-    }
-
-    if (InitialFolder != nullptr) {
-      InitialFolder->Release();
-    }
-    Dialog->Release();
-  }
-
-  if (bShouldUninitialize) {
-    CoUninitialize();
-  }
-  return SelectedPath;
+  return ShowFileDialog<IFileSaveDialog>(
+      CLSID_FileSaveDialog,
+      IID_IFileSaveDialog,
+      Filter,
+      DefaultExt,
+      FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_OVERWRITEPROMPT | FOS_NOCHANGEDIR,
+      "SaveFile",
+      InitialDir
+  );
 }
 
 std::string FileDialog::SelectFolder() {
   const HRESULT InitializeResult =
       CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-  const bool bShouldUninitialize = SUCCEEDED(InitializeResult);
+  ScopeCoUninitialize ScopeGuard{SUCCEEDED(InitializeResult)};
   if (FAILED(InitializeResult) && InitializeResult != RPC_E_CHANGED_MODE) {
     return {};
   }
 
-  IFileOpenDialog* Dialog = nullptr;
+  ComPtr<IFileOpenDialog> Dialog;
   HRESULT Result =
       CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&Dialog));
   std::string SelectedPath;
@@ -296,23 +273,18 @@ std::string FileDialog::SelectFolder() {
       Result = Dialog->Show(reinterpret_cast<HWND>(GetWindowHandle()));
     }
     if (SUCCEEDED(Result)) {
-      IShellItem* SelectedItem = nullptr;
+      ComPtr<IShellItem> SelectedItem;
       Result = Dialog->GetResult(&SelectedItem);
-      if (SUCCEEDED(Result)) {
+      if (SUCCEEDED(Result) && SelectedItem != nullptr) {
         PWSTR WidePath = nullptr;
         Result = SelectedItem->GetDisplayName(SIGDN_FILESYSPATH, &WidePath);
         if (SUCCEEDED(Result) && WidePath != nullptr) {
           SelectedPath = WideToUtf8(WidePath);
           CoTaskMemFree(WidePath);
         }
-        SelectedItem->Release();
       }
     }
-    Dialog->Release();
   }
 
-  if (bShouldUninitialize) {
-    CoUninitialize();
-  }
   return SelectedPath;
 }

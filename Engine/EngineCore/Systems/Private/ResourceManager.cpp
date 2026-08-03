@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <string>
@@ -19,6 +21,14 @@
 
 namespace {
 constexpr int InvalidResourceHandle = 0;
+
+std::string ToLowerExtension(const std::filesystem::path& PathObj) {
+  std::string Ext = FileUtils::PathToUtf8(PathObj.extension());
+  std::transform(Ext.begin(), Ext.end(), Ext.begin(), [](unsigned char Character) {
+    return static_cast<char>(std::tolower(Character));
+  });
+  return Ext;
+}
 
 bool ReadFileToMemory(const std::filesystem::path& Path, std::vector<unsigned char>& OutBuffer) {
   std::error_code ErrorCode;
@@ -40,11 +50,7 @@ Image LoadImageUtf8(const std::string& Path) {
   std::vector<unsigned char> Buffer;
   if (!ReadFileToMemory(PathObj, Buffer)) return Image{};
 
-  std::string Ext = FileUtils::PathToUtf8(PathObj.extension());
-  std::transform(Ext.begin(), Ext.end(), Ext.begin(), [](unsigned char c) {
-    return static_cast<char>(std::tolower(c));
-  });
-
+  const std::string Ext = ToLowerExtension(PathObj);
   return LoadImageFromMemory(Ext.c_str(), Buffer.data(), static_cast<int>(Buffer.size()));
 }
 
@@ -151,7 +157,8 @@ class FRaylibResourceStore {
     };
     for (const char* Candidate : FontCandidates) {
       std::string TestPath = PathResolver::Resolve(Candidate);
-      if (FileExists(TestPath.c_str())) {
+      std::error_code ErrorCode;
+      if (std::filesystem::exists(FileUtils::Utf8ToPath(TestPath), ErrorCode)) {
         Resource.Path = TestPath;
         break;
       }
@@ -161,10 +168,8 @@ class FRaylibResourceStore {
     }
 
     AddAsciiCodepoints(Resource.Codepoints);
-    if (FileExists(Resource.Path.c_str())) {
-      Resource.FontData = LoadFont(Resource);
-      Resource.OwnsFont = IsFontValid(Resource.FontData);
-    }
+    Resource.FontData = LoadFont(Resource);
+    Resource.OwnsFont = IsFontValid(Resource.FontData);
     if (!Resource.OwnsFont) {
       Resource.FontData = GetFontDefault();
       M_LOG(
@@ -242,11 +247,7 @@ class FRaylibResourceStore {
     std::vector<unsigned char> Buffer;
     if (!ReadFileToMemory(PathObj, Buffer)) return Font{};
 
-    std::string Ext = FileUtils::PathToUtf8(PathObj.extension());
-    std::transform(Ext.begin(), Ext.end(), Ext.begin(), [](unsigned char c) {
-      return static_cast<char>(std::tolower(c));
-    });
-
+    const std::string Ext = ToLowerExtension(PathObj);
     return LoadFontFromMemory(
         Ext.c_str(),
         Buffer.data(),

@@ -59,7 +59,8 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode) {
         // 開くダイアログを開く
         std::string filepath = FileDialog::OpenFile(
             "Broccoli Level Files (*.BLevel;*.BLevel.json)\0*.BLevel;*.BLevel.json\0All Files "
-            "(*.*)\0*.*\0"
+            "(*.*)\0*.*\0",
+            PathResolver::GetGameResourceDir()
         );
         if (!filepath.empty()) {
           editorMode->LoadLevel(filepath);
@@ -360,10 +361,10 @@ void EditorUI::DrawInspector(EditorMode* editorMode) {
         }
 
         if (ImGui::Button("Select Image...")) {
-          std::string dialogDir = PathResolver::GetGameResourceDir();
+          std::string DialogDir = PathResolver::GetGameResourceDir();
           std::string filepath = FileDialog::OpenFile(
               "Image Files (*.png;*.jpg;*.bmp)\0*.png;*.jpg;*.bmp\0All Files (*.*)\0*.*\0",
-              dialogDir
+              DialogDir
           );
           if (!filepath.empty()) {
             spriteActor->SetImagePath(filepath);
