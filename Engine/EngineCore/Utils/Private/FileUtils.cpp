@@ -23,8 +23,13 @@ struct FileUtils::Impl {
   std::string GetProjectRelativePath(const std::string& fullPath) const {
     if (fullPath.empty()) return "";
 
-    fs::path p(fullPath);
-    return fs::relative(p, fs::current_path()).generic_string();
+    std::error_code ec;
+    fs::path p = Utf8ToPath(fullPath);
+    fs::path rel = fs::relative(p, fs::current_path(ec), ec);
+    if (ec) {
+      return fullPath;
+    }
+    return PathToUtf8(rel.generic_string());
   }
 };
 

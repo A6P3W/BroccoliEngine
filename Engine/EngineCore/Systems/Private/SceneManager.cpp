@@ -5,56 +5,56 @@
 #include <filesystem>
 #include <system_error>
 
+#include "FileUtils.h"
+#include "PathResolver.h"
+
 namespace {
+std::string NormalizeRuntimeLevelPath(const std::filesystem::path& LevelPath) {
+  return FileUtils::PathToUtf8Generic(LevelPath.lexically_normal());
+}
+
 std::string NormalizeRuntimeLevelPath(const std::string& LevelPath) {
-  const std::filesystem::path InputPath = std::filesystem::path(LevelPath).lexically_normal();
-  if (!InputPath.is_absolute()) {
-    return InputPath.generic_string();
-  }
-
-  std::error_code ErrorCode;
-  const std::filesystem::path CurrentPath = std::filesystem::current_path(ErrorCode);
-  if (ErrorCode) {
-    return InputPath.string();
-  }
-
-  const std::filesystem::path RelativePath =
-      std::filesystem::relative(InputPath, CurrentPath, ErrorCode);
-  if (ErrorCode || RelativePath.empty()) {
-    return InputPath.string();
-  }
-
-  const auto FirstComponent = RelativePath.begin();
-  if (FirstComponent != RelativePath.end() && *FirstComponent != "..") {
-    return RelativePath.generic_string();
-  }
-  return InputPath.string();
+  return NormalizeRuntimeLevelPath(FileUtils::Utf8ToPath(LevelPath));
 }
 
 std::string ResolveRuntimeLevelPath(const std::string& LevelPath) {
-  const std::filesystem::path InputPath = std::filesystem::path(LevelPath).lexically_normal();
+  std::string ResolvedPathStr = PathResolver::Resolve(LevelPath);
+  const std::filesystem::path InputPath = FileUtils::Utf8ToPath(ResolvedPathStr).lexically_normal();
   std::error_code ErrorCode;
-  if (std::filesystem::exists(InputPath, ErrorCode)) {
-    return NormalizeRuntimeLevelPath(InputPath.string());
+  bool InputExists = std::filesystem::exists(InputPath, ErrorCode);
+  M_LOG(
+      "[SceneManager] ResolveRuntimeLevelPath: ResolvedPathStr='{}' exists={}",
+      ResolvedPathStr,
+      InputExists
+  );
+  if (InputExists) {
+    return NormalizeRuntimeLevelPath(InputPath);
   }
 
-  std::string Extension = InputPath.extension().string();
+  std::string Extension = FileUtils::PathToUtf8(InputPath.extension());
   std::transform(
       Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char Character) {
         return static_cast<char>(std::tolower(Character));
       }
   );
   if (Extension != ".blevel") {
-    return NormalizeRuntimeLevelPath(InputPath.string());
+    M_LOG("[SceneManager] ResolveRuntimeLevelPath: Extension '{}' != '.blevel'", Extension);
+    return NormalizeRuntimeLevelPath(InputPath);
   }
 
   std::filesystem::path JsonPath = InputPath;
   JsonPath.replace_extension(".BLevel.json");
   ErrorCode.clear();
-  if (std::filesystem::exists(JsonPath, ErrorCode)) {
-    return NormalizeRuntimeLevelPath(JsonPath.string());
+  bool JsonExists = std::filesystem::exists(JsonPath, ErrorCode);
+  M_LOG(
+      "[SceneManager] ResolveRuntimeLevelPath: JsonPath='{}' jsonExists={}",
+      FileUtils::PathToUtf8(JsonPath),
+      JsonExists
+  );
+  if (JsonExists) {
+    return NormalizeRuntimeLevelPath(JsonPath);
   }
-  return NormalizeRuntimeLevelPath(InputPath.string());
+  return NormalizeRuntimeLevelPath(InputPath);
 }
 }  // namespace
 

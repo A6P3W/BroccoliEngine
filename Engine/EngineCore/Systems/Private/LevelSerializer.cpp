@@ -11,6 +11,7 @@
 #include "EditorSelectPointComponent.h"
 #include "GameModeBase.h"
 #include "Log.h"
+#include "PathResolver.h"
 #include "SimpleCrypto.h"
 #include "SpriteActor.h"
 #include "World.h"
@@ -64,7 +65,7 @@ bool LevelSerializer::Save(
     data.Rotation = actor->GetActorRotation();
     data.Scale = actor->GetActorScale();
     if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor)) {
-      data.CustomProperties["ImagePath"] = spriteActor->GetImagePath();
+      data.CustomProperties["ImagePath"] = PathResolver::SanitizeResourcePath(spriteActor->GetImagePath());
     }
     actors.push_back(data);
   }

@@ -7,6 +7,7 @@
 #include "EOSCoreManager.h"
 #include "LevelStarter/LevelStarterGameMode.h"
 #include "LevelStarter/LevelStarterWidget.h"
+#include "PathResolver.h"
 #include "SceneManager.h"
 
 namespace {
@@ -18,12 +19,14 @@ void SetupGame() {
   EOSCoreManager::GetInstance().InitializeOnlineServices();
 
   // ゲーム起動時に最初に読み込むレベル（ステージ）ファイルのパスを設定
-  SceneManager::GetInstance().SetStartupLevelPath("Resources/LevelStarter.BLevel");
+  SceneManager::GetInstance().SetStartupLevelPath("Game/LevelStarter.BLevel");
 }
 }  // namespace
 
 int WINAPI
 WinMain(HINSTANCE Instance, HINSTANCE PreviousInstance, LPSTR CommandLine, int ShowCommand) {
+  PathResolver::SetGameName("Launcher");
+
   // アプリケーション初期化用のセットアップコールバック関数を登録
   Application::SetGameSetupCallback(&SetupGame);
   // エンジンのメインアプリケーションインスタンスを生成

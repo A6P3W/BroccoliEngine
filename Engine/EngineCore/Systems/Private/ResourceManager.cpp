@@ -2,7 +2,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <limits>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -10,11 +14,45 @@
 #include <vector>
 
 #include "BroccoliRaylib.h"
+#include "FileUtils.h"
 #include "Log.h"
+#include "PathResolver.h"
 #include "RaylibResourceBridge.h"
 
 namespace {
 constexpr int InvalidResourceHandle = 0;
+
+std::string ToLowerExtension(const std::filesystem::path& PathObj) {
+  std::string Ext = FileUtils::PathToUtf8(PathObj.extension());
+  std::transform(Ext.begin(), Ext.end(), Ext.begin(), [](unsigned char Character) {
+    return static_cast<char>(std::tolower(Character));
+  });
+  return Ext;
+}
+
+bool ReadFileToMemory(const std::filesystem::path& Path, std::vector<unsigned char>& OutBuffer) {
+  std::error_code ErrorCode;
+  if (!std::filesystem::exists(Path, ErrorCode)) return false;
+
+  std::ifstream File(Path, std::ios::binary | std::ios::ate);
+  if (!File.is_open()) return false;
+
+  const std::streamsize Size = File.tellg();
+  if (Size <= 0 || Size > std::numeric_limits<int>::max()) return false;
+
+  OutBuffer.resize(static_cast<size_t>(Size));
+  File.seekg(0, std::ios::beg);
+  return File.read(reinterpret_cast<char*>(OutBuffer.data()), Size).good();
+}
+
+Image LoadImageUtf8(const std::string& Path) {
+  const std::filesystem::path PathObj = FileUtils::Utf8ToPath(Path);
+  std::vector<unsigned char> Buffer;
+  if (!ReadFileToMemory(PathObj, Buffer)) return Image{};
+
+  const std::string Ext = ToLowerExtension(PathObj);
+  return LoadImageFromMemory(Ext.c_str(), Buffer.data(), static_cast<int>(Buffer.size()));
+}
 
 struct FTextureResource {
   Texture2D Texture{};
@@ -36,7 +74,11 @@ class FRaylibResourceStore {
     const auto Cached = TexturePathMap.find(Path);
     if (Cached != TexturePathMap.end()) return Cached->second;
 
-    const Texture2D Texture = LoadTexture(Path.c_str());
+    Image Img = LoadImageUtf8(Path);
+    if (!IsImageValid(Img)) return InvalidResourceHandle;
+
+    Texture2D Texture = LoadTextureFromImage(Img);
+    UnloadImage(Img);
     if (!IsTextureValid(Texture)) return InvalidResourceHandle;
 
     const int Handle = NextHandle++;
@@ -107,15 +149,32 @@ class FRaylibResourceStore {
 
     FFontResource Resource;
     Resource.PixelSize = (std::max)(1, PixelSize);
-    Resource.Path = FindJapaneseFontPath();
-    AddAsciiCodepoints(Resource.Codepoints);
-    if (!Resource.Path.empty()) {
-      Resource.FontData = LoadFont(Resource);
-      Resource.OwnsFont = IsFontValid(Resource.FontData);
+
+    static constexpr std::array<const char*, 3> FontCandidates = {
+        "Engine/NotoSansJP-VariableFont_wght.ttf",
+        "Engine/NotoSansJP-Regular.ttf",
+        "Engine/Fonts/NotoSansJP-Regular.ttf",
+    };
+    for (const char* Candidate : FontCandidates) {
+      std::string TestPath = PathResolver::Resolve(Candidate);
+      std::error_code ErrorCode;
+      if (std::filesystem::exists(FileUtils::Utf8ToPath(TestPath), ErrorCode)) {
+        Resource.Path = TestPath;
+        break;
+      }
     }
+    if (Resource.Path.empty()) {
+      Resource.Path = PathResolver::Resolve("Engine/NotoSansJP-VariableFont_wght.ttf");
+    }
+
+    AddAsciiCodepoints(Resource.Codepoints);
+    Resource.FontData = LoadFont(Resource);
+    Resource.OwnsFont = IsFontValid(Resource.FontData);
     if (!Resource.OwnsFont) {
       Resource.FontData = GetFontDefault();
-      M_LOG("Japanese font file was not found. Falling back to the raylib default font.");
+      M_LOG(
+          "Font file was not found at: {}. Falling back to the raylib default font.", Resource.Path
+      );
     }
 
     const int Handle = NextHandle++;
@@ -180,26 +239,19 @@ class FRaylibResourceStore {
     }
   }
 
-  static std::string FindJapaneseFontPath() {
-    static constexpr std::array<const char*, 6> Candidates = {
-        "Resources/.Engine/NotoSansJP-Regular.ttf",
-        "Resources/NotoSansJP-Regular.ttf",
-        "C:/Windows/Fonts/meiryo.ttc",
-        "C:/Windows/Fonts/YuGothM.ttc",
-        "C:/Windows/Fonts/msgothic.ttc",
-        "C:/Windows/Fonts/meiryo.ttf",
-    };
-    for (const char* Candidate : Candidates) {
-      if (FileExists(Candidate)) return Candidate;
-    }
-    return {};
-  }
-
   static Font LoadFont(const FFontResource& Resource) {
     std::vector<int> Codepoints(Resource.Codepoints.begin(), Resource.Codepoints.end());
     std::sort(Codepoints.begin(), Codepoints.end());
-    return LoadFontEx(
-        Resource.Path.c_str(),
+
+    const std::filesystem::path PathObj = FileUtils::Utf8ToPath(Resource.Path);
+    std::vector<unsigned char> Buffer;
+    if (!ReadFileToMemory(PathObj, Buffer)) return Font{};
+
+    const std::string Ext = ToLowerExtension(PathObj);
+    return LoadFontFromMemory(
+        Ext.c_str(),
+        Buffer.data(),
+        static_cast<int>(Buffer.size()),
         Resource.PixelSize,
         Codepoints.data(),
         static_cast<int>(Codepoints.size())
@@ -224,13 +276,12 @@ struct ResourceManager::Impl {
 };
 
 ResourceManager::ResourceManager() : ImplPtr(new Impl()) {
-  static constexpr std::array<const char*, 3> DefaultTextureCandidates = {
-      "Resources/texture_Checker_64px.png",
-      "Engine/Resources/texture_Checker_64px.png",
-      "Engine/EngineSide/Files/texture_Checker_64px.png",
+  static constexpr std::array<const char*, 1> DefaultTextureCandidates = {
+      "Engine/texture_Checker_64px.png",
   };
   for (const char* Candidate : DefaultTextureCandidates) {
-    ImplPtr->DefaultGraph = GetResourceStore().LoadTextureResource(Candidate);
+    const std::string ResolvedPath = PathResolver::Resolve(Candidate);
+    ImplPtr->DefaultGraph = GetResourceStore().LoadTextureResource(ResolvedPath);
     if (ImplPtr->DefaultGraph != InvalidResourceHandle) break;
   }
   if (ImplPtr->DefaultGraph == InvalidResourceHandle) {
@@ -249,11 +300,12 @@ ResourceManager& ResourceManager::GetInstance() {
 }
 
 int ResourceManager::LoadResourceGraph(const std::string& Path) {
-  int Handle = GetResourceStore().LoadTextureResource(Path);
+  const std::string ResolvedPath = PathResolver::Resolve(Path);
+  int Handle = GetResourceStore().LoadTextureResource(ResolvedPath);
   if (Handle == InvalidResourceHandle) {
-    M_LOG("Texture load failed: {}. Using the default texture.", Path);
+    M_LOG("Texture load failed: {}. Using the default texture.", ResolvedPath);
     Handle = ImplPtr->DefaultGraph;
-    GetResourceStore().AddTextureAlias(Path, Handle);
+    GetResourceStore().AddTextureAlias(ResolvedPath, Handle);
   }
   return Handle;
 }

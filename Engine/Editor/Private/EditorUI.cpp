@@ -15,17 +15,12 @@
 #include "ActorManager.h"
 #include "EditorMode.h"
 #include "FileDialog.h"
+#include "FileUtils.h"
 #include "Log.h"
+#include "PathResolver.h"
 #include "SpriteActor.h"
 #include "UMath.h"
 #include "World.h"
-
-namespace {
-std::filesystem::path Utf8ToPath(const std::string& Value) {
-  return std::filesystem::path(reinterpret_cast<const char8_t*>(Value.c_str()));
-}
-
-}  // namespace
 
 void EditorUI::UpdateAndDraw(EditorMode* editorMode) {
   DrawMenuBar(editorMode);
@@ -47,7 +42,8 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode) {
         // 保存ダイアログを開く
         std::string filepath = FileDialog::SaveFile(
             "Broccoli Level JSON (*.BLevel.json)\0*.BLevel.json\0All Files (*.*)\0*.*\0",
-            "BLevel.json"
+            "BLevel.json",
+            PathResolver::GetGameResourceDir()
         );
         if (!filepath.empty()) {
           editorMode->SaveLevel(filepath);
@@ -57,7 +53,8 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode) {
         // 開くダイアログを開く
         std::string filepath = FileDialog::OpenFile(
             "Broccoli Level Files (*.BLevel;*.BLevel.json)\0*.BLevel;*.BLevel.json\0All Files "
-            "(*.*)\0*.*\0"
+            "(*.*)\0*.*\0",
+            PathResolver::GetGameResourceDir()
         );
         if (!filepath.empty()) {
           editorMode->LoadLevel(filepath);
@@ -129,7 +126,7 @@ void EditorUI::DrawCreateNewActorModal(EditorMode* editorMode) {
       FCreateNewActorRequest Request;
       Request.ClassName = ClassName;
       Request.ParentClassName = ParentClassName;
-      Request.OutputDirectory = Utf8ToPath(SelectedPath);
+      Request.OutputDirectory = FileUtils::Utf8ToPath(SelectedPath);
       LastResult = Generator.Generate(Request);
       M_LOG("{}", LastResult.Message);
       if (LastResult.bSuccess) {
@@ -358,9 +355,10 @@ void EditorUI::DrawInspector(EditorMode* editorMode) {
         }
 
         if (ImGui::Button("Select Image...")) {
-          // ファイル選択ダイアログを開く
+          std::string DialogDir = PathResolver::GetGameResourceDir();
           std::string filepath = FileDialog::OpenFile(
-              "Image Files (*.png;*.jpg;*.bmp)\0*.png;*.jpg;*.bmp\0All Files (*.*)\0*.*\0"
+              "Image Files (*.png;*.jpg;*.bmp)\0*.png;*.jpg;*.bmp\0All Files (*.*)\0*.*\0",
+              DialogDir
           );
           if (!filepath.empty()) {
             spriteActor->SetImagePath(filepath);

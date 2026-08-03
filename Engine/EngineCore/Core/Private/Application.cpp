@@ -40,6 +40,7 @@
 #include "MouseDevice.h"
 #include "NetworkManager.h"
 #include "OnlinePlayManager.h"
+#include "PathResolver.h"
 #include "RenderSystem.h"
 #include "ResourceManager.h"
 #include "SceneManager.h"
@@ -223,6 +224,7 @@ void Application::SetWindowResolution(int Width, int Height) {
 void Application::QuitGame() { ShouldQuitGame = true; }
 
 bool Application::Run() {
+  PathResolver::InitializeWorkingDirectory();
   SetProcessDPIAware();
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 

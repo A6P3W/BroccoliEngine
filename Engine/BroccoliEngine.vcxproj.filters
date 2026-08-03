@@ -73,6 +73,7 @@
     <ClCompile Include="EngineCore\GameFramework\Private\SpriteActor.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\ForceFieldActor.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\FileUtils.cpp" />
+    <ClCompile Include="EngineCore\Utils\Private\PathResolver.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\WidgetBase.cpp" />
     <ClCompile Include="EngineCore\Components\Private\UIWidgetComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\UIButtonComponent.cpp" />
@@ -185,6 +186,7 @@
     <ClInclude Include="EngineCore\GameFramework\Public\SpriteActor.h" />
     <ClInclude Include="EngineCore\GameFramework\Public\ForceFieldActor.h" />
     <ClInclude Include="EngineCore\Utils\Public\FileUtils.h" />
+    <ClInclude Include="EngineCore\Utils\Public\PathResolver.h" />
     <ClInclude Include="EngineCore\GameFramework\Public\WidgetBase.h" />
     <ClInclude Include="EngineCore\Components\Public\UIWidgetComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\UIButtonComponent.h" />

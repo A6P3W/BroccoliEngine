@@ -38,6 +38,8 @@ target_compile_definitions(Launcher PRIVATE
   $<$<CONFIG:Debug>:_DEBUG>
   $<$<CONFIG:Editor>:_EDITOR>
   $<$<CONFIG:Release>:_RELEASE>
+  $<$<CONFIG:Editor>:BROCCOLI_GAME_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/">
+  BROCCOLI_GAME_NAME="Launcher"
 )
 target_include_directories(Launcher PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/Source
@@ -76,11 +78,47 @@ if(TARGET BroccoliEOS)
   )
 endif()
 
+# Engine resources -> Resources/Engine/
+set(BROCCOLI_ENGINE_SOURCE_DIR_RESOLVED "${CMAKE_CURRENT_SOURCE_DIR}/../Engine")
+if(NOT TARGET Broccoli::Engine)
+elseif(DEFINED BROCCOLI_ENGINE_SOURCE_DIR)
+  set(BROCCOLI_ENGINE_SOURCE_DIR_RESOLVED "${BROCCOLI_ENGINE_SOURCE_DIR}")
+endif()
+
+# Clean output directories (Logs, Saved, Resources) before copying
+add_custom_command(TARGET Launcher POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:Launcher>/Logs"
+  COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:Launcher>/Saved"
+  COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:Launcher>/Resources"
+  VERBATIM
+)
+
+if(EXISTS "${BROCCOLI_ENGINE_SOURCE_DIR_RESOLVED}/Resources")
+  add_custom_command(TARGET Launcher POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${BROCCOLI_ENGINE_SOURCE_DIR_RESOLVED}/Resources"
+            "$<TARGET_FILE_DIR:Launcher>/Resources/Engine"
+    VERBATIM
+  )
+endif()
+
+# Game resources -> Resources/{GameName}/
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Resources")
+  find_package(Python3 COMPONENTS Interpreter QUIET)
+  if(Python3_Interpreter_FOUND)
+    set(BROCCOLI_PYTHON_CMD "${Python3_EXECUTABLE}")
+  else()
+    set(BROCCOLI_PYTHON_CMD "python")
+  endif()
+
   add_custom_command(TARGET Launcher POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/Resources"
-            "$<TARGET_FILE_DIR:Launcher>/Resources"
+            "$<TARGET_FILE_DIR:Launcher>/Resources/Launcher"
+    COMMAND "${BROCCOLI_PYTHON_CMD}" "${CMAKE_CURRENT_SOURCE_DIR}/../Tools/ConvertLevels.py"
+            --input "$<TARGET_FILE_DIR:Launcher>/Resources"
+            --output "$<TARGET_FILE_DIR:Launcher>/Resources"
+            --force --verify --delete-source
     VERBATIM
   )
 endif()
