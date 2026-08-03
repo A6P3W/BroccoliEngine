@@ -15,18 +15,12 @@
 #include "ActorManager.h"
 #include "EditorMode.h"
 #include "FileDialog.h"
+#include "FileUtils.h"
 #include "Log.h"
 #include "PathResolver.h"
 #include "SpriteActor.h"
 #include "UMath.h"
 #include "World.h"
-
-namespace {
-std::filesystem::path Utf8ToPath(const std::string& Value) {
-  return std::filesystem::path(reinterpret_cast<const char8_t*>(Value.c_str()));
-}
-
-}  // namespace
 
 void EditorUI::UpdateAndDraw(EditorMode* editorMode) {
   DrawMenuBar(editorMode);
@@ -132,7 +126,7 @@ void EditorUI::DrawCreateNewActorModal(EditorMode* editorMode) {
       FCreateNewActorRequest Request;
       Request.ClassName = ClassName;
       Request.ParentClassName = ParentClassName;
-      Request.OutputDirectory = Utf8ToPath(SelectedPath);
+      Request.OutputDirectory = FileUtils::Utf8ToPath(SelectedPath);
       LastResult = Generator.Generate(Request);
       M_LOG("{}", LastResult.Message);
       if (LastResult.bSuccess) {
