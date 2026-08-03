@@ -16,6 +16,7 @@
 #include "EditorMode.h"
 #include "FileDialog.h"
 #include "Log.h"
+#include "PathResolver.h"
 #include "SpriteActor.h"
 #include "UMath.h"
 #include "World.h"
@@ -47,7 +48,8 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode) {
         // 保存ダイアログを開く
         std::string filepath = FileDialog::SaveFile(
             "Broccoli Level JSON (*.BLevel.json)\0*.BLevel.json\0All Files (*.*)\0*.*\0",
-            "BLevel.json"
+            "BLevel.json",
+            PathResolver::GetGameResourceDir()
         );
         if (!filepath.empty()) {
           editorMode->SaveLevel(filepath);
@@ -358,9 +360,10 @@ void EditorUI::DrawInspector(EditorMode* editorMode) {
         }
 
         if (ImGui::Button("Select Image...")) {
-          // ファイル選択ダイアログを開く
+          std::string dialogDir = PathResolver::GetGameResourceDir();
           std::string filepath = FileDialog::OpenFile(
-              "Image Files (*.png;*.jpg;*.bmp)\0*.png;*.jpg;*.bmp\0All Files (*.*)\0*.*\0"
+              "Image Files (*.png;*.jpg;*.bmp)\0*.png;*.jpg;*.bmp\0All Files (*.*)\0*.*\0",
+              dialogDir
           );
           if (!filepath.empty()) {
             spriteActor->SetImagePath(filepath);

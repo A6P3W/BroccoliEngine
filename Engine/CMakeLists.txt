@@ -46,6 +46,7 @@ target_compile_definitions(BroccoliEngine
     $<$<CONFIG:Debug>:_DEBUG>
     $<$<CONFIG:Editor>:_EDITOR>
     $<$<CONFIG:Release>:_RELEASE>
+    $<$<CONFIG:Editor>:BROCCOLI_ENGINE_RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Resources/">
 )
 
 target_include_directories(BroccoliEngine

@@ -35,5 +35,5 @@ void ALauncherPlayerController::ReturnToLevelStarter() {
   // ログを出力
   M_LOG("Escape pressed: return to LevelStarter.");
   // 初期レベルである LevelStarter を開く
-  SceneManager::GetInstance().OpenLevelByPath("Resources/LevelStarter.BLevel");
+  SceneManager::GetInstance().OpenLevelByPath("Game/LevelStarter.BLevel");
 }

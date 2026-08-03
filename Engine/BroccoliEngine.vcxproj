@@ -115,7 +115,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DisableSpecificWarnings>4251;4819;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;NO_FONT_AWESOME;_EDITOR;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BROCCOLI_ENGINE_BUILD;NO_FONT_AWESOME;_EDITOR;_CONSOLE;BROCCOLI_ENGINE_RESOURCE_DIR=R"($(ProjectDir)Resources/)";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:preprocessor /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -225,6 +225,7 @@
     <ClCompile Include="EngineCore\Utils\Private\FileDialog.cpp" />
     <ClCompile Include="EngineSide\StressTestActor.cpp" />
     <ClCompile Include="EngineCore\Utils\Private\FileUtils.cpp" />
+    <ClCompile Include="EngineCore\Utils\Private\PathResolver.cpp" />
     <ClCompile Include="EngineCore\GameFramework\Private\WidgetBase.cpp" />
     <ClCompile Include="EngineCore\Components\Private\UIWidgetComponent.cpp" />
     <ClCompile Include="EngineCore\Components\Private\UIButtonComponent.cpp" />
@@ -343,6 +344,7 @@
     <ClInclude Include="EngineCore\Utils\Public\FileDialog.h" />
     <ClInclude Include="EngineSide\StressTestActor.h" />
     <ClInclude Include="EngineCore\Utils\Public\FileUtils.h" />
+    <ClInclude Include="EngineCore\Utils\Public\PathResolver.h" />
     <ClInclude Include="EngineCore\GameFramework\Public\WidgetBase.h" />
     <ClInclude Include="EngineCore\Components\Public\UIWidgetComponent.h" />
     <ClInclude Include="EngineCore\Components\Public\UIButtonComponent.h" />

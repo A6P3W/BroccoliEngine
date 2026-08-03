@@ -5,6 +5,24 @@
     <BroccoliPythonExecutable Condition="'$(BroccoliPythonExecutable)' == ''">python</BroccoliPythonExecutable>
   </PropertyGroup>
 
+  <!-- ビルド開始前（PrepareForBuild）に OutDir（Bin\x64\$(Configuration)\）内の Logs, Saved, Resources 等のフォルダを毎回強制削除クリーンアップ -->
+  <Target Name="BroccoliEngineBeforeBuild" BeforeTargets="PrepareForBuild">
+    <Message Importance="high" Text="[Broccoli Engine] --- Pre-Build Cleaning OutDir Directories: $(OutDir) ---" />
+    <Exec Command="taskkill /F /IM &quot;$(TargetName)$(TargetExt)&quot; 2&gt;NUL"
+          Condition="'$(ConfigurationType)' == 'Application'"
+          IgnoreExitCode="true" />
+    <Exec Command="rmdir /s /q &quot;$(OutDir)Logs&quot;"
+          Condition="Exists('$(OutDir)Logs')" />
+    <Exec Command="rmdir /s /q &quot;$(OutDir)Saved&quot;"
+          Condition="Exists('$(OutDir)Saved')" />
+    <Exec Command="rmdir /s /q &quot;$(OutDir)Resources&quot;"
+          Condition="Exists('$(OutDir)Resources')" />
+    <Exec Command="rmdir /s /q &quot;$(OutDir)Resources-EOS&quot;"
+          Condition="Exists('$(OutDir)Resources-EOS')" />
+    <Exec Command="del /q /f &quot;$(OutDir)Log.txt&quot;"
+          Condition="Exists('$(OutDir)Log.txt')" />
+  </Target>
+
   <!-- ビルド完了後に自動実行 -->
   <Target Name="BroccoliEngineAfterBuild" AfterTargets="Build">
     <Message Importance="high" Text="[Broccoli Engine] --- Post-Build Processing ---" />
@@ -16,17 +34,28 @@
     </ItemGroup>
     <Copy SourceFiles="@(EngineDLLs)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
 
-    <!-- 2. ローカル実行用のResourcesコピー (OutDir\Resourcesへ) -->
+    <!-- 2. ローカル実行用のResourcesコピー（Editor構成以外で実行） -->
+    <!-- Engine Resources -> OutDir\Resources\Engine\ -->
+    <ItemGroup>
+      <EngineResources Include="$(BroccoliEngineDir)Resources\**\*.*" Condition="Exists('$(BroccoliEngineDir)Resources\')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(EngineResources)" DestinationFolder="$(OutDir)Resources\Engine\%(RecursiveDir)" SkipUnchangedFiles="true" Condition="'$(Configuration)' != 'Editor'" />
+
+    <!-- Game Resources -> OutDir\Resources\{GameName}\ -->
     <ItemGroup>
       <ProjectResources Include="$(MSBuildProjectDirectory)\Resources\**\*.*" Condition="Exists('$(MSBuildProjectDirectory)\Resources\')" />
       <ProjectOnlineResources
           Include="$(MSBuildProjectDirectory)\Resources-EOS\**\*.*"
           Condition="('$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Editor') And Exists('$(MSBuildProjectDirectory)\Resources-EOS\')" />
     </ItemGroup>
-    <Copy SourceFiles="@(ProjectResources)" DestinationFolder="$(OutDir)Resources\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(ProjectOnlineResources)" DestinationFolder="$(OutDir)Resources-EOS\%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ProjectResources)" DestinationFolder="$(OutDir)Resources\$(BroccoliProductName)\%(RecursiveDir)" SkipUnchangedFiles="true" Condition="'$(Configuration)' != 'Editor'" />
+    <Copy SourceFiles="@(ProjectOnlineResources)" DestinationFolder="$(OutDir)Resources-EOS\%(RecursiveDir)" SkipUnchangedFiles="true" Condition="'$(Configuration)' != 'Editor'" />
 
-    <!-- 3. EXEプロジェクトの場合のみ配布処理を実行 -->
+    <!-- 3. ローカル実行用レベルの変換 (.BLevel.json -> .BLevel) -->
+    <Exec Command="&quot;$(BroccoliPythonExecutable)&quot; &quot;$(MSBuildThisFileDirectory)..\Tools\ConvertLevels.py&quot; --input &quot;$(OutDir)Resources&quot; --output &quot;$(OutDir)Resources&quot; --force --verify --delete-source"
+          Condition="'$(Configuration)' != 'Editor' And Exists('$(OutDir)Resources\')" />
+
+    <!-- 4. EXEプロジェクトの場合のみ配布処理を実行 -->
     <CallTarget Targets="BroccoliDeployApplication" Condition="'$(ConfigurationType)' == 'Application'" />
   </Target>
 

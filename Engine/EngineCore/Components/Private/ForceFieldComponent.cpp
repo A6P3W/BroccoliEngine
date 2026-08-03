@@ -166,9 +166,9 @@ void MForceFieldComponent::UpdateDebugSprite() {
     return;
   }
 
-  constexpr const char* DirectionalArrowPath = "Resources/.Engine/arrow-up.png";
-  constexpr const char* PointPushArrowPath = "Resources/.Engine/arrow-up-from-dot.png";
-  constexpr const char* PointPullArrowPath = "Resources/.Engine/arrow-down-to-dot.png";
+  constexpr const char* DirectionalArrowPath = "Engine/Images/arrow-up.png";
+  constexpr const char* PointPushArrowPath = "/Engine/Images/arrow-up-from-dot.png";
+  constexpr const char* PointPullArrowPath = "/Engine/Images/arrow-down-to-dot.png";
 
   const char* ArrowPath = DirectionalArrowPath;
   if (ForceType == EForceFieldType::Point) {

@@ -1,0 +1,311 @@
+#include "PathResolver.h"
+
+#include <filesystem>
+#include <string>
+
+#include "EngineDefine.h"
+#include "FileUtils.h"
+#include "Log.h"
+
+#ifndef BROCCOLI_GAME_NAME
+#define BROCCOLI_GAME_NAME "Game"
+#endif
+
+namespace {
+std::string NormalizePath(const std::string& Path) {
+  std::string Result = Path;
+  for (char& Ch : Result) {
+    if (Ch == '\\') Ch = '/';
+  }
+  return Result;
+}
+
+bool StartsWithCaseInsensitive(const std::string& FullStr, const std::string& Prefix) {
+  if (FullStr.length() < Prefix.length()) return false;
+  for (size_t i = 0; i < Prefix.length(); ++i) {
+    if (std::tolower(static_cast<unsigned char>(FullStr[i])) !=
+        std::tolower(static_cast<unsigned char>(Prefix[i]))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+size_t FindCaseInsensitive(const std::string& FullStr, const std::string& Value) {
+  if (Value.empty() || FullStr.length() < Value.length()) return std::string::npos;
+
+  for (size_t Start = 0; Start <= FullStr.length() - Value.length(); ++Start) {
+    if (StartsWithCaseInsensitive(FullStr.substr(Start), Value)) return Start;
+  }
+  return std::string::npos;
+}
+
+std::string g_GameName =
+#ifdef BROCCOLI_GAME_NAME
+    BROCCOLI_GAME_NAME;
+#else
+    "";
+#endif
+
+std::string g_GameSourceDir;
+
+std::string DetectGameSourceDir() {
+#ifdef BROCCOLI_GAME_SOURCE_DIR
+  std::string Dir = NormalizePath(BROCCOLI_GAME_SOURCE_DIR);
+  if (!Dir.empty() && Dir.back() != '/') Dir += '/';
+  return Dir;
+#else
+#ifdef BROCCOLI_ENGINE_RESOURCE_DIR
+  std::error_code ec;
+  std::filesystem::path EngineResPath =
+      FileUtils::Utf8ToPath(NormalizePath(BROCCOLI_ENGINE_RESOURCE_DIR)).lexically_normal();
+  std::filesystem::path SolutionRoot = EngineResPath.parent_path().parent_path();
+  std::filesystem::path GamePath = SolutionRoot / PathResolver::GetGameName();
+  if (std::filesystem::exists(GamePath, ec)) {
+    std::string D = NormalizePath(FileUtils::PathToUtf8(GamePath));
+    if (!D.empty() && D.back() != '/') D += '/';
+    return D;
+  }
+#endif
+  std::error_code ec2;
+  std::filesystem::path Curr = std::filesystem::current_path(ec2);
+  for (int i = 0; i < 5 && !Curr.empty(); ++i) {
+    std::filesystem::path Candidate = Curr / PathResolver::GetGameName();
+    if (std::filesystem::exists(Candidate, ec2)) {
+      std::string D = NormalizePath(FileUtils::PathToUtf8(Candidate));
+      if (!D.empty() && D.back() != '/') D += '/';
+      return D;
+    }
+    Curr = Curr.parent_path();
+  }
+  return "";
+#endif
+}
+}  // namespace
+
+void PathResolver::SetGameName(const std::string& Name) {
+  g_GameName = Name;
+  g_GameSourceDir.clear();
+}
+
+const std::string& PathResolver::GetGameName() {
+  if (g_GameName.empty()) {
+    std::error_code ErrorCode;
+    if (std::filesystem::exists("Resources", ErrorCode)) {
+      for (const auto& Entry : std::filesystem::directory_iterator("Resources", ErrorCode)) {
+        if (Entry.is_directory()) {
+          std::string FolderName = Entry.path().filename().string();
+          if (FolderName != "Engine" && FolderName != "Game" && !FolderName.empty() &&
+              FolderName[0] != '.') {
+            g_GameName = FolderName;
+            break;
+          }
+        }
+      }
+    }
+    if (g_GameName.empty()) {
+      g_GameName = "Launcher";
+    }
+  }
+  return g_GameName;
+}
+
+std::string PathResolver::SanitizeResourcePath(const std::string& Path) {
+  if (Path.empty()) return "";
+
+  std::string CleanPath = NormalizePath(Path);
+
+  // 先頭の連続スラッシュを整形
+  while (CleanPath.length() > 1 && CleanPath[0] == '/' && CleanPath[1] == '/') {
+    CleanPath.erase(0, 1);
+  }
+
+  // 既に /Engine/ または Engine/ または /Game/ または Game/ で始まっている場合
+  if (CleanPath.rfind("/Engine/", 0) == 0) {
+    return CleanPath;
+  }
+  if (CleanPath.rfind("Engine/", 0) == 0) {
+    return "/" + CleanPath;
+  }
+  if (CleanPath.rfind("/Game/", 0) == 0) {
+    return CleanPath;
+  }
+  if (CleanPath.rfind("Game/", 0) == 0) {
+    return "/" + CleanPath;
+  }
+
+  // 絶対パスの場合の判定
+  std::error_code ErrorCode;
+  std::filesystem::path PathObj = FileUtils::Utf8ToPath(CleanPath);
+  if (PathObj.is_absolute()) {
+    std::string EngineDir = NormalizePath(GetEngineResourceDir());
+    std::string GameDir = NormalizePath(GetGameResourceDir());
+
+    std::filesystem::path AbsEnginePath =
+        std::filesystem::absolute(FileUtils::Utf8ToPath(EngineDir), ErrorCode);
+    std::string AbsEngineStr = ErrorCode ? "" : NormalizePath(FileUtils::PathToUtf8(AbsEnginePath));
+    if (!AbsEngineStr.empty() && AbsEngineStr.back() != '/') AbsEngineStr += '/';
+
+    ErrorCode.clear();
+    std::filesystem::path AbsGamePath =
+        std::filesystem::absolute(FileUtils::Utf8ToPath(GameDir), ErrorCode);
+    std::string AbsGameStr = ErrorCode ? "" : NormalizePath(FileUtils::PathToUtf8(AbsGamePath));
+    if (!AbsGameStr.empty() && AbsGameStr.back() != '/') AbsGameStr += '/';
+
+    if (!EngineDir.empty() && EngineDir.back() != '/') EngineDir += '/';
+    if (!GameDir.empty() && GameDir.back() != '/') GameDir += '/';
+
+    if (StartsWithCaseInsensitive(CleanPath, EngineDir)) {
+      return "/Engine/" + CleanPath.substr(EngineDir.length());
+    }
+    if (!AbsEngineStr.empty() && StartsWithCaseInsensitive(CleanPath, AbsEngineStr)) {
+      return "/Engine/" + CleanPath.substr(AbsEngineStr.length());
+    }
+
+    if (StartsWithCaseInsensitive(CleanPath, GameDir)) {
+      return "/Game/" + CleanPath.substr(GameDir.length());
+    }
+    if (!AbsGameStr.empty() && StartsWithCaseInsensitive(CleanPath, AbsGameStr)) {
+      return "/Game/" + CleanPath.substr(AbsGameStr.length());
+    }
+
+    const std::string LegacyGameResourceMarker = "/Resources/" + GetGameName() + "/";
+    const size_t LegacyGameResourcePos = FindCaseInsensitive(CleanPath, LegacyGameResourceMarker);
+    if (LegacyGameResourcePos != std::string::npos &&
+        FindCaseInsensitive(CleanPath.substr(0, LegacyGameResourcePos), "/Bin/") !=
+            std::string::npos) {
+      return "/Game/" + CleanPath.substr(LegacyGameResourcePos + LegacyGameResourceMarker.length());
+    }
+
+    // std::filesystem::relative によるフォールバック判定
+    if (!AbsEngineStr.empty()) {
+      ErrorCode.clear();
+      std::filesystem::path RelEngine =
+          std::filesystem::relative(PathObj, FileUtils::Utf8ToPath(AbsEngineStr), ErrorCode);
+      if (!ErrorCode && !RelEngine.empty() && RelEngine.string().find("..") == std::string::npos) {
+        return "/Engine/" + NormalizePath(FileUtils::PathToUtf8(RelEngine));
+      }
+    }
+
+    if (!AbsGameStr.empty()) {
+      ErrorCode.clear();
+      std::filesystem::path RelGame =
+          std::filesystem::relative(PathObj, FileUtils::Utf8ToPath(AbsGameStr), ErrorCode);
+      if (!ErrorCode && !RelGame.empty() && RelGame.string().find("..") == std::string::npos) {
+        return "/Game/" + NormalizePath(FileUtils::PathToUtf8(RelGame));
+      }
+    }
+
+    return CleanPath;
+  }
+
+  // 旧プレフィックス Resources/Engine/ や Resources/
+  if (CleanPath.rfind("Resources/Engine/", 0) == 0) {
+    return "/Engine/" + CleanPath.substr(17);
+  }
+  if (CleanPath.rfind("/Resources/Engine/", 0) == 0) {
+    return "/Engine/" + CleanPath.substr(18);
+  }
+  if (CleanPath.rfind("Resources/", 0) == 0) {
+    std::string SubPath = CleanPath.substr(10);
+    std::string GamePrefix = GetGameName() + "/";
+    if (SubPath.rfind(GamePrefix, 0) == 0) {
+      SubPath = SubPath.substr(GamePrefix.length());
+    }
+    return "/Game/" + SubPath;
+  }
+  if (CleanPath.rfind("/Resources/", 0) == 0) {
+    std::string SubPath = CleanPath.substr(11);
+    std::string GamePrefix = GetGameName() + "/";
+    if (SubPath.rfind(GamePrefix, 0) == 0) {
+      SubPath = SubPath.substr(GamePrefix.length());
+    }
+    return "/Game/" + SubPath;
+  }
+
+  // 先頭が / で始まっている場合（例: /Screenshots/pic.png）
+  if (CleanPath[0] == '/') {
+    return "/Game" + CleanPath;
+  }
+
+  return "/Game/" + CleanPath;
+}
+
+std::string PathResolver::Resolve(const std::string& Path) {
+  if (Path.empty()) return "";
+
+  const std::filesystem::path PathObj = FileUtils::Utf8ToPath(Path);
+  if (PathObj.is_absolute()) {
+    std::string Normalized = NormalizePath(Path);
+    M_LOG("[PathResolver] Resolve (absolute): input='{}' -> result='{}'", Path, Normalized);
+    return Normalized;
+  }
+
+  std::string Sanitized = SanitizeResourcePath(Path);
+  std::string Result;
+
+  if (Sanitized.rfind("/Engine/", 0) == 0) {
+    std::string SubPath = Sanitized.substr(8);
+    Result = GetEngineResourceDir() + SubPath;
+  } else if (Sanitized.rfind("/Game/", 0) == 0) {
+    std::string SubPath = Sanitized.substr(6);
+    Result = GetGameResourceDir() + SubPath;
+  } else {
+    Result = GetGameResourceDir() + Sanitized;
+  }
+
+  M_LOG(
+      "[PathResolver] Resolve: input='{}' sanitized='{}' -> result='{}'", Path, Sanitized, Result
+  );
+  return Result;
+}
+
+std::string PathResolver::GetEngineResourceDir() {
+  if constexpr (IsEditor) {
+#ifdef BROCCOLI_ENGINE_RESOURCE_DIR
+    static std::string Dir = []() {
+      std::string D = NormalizePath(BROCCOLI_ENGINE_RESOURCE_DIR);
+      if (!D.empty() && D.back() != '/') D += '/';
+      return D;
+    }();
+    return Dir;
+#else
+    return "Resources/Engine/";
+#endif
+  } else {
+    return "Resources/Engine/";
+  }
+}
+
+std::string PathResolver::GetGameResourceDir() {
+  if constexpr (IsEditor) {
+    if (!g_GameSourceDir.empty()) return g_GameSourceDir + "Resources/";
+
+    std::string GameDir = DetectGameSourceDir();
+    if (!GameDir.empty()) {
+      return GameDir + "Resources/";
+    }
+    return "Resources/";
+  } else {
+    std::string Dir = "Resources/" + GetGameName() + "/";
+    return Dir;
+  }
+}
+
+void PathResolver::InitializeWorkingDirectory() {
+  if constexpr (IsEditor) {
+    std::string GameSourceDir = DetectGameSourceDir();
+    if (!GameSourceDir.empty()) {
+      g_GameSourceDir = GameSourceDir;
+      std::error_code ErrorCode;
+      std::filesystem::current_path(FileUtils::Utf8ToPath(GameSourceDir), ErrorCode);
+      if (ErrorCode) {
+        M_LOG("Failed to set working directory to {}: {}", GameSourceDir, ErrorCode.message());
+      } else {
+        M_LOG("Working directory set to game folder: {}", GameSourceDir);
+      }
+    } else {
+      M_LOG("Could not detect GameSourceDir. Keeping current working directory.");
+    }
+  }
+}

@@ -1,6 +1,7 @@
 #include "SpriteActor.h"
 
 #include "FileUtils.h"
+#include "PathResolver.h"
 #include "ResourceManager.h"
 #include "SpriteComponent.h"
 
@@ -27,7 +28,7 @@ const std::string& ASpriteActor::GetImagePath() const {
 }
 
 void ASpriteActor::SetImagePath(const std::string& path) {
-  ImplPtr->ImagePath = FileUtils::GetProjectRelativePath(path);
+  ImplPtr->ImagePath = PathResolver::SanitizeResourcePath(path);
   if (SpriteComponent) {
     int handle = ResourceManager::GetInstance().LoadResourceGraph(ImplPtr->ImagePath);
     if (handle != -1) {
@@ -40,7 +41,7 @@ void ASpriteActor::BeginPlay() {
   AActor::BeginPlay();
 
   if (ImplPtr->ImagePath.empty()) {
-    SetImagePath("Engine/EngineSide/Files/texture_Checker_64px.png");
+    SetImagePath("/Engine/texture_Checker_64px.png");
   } else {
     SetImagePath(ImplPtr->ImagePath);
   }

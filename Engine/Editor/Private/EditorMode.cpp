@@ -13,6 +13,7 @@
 #include "InputManager.h"
 #include "Log.h"
 #include "MouseDevice.h"
+#include "PathResolver.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "SpriteActor.h"
@@ -138,7 +139,9 @@ bool EditorMode::LoadLevel(const std::string& filePath) {
 bool EditorMode::QuickSaveLevel() {
   if (CurrentLevelPath.empty()) {
     const std::string FilePath = FileDialog::SaveFile(
-        "Broccoli Level JSON (*.BLevel.json)\0*.BLevel.json\0All Files (*.*)\0*.*\0", "BLevel.json"
+        "Broccoli Level JSON (*.BLevel.json)\0*.BLevel.json\0All Files (*.*)\0*.*\0",
+        "BLevel.json",
+        PathResolver::GetGameResourceDir()
     );
     if (FilePath.empty()) {
       return false;
