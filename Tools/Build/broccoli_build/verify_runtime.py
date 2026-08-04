@@ -1,0 +1,33 @@
+"""Validate staged and packaged runtime artifacts."""
+
+from pathlib import Path
+
+
+def VerifyRuntime(
+    OutputDirectory: Path, GameName: str, PublishDirectory: Path | None = None
+) -> None:
+    RequiredPaths = [
+        OutputDirectory / "BroccoliEngine.dll",
+        OutputDirectory / "Resources" / "Engine",
+        OutputDirectory / "Resources" / GameName,
+    ]
+    MissingPaths = [PathValue for PathValue in RequiredPaths if not PathValue.exists()]
+    JsonFiles = sorted(OutputDirectory.glob("Resources/**/*.BLevel.json"))
+
+    if PublishDirectory is not None:
+        PublishBinary = PublishDirectory / "Binaries" / f"{GameName}.exe"
+        if not PublishBinary.is_file():
+            MissingPaths.append(PublishBinary)
+        JsonFiles.extend(PublishDirectory.glob("Resources/**/*.BLevel.json"))
+
+    Messages = []
+    if MissingPaths:
+        Messages.append(
+            "Missing required runtime artifacts:\n" + "\n".join(map(str, MissingPaths))
+        )
+    if JsonFiles:
+        Messages.append(
+            "Unconverted .BLevel.json files remain:\n" + "\n".join(map(str, JsonFiles))
+        )
+    if Messages:
+        raise ValueError("\n".join(Messages))

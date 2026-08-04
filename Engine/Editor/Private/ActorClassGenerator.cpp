@@ -29,7 +29,8 @@ std::filesystem::path FindProjectRoot() {
   while (!Candidate.empty()) {
     ErrorCode.clear();
     const bool bHasProject =
-        std::filesystem::exists(Candidate / "Engine/BroccoliEngine.vcxproj", ErrorCode);
+        std::filesystem::exists(Candidate / "CMakeLists.txt", ErrorCode) &&
+        std::filesystem::exists(Candidate / "Engine/CMakeLists.txt", ErrorCode);
     ErrorCode.clear();
     const bool bHasTemplates = std::filesystem::exists(Candidate / TemplateRelativePath, ErrorCode);
     if (bHasProject && bHasTemplates) {
@@ -344,7 +345,7 @@ FCreateNewActorResult ActorClassGenerator::Generate(const FCreateNewActorRequest
   Result.SourcePath = std::filesystem::absolute(SourcePath);
   Result.Message =
       "C++ Actor class generated successfully.\n\n"
-      "To use the generated code, rebuild the project with Visual Studio or MSBuild,\n"
+      "To use the generated code, rebuild the project with CMake,\n"
       "then restart the engine.\n\nHeader: " +
       Result.HeaderPath.string() + "\nSource: " + Result.SourcePath.string();
   return Result;

@@ -141,6 +141,19 @@ set_target_properties(BroccoliEngine PROPERTIES
   PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Bin/x64/$<CONFIG>"
 )
 
+if(WIN32)
+  add_executable(BroccoliBootstrap WIN32
+    "${CMAKE_CURRENT_SOURCE_DIR}/Bootstrap/Bootstrap.cpp"
+  )
+  target_compile_features(BroccoliBootstrap PRIVATE cxx_std_20)
+  target_link_libraries(BroccoliBootstrap PRIVATE user32 shlwapi shell32)
+  set_target_properties(BroccoliBootstrap PROPERTIES
+    OUTPUT_NAME BroccoliBootstrap
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Bin/x64/$<CONFIG>"
+    PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Bin/x64/$<CONFIG>"
+  )
+endif()
+
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES
   ${BROCCOLI_ENGINE_FILES}
 )
