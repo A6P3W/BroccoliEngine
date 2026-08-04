@@ -5,8 +5,6 @@ m_は不要
 
 変更したファイルには.clang-formatを適用すること。
 
-ビルドにはmsbuildを使用。
-
 BroccoliEngineソリューションの変更後のビルドテスト方法
 BroccoliEngineフォルダの./build.bat
 
