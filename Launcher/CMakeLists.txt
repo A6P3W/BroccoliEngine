@@ -47,6 +47,7 @@ target_include_directories(Launcher PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/Config
 )
 target_link_libraries(Launcher PRIVATE Broccoli::Engine)
+add_dependencies(Launcher BroccoliBootstrap)
 
 if(MSVC)
   broccoli_apply_common_msvc_options(Launcher)
@@ -62,66 +63,56 @@ set_target_properties(Launcher PROPERTIES
   OUTPUT_NAME Launcher-game
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../Bin/x64/$<CONFIG>"
   PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../Bin/x64/$<CONFIG>"
+  VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:Launcher>"
 )
 
-add_custom_command(TARGET Launcher POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-          $<TARGET_FILE:BroccoliEngine> $<TARGET_FILE_DIR:Launcher>
-  VERBATIM
-)
-
-if(TARGET BroccoliEOS)
-  add_custom_command(TARGET Launcher POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:BroccoliEOS> $<TARGET_FILE_DIR:Launcher>
-    VERBATIM
-  )
-endif()
-
-# Engine resources -> Resources/Engine/
+find_program(BROCCOLI_UV_EXECUTABLE uv REQUIRED)
 set(BROCCOLI_ENGINE_SOURCE_DIR_RESOLVED "${CMAKE_CURRENT_SOURCE_DIR}/../Engine")
-if(NOT TARGET Broccoli::Engine)
-elseif(DEFINED BROCCOLI_ENGINE_SOURCE_DIR)
+if(DEFINED BROCCOLI_ENGINE_SOURCE_DIR)
   set(BROCCOLI_ENGINE_SOURCE_DIR_RESOLVED "${BROCCOLI_ENGINE_SOURCE_DIR}")
 endif()
+set(BROCCOLI_BUILD_TOOLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Tools/Build")
+set(BROCCOLI_CONVERT_LEVELS_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/../Tools/ConvertLevels.py")
+set(BROCCOLI_EOS_BINARY "${CMAKE_CURRENT_SOURCE_DIR}/../Engine/ThirdParty/EOS/SDK/Bin/EOSSDK-Win64-Shipping.dll")
 
-# Clean output directories (Logs, Saved, Resources) before copying
-add_custom_command(TARGET Launcher POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:Launcher>/Logs"
-  COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:Launcher>/Saved"
-  COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:Launcher>/Resources"
+add_custom_command(TARGET Launcher PRE_BUILD
+  COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BROCCOLI_BUILD_TOOLS_DIR}" --frozen python -m broccoli_build prepare-output
+          --output-dir "$<TARGET_FILE_DIR:Launcher>"
   VERBATIM
 )
 
-if(EXISTS "${BROCCOLI_ENGINE_SOURCE_DIR_RESOLVED}/Resources")
-  add_custom_command(TARGET Launcher POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${BROCCOLI_ENGINE_SOURCE_DIR_RESOLVED}/Resources"
-            "$<TARGET_FILE_DIR:Launcher>/Resources/Engine"
-    VERBATIM
-  )
-endif()
-
-# Game resources -> Resources/{GameName}/
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Resources")
-  find_package(Python3 COMPONENTS Interpreter QUIET)
-  if(Python3_Interpreter_FOUND)
-    set(BROCCOLI_PYTHON_CMD "${Python3_EXECUTABLE}")
-  else()
-    set(BROCCOLI_PYTHON_CMD "python")
-  endif()
-
-  add_custom_command(TARGET Launcher POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/Resources"
-            "$<TARGET_FILE_DIR:Launcher>/Resources/Launcher"
-    COMMAND "${BROCCOLI_PYTHON_CMD}" "${CMAKE_CURRENT_SOURCE_DIR}/../Tools/ConvertLevels.py"
-            --input "$<TARGET_FILE_DIR:Launcher>/Resources"
-            --output "$<TARGET_FILE_DIR:Launcher>/Resources"
-            --force --verify --delete-source
-    VERBATIM
-  )
-endif()
+add_custom_command(TARGET Launcher POST_BUILD
+  COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BROCCOLI_BUILD_TOOLS_DIR}" --frozen python -m broccoli_build stage-runtime
+          --configuration "$<CONFIG>"
+          --engine-dir "${BROCCOLI_ENGINE_SOURCE_DIR_RESOLVED}"
+          --game-dir "${CMAKE_CURRENT_SOURCE_DIR}"
+          --output-dir "$<TARGET_FILE_DIR:Launcher>"
+          --engine-binary "$<TARGET_FILE:BroccoliEngine>"
+          --game-name "Launcher"
+          --eos-binary "${BROCCOLI_EOS_BINARY}"
+          --convert-levels-script "${BROCCOLI_CONVERT_LEVELS_SCRIPT}"
+  COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BROCCOLI_BUILD_TOOLS_DIR}" --frozen python -m broccoli_build verify-runtime
+          --configuration "$<CONFIG>"
+          --output-dir "$<TARGET_FILE_DIR:Launcher>"
+          --game-name "Launcher"
+  COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BROCCOLI_BUILD_TOOLS_DIR}" --frozen python -m broccoli_build package-runtime
+          --configuration "$<CONFIG>"
+          --output-dir "$<TARGET_FILE_DIR:Launcher>"
+          --publish-dir "${CMAKE_CURRENT_SOURCE_DIR}/../Publish/$<CONFIG>"
+          --game-binary "$<TARGET_FILE:Launcher>"
+          --engine-binary "$<TARGET_FILE:BroccoliEngine>"
+          --game-name "Launcher"
+          --eos-binary "${BROCCOLI_EOS_BINARY}"
+          --online-resources-dir "$<TARGET_FILE_DIR:Launcher>/Resources-EOS"
+          --convert-levels-script "${BROCCOLI_CONVERT_LEVELS_SCRIPT}"
+          --bootstrap-binary "$<TARGET_FILE:BroccoliBootstrap>"
+  COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BROCCOLI_BUILD_TOOLS_DIR}" --frozen python -m broccoli_build verify-runtime
+          --configuration "$<CONFIG>"
+          --output-dir "$<TARGET_FILE_DIR:Launcher>"
+          --game-name "Launcher"
+          --publish-dir "${CMAKE_CURRENT_SOURCE_DIR}/../Publish/$<CONFIG>"
+  VERBATIM
+)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES
   ${BROCCOLI_LAUNCHER_FILES}

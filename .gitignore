@@ -499,3 +499,24 @@ Build/ConvertedLevels/
 **.repomixignore
 /CMakeUserPresets.json
 /.vs/
+
+# Shared BroccoliEngine build helper source is versioned.
+!Tools/Build/
+!Tools/Build/pyproject.toml
+!Tools/Build/uv.lock
+!Tools/Build/broccoli_build/
+!Tools/Build/broccoli_build/**
+!Tools/Build/tests/
+!Tools/Build/tests/test_build_tools.py
+Tools/Build/.venv/
+Tools/Build/.pytest_cache/
+Tools/Build/.ruff_cache/
+Tools/Build/**/__pycache__/
+Tools/Build/**/*.pyc
+# CMake generated project files and build output.
+/build/
+/out/
+/*.vcxproj
+/*.vcxproj.user
+/*.sln
+/*.slnx

@@ -1,5 +1,7 @@
 {
   "cmake.useCMakePresets": "always",
+  "cmake.configurePreset": "local-windows-x64",
+  "cmake.buildPreset": "local-debug",
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
