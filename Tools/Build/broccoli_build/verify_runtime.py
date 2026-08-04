@@ -6,12 +6,17 @@ from pathlib import Path
 def VerifyRuntime(
     OutputDirectory: Path, GameName: str, PublishDirectory: Path | None = None
 ) -> None:
-    RequiredPaths = [
+    RequiredFiles = [
         OutputDirectory / "BroccoliEngine.dll",
+    ]
+    RequiredDirectories = [
         OutputDirectory / "Resources" / "Engine",
         OutputDirectory / "Resources" / GameName,
     ]
-    MissingPaths = [PathValue for PathValue in RequiredPaths if not PathValue.exists()]
+    MissingPaths = [PathValue for PathValue in RequiredFiles if not PathValue.exists()]
+    MissingPaths.extend(
+        PathValue for PathValue in RequiredDirectories if not PathValue.exists()
+    )
     JsonFiles = sorted(OutputDirectory.glob("Resources/**/*.BLevel.json"))
 
     if PublishDirectory is not None:
