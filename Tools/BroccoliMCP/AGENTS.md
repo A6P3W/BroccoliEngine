@@ -7,5 +7,5 @@ ruff check --fix broccoli_mcp tests
 ruff format broccoli_mcp tests
 ```
 
-`.clang-format`は`.h`、`.cpp`ファイルにのみ適用すること。
 </INSTRUCTIONS>
+ 
