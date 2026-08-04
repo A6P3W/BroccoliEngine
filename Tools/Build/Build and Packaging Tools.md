@@ -42,9 +42,10 @@ uv run python -m broccoli_build prepare-output --output-dir <パス>
 
 #### 2. `stage-runtime`
 ローカル実行に必要なエンジンリソースやゲームリソース、バイナリなどを出力ディレクトリにコピーし、レベルのコンバート（`ConvertLevels.py` の実行）を行います。
+* **注意**: `--configuration` が `Editor` の場合、エンジンバイナリのコピー完了時点で処理が終了（早期リターン）し、リソースのステージングやレベル変換は実行されません（その他の構成ではすべての処理が無条件に実行されます）。
 
 - **引数:**
-  - `--configuration`: ビルド構成（`Debug`、`Release`、`Editor` など）
+  - `--configuration`: ビルド構成（`Debug`、`Release`、`Editor` など）（必須）
   - `--engine-dir`: エンジンソースのルートディレクトリ（必須）
   - `--game-dir`: ゲームソースのルートディレクトリ（必須）
   - `--output-dir`: 出力先ディレクトリ（必須）
@@ -55,6 +56,7 @@ uv run python -m broccoli_build prepare-output --output-dir <パス>
 
 #### 3. `package-runtime`
 配布可能なランタイムパッケージ（ゲーム実行に必要なバイナリやリソースがまとめられた構成）をパブリッシュディレクトリに構築します。
+* **注意**: `Editor` 構成の場合はパッケージング処理全体がスキップされます。また、`--eos-binary` および `--online-resources-dir` で指定される成果物（EOSバイナリとResources-EOSディレクトリ）は、引数は必須として要求されますが、ファイルやディレクトリが物理的に存在する場合のみコピーが行われるオプションのアーティファクトとして扱われます。
 
 - **引数:**
   - `--configuration`: ビルド構成（必須）
@@ -70,6 +72,7 @@ uv run python -m broccoli_build prepare-output --output-dir <パス>
 
 #### 4. `verify-runtime`
 ステージングされた、あるいはパッケージ化された成果物が必要な構成を満たしているか（必要な DLL やリソースがあるか、未変換のレベルファイル `.BLevel.json` が残っていないか）を検証します。
+* **注意**: `Editor` 構成の場合、検証処理は実行されずにスキップされます（スキップメッセージを出力して成功としてリターンするため、Editorビルドの成果物は検証されません）。
 
 - **引数:**
   - `--output-dir`: 出力ディレクトリ（必須）

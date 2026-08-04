@@ -6,7 +6,7 @@ BROCCOLI ENGINEのlocalhost限定Automation APIを、MCP Stdio ResourceとTool�
 公開するPython Bridgeです。読み取り専用Resource `game://state`、
 `game://world/actors`、`game://logs/recent`と、Actor操作Tool `spawn_actor`、
 `destroy_actor`、`set_actor_transform`、`invoke_actor_method`、System操作Tool
-`execute_system_command`に加え、Discovery Tool `get_system_commands`、
+`execute_system_command`（登録・認可された特定の `SystemMutation` コマンドのみを安全に転送し、任意のシェルコマンドは実行できません。許可されるコマンドには `pause_game`、`resume_game`、`open_level_by_id`、およびレベルロード専用で任意のファイルアクセスを行わない `open_level_by_path` が含まれます）に加え、Discovery Tool `get_system_commands`、
 `get_registered_actor_classes`、`get_levels`、`get_actor`、`find_actors`、
 `get_actor_components`、`get_class_methods`を提供します。
 

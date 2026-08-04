@@ -99,6 +99,9 @@ void MHealthComponent::ApplyDamage(float Damage) {
   if (!GetOwner() || !GetOwner()->GetWorld()->IsListenServer()) {
     return;
   }
+  if (Damage <= 0.0f) {
+    return;
+  }
 
   CurrentHealth = std::max(0.0f, CurrentHealth - Damage);
   MarkReplicatedStateDirty();
@@ -189,7 +192,7 @@ void MHealthComponent::RequestDamage(float Damage) {
 
 ```cpp
 void MHealthComponent::ServerApplyDamage(float Damage) {
-  Damage = std::clamp(Damage, 0.0f, 1000.0f);
+  Damage = std::clamp(Damage, 0.0f, 100.0f);
 
   CurrentHealth = std::max(0.0f, CurrentHealth - Damage);
   MarkReplicatedStateDirty();

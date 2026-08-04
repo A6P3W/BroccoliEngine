@@ -30,8 +30,11 @@ cd C:\vcpkg
 
 ### 2. CMakeUserPresets.json の作成
 
-CMakeUserPresets.json.bakを複製し、リポジトリルートに `CMakeUserPresets.json` を作成。
-ローカルの vcpkg ツールチェーンパスを指定します。
+`CMakeUserPresets.json.bak` を複製し、リポジトリルートに `CMakeUserPresets.json` を作成します。
+```cmd
+copy CMakeUserPresets.json.bak CMakeUserPresets.json
+```
+作成後、`CMakeUserPresets.json` 内の `configurePresets` にある `local-windows-x64` プリセットの `cacheVariables` の `CMAKE_TOOLCHAIN_FILE` フィールドに、ローカルの vcpkg ツールチェーンパス（例: `C:/vcpkg/scripts/buildsystems/vcpkg.cmake`）を設定します。
 
 
 ### 3. Python ツール環境の同期 (uv)
@@ -54,13 +57,13 @@ uv sync
 ビルド構成として `Debug`, `Editor`, `Release` が指定可能です（デフォルト: `Debug`）。
 
 ```cmd
-# Debug ビルド
+rem Debug ビルド
 build.bat Debug
 
-# Editor ビルド (レベルエディタ機能付き)
+rem Editor ビルド (レベルエディタ機能付き)
 build.bat Editor
 
-# Release ビルド (本番リリース用)
+rem Release ビルド (本番リリース用)
 build.bat Release
 ```
 
@@ -69,12 +72,12 @@ build.bat Release
 指定した構成のバイナリを実行します。追加引数も渡せます。
 
 ```cmd
-# Debug ビルドの実行
+rem Debug ビルドの実行
 run.bat Debug
 
-# Editor ビルドの実行
+rem Editor ビルドの実行
 run.bat Editor
 
-# 自動化サーバーを有効化して実行
+rem 自動化サーバーを有効化して実行
 run.bat Debug -automation
 ```
