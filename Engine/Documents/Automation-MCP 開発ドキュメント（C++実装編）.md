@@ -162,7 +162,7 @@ REGISTER_AUTOMATION_METHOD(
 
 ```bash
 # エディタまたはバイナリを起動してポート39100を開く
-Launcher.exe -automation
+run.bat Debug -automation
 ```
 
 ### 4.2 動作確認（ブラウザまたはcurl）

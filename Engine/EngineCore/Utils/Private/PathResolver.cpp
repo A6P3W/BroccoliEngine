@@ -47,14 +47,20 @@ bool IsInsideBase(const std::filesystem::path& RelPath) {
   return FirstComp != "..";
 }
 
-std::string g_GameName =
+std::string GGameName =
 #ifdef BROCCOLI_GAME_NAME
     BROCCOLI_GAME_NAME;
 #else
     "";
 #endif
 
-std::string g_GameSourceDir;
+std::string GGameSourceDir;
+std::string GProjectRoot =
+#ifdef BROCCOLI_PROJECT_ROOT
+    NormalizePath(BROCCOLI_PROJECT_ROOT);
+#else
+    "";
+#endif
 
 std::string DetectGameSourceDir() {
 #ifdef BROCCOLI_GAME_SOURCE_DIR
@@ -90,31 +96,40 @@ std::string DetectGameSourceDir() {
 }
 }  // namespace
 
+void PathResolver::SetProjectRoot(const std::string& Root) {
+  GProjectRoot = NormalizePath(Root);
+  while (GProjectRoot.length() > 1 && GProjectRoot.back() == '/') {
+    GProjectRoot.pop_back();
+  }
+  GGameSourceDir.clear();
+}
+
+const std::string& PathResolver::GetProjectRoot() { return GProjectRoot; }
+
 void PathResolver::SetGameName(const std::string& Name) {
-  g_GameName = Name;
-  g_GameSourceDir.clear();
+  GGameName = Name;
+  GGameSourceDir.clear();
 }
 
 const std::string& PathResolver::GetGameName() {
-  if (g_GameName.empty()) {
+  if (GGameName.empty()) {
     std::error_code ErrorCode;
     if (std::filesystem::exists("Resources", ErrorCode)) {
       for (const auto& Entry : std::filesystem::directory_iterator("Resources", ErrorCode)) {
         if (Entry.is_directory(ErrorCode)) {
           std::string FolderName = FileUtils::PathToUtf8(Entry.path().filename());
-          if (FolderName != "Engine" && FolderName != "Game" && !FolderName.empty() &&
-              FolderName[0] != '.') {
-            g_GameName = FolderName;
+          if (FolderName != "Engine" && !FolderName.empty() && FolderName[0] != '.') {
+            GGameName = FolderName;
             break;
           }
         }
       }
     }
-    if (g_GameName.empty()) {
-      g_GameName = "Launcher";
+    if (GGameName.empty()) {
+      GGameName = "Game";
     }
   }
-  return g_GameName;
+  return GGameName;
 }
 
 std::string PathResolver::SanitizeResourcePath(const std::string& Path) {
@@ -290,11 +305,15 @@ std::string PathResolver::GetEngineResourceDir() {
 
 std::string PathResolver::GetGameResourceDir() {
   if constexpr (IsEditor) {
-    if (!g_GameSourceDir.empty()) return g_GameSourceDir + "Resources/";
+    if (!GGameSourceDir.empty()) return GGameSourceDir + "Resources/";
+
+    if (!GProjectRoot.empty()) {
+      return GProjectRoot + "/" + GetGameName() + "/Resources/";
+    }
 
     std::string GameDir = DetectGameSourceDir();
     if (!GameDir.empty()) {
-      g_GameSourceDir = GameDir;
+      GGameSourceDir = GameDir;
       return GameDir + "Resources/";
     }
     return "Resources/";
@@ -306,9 +325,24 @@ std::string PathResolver::GetGameResourceDir() {
 
 void PathResolver::InitializeWorkingDirectory() {
   if constexpr (IsEditor) {
+    if (!GProjectRoot.empty()) {
+      std::error_code ErrorCode;
+      std::filesystem::current_path(FileUtils::Utf8ToPath(GProjectRoot), ErrorCode);
+      if (!ErrorCode) {
+        M_LOG("Working directory set to project root: {}", GProjectRoot);
+        M_LOG("Game resource directory: {}", GetGameResourceDir());
+        return;
+      }
+      M_LOG(
+          "Failed to set working directory to project root {}: {}",
+          GProjectRoot,
+          ErrorCode.message()
+      );
+    }
+
     std::string GameSourceDir = DetectGameSourceDir();
     if (!GameSourceDir.empty()) {
-      g_GameSourceDir = GameSourceDir;
+      GGameSourceDir = GameSourceDir;
       std::error_code ErrorCode;
       std::filesystem::current_path(FileUtils::Utf8ToPath(GameSourceDir), ErrorCode);
       if (ErrorCode) {

@@ -1,5 +1,6 @@
 {
   "cmake.useCMakePresets": "always",
+  "cmake.sourceDirectory": "${workspaceFolder}/Engine",
   "cmake.configurePreset": "local-windows-x64",
   "cmake.buildPreset": "local-debug",
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",

@@ -1,0 +1,15 @@
+/build/
+/Bin/
+/Publish/
+/.vs/
+/CMakeUserPresets.json
+*.sln
+*.slnx
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+/Log.txt
+/Logs/
+/Saved/
+/{PROJECT_NAME}/Config/
+/{PROJECT_NAME}/imgui.ini

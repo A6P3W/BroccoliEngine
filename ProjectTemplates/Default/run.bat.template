@@ -23,18 +23,17 @@ goto loop
 
 :continue
 if /i "%TARGET%"=="Editor" (
-  set "EXE_PATH=%~dp0Bin\x64\Editor\Launcher-game.exe"
+  set "EXE_PATH=%~dp0Bin\x64\Editor\{PROJECT_NAME}-game.exe"
 ) else (
-  set "EXE_PATH=%~dp0Publish\%TARGET%\Launcher.exe"
+  set "EXE_PATH=%~dp0Publish\%TARGET%\{PROJECT_NAME}.exe"
 )
 
-if exist "%EXE_PATH%" (
-  echo [run] %EXE_PATH%%ARGS%
-  start "" "%EXE_PATH%"%ARGS%
-) else (
-  echo [error] not found
-  echo path: %EXE_PATH%
+if not exist "%EXE_PATH%" (
+  echo [error] Executable not found: %EXE_PATH%
   exit /b 1
 )
+
+echo [run] %EXE_PATH%%ARGS%
+start "" "%EXE_PATH%"%ARGS%
 
 endlocal

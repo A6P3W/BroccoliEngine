@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "ActorRegistry.h"
+#include "PathResolver.h"
 
 namespace {
 constexpr const char* TemplateRelativePath = "Engine/Editor/Templates/CreateNewActor";
@@ -17,6 +18,14 @@ FCreateNewActorResult Fail(std::string Message) {
   FCreateNewActorResult Result;
   Result.Message = std::move(Message);
   return Result;
+}
+std::filesystem::path ResolveEngineRoot(const std::filesystem::path& ProjectRoot) {
+  std::error_code ErrorCode;
+  const std::filesystem::path EmbeddedEngineRoot = ProjectRoot / "BroccoliEngine";
+  if (std::filesystem::is_directory(EmbeddedEngineRoot / "Engine", ErrorCode)) {
+    return EmbeddedEngineRoot;
+  }
+  return ProjectRoot;
 }
 
 std::filesystem::path FindProjectRoot() {
@@ -28,12 +37,17 @@ std::filesystem::path FindProjectRoot() {
 
   while (!Candidate.empty()) {
     ErrorCode.clear();
-    const bool bHasProject =
-        std::filesystem::exists(Candidate / "CMakeLists.txt", ErrorCode) &&
-        std::filesystem::exists(Candidate / "Engine/CMakeLists.txt", ErrorCode);
+    const std::filesystem::path EngineRoot = ResolveEngineRoot(Candidate);
+    const bool IsEmbeddedEngineDirectory =
+        Candidate.filename() == "BroccoliEngine" &&
+        std::filesystem::exists(Candidate.parent_path() / "CMakeLists.txt", ErrorCode);
     ErrorCode.clear();
-    const bool bHasTemplates = std::filesystem::exists(Candidate / TemplateRelativePath, ErrorCode);
-    if (bHasProject && bHasTemplates) {
+    const bool bHasProject =
+        std::filesystem::exists(EngineRoot / "Engine/CMakeLists.txt", ErrorCode);
+    ErrorCode.clear();
+    const bool bHasTemplates =
+        std::filesystem::exists(EngineRoot / TemplateRelativePath, ErrorCode);
+    if (!IsEmbeddedEngineDirectory && bHasProject && bHasTemplates) {
       return Candidate;
     }
 
@@ -160,8 +174,11 @@ bool ActorClassGenerator::BuildActorHeaderIndex(
   const std::regex ActorMacroPattern(R"(DEFINE_ACTOR_CLASS\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\))");
   std::error_code ErrorCode;
 
-  for (const char* SearchRootName : {"Engine", "Game", "Launcher"}) {
-    const std::filesystem::path SearchRoot = ProjectRoot / SearchRootName;
+  const std::filesystem::path EngineRoot = ResolveEngineRoot(ProjectRoot);
+  for (const std::filesystem::path& SearchRoot : {
+           EngineRoot / "Engine",
+           ProjectRoot / PathResolver::GetGameName(),
+       }) {
     if (!std::filesystem::is_directory(SearchRoot, ErrorCode)) {
       ErrorCode.clear();
       continue;
@@ -285,7 +302,8 @@ FCreateNewActorResult ActorClassGenerator::Generate(const FCreateNewActorRequest
     return Fail("A source file with the same name already exists.");
   }
 
-  const std::filesystem::path TemplateDirectory = ProjectRoot / TemplateRelativePath;
+  const std::filesystem::path TemplateDirectory =
+      ResolveEngineRoot(ProjectRoot) / TemplateRelativePath;
   const std::filesystem::path HeaderTemplate =
       FindTemplate(TemplateDirectory, Request.ParentClassName, ".h");
   const std::filesystem::path SourceTemplate =

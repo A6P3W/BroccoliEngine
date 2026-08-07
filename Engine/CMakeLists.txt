@@ -1,8 +1,13 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 4.2)
 
-# This file can be configured directly, or included from the repository root.
+# This file is the BroccoliEngine repository's standalone CMake entry point and
+# is also included directly by generated game workspaces.
 set(VCPKG_MANIFEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE PATH
     "Directory containing the BroccoliEngine vcpkg manifest")
+
+if(NOT DEFINED BROCCOLI_OUTPUT_ROOT)
+  set(BROCCOLI_OUTPUT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/..")
+endif()
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   project(BroccoliEngine LANGUAGES CXX)
@@ -135,10 +140,10 @@ endif()
 
 set_target_properties(BroccoliEngine PROPERTIES
   OUTPUT_NAME BroccoliEngine
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Bin/x64/$<CONFIG>"
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Bin/x64/$<CONFIG>"
-  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Bin/x64/$<CONFIG>"
-  PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Bin/x64/$<CONFIG>"
+  RUNTIME_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
+  LIBRARY_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
+  ARCHIVE_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
+  PDB_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
 )
 
 if(WIN32)
@@ -149,8 +154,8 @@ if(WIN32)
   target_link_libraries(BroccoliBootstrap PRIVATE user32 shlwapi shell32)
   set_target_properties(BroccoliBootstrap PROPERTIES
     OUTPUT_NAME BroccoliBootstrap
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Bin/x64/$<CONFIG>"
-    PDB_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Bin/x64/$<CONFIG>"
+    RUNTIME_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
+    PDB_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
   )
 endif()
 

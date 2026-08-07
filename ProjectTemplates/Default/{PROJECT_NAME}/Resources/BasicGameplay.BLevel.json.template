@@ -1,0 +1,139 @@
+{
+  "actors": [
+    {
+      "class": "APlayerStart",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -251.0,
+          "y": -20.0
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultCircleCollisionActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -252.0,
+          "y": -426.0
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultDirectionalForceFieldActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -128.099365234375,
+          "y": -355.66375732421875
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultLineCollisionActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": 11.965179443359375,
+          "y": -193.83241271972656
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultPullForceFieldActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -545.453857421875,
+          "y": -197.61793518066406
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultPushForceFieldActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -484.88543701171875,
+          "y": 2.068695068359375
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ADefaultRectangleCollisionActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -311.697509765625,
+          "y": -269.54296875
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ACollisionTestBlockRectangleActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": 316.0,
+          "y": -33.0
+        },
+        "rotation": 24.5,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ACollisionTestCircleActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": 207.0,
+          "y": 123.0
+        },
+        "rotation": 0.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ACollisionTestLineActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": 72.0,
+          "y": 172.0
+        },
+        "rotation": 31.0,
+        "scale": 1.0
+      }
+    },
+    {
+      "class": "ACollisionTestRectangleActor",
+      "instance_name": "",
+      "transform": {
+        "location": {
+          "x": -123.0,
+          "y": 329.0
+        },
+        "rotation": -35.5,
+        "scale": 1.0
+      }
+    }
+  ],
+  "meta": {
+    "game_mode": "ABasicGameplayGameMode"
+  }
+}

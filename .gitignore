@@ -486,18 +486,15 @@ $RECYCLE.BIN/
 
 .codex/
 /.antigravitycli
-/Launcher/imgui.ini
-/Launcher/Log.txt
 **vcpkg_installed/
 *..repoignore
 *Build/
 Build/ConvertedLevels/
 !Engine/ThirdParty/EOS/SDK/Bin/
-/Launcher/Config
 /PrivateConfig
 
 **.repomixignore
-/CMakeUserPresets.json
+/Engine/CMakeUserPresets.json
 /.vs/
 
 # Shared BroccoliEngine build helper source is versioned.
