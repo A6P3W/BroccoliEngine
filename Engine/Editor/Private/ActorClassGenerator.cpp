@@ -38,12 +38,16 @@ std::filesystem::path FindProjectRoot() {
   while (!Candidate.empty()) {
     ErrorCode.clear();
     const std::filesystem::path EngineRoot = ResolveEngineRoot(Candidate);
+    const bool IsEmbeddedEngineDirectory =
+        Candidate.filename() == "BroccoliEngine" &&
+        std::filesystem::exists(Candidate.parent_path() / "CMakeLists.txt", ErrorCode);
+    ErrorCode.clear();
     const bool bHasProject =
         std::filesystem::exists(EngineRoot / "Engine/CMakeLists.txt", ErrorCode);
     ErrorCode.clear();
     const bool bHasTemplates =
         std::filesystem::exists(EngineRoot / TemplateRelativePath, ErrorCode);
-    if (bHasProject && bHasTemplates) {
+    if (!IsEmbeddedEngineDirectory && bHasProject && bHasTemplates) {
       return Candidate;
     }
 

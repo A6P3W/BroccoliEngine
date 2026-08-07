@@ -212,11 +212,12 @@ def RollbackInPlace(
     EngineRoot: Path,
     MovedNames: list[str],
     GeneratedPaths: list[Path],
+    State: SetupState,
 ) -> None:
     RestoreAbsorbedGitDirectory(ProjectRoot, EngineRoot)
 
     RootGit = ProjectRoot / ".git"
-    if RootGit.exists():
+    if State >= SetupState.ROOT_INITIALIZED and RootGit.exists():
         RemoveTree(RootGit)
 
     GitModules = ProjectRoot / ".gitmodules"
@@ -281,8 +282,8 @@ def ReconfigureInPlace(
             OriginalEntries = list(ProjectRoot.iterdir())
             EngineRoot.mkdir()
             for Entry in OriginalEntries:
-                MovedNames.append(Entry.name)
                 shutil.move(str(Entry), str(EngineRoot / Entry.name))
+                MovedNames.append(Entry.name)
             State = SetupState.ENGINE_MOVED
             NotifyState(State, Hook)
 
@@ -357,8 +358,8 @@ def ReconfigureInPlace(
             State = SetupState.COMPLETED
             NotifyState(State, Hook)
     except Exception as Error:
-        if State >= SetupState.ENGINE_MOVED or MovedNames:
-            RollbackInPlace(ProjectRoot, EngineRoot, MovedNames, GeneratedPaths)
+        if EngineRoot.exists() or MovedNames:
+            RollbackInPlace(ProjectRoot, EngineRoot, MovedNames, GeneratedPaths, State)
         if isinstance(Error, SetupError):
             raise
         raise SetupError(

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 4.2)
 
 set(VCPKG_MANIFEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/BroccoliEngine/Engine" CACHE PATH
     "Directory containing the BroccoliEngine vcpkg manifest")

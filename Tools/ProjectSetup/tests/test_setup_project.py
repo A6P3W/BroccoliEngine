@@ -189,6 +189,28 @@ def TestInPlaceRollsBackAfterSubmoduleRegistrationFailure(
     assert RunGit(RepositoryRoot, "status", "--porcelain") == ""
 
 
+def TestInPlaceRollsBackWhenInitialMoveFails(
+    TmpPath: Path,
+    TemplateRoot: Path,
+) -> None:
+    RepositoryRoot = TmpPath / "EngineRepository"
+    RepositoryRoot.mkdir()
+    HeadCommit, _ = CreateEngineRepository(RepositoryRoot, TemplateRoot)
+
+    def FailInitialMove(Source: str, Destination: str) -> str:
+        del Source, Destination
+        raise OSError("injected initial move failure")
+
+    with pytest.MonkeyPatch.context() as MonkeyPatch:
+        MonkeyPatch.setattr(SetupProject.shutil, "move", FailInitialMove)
+        with pytest.raises(SetupError, match="TEMPLATES_PREPARED"):
+            SetupProject.ReconfigureInPlace(RepositoryRoot, "TestGame")
+
+    assert (RepositoryRoot / ".git").is_dir()
+    assert RunGit(RepositoryRoot, "rev-parse", "HEAD") == HeadCommit
+    assert not (RepositoryRoot / "BroccoliEngine").exists()
+
+
 def TestInPlaceRollsBackWhenCompletionHookFails(
     TmpPath: Path,
     TemplateRoot: Path,
@@ -306,7 +328,8 @@ def TestCliRequestsManualUserPresetEdit(TmpPath: Path) -> None:
         check=False,
         capture_output=True,
         text=True,
-        encoding="mbcs",
+        encoding="utf-8",
+        errors="replace",
     )
 
     assert Result.returncode == 0, Result.stderr

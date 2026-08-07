@@ -1,8 +1,8 @@
 {
   "version": 6,
   "cmakeMinimumRequired": {
-    "major": 3,
-    "minor": 25,
+    "major": 4,
+    "minor": 2,
     "patch": 0
   },
   "configurePresets": [
@@ -34,6 +34,21 @@
     },
     {
       "name": "release",
+      "configurePreset": "windows-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "local-debug",
+      "configurePreset": "windows-x64",
+      "configuration": "Debug"
+    },
+    {
+      "name": "local-editor",
+      "configurePreset": "windows-x64",
+      "configuration": "Editor"
+    },
+    {
+      "name": "local-release",
       "configurePreset": "windows-x64",
       "configuration": "Release"
     }

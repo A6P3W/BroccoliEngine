@@ -27,12 +27,12 @@ void ALauncherPlayerController::SetupPlayerInputComponent(
 void ALauncherPlayerController::ReturnToLevelStarter() {
   // 現在読み込まれているレベルのパスを取得
   const std::string& CurrentPath = SceneManager::GetInstance().GetCurrentLevelPath();
-  if (CurrentPath == "Resources/LevelStarter.BLevel") {
+  if (CurrentPath == "/Game/BasicGameplay.BLevel") {
     return;
   }
 
   // ログを出力
   M_LOG("Escape pressed: return to LevelStarter.");
   // 初期レベルである LevelStarter を開く
-  SceneManager::GetInstance().OpenLevelByPath("Game/LevelStarter.BLevel");
+  SceneManager::GetInstance().OpenLevelByPath("/Game/BasicGameplay.BLevel");
 }

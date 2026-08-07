@@ -32,9 +32,9 @@ cd C:\vcpkg
 
 ### 2. CMakeUserPresets.json の作成
 
-`Engine/CMakeUserPresets.json.bak` を複製し、`Engine/CMakeUserPresets.json` を作成します。
+`Engine/CMakeUserPresets.json.template` を複製し、`Engine/CMakeUserPresets.json` を作成します。
 ```cmd
-copy Engine\CMakeUserPresets.json.bak Engine\CMakeUserPresets.json
+copy Engine\CMakeUserPresets.json.template Engine\CMakeUserPresets.json
 ```
 作成後、`Engine/CMakeUserPresets.json` 内の `configurePresets` にある `local-windows-x64` プリセットの `cacheVariables` の `CMAKE_TOOLCHAIN_FILE` フィールドに、ローカルの vcpkg ツールチェーンパス（例: `C:/vcpkg/scripts/buildsystems/vcpkg.cmake`）を設定します。
 

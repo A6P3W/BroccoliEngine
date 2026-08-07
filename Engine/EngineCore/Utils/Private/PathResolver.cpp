@@ -118,8 +118,7 @@ const std::string& PathResolver::GetGameName() {
       for (const auto& Entry : std::filesystem::directory_iterator("Resources", ErrorCode)) {
         if (Entry.is_directory(ErrorCode)) {
           std::string FolderName = FileUtils::PathToUtf8(Entry.path().filename());
-          if (FolderName != "Engine" && FolderName != "Game" && !FolderName.empty() &&
-              FolderName[0] != '.') {
+          if (FolderName != "Engine" && !FolderName.empty() && FolderName[0] != '.') {
             GGameName = FolderName;
             break;
           }
@@ -329,17 +328,16 @@ void PathResolver::InitializeWorkingDirectory() {
     if (!GProjectRoot.empty()) {
       std::error_code ErrorCode;
       std::filesystem::current_path(FileUtils::Utf8ToPath(GProjectRoot), ErrorCode);
-      if (ErrorCode) {
-        M_LOG(
-            "Failed to set working directory to project root {}: {}",
-            GProjectRoot,
-            ErrorCode.message()
-        );
-      } else {
-        M_LOG("Game resource directory: {}", GetGameResourceDir());
+      if (!ErrorCode) {
         M_LOG("Working directory set to project root: {}", GProjectRoot);
+        M_LOG("Game resource directory: {}", GetGameResourceDir());
+        return;
       }
-      return;
+      M_LOG(
+          "Failed to set working directory to project root {}: {}",
+          GProjectRoot,
+          ErrorCode.message()
+      );
     }
 
     std::string GameSourceDir = DetectGameSourceDir();

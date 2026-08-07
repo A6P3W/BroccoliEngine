@@ -137,13 +137,13 @@ try {
       throw "Unresolved template placeholders remain."
     }
 
-    $Stage = git ls-files --stage BroccoliEngine
+    $Stage = (git ls-files --stage BroccoliEngine | Out-String).Trim()
     if (-not $Stage.StartsWith("160000 ")) {
       throw "BroccoliEngine is not a gitlink: $Stage"
     }
 
-    $SubmoduleStatus = git submodule status BroccoliEngine
-    if (-not $SubmoduleStatus.StartsWith(" ")) {
+    $SubmoduleStatus = (git submodule status BroccoliEngine | Select-Object -First 1) -as [string]
+    if (-not $SubmoduleStatus -or -not $SubmoduleStatus.StartsWith(" ")) {
       throw "BroccoliEngine submodule is not initialized: $SubmoduleStatus"
     }
 
