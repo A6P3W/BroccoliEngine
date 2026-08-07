@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from broccoli_build.package_runtime import PackageRuntime
 from broccoli_build.prepare_output import PrepareOutput
 from broccoli_build.stage_runtime import StageRuntime
@@ -59,6 +58,29 @@ def TestStageRuntimeStagesEditorBinariesWithoutResources(TmpPath: Path) -> None:
     assert (OutputDirectory / "BroccoliEngine.dll").is_file()
     assert (OutputDirectory / "EOSSDK-Win64-Shipping.dll").is_file()
     assert not (OutputDirectory / "Resources").exists()
+
+
+def TestStageRuntimeAcceptsEngineBinaryAlreadyInOutput(TmpPath: Path) -> None:
+    OutputDirectory = TmpPath / "Output"
+    OutputDirectory.mkdir()
+    EngineBinary = OutputDirectory / "BroccoliEngine.dll"
+    EosBinary = TmpPath / "EOSSDK-Win64-Shipping.dll"
+    EngineBinary.write_bytes(b"engine")
+    EosBinary.write_bytes(b"eos")
+
+    StageRuntime(
+        "Editor",
+        TmpPath / "Engine",
+        TmpPath / "Game",
+        OutputDirectory,
+        EngineBinary,
+        "Game",
+        EosBinary,
+        TmpPath / "ConvertLevels.py",
+    )
+
+    assert EngineBinary.read_bytes() == b"engine"
+    assert (OutputDirectory / "EOSSDK-Win64-Shipping.dll").is_file()
 
 
 def TestStageRuntimeStagesDebugArtifacts(TmpPath: Path) -> None:

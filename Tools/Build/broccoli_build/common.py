@@ -40,8 +40,12 @@ def RemovePath(PathValue: Path) -> None:
 def CopyFile(Source: Path, DestinationDirectory: Path) -> None:
     RequireFile(Source, "Required file")
     EnsureDirectory(DestinationDirectory)
+    Destination = DestinationDirectory / Source.name
+    if Source.resolve() == Destination.resolve():
+        return
+
     try:
-        shutil.copy2(Source, DestinationDirectory / Source.name)
+        shutil.copy2(Source, Destination)
     except OSError as Error:
         raise RuntimeError(
             f"Failed to copy '{Source}' to '{DestinationDirectory}': {Error}"
