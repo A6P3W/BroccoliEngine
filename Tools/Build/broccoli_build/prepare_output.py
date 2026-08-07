@@ -6,5 +6,5 @@ from .common import RemovePath
 
 
 def PrepareOutput(OutputDirectory: Path) -> None:
-    for Name in ("Logs", "Saved", "Resources", "Resources-EOS", "Log.txt"):
-        RemovePath(OutputDirectory / Name)
+  for Name in ("Logs", "Saved", "Resources", "Resources-EOS", "Log.txt"):
+    RemovePath(OutputDirectory / Name)

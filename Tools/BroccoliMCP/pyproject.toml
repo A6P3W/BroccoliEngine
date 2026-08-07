@@ -17,7 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest==8.4.2",
-  "ruff==0.16.0",
+  "ruff>=0.16.0",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -30,7 +30,7 @@ testpaths = ["tests"]
 [tool.ruff]
 indent-width = 2
 line-length = 100
-required-version = "==0.16.0"
+required-version =">=0.16.0"
 target-version = "py311"
 
 [tool.ruff.format]
