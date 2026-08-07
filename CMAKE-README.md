@@ -2,10 +2,12 @@
 
 CMake Presets separate repository settings from developer-local configuration.
 
-- `CMakePresets.json` is shared and tracked by Git.
-- `CMakeUserPresets.json` contains the local vcpkg toolchain path and is ignored by Git.
+- `Engine/CMakePresets.json` is shared and tracked by Git.
+- `Engine/CMakeUserPresets.json` contains the local vcpkg toolchain path and is ignored by Git.
+The shared preset intentionally provides no `CMAKE_TOOLCHAIN_FILE` default.
+Each user must enter the absolute path in the ignored user preset.
 
-Set `CMAKE_TOOLCHAIN_FILE` in `CMakeUserPresets.json` to the vcpkg installation on your machine.
+Set `CMAKE_TOOLCHAIN_FILE` in `Engine/CMakeUserPresets.json` to the vcpkg installation on your machine.
 
 Here is an example `CMakeUserPresets.json` file:
 
@@ -17,7 +19,7 @@ Here is an example `CMakeUserPresets.json` file:
       "name": "local-windows-x64",
       "inherits": "windows-x64",
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "CMAKE_TOOLCHAIN_FILE": "<Enter the absolute path to vcpkg.cmake>"
       }
     }
   ],
@@ -44,6 +46,7 @@ Here is an example `CMakeUserPresets.json` file:
 ## Command line
 
 Configure with the local preset:
+cd Engine
 
 ```powershell
 cmake --preset local-windows-x64
@@ -66,6 +69,7 @@ With CMake Tools, select the following presets:
 
 ## Source discovery
 
-`EngineCore`, `EngineSide`, `Editor`, and `Launcher/Source` use
-`file(GLOB_RECURSE ... CONFIGURE_DEPENDS)`. `Engine/ThirdParty` is intentionally
+`EngineCore`, `EngineSide`, and `Editor` use
+`file(GLOB_RECURSE ... CONFIGURE_DEPENDS)`. Generated games use the same approach
+for `<ProjectName>/Source`. `Engine/ThirdParty` is intentionally
 limited to the source files used by BroccoliEngine.
