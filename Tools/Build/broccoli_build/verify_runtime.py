@@ -13,8 +13,8 @@ def VerifyRuntime(
     OutputDirectory / "Resources" / "Engine",
     OutputDirectory / "Resources" / GameName,
   ]
-  MissingPaths = [PathValue for PathValue in RequiredFiles if not PathValue.exists()]
-  MissingPaths.extend(PathValue for PathValue in RequiredDirectories if not PathValue.exists())
+  MissingPaths = [PathValue for PathValue in RequiredFiles if not PathValue.is_file()]
+  MissingPaths.extend(PathValue for PathValue in RequiredDirectories if not PathValue.is_dir())
   JsonFiles = sorted(OutputDirectory.glob("Resources/**/*.BLevel.json"))
 
   if PublishDirectory is not None:
