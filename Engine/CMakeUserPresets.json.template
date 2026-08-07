@@ -9,7 +9,7 @@
       "displayName": "Local Windows x64",
       "inherits": "windows-x64",
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "CMAKE_TOOLCHAIN_FILE": "{CMAKE_TOOLCHAIN_FILE}"
       }
     }
   ],

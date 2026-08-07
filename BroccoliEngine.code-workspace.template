@@ -1,0 +1,15 @@
+{
+  "folders": [
+    {
+      "name": "EngineDirectory",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "explorer.excludeGitIgnore": true,
+    "files.exclude": {
+      "**/.*": true,   
+
+    }
+  }
+}
