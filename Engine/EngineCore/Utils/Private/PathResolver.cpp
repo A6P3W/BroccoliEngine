@@ -301,7 +301,14 @@ void PathResolver::InitializeWorkingDirectory() {
       const std::filesystem::path GameRoot =
           FileUtils::Utf8ToPath(GProjectRoot) / FileUtils::Utf8ToPath(GetGameName());
       std::error_code ErrorCode;
-      if (!std::filesystem::is_directory(GameRoot, ErrorCode)) {
+      const bool IsGameRootDirectory = std::filesystem::is_directory(GameRoot, ErrorCode);
+      if (ErrorCode) {
+        M_LOG(
+            "Failed to inspect game directory {}: {}",
+            FileUtils::PathToUtf8(GameRoot),
+            ErrorCode.message()
+        );
+      } else if (!IsGameRootDirectory) {
         M_LOG(
             "Game directory was not found under project root: {}", FileUtils::PathToUtf8(GameRoot)
         );
@@ -317,8 +324,6 @@ void PathResolver::InitializeWorkingDirectory() {
           M_LOG("Game resource directory: {}", GetGameResourceDir());
           return;
         }
-      }
-      if (ErrorCode) {
         M_LOG(
             "Failed to set working directory to game folder {}: {}",
             FileUtils::PathToUtf8(GameRoot),
