@@ -91,6 +91,7 @@ def TestStageRuntimeStagesDebugArtifacts(TmpPath: Path) -> None:
   (GameDirectory / "Resources-EOS").mkdir(parents=True)
   (EngineDirectory / "Resources" / "engine.txt").write_text("engine", encoding="utf-8")
   (GameDirectory / "Resources" / "level.BLevel.json").write_text("{}", encoding="utf-8")
+  (GameDirectory / "Resources-EOS" / "online.BLevel.json").write_text("{}", encoding="utf-8")
   (GameDirectory / "Resources-EOS" / "online.txt").write_text("online", encoding="utf-8")
   EngineBinary = TmpPath / "BroccoliEngine.dll"
   EosBinary = TmpPath / "EOSSDK-Win64-Shipping.dll"
@@ -115,19 +116,23 @@ def TestStageRuntimeStagesDebugArtifacts(TmpPath: Path) -> None:
   assert (OutputDirectory / "Resources" / "Engine" / "engine.txt").is_file()
   assert (OutputDirectory / "Resources" / "Game" / "level.BLevel").is_file()
   assert not (OutputDirectory / "Resources" / "Game" / "level.BLevel.json").exists()
+  assert (OutputDirectory / "Resources-EOS" / "online.BLevel").is_file()
+  assert not (OutputDirectory / "Resources-EOS" / "online.BLevel.json").exists()
   assert (OutputDirectory / "Resources-EOS" / "online.txt").is_file()
 
 
 def TestPackageRuntimeCreatesVerifiedLayout(TmpPath: Path) -> None:
   OutputDirectory = TmpPath / "Output"
   PublishDirectory = TmpPath / "Publish"
+  OnlineResourcesDirectory = TmpPath / "OnlineResources"
   ResourcesDirectory = OutputDirectory / "Resources"
   (ResourcesDirectory / "Engine").mkdir(parents=True)
   (ResourcesDirectory / "Game").mkdir(parents=True)
   (ResourcesDirectory / "Engine" / "engine.txt").write_text("engine", encoding="utf-8")
   (ResourcesDirectory / "Game" / "level.BLevel").write_bytes(b"level")
-  (OutputDirectory / "Resources-EOS").mkdir()
-  (OutputDirectory / "Resources-EOS" / "online.txt").write_text("online", encoding="utf-8")
+  OnlineResourcesDirectory.mkdir()
+  (OnlineResourcesDirectory / "online.BLevel.json").write_text("{}", encoding="utf-8")
+  (OnlineResourcesDirectory / "online.txt").write_text("online", encoding="utf-8")
   GameBinary = OutputDirectory / "Game-game.exe"
   EngineBinary = OutputDirectory / "BroccoliEngine.dll"
   EosBinary = OutputDirectory / "EOSSDK-Win64-Shipping.dll"
@@ -137,7 +142,7 @@ def TestPackageRuntimeCreatesVerifiedLayout(TmpPath: Path) -> None:
   EngineBinary.write_bytes(b"engine")
   EosBinary.write_bytes(b"eos")
   BootstrapBinary.write_bytes(b"bootstrap")
-  ConvertLevelsScript.write_text("", encoding="utf-8")
+  WriteConvertLevelsScript(ConvertLevelsScript)
 
   PackageRuntime(
     "Release",
@@ -147,7 +152,7 @@ def TestPackageRuntimeCreatesVerifiedLayout(TmpPath: Path) -> None:
     EngineBinary,
     "Game",
     EosBinary,
-    OutputDirectory / "Resources-EOS",
+    OnlineResourcesDirectory,
     ConvertLevelsScript,
     BootstrapBinary,
   )
@@ -155,6 +160,8 @@ def TestPackageRuntimeCreatesVerifiedLayout(TmpPath: Path) -> None:
   VerifyRuntime(OutputDirectory, "Game", PublishDirectory)
   assert (PublishDirectory / "Game.exe").is_file()
   assert (PublishDirectory / "Binaries" / "Game.exe").is_file()
+  assert (PublishDirectory / "Resources-EOS" / "online.BLevel").is_file()
+  assert not (PublishDirectory / "Resources-EOS" / "online.BLevel.json").exists()
   assert (PublishDirectory / "Resources-EOS" / "online.txt").is_file()
 
 

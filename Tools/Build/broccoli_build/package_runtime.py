@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from .common import (
+  ConvertLevels,
   CopyDirectory,
   CopyFile,
   EnsureDirectory,
@@ -47,4 +48,6 @@ def PackageRuntime(
   (PublishDirectory / BootstrapBinary.name).replace(PublishDirectory / f"{GameName}.exe")
   CopyDirectory(ResourcesDirectory, PublishDirectory / "Resources")
   if OnlineResourcesDirectory.is_dir():
-    CopyDirectory(OnlineResourcesDirectory, PublishDirectory / "Resources-EOS")
+    PublishedOnlineResourcesDirectory = PublishDirectory / "Resources-EOS"
+    CopyDirectory(OnlineResourcesDirectory, PublishedOnlineResourcesDirectory)
+    ConvertLevels(ConvertLevelsScript, PublishedOnlineResourcesDirectory)
