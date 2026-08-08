@@ -8,7 +8,7 @@ REGISTER_ACTOR(AStressTestActor)
 
 AStressTestActor::AStressTestActor() {
   int texHandle =
-      ResourceManager::GetInstance().LoadResourceGraph("BaseFile/texture_Checker_64px.png");
+      ResourceManager::GetInstance().LoadResourceGraph("/Engine/texture_Checker_64px.png");
 
   const int rows = 10;
   const int cols = 10;
