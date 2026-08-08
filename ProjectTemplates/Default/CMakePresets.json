@@ -16,6 +16,7 @@
         "strategy": "set"
       },
       "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
         "VCPKG_MANIFEST_DIR": "${sourceDir}/BroccoliEngine/Engine"
       }
@@ -34,21 +35,6 @@
     },
     {
       "name": "release",
-      "configurePreset": "windows-x64",
-      "configuration": "Release"
-    },
-    {
-      "name": "local-debug",
-      "configurePreset": "windows-x64",
-      "configuration": "Debug"
-    },
-    {
-      "name": "local-editor",
-      "configurePreset": "windows-x64",
-      "configuration": "Editor"
-    },
-    {
-      "name": "local-release",
       "configurePreset": "windows-x64",
       "configuration": "Release"
     }

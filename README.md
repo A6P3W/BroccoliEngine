@@ -30,16 +30,13 @@ cd C:\vcpkg
 .\vcpkg integrate install
 ```
 
-### 2. CMakeUserPresets.json の作成
+VCPKG_ROOTを環境変数に登録してください。
 
-`Engine/CMakeUserPresets.json.template` を複製し、`Engine/CMakeUserPresets.json` を作成します。
-```cmd
-copy Engine\CMakeUserPresets.json.template Engine\CMakeUserPresets.json
+```pwsh
+[System.Environment]::SetEnvironmentVariable("VCPKG_ROOT", "C:\path\to\vcpkg", [System.EnvironmentVariableTarget]::User)
 ```
-作成後、`Engine/CMakeUserPresets.json` 内の `configurePresets` にある `local-windows-x64` プリセットの `cacheVariables` の `CMAKE_TOOLCHAIN_FILE` フィールドに、ローカルの vcpkg ツールチェーンパス（例: `C:/vcpkg/scripts/buildsystems/vcpkg.cmake`）を設定します。
 
-
-### 3. Python ツール環境の同期 (uv)
+### 2. Python ツール環境の同期 (uv)
 
 ビルド・配布パッケージ用ツールの依存関係を同期します。
 
@@ -53,7 +50,6 @@ uv sync
 ## ゲームプロジェクトの生成
 
 初期ゲームにはBasicGameplay、PlayerController、レベルJSONが展開されます。
-生成される `CMakeUserPresets.json` の `{CMAKE_TOOLCHAIN_FILE}` を`vcpkg.cmake` の絶対パスへ書き換えてください。
 
 プロジェクト名はASCII英字で始まり、ASCII英数字またはアンダースコアのみ使用でき、`BroccoliEngine` は予約名です。
 
@@ -87,7 +83,6 @@ MyGame/
 ├── .broccoli-project.json
 ├── CMakeLists.txt
 ├── CMakePresets.json
-├── CMakeUserPresets.json
 ├── build.bat
 ├── run.bat
 ├── BroccoliEngine/
