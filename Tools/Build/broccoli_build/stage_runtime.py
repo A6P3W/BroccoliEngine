@@ -30,6 +30,8 @@ def StageRuntime(
 
   OnlineResourcesDirectory = GameDirectory / "Resources-EOS"
   if Configuration.casefold() == "debug" and OnlineResourcesDirectory.is_dir():
-    CopyDirectory(OnlineResourcesDirectory, OutputDirectory / "Resources-EOS")
+    StagedOnlineResourcesDirectory = OutputDirectory / "Resources-EOS"
+    CopyDirectory(OnlineResourcesDirectory, StagedOnlineResourcesDirectory)
+    ConvertLevels(ConvertLevelsScript, StagedOnlineResourcesDirectory)
 
   ConvertLevels(ConvertLevelsScript, ResourcesDirectory)
