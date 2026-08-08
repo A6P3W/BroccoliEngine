@@ -221,36 +221,8 @@ std::string PathResolver::SanitizeResourcePath(const std::string& Path) {
     return CleanPath;
   }
 
-  // 旧プレフィックス Resources/Engine/ や Resources/
-  if (CleanPath.rfind("Resources/Engine/", 0) == 0) {
-    return "/Engine/" + CleanPath.substr(17);
-  }
-  if (CleanPath.rfind("/Resources/Engine/", 0) == 0) {
-    return "/Engine/" + CleanPath.substr(18);
-  }
-  if (CleanPath.rfind("Resources/", 0) == 0) {
-    std::string SubPath = CleanPath.substr(10);
-    std::string GamePrefix = GetGameName() + "/";
-    if (SubPath.rfind(GamePrefix, 0) == 0) {
-      SubPath = SubPath.substr(GamePrefix.length());
-    }
-    return "/Game/" + SubPath;
-  }
-  if (CleanPath.rfind("/Resources/", 0) == 0) {
-    std::string SubPath = CleanPath.substr(11);
-    std::string GamePrefix = GetGameName() + "/";
-    if (SubPath.rfind(GamePrefix, 0) == 0) {
-      SubPath = SubPath.substr(GamePrefix.length());
-    }
-    return "/Game/" + SubPath;
-  }
-
-  // 先頭が / で始まっている場合（例: /Screenshots/pic.png）
-  if (CleanPath[0] == '/') {
-    return "/Game" + CleanPath;
-  }
-
-  return "/Game/" + CleanPath;
+  // 明示的な仮想プレフィックスを持たない相対パスは、通常の相対パスとして保持する。
+  return CleanPath;
 }
 
 std::string PathResolver::Resolve(const std::string& Path) {
@@ -275,7 +247,7 @@ std::string PathResolver::Resolve(const std::string& Path) {
     std::string SubPath = Sanitized.substr(6);
     Result = GetGameResourceDir() + SubPath;
   } else {
-    Result = GetGameResourceDir() + Sanitized;
+    Result = Sanitized;
   }
 
 #if defined(_DEBUG)
@@ -326,18 +298,38 @@ std::string PathResolver::GetGameResourceDir() {
 void PathResolver::InitializeWorkingDirectory() {
   if constexpr (IsEditor) {
     if (!GProjectRoot.empty()) {
+      const std::filesystem::path GameRoot =
+          FileUtils::Utf8ToPath(GProjectRoot) / FileUtils::Utf8ToPath(GetGameName());
       std::error_code ErrorCode;
-      std::filesystem::current_path(FileUtils::Utf8ToPath(GProjectRoot), ErrorCode);
-      if (!ErrorCode) {
-        M_LOG("Working directory set to project root: {}", GProjectRoot);
-        M_LOG("Game resource directory: {}", GetGameResourceDir());
-        return;
+      const bool IsGameRootDirectory = std::filesystem::is_directory(GameRoot, ErrorCode);
+      if (ErrorCode) {
+        M_LOG(
+            "Failed to inspect game directory {}: {}",
+            FileUtils::PathToUtf8(GameRoot),
+            ErrorCode.message()
+        );
+      } else if (!IsGameRootDirectory) {
+        M_LOG(
+            "Game directory was not found under project root: {}", FileUtils::PathToUtf8(GameRoot)
+        );
+      } else {
+        ErrorCode.clear();
+        std::filesystem::current_path(GameRoot, ErrorCode);
+        if (!ErrorCode) {
+          GGameSourceDir = NormalizePath(FileUtils::PathToUtf8(GameRoot));
+          if (!GGameSourceDir.empty() && GGameSourceDir.back() != '/') {
+            GGameSourceDir += '/';
+          }
+          M_LOG("Working directory set to game folder: {}", GGameSourceDir);
+          M_LOG("Game resource directory: {}", GetGameResourceDir());
+          return;
+        }
+        M_LOG(
+            "Failed to set working directory to game folder {}: {}",
+            FileUtils::PathToUtf8(GameRoot),
+            ErrorCode.message()
+        );
       }
-      M_LOG(
-          "Failed to set working directory to project root {}: {}",
-          GProjectRoot,
-          ErrorCode.message()
-      );
     }
 
     std::string GameSourceDir = DetectGameSourceDir();
