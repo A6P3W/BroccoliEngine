@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "BroccoliRaylib.h"
+#include "PathResolver.h"
 
 namespace {
 constexpr int InvalidSoundHandle = 0;
@@ -51,16 +52,17 @@ FSoundManager::~FSoundManager() {
 }
 
 int FSoundManager::GetMasterHandle(const std::string& Path) {
-  const auto Cached = ImplPtr->MasterSoundPaths.find(Path);
+  const std::string ResolvedPath = PathResolver::Resolve(Path);
+  const auto Cached = ImplPtr->MasterSoundPaths.find(ResolvedPath);
   if (Cached != ImplPtr->MasterSoundPaths.end()) return Cached->second;
   if (!IsAudioDeviceReady()) return InvalidSoundHandle;
 
-  const Sound MasterSound = LoadSound(Path.c_str());
+  const Sound MasterSound = LoadSound(ResolvedPath.c_str());
   if (!IsSoundValid(MasterSound)) return InvalidSoundHandle;
 
   const int Handle = ImplPtr->NextHandle++;
   ImplPtr->MasterSounds.emplace(Handle, MasterSound);
-  ImplPtr->MasterSoundPaths.emplace(Path, Handle);
+  ImplPtr->MasterSoundPaths.emplace(ResolvedPath, Handle);
   return Handle;
 }
 
@@ -84,7 +86,8 @@ int FSoundManager::PlayBGM(const std::string& Path, bool Loop) {
   if (!IsAudioDeviceReady()) return InvalidSoundHandle;
   if (ImplPtr->PlayingMusic.has_value()) Stop(ImplPtr->PlayingMusic->Handle);
 
-  Music Stream = LoadMusicStream(Path.c_str());
+  const std::string ResolvedPath = PathResolver::Resolve(Path);
+  Music Stream = LoadMusicStream(ResolvedPath.c_str());
   if (!IsMusicValid(Stream)) return InvalidSoundHandle;
 
   Stream.looping = Loop;
