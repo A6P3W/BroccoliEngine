@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -85,11 +86,29 @@ def TestRenderTemplatesCreatesBasicGameplay(
   ).is_file()
   assert (OutputRoot / "TestGame" / "Resources" / "BasicGameplay.BLevel.json").is_file()
   assert (OutputRoot / ".gitignore").is_file()
-  UserPresets = (OutputRoot / "CMakeUserPresets.json").read_text(encoding="utf-8")
-  assert "{CMAKE_TOOLCHAIN_FILE}" in UserPresets
+  UserPresetsText = (OutputRoot / "CMakeUserPresets.json").read_text(encoding="utf-8")
+  UserPresetsData = json.loads(UserPresetsText)
+  UserConfigurePresets = {
+    Preset["name"]: Preset for Preset in UserPresetsData.get("configurePresets", [])
+  }
+  assert "windows-x64-local" in UserConfigurePresets
+  assert (
+    UserConfigurePresets["windows-x64-local"]["environment"]["VCPKG_ROOT"]
+    == "{YOUR_VCPKG_ROOT_DIRECTORY}"
+  )
+  assert "CMAKE_TOOLCHAIN_FILE" not in UserPresetsText
+
   assert not (OutputRoot / "Game").exists()
-  SharedPresets = (OutputRoot / "CMakePresets.json").read_text(encoding="utf-8")
-  assert "CMAKE_TOOLCHAIN_FILE" not in SharedPresets
+  SharedPresetsText = (OutputRoot / "CMakePresets.json").read_text(encoding="utf-8")
+  SharedPresetsData = json.loads(SharedPresetsText)
+  SharedConfigurePresets = {
+    Preset["name"]: Preset for Preset in SharedPresetsData.get("configurePresets", [])
+  }
+  assert "windows-x64" in SharedConfigurePresets
+  assert (
+    SharedConfigurePresets["windows-x64"]["cacheVariables"]["CMAKE_TOOLCHAIN_FILE"]
+    == "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+  )
 
   RootCMake = (OutputRoot / "CMakeLists.txt").read_text(encoding="utf-8")
   assert "add_subdirectory(TestGame)" in RootCMake

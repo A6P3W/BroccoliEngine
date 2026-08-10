@@ -27,13 +27,6 @@ vcpkg をクローンしてセットアップします。
 git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
 cd C:\vcpkg
 .\bootstrap-vcpkg.bat
-.\vcpkg integrate install
-```
-
-VCPKG_ROOTを環境変数に登録してください。
-
-```pwsh
-[System.Environment]::SetEnvironmentVariable("VCPKG_ROOT", "C:\path\to\vcpkg", [System.EnvironmentVariableTarget]::User)
 ```
 
 ### 2. Python ツール環境の同期 (uv)

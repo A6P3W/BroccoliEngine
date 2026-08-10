@@ -1,0 +1,29 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "windows-x64-local",
+      "inherits": "windows-x64",
+      "environment": {
+        "VCPKG_ROOT": "{YOUR_VCPKG_ROOT_DIRECTORY}"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug-local",
+      "inherits": "debug",
+      "configurePreset": "windows-x64-local"
+    },
+    {
+      "name": "editor-local",
+      "inherits": "editor",
+      "configurePreset": "windows-x64-local"
+    },
+    {
+      "name": "release-local",
+      "inherits": "release",
+      "configurePreset": "windows-x64-local"
+    }
+  ]
+}
