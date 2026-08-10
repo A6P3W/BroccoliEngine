@@ -34,6 +34,15 @@ if not exist "%CMAKE_COMMAND%" (
 )
 
 :configure
+if exist "CMakeUserPresets.json" (
+  findstr /C:"{YOUR_VCPKG_ROOT_DIRECTORY}" "CMakeUserPresets.json" >nul 2>&1
+  if not errorlevel 1 (
+    echo [error] CMakeUserPresets.json still contains {YOUR_VCPKG_ROOT_DIRECTORY}.
+    echo [error] Please update VCPKG_ROOT in CMakeUserPresets.json to point to your vcpkg installation.
+    exit /b 1
+  )
+)
+
 "%CMAKE_COMMAND%" --preset windows-x64-local
 if errorlevel 1 exit /b %errorlevel%
 
