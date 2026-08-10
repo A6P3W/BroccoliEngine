@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 4.2)
 
 if(NOT TARGET Broccoli::Engine)
   message(FATAL_ERROR "Game requires the Broccoli::Engine target")
@@ -31,10 +31,7 @@ add_dependencies(${BROCCOLI_PROJECT_NAME} BroccoliBootstrap)
 
 if(MSVC)
   broccoli_apply_common_msvc_options(${BROCCOLI_PROJECT_NAME})
-  target_link_options(${BROCCOLI_PROJECT_NAME} PRIVATE
-    $<$<CONFIG:Debug>:/DELAYLOAD:BroccoliEngine.dll>
-  )
-  target_link_libraries(${BROCCOLI_PROJECT_NAME} PRIVATE winmm $<$<CONFIG:Debug>:delayimp>)
+  target_link_libraries(${BROCCOLI_PROJECT_NAME} PRIVATE winmm)
   set_property(TARGET ${BROCCOLI_PROJECT_NAME} PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<OR:$<CONFIG:Debug>,$<CONFIG:Editor>>:Debug>DLL")
 endif()
@@ -43,7 +40,6 @@ set_target_properties(${BROCCOLI_PROJECT_NAME} PROPERTIES
   OUTPUT_NAME "${BROCCOLI_PROJECT_NAME}-game"
   RUNTIME_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
   PDB_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
-  VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${BROCCOLI_PROJECT_NAME}>"
 )
 
 find_program(BROCCOLI_UV_EXECUTABLE uv REQUIRED)

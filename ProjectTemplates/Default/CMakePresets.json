@@ -8,6 +8,7 @@
   "configurePresets": [
     {
       "name": "windows-x64",
+      "hidden": true,
       "displayName": "Windows x64",
       "generator": "Visual Studio 18 2026",
       "binaryDir": "${sourceDir}/build/windows-x64",
@@ -25,16 +26,19 @@
   "buildPresets": [
     {
       "name": "debug",
+      "hidden": true,
       "configurePreset": "windows-x64",
       "configuration": "Debug"
     },
     {
       "name": "editor",
+      "hidden": true,
       "configurePreset": "windows-x64",
       "configuration": "Editor"
     },
     {
       "name": "release",
+      "hidden": true,
       "configurePreset": "windows-x64",
       "configuration": "Release"
     }
