@@ -117,13 +117,17 @@ try {
 
     $UserPresetsPath = Join-Path $TestRoot "CMakeUserPresets.json"
     $UserPresets = Get-Content -Raw -LiteralPath $UserPresetsPath
-    if (-not $UserPresets.Contains("{CMAKE_TOOLCHAIN_FILE}")) {
-      throw "CMakeUserPresets.json does not contain the toolchain placeholder."
+    if (-not $UserPresets.Contains("{YOUR_VCPKG_ROOT_DIRECTORY}")) {
+      throw "CMakeUserPresets.json does not contain the VCPKG_ROOT placeholder."
     }
-    $NormalizedToolchainFile = $ToolchainFile.Replace("\", "/")
+    $VcpkgRootPath = Split-Path (Split-Path (Split-Path $ToolchainFile))
+    if (-not $VcpkgRootPath -or -not (Test-Path -LiteralPath $VcpkgRootPath)) {
+      $VcpkgRootPath = Split-Path -Parent $ToolchainFile
+    }
+    $NormalizedVcpkgRoot = $VcpkgRootPath.Replace("\", "/")
     $UserPresets = $UserPresets.Replace(
-      "{CMAKE_TOOLCHAIN_FILE}",
-      $NormalizedToolchainFile
+      "{YOUR_VCPKG_ROOT_DIRECTORY}",
+      $NormalizedVcpkgRoot
     )
     [System.IO.File]::WriteAllText(
       $UserPresetsPath,

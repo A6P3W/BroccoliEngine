@@ -86,10 +86,10 @@ def TestRenderTemplatesCreatesBasicGameplay(
   assert (OutputRoot / "TestGame" / "Resources" / "BasicGameplay.BLevel.json").is_file()
   assert (OutputRoot / ".gitignore").is_file()
   UserPresets = (OutputRoot / "CMakeUserPresets.json").read_text(encoding="utf-8")
-  assert "{CMAKE_TOOLCHAIN_FILE}" in UserPresets
+  assert "{YOUR_VCPKG_ROOT_DIRECTORY}" in UserPresets
   assert not (OutputRoot / "Game").exists()
   SharedPresets = (OutputRoot / "CMakePresets.json").read_text(encoding="utf-8")
-  assert "CMAKE_TOOLCHAIN_FILE" not in SharedPresets
+  assert "CMAKE_TOOLCHAIN_FILE" in SharedPresets
 
   RootCMake = (OutputRoot / "CMakeLists.txt").read_text(encoding="utf-8")
   assert "add_subdirectory(TestGame)" in RootCMake
