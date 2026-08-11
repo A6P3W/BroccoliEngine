@@ -15,6 +15,8 @@ class BROCCOLI_ENGINE_API UITextComponent : public MUIWidgetComponent {
   void SetText(const std::string& text);
   void SetColor(const FColor& color);
   void SetFontSize(int fontSize);
+  void SetFontWeight(int Weight);
+  int GetFontWeight() const;
 
  private:
   void UpdateText();

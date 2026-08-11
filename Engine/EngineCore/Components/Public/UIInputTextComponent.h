@@ -27,6 +27,8 @@ class BROCCOLI_ENGINE_API UIInputTextComponent : public MUIButtonComponent {
   void SetColors(const FColor& normalColor, const FColor& hoveredColor, const FColor& editingColor);
   void SetTextColor(const FColor& color);
   void SetHintColor(const FColor& color);
+  void SetFontWeight(int Weight);
+  int GetFontWeight() const;
   void SetTextOffsetY(float offsetY);
   void SetActionHintOffsetY(float offsetY);
   void SetOnTextChanged(std::function<void(const std::string&)> Callback);

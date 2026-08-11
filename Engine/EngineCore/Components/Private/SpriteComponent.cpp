@@ -36,7 +36,7 @@ void MSpriteComponent::SubmitBox(float width, float height, const FColor& color,
 }
 
 void MSpriteComponent::SubmitText(const std::string& text, const FColor& color, int handle) {
-  int fontHandle = (handle != -1) ? handle : ResourceManager::GetInstance().GetFont(120, 5);
+  int fontHandle = (handle != -1) ? handle : ResourceManager::GetInstance().GetFont(120);
   RenderState->FeatureData = TextData{{0, 0}, text, color, fontHandle};
   RenderState->CommonData.alpha = static_cast<int>(color.A);
 }
