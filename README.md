@@ -11,7 +11,7 @@ BroccoliEngine は、C++20 / raylib / vcpkg をベースとした2Dゲームエ�
 
 * **OS:** Windows 11 / 10 (x64)
 * **C++ コンパイラ:** MSVC (Visual Studio 2026 推奨, C++20 対応)
-* **ビルドツール:** CMake 3.25 以上
+* **ビルドツール:** CMake 4.2 以上
 * **パッケージマネージャー:** [vcpkg](https://github.com/microsoft/vcpkg)
 * **Python 環境:** Python `>=3.11, <3.15` および [uv](https://github.com/astral-sh/uv) (ビルドツール・MCP Bridge 用)
 
@@ -37,6 +37,31 @@ cd C:\vcpkg
 cd Tools/Build
 uv sync
 ```
+
+---
+
+## エンジン開発用 Launcher
+
+エンジンリポジトリ単体でも、同梱の `Launcher` をゲームと同じ CMake 構成でビルド・実行できます。
+
+最初にローカル vcpkg のパスを設定します。
+
+```cmd
+copy CMakeUserPresets.json.template CMakeUserPresets.json
+```
+
+`CMakeUserPresets.json` の `{YOUR_VCPKG_ROOT_DIRECTORY}` を vcpkg ルートへ置き換えた後、
+リポジトリルートで実行してください。
+
+```cmd
+build.bat Debug
+build.bat Editor
+run.bat Debug -automation
+```
+
+`Launcher` は `Broccoli::Engine` をリンクし、ゲームプロジェクトと同じリソース変換、
+ランタイム配置、およびパッケージング処理を使用します。`-automation` を付けると
+Automation HTTP API が `http://127.0.0.1:39100` で有効になります。
 
 ---
 

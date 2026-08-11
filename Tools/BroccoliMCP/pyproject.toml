@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "broccoli-mcp"
 version = "0.1.0"
 description = "MCP stdio bridge for the BROCCOLI ENGINE Automation API"
-readme = "README.md"
+readme = "MCP Bridge.md"
 requires-python = ">=3.11,<3.15"
 dependencies = [
   "anyio==4.10.0",

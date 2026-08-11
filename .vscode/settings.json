@@ -1,8 +1,14 @@
 {
+  "cmake.debugConfig": {
+    "cwd": "${command:cmake.launchTargetDirectory}"
+  },
   "cmake.useCMakePresets": "always",
-  "cmake.sourceDirectory": "${workspaceFolder}/Engine",
-  "cmake.configurePreset": "local-windows-x64",
-  "cmake.buildPreset": "local-debug",
+  "cmake.sourceDirectory": "${workspaceFolder}",
+  "cmake.configurePreset": "windows-x64-local",
+  "cmake.buildPreset": "debug-local",
+  "cmake.configureArgs": [
+    "-DVCPKG_TARGET_TRIPLET=x64-windows-static-md"
+  ],
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
