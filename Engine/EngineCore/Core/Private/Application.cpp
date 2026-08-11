@@ -251,8 +251,9 @@ bool Application::Run() {
   if (IsRelease) {
     ToggleFullscreen();
   } else {
-    SetWindowSize(960, 540);
-    SetWindowPosition(0, 0);
+    SetWindowSize(1920, 1080);
+    SetWindowPosition(10, 100);
+    SetWindowResolution(960, 540);
   }
 
   InitAudioDevice();

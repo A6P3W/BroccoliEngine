@@ -11,7 +11,7 @@
 #include "RaylibResourceBridge.h"
 
 namespace {
-constexpr float DefaultStrokeThickness = 2.0f;
+constexpr float DefaultStrokeThickness = 1.0f;
 
 struct FScreenBounds {
   float MinX = 0.0f;
