@@ -17,6 +17,7 @@ struct GraphData {
   FRotator Rotation;
   FScale Scale;
   int Handle = 0;
+  FColor Tint = FColor::White;
 };
 struct BoxData {
   FVector2D Location;
@@ -47,6 +48,7 @@ struct RectGraphData {
   FVector2D SrcLocation;
   FVector2D SrcSize;
   int Handle = 0;
+  FColor Tint = FColor::White;
 };
 
 // Variant でまとめる
@@ -111,7 +113,8 @@ class BROCCOLI_ENGINE_API RenderSystem {
       FRotator Rotation,
       RenderSpace Space,
       int Priority,
-      int Alpha = 255
+      int Alpha = 255,
+      const FColor& Tint = FColor::White
   );
   void SubmitRectGraph(
       FVector2D Dest,
@@ -120,7 +123,8 @@ class BROCCOLI_ENGINE_API RenderSystem {
       int Handle,
       RenderSpace Space,
       int Priority,
-      int Alpha = 255
+      int Alpha = 255,
+      const FColor& Tint = FColor::White
   );
 
   FVector2D WorldToScreen(const FVector2D& worldPosition) const;

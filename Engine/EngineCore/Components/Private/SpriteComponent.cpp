@@ -8,6 +8,7 @@ class SpriteRenderState {
  public:
   RenderCommon CommonData;
   RenderCommandData FeatureData;
+  FColor Tint = FColor::White;
 };
 
 MSpriteComponent::MSpriteComponent() : RenderState(new SpriteRenderState()) {
@@ -24,6 +25,10 @@ void MSpriteComponent::SetRenderSettings(int Priority, RenderSpace Space) {
   RenderState->CommonData.priority = Priority;
   RenderState->CommonData.space = Space;
 }
+
+void MSpriteComponent::SetTint(const FColor& Tint) { RenderState->Tint = Tint; }
+
+const FColor& MSpriteComponent::GetTint() const { return RenderState->Tint; }
 
 void MSpriteComponent::SubmitGraph(int handle, FScale scale, int alpha) {
   RenderState->FeatureData = GraphData{{0, 0}, FRotator(0), scale, handle};
@@ -81,7 +86,8 @@ void MSpriteComponent::Draw() {
               worldRot + d.Rotation,
               RenderState->CommonData.space,
               RenderState->CommonData.priority,
-              RenderState->CommonData.alpha
+              RenderState->CommonData.alpha,
+              RenderState->Tint
           );
         } else if constexpr (std::is_same_v<T, BoxData>) {
           const FVector2D ScaledSize = d.WidthHeight * worldScale;
@@ -135,7 +141,8 @@ void MSpriteComponent::Draw() {
               d.Handle,
               RenderState->CommonData.space,
               RenderState->CommonData.priority,
-              RenderState->CommonData.alpha
+              RenderState->CommonData.alpha,
+              RenderState->Tint
           );
         }
       },
