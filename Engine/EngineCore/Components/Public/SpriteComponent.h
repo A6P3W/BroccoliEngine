@@ -12,6 +12,9 @@ class BROCCOLI_ENGINE_API MSpriteComponent : public MSceneComponent {
   ~MSpriteComponent() override;
   void SetRenderSettings(int Priority, RenderSpace Space);
 
+  void SetTint(const FColor& Tint);
+  const FColor& GetTint() const;
+
   void SubmitGraph(int handle, FScale scale = FScale(1.0f), int alpha = 255);
   void SubmitBox(float width, float height, const FColor& color, bool fill);
   void SubmitText(const std::string& text, const FColor& color, int handle = -1);

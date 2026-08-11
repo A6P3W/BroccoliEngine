@@ -24,6 +24,21 @@ Color ToRaylibColor(const FColor& Value, int Alpha = -1) {
   return {Value.R, Value.G, Value.B, static_cast<unsigned char>(Alpha < 0 ? Value.A : Alpha)};
 }
 
+Color MakeTextureTint(const FColor& Tint, int Alpha, bool IsRenderTexture) {
+  const int ClampedAlpha = std::clamp(Alpha, 0, 255);
+  const int EffectiveAlpha = static_cast<int>(Tint.A) * ClampedAlpha / 255;
+  if (IsRenderTexture) {
+    return {
+        static_cast<unsigned char>(static_cast<int>(Tint.R) * EffectiveAlpha / 255),
+        static_cast<unsigned char>(static_cast<int>(Tint.G) * EffectiveAlpha / 255),
+        static_cast<unsigned char>(static_cast<int>(Tint.B) * EffectiveAlpha / 255),
+        static_cast<unsigned char>(EffectiveAlpha)
+    };
+  }
+
+  return {Tint.R, Tint.G, Tint.B, static_cast<unsigned char>(EffectiveAlpha)};
+}
+
 FScreenBounds MakeScreenBounds(float X1, float Y1, float X2, float Y2) {
   return {(std::min)(X1, X2), (std::min)(Y1, Y2), (std::max)(X1, X2), (std::max)(Y1, Y2)};
 }
@@ -309,10 +324,11 @@ void RenderSystem::SubmitGraph(
     FRotator Rotation,
     RenderSpace Space,
     int Priority,
-    int Alpha
+    int Alpha,
+    const FColor& Tint
 ) {
   Impl->CommandBuffer.push_back(
-      {{Priority, Alpha, Space}, GraphData{Location, Rotation, Scale, Handle}}
+      {{Priority, Alpha, Space}, GraphData{Location, Rotation, Scale, Handle, Tint}}
   );
 }
 
@@ -372,10 +388,11 @@ void RenderSystem::SubmitRectGraph(
     int Handle,
     RenderSpace Space,
     int Priority,
-    int Alpha
+    int Alpha,
+    const FColor& Tint
 ) {
   Impl->CommandBuffer.push_back(
-      {{Priority, Alpha, Space}, RectGraphData{Dest, SrcLoc, SrcSize, Handle}}
+      {{Priority, Alpha, Space}, RectGraphData{Dest, SrcLoc, SrcSize, Handle, Tint}}
   );
 }
 
@@ -511,10 +528,7 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
               DrawWidth,
               DrawHeight,
           };
-          const unsigned char Alpha =
-              static_cast<unsigned char>(std::clamp(Command.common.alpha, 0, 255));
-          const Color Tint =
-              IsRenderTexture ? Color{Alpha, Alpha, Alpha, Alpha} : Color{255, 255, 255, Alpha};
+          const Color Tint = MakeTextureTint(Data.Tint, Command.common.alpha, IsRenderTexture);
           if (IsRenderTexture) BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
           DrawTexturePro(
               *Texture,
@@ -600,10 +614,7 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
             Source.y = static_cast<float>(Texture->height) - Data.SrcLocation.Y;
             Source.height *= -1.0f;
           }
-          const unsigned char Alpha =
-              static_cast<unsigned char>(std::clamp(Command.common.alpha, 0, 255));
-          const Color Tint =
-              IsRenderTexture ? Color{Alpha, Alpha, Alpha, Alpha} : Color{255, 255, 255, Alpha};
+          const Color Tint = MakeTextureTint(Data.Tint, Command.common.alpha, IsRenderTexture);
           if (IsRenderTexture) BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
           DrawTextureRec(*Texture, Source, {Parameters.Position.X, Parameters.Position.Y}, Tint);
           if (IsRenderTexture) BeginBlendMode(BLEND_CUSTOM_SEPARATE);
