@@ -55,6 +55,7 @@ struct UIInputTextComponent::Impl {
   FColor TextColor = FColor::White;
   FColor HintColor = FColor{160, 160, 160};
   int FontSize = 24;
+  int FontWeight = ResourceManager::DefaultFontWeight;
   int FontHandle = -1;
   int HintFontHandle = -1;
   EButtonState CurrentState = EButtonState::Normal;
@@ -101,8 +102,10 @@ void UIInputTextComponent::OnRegister() {
   ImplPtr->BorderSprite->RegisterComponent();
   ImplPtr->ActionHintSprite->RegisterComponent();
 
-  ImplPtr->FontHandle = ResourceManager::GetInstance().GetFont(ImplPtr->FontSize, 5);
-  ImplPtr->HintFontHandle = ResourceManager::GetInstance().GetFont(ActionHintFontSize, 5);
+  ImplPtr->FontHandle =
+      ResourceManager::GetInstance().GetFont(ImplPtr->FontSize, ImplPtr->FontWeight);
+  ImplPtr->HintFontHandle =
+      ResourceManager::GetInstance().GetFont(ActionHintFontSize, ImplPtr->FontWeight);
   UpdateVisuals();
 }
 
@@ -204,6 +207,22 @@ void UIInputTextComponent::SetHintColor(const FColor& color) {
   ImplPtr->HintColor = color;
   UpdateVisuals();
 }
+
+void UIInputTextComponent::SetFontWeight(int Weight) {
+  Weight = ResourceManager::NormalizeFontWeight(Weight);
+  if (ImplPtr->FontWeight == Weight) return;
+
+  ImplPtr->FontWeight = Weight;
+  if (ImplPtr->TextSprite != nullptr) {
+    ImplPtr->FontHandle =
+        ResourceManager::GetInstance().GetFont(ImplPtr->FontSize, ImplPtr->FontWeight);
+    ImplPtr->HintFontHandle =
+        ResourceManager::GetInstance().GetFont(ActionHintFontSize, ImplPtr->FontWeight);
+  }
+  UpdateVisuals();
+}
+
+int UIInputTextComponent::GetFontWeight() const { return ImplPtr->FontWeight; }
 
 void UIInputTextComponent::SetTextOffsetY(float offsetY) {
   ImplPtr->TextOffsetY = offsetY;

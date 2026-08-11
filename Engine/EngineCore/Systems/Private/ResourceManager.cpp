@@ -65,6 +65,7 @@ struct FFontResource {
   std::string Path;
   std::unordered_set<int> Codepoints;
   int PixelSize = 16;
+  int Weight = ResourceManager::DefaultFontWeight;
   bool OwnsFont = false;
 };
 
@@ -142,29 +143,26 @@ class FRaylibResourceStore {
     }
   }
 
-  int GetFontResource(int PixelSize, int Thickness) {
-    const std::string Key = std::to_string(PixelSize) + "_" + std::to_string(Thickness);
+  int GetFontResource(int PixelSize, int Weight) {
+    Weight = ResourceManager::NormalizeFontWeight(Weight);
+    const int NormalizedPixelSize = (std::max)(1, PixelSize);
+    const std::string Key = std::to_string(NormalizedPixelSize) + "_" + std::to_string(Weight);
     const auto Cached = FontKeyMap.find(Key);
     if (Cached != FontKeyMap.end()) return Cached->second;
 
     FFontResource Resource;
-    Resource.PixelSize = (std::max)(1, PixelSize);
+    Resource.PixelSize = NormalizedPixelSize;
+    Resource.Weight = Weight;
 
-    static constexpr std::array<const char*, 3> FontCandidates = {
-        "Engine/NotoSansJP-VariableFont_wght.ttf",
-        "Engine/NotoSansJP-Regular.ttf",
-        "Engine/Fonts/NotoSansJP-Regular.ttf",
-    };
-    for (const char* Candidate : FontCandidates) {
-      std::string TestPath = PathResolver::Resolve(Candidate);
-      std::error_code ErrorCode;
-      if (std::filesystem::exists(FileUtils::Utf8ToPath(TestPath), ErrorCode)) {
-        Resource.Path = TestPath;
-        break;
-      }
-    }
-    if (Resource.Path.empty()) {
-      Resource.Path = PathResolver::Resolve("Engine/NotoSansJP-VariableFont_wght.ttf");
+    Resource.Path = GetFontPath(Weight);
+    if (!FontFileExists(Resource.Path)) {
+      M_LOG(
+          "Font file for weight {} was not found at: {}. Falling back to weight {}.",
+          Weight,
+          Resource.Path,
+          ResourceManager::DefaultFontWeight
+      );
+      Resource.Path = GetFontPath(ResourceManager::DefaultFontWeight);
     }
 
     AddAsciiCodepoints(Resource.Codepoints);
@@ -233,6 +231,27 @@ class FRaylibResourceStore {
   }
 
  private:
+  static std::string GetFontPath(int Weight) {
+    static constexpr std::array<const char*, 9> FontFileNames = {
+        "NotoSansJP-Thin.ttf",
+        "NotoSansJP-ExtraLight.ttf",
+        "NotoSansJP-Light.ttf",
+        "NotoSansJP-Regular.ttf",
+        "NotoSansJP-Medium.ttf",
+        "NotoSansJP-SemiBold.ttf",
+        "NotoSansJP-Bold.ttf",
+        "NotoSansJP-ExtraBold.ttf",
+        "NotoSansJP-Black.ttf",
+    };
+    const size_t Index = static_cast<size_t>(Weight / ResourceManager::FontWeightStep - 1);
+    return PathResolver::Resolve("/Engine/Fonts/Noto_Sans_JP/" + std::string(FontFileNames[Index]));
+  }
+
+  static bool FontFileExists(const std::string& Path) {
+    std::error_code ErrorCode;
+    return std::filesystem::exists(FileUtils::Utf8ToPath(Path), ErrorCode);
+  }
+
   static void AddAsciiCodepoints(std::unordered_set<int>& Codepoints) {
     for (int Codepoint = 0x20; Codepoint <= 0x7E; ++Codepoint) {
       Codepoints.insert(Codepoint);
@@ -310,8 +329,17 @@ int ResourceManager::LoadResourceGraph(const std::string& Path) {
   return Handle;
 }
 
-int ResourceManager::GetFont(int Size, int Thickness) {
-  return GetResourceStore().GetFontResource(Size, Thickness);
+int ResourceManager::NormalizeFontWeight(int Weight) {
+  if (Weight >= MinFontWeight && Weight <= MaxFontWeight && Weight % FontWeightStep == 0) {
+    return Weight;
+  }
+
+  M_LOG("Invalid font weight: {}. Falling back to {}.", Weight, DefaultFontWeight);
+  return DefaultFontWeight;
+}
+
+int ResourceManager::GetFont(int Size, int Weight) {
+  return GetResourceStore().GetFontResource(Size, Weight);
 }
 
 int ResourceManager::GetTextWidth(const std::string& Text, int FontHandle) {

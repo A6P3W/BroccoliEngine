@@ -9,6 +9,7 @@ struct UITextComponent::Impl {
   std::string Text;
   FColor Color = FColor::White;
   int FontSize = 24;
+  int FontWeight = ResourceManager::DefaultFontWeight;
   int FontHandle = -1;
 };
 
@@ -30,7 +31,8 @@ void UITextComponent::OnRegister() {
   ImplPtr->TextSprite->AttachToComponent(this);
 
   // フォントハンドルを取得
-  ImplPtr->FontHandle = ResourceManager::GetInstance().GetFont(ImplPtr->FontSize, 5);
+  ImplPtr->FontHandle =
+      ResourceManager::GetInstance().GetFont(ImplPtr->FontSize, ImplPtr->FontWeight);
 
   UpdateText();
   ImplPtr->TextSprite->RegisterComponent();
@@ -49,10 +51,25 @@ void UITextComponent::SetColor(const FColor& color) {
 void UITextComponent::SetFontSize(int fontSize) {
   ImplPtr->FontSize = fontSize;
   if (ImplPtr->TextSprite != nullptr) {
-    ImplPtr->FontHandle = ResourceManager::GetInstance().GetFont(ImplPtr->FontSize, 5);
+    ImplPtr->FontHandle =
+        ResourceManager::GetInstance().GetFont(ImplPtr->FontSize, ImplPtr->FontWeight);
   }
   UpdateText();
 }
+
+void UITextComponent::SetFontWeight(int Weight) {
+  Weight = ResourceManager::NormalizeFontWeight(Weight);
+  if (ImplPtr->FontWeight == Weight) return;
+
+  ImplPtr->FontWeight = Weight;
+  if (ImplPtr->TextSprite != nullptr) {
+    ImplPtr->FontHandle =
+        ResourceManager::GetInstance().GetFont(ImplPtr->FontSize, ImplPtr->FontWeight);
+  }
+  UpdateText();
+}
+
+int UITextComponent::GetFontWeight() const { return ImplPtr->FontWeight; }
 
 void UITextComponent::UpdateText() {
   if (!ImplPtr->TextSprite) return;

@@ -78,6 +78,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   // 最大入力文字数を 12 文字に制限
   NameInputPtr->SetMaxLength(12);
   NameInputPtr->SetColors(normalColor, hoveredColor, inputEditingColor);
+  NameInputPtr->SetFontWeight(400);
   // 垂直ボックスへ追加
   VerticalBoxPtr->AddItem(NameInputPtr);
   NameInput->RegisterComponent();
@@ -113,6 +114,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   startText->SetText("Start");
   startText->SetColor(FColor{255, 255, 255});
   startText->SetFontSize(24);
+  startText->SetFontWeight(100);
   startText->AttachToComponent(StartBtnPtr);  // ボタンの子要素にするだけで中央に配置される
   startText->RegisterComponent();
 
@@ -121,6 +123,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   ToggleTextPtr->SetText("Toggle: OFF");
   ToggleTextPtr->SetColor(FColor{255, 255, 255});
   ToggleTextPtr->SetFontSize(24);
+  ToggleTextPtr->SetFontWeight(300);
   ToggleTextPtr->AttachToComponent(ToggleBtnPtr);
   toggleText->RegisterComponent();
 
@@ -128,6 +131,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   leftNavText->SetText("Left");
   leftNavText->SetColor(FColor{255, 255, 255});
   leftNavText->SetFontSize(24);
+  leftNavText->SetFontWeight(500);
   leftNavText->AttachToComponent(LeftNavBtnPtr);
   leftNavText->RegisterComponent();
 
@@ -135,6 +139,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   rightNavText->SetText("Right");
   rightNavText->SetColor(FColor{255, 255, 255});
   rightNavText->SetFontSize(24);
+  rightNavText->SetFontWeight(700);
   rightNavText->AttachToComponent(RightNavBtnPtr);
   rightNavText->RegisterComponent();
 
@@ -145,6 +150,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   committedText->SetText("Input: <empty>");
   committedText->SetColor(FColor{210, 230, 255});
   committedText->SetFontSize(20);
+  committedText->SetFontWeight(900);
   committedText->RegisterComponent();
 
   // 各種UIの押下・値変更時のイベントハンドリングを設定
