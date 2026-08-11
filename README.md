@@ -11,7 +11,7 @@ BroccoliEngine は、C++20 / raylib / vcpkg をベースとした2Dゲームエ�
 
 * **OS:** Windows 11 / 10 (x64)
 * **C++ コンパイラ:** MSVC (Visual Studio 2026 推奨, C++20 対応)
-* **ビルドツール:** CMake 3.25 以上
+* **ビルドツール:** CMake 4.2 以上
 * **パッケージマネージャー:** [vcpkg](https://github.com/microsoft/vcpkg)
 * **Python 環境:** Python `>=3.11, <3.15` および [uv](https://github.com/astral-sh/uv) (ビルドツール・MCP Bridge 用)
 

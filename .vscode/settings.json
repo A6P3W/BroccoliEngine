@@ -2,7 +2,10 @@
   "cmake.debugConfig": {
     "cwd": "${command:cmake.launchTargetDirectory}"
   },
-  "cmake.generatorPlatform": "x64",
+  "cmake.useCMakePresets": "always",
+  "cmake.sourceDirectory": "${workspaceFolder}",
+  "cmake.configurePreset": "windows-x64-local",
+  "cmake.buildPreset": "debug-local",
   "cmake.configureArgs": [
     "-DVCPKG_TARGET_TRIPLET=x64-windows-static-md"
   ],
