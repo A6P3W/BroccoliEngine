@@ -1,7 +1,7 @@
 変数名は大文字スタート
 m_は不要
-.h,.cppファイルはUTF-8 (BOMなし) で保存すること。
-行の終わりはLF。
+charset = utf-8
+end_of_line = lf
 
 変更したファイルには.clang-formatを適用すること。
 
