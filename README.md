@@ -40,6 +40,31 @@ uv sync
 
 ---
 
+## エンジン開発用 Launcher
+
+エンジンリポジトリ単体でも、同梱の `Launcher` をゲームと同じ CMake 構成でビルド・実行できます。
+
+最初にローカル vcpkg のパスを設定します。
+
+```cmd
+copy CMakeUserPresets.json.template CMakeUserPresets.json
+```
+
+`CMakeUserPresets.json` の `{YOUR_VCPKG_ROOT_DIRECTORY}` を vcpkg ルートへ置き換えた後、
+リポジトリルートで実行してください。
+
+```cmd
+build.bat Debug
+build.bat Editor
+run.bat Debug -automation
+```
+
+`Launcher` は `Broccoli::Engine` をリンクし、ゲームプロジェクトと同じリソース変換、
+ランタイム配置、およびパッケージング処理を使用します。`-automation` を付けると
+Automation HTTP API が `http://127.0.0.1:39100` で有効になります。
+
+---
+
 ## ゲームプロジェクトの生成
 
 初期ゲームにはBasicGameplay、PlayerController、レベルJSONが展開されます。

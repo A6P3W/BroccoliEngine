@@ -1,0 +1,39 @@
+@echo off
+setlocal
+
+set "TARGET=Debug"
+set "ARGS="
+
+if /i "%~1"=="Debug" (
+  set "TARGET=Debug"
+  shift
+) else if /i "%~1"=="Editor" (
+  set "TARGET=Editor"
+  shift
+) else if /i "%~1"=="Release" (
+  set "TARGET=Release"
+  shift
+)
+
+:loop
+if "%~1"=="" goto continue
+set "ARGS=%ARGS% %1"
+shift
+goto loop
+
+:continue
+if /i "%TARGET%"=="Editor" (
+  set "EXE_PATH=%~dp0Bin\x64\Editor\Launcher-game.exe"
+) else (
+  set "EXE_PATH=%~dp0Publish\%TARGET%\Launcher.exe"
+)
+
+if not exist "%EXE_PATH%" (
+  echo [error] Executable not found: %EXE_PATH%
+  exit /b 1
+)
+
+echo [run] %EXE_PATH%%ARGS%
+start "" "%EXE_PATH%"%ARGS%
+
+endlocal

@@ -7,42 +7,38 @@
   },
   "configurePresets": [
     {
-      "name": "windows-x64-base",
+      "name": "windows-x64",
       "hidden": true,
+      "displayName": "Windows x64",
       "generator": "Visual Studio 18 2026",
-      "binaryDir": "${sourceDir}/../build/engine-windows-x64",
+      "binaryDir": "${sourceDir}/build/windows-x64",
       "architecture": {
         "value": "x64",
         "strategy": "set"
       },
       "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
-        "VCPKG_MANIFEST_DIR": "${sourceDir}"
+        "VCPKG_MANIFEST_DIR": "${sourceDir}/Engine"
       }
-    },
-    {
-      "name": "windows-x64",
-      "displayName": "Windows x64",
-      "description": "Visual Studio 2026 / MSVC / vcpkg",
-      "inherits": "windows-x64-base"
     }
   ],
   "buildPresets": [
     {
       "name": "debug",
-      "displayName": "Debug",
+      "hidden": true,
       "configurePreset": "windows-x64",
       "configuration": "Debug"
     },
     {
       "name": "editor",
-      "displayName": "Editor",
+      "hidden": true,
       "configurePreset": "windows-x64",
       "configuration": "Editor"
     },
     {
       "name": "release",
-      "displayName": "Release",
+      "hidden": true,
       "configurePreset": "windows-x64",
       "configuration": "Release"
     }
