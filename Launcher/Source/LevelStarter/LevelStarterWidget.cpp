@@ -46,8 +46,8 @@ ALevelStarterWidget::ALevelStarterWidget() {
   text->SetText("Select .BLevel to Play");
   // 文字色を白色に設定
   text->SetColor(FColor{255, 255, 255});
-  // フォントサイズを 24 に設定
-  text->SetFontSize(24);
+  // フォントサイズを 32 に設定
+  text->SetFontSize(32);
   // このテキストをボタンコンポーネントにアタッチ（ボタンと親子関係を構築）
   text->AttachToComponent(buttonPtr);
   // アタッチ先（ボタン）の中央（MiddleCenter）にテキストを配置するよう設定

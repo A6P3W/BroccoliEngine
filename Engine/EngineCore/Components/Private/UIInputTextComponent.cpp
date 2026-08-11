@@ -14,7 +14,7 @@
 #include "UIManager.h"
 
 namespace {
-constexpr int ActionHintFontSize = 14;
+constexpr int ActionHintFontSize = 18;
 const std::string ActionHintText = "インタラクトキーで入力/確定";
 
 bool IsShiftPressed(const KeyboardDevice* Keyboard) {

@@ -113,7 +113,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   auto* startText = NewObject<UITextComponent>(this);
   startText->SetText("Start");
   startText->SetColor(FColor{255, 255, 255});
-  startText->SetFontSize(24);
+  startText->SetFontSize(32);
   startText->SetFontWeight(100);
   startText->AttachToComponent(StartBtnPtr);  // ボタンの子要素にするだけで中央に配置される
   startText->RegisterComponent();
@@ -122,7 +122,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   auto* ToggleTextPtr = toggleText;
   ToggleTextPtr->SetText("Toggle: OFF");
   ToggleTextPtr->SetColor(FColor{255, 255, 255});
-  ToggleTextPtr->SetFontSize(24);
+  ToggleTextPtr->SetFontSize(32);
   ToggleTextPtr->SetFontWeight(300);
   ToggleTextPtr->AttachToComponent(ToggleBtnPtr);
   toggleText->RegisterComponent();
@@ -130,7 +130,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   auto* leftNavText = NewObject<UITextComponent>(this);
   leftNavText->SetText("Left");
   leftNavText->SetColor(FColor{255, 255, 255});
-  leftNavText->SetFontSize(24);
+  leftNavText->SetFontSize(32);
   leftNavText->SetFontWeight(500);
   leftNavText->AttachToComponent(LeftNavBtnPtr);
   leftNavText->RegisterComponent();
@@ -138,7 +138,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   auto* rightNavText = NewObject<UITextComponent>(this);
   rightNavText->SetText("Right");
   rightNavText->SetColor(FColor{255, 255, 255});
-  rightNavText->SetFontSize(24);
+  rightNavText->SetFontSize(32);
   rightNavText->SetFontWeight(700);
   rightNavText->AttachToComponent(RightNavBtnPtr);
   rightNavText->RegisterComponent();
@@ -149,7 +149,7 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   CommittedTextPtr->SetAnchoredPosition({0.0f, 210.0f});
   committedText->SetText("Input: <empty>");
   committedText->SetColor(FColor{210, 230, 255});
-  committedText->SetFontSize(20);
+  committedText->SetFontSize(30);
   committedText->SetFontWeight(900);
   committedText->RegisterComponent();
 
