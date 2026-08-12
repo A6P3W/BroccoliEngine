@@ -1,16 +1,17 @@
 #include "World.h"
 
+#include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "CameraComponent.h"
 #include "CollisionSystem.h"
-#include "ActorManager.h"
+#include "DebugOverlay.h"
 #include "Pawn.h"
+#include "PerformanceOverlay.h"
 #include "PlayerController.h"
 #include "ReplicationSystem.h"
 #include "SceneManager.h"
 #include "SoundManager.h"
 #include "TimerManager.h"
-#include "DebugOverlay.h"
 struct World::Impl {
   std::unique_ptr<FCollisionSystem> CollisionSystem;
   std::unique_ptr<FSoundManager> SoundManager;
@@ -54,15 +55,60 @@ bool World::IsTearingDown() const { return ImplPtr->TearingDown; }
 int World::GetTargetFps() const { return ImplPtr->TargetFps; }
 float World::GetCurrentFps() const { return ImplPtr->CurrentFps; }
 void World::Update(float DeltaTime) {
-  if (ImplPtr->ActorManager) ImplPtr->ActorManager->Update(DeltaTime);
-  if (ImplPtr->ReplicationSystem) ImplPtr->ReplicationSystem->Update();
+#if !defined(_RELEASE)
+  auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
+#endif
   if (ImplPtr->ActorManager) {
+#if !defined(_RELEASE)
+    PerformanceOverlay.BeginSection(EPerformanceSection::WorldActors);
+#endif
+    ImplPtr->ActorManager->Update(DeltaTime);
+#if !defined(_RELEASE)
+    PerformanceOverlay.EndSection(EPerformanceSection::WorldActors);
+#endif
+  }
+  if (ImplPtr->ReplicationSystem) {
+#if !defined(_RELEASE)
+    PerformanceOverlay.BeginSection(EPerformanceSection::WorldReplication);
+#endif
+    ImplPtr->ReplicationSystem->Update();
+#if !defined(_RELEASE)
+    PerformanceOverlay.EndSection(EPerformanceSection::WorldReplication);
+#endif
+  }
+  if (ImplPtr->ActorManager) {
+#if !defined(_RELEASE)
+    PerformanceOverlay.BeginSection(EPerformanceSection::WorldActorCleanup);
+#endif
     ImplPtr->ActorManager->RemovePendingDestroy();
+#if !defined(_RELEASE)
+    PerformanceOverlay.EndSection(EPerformanceSection::WorldActorCleanup);
+    PerformanceOverlay.BeginSection(EPerformanceSection::WorldActorSpawnFlush);
+#endif
     ImplPtr->ActorManager->FlushPendingActors();
+#if !defined(_RELEASE)
+    PerformanceOverlay.EndSection(EPerformanceSection::WorldActorSpawnFlush);
+#endif
   }
   if (ImplPtr->Simulating) {
-    if (ImplPtr->TimerManager) ImplPtr->TimerManager->Update(DeltaTime);
-    if (ImplPtr->CollisionSystem) ImplPtr->CollisionSystem->CheckCollisions();
+    if (ImplPtr->TimerManager) {
+#if !defined(_RELEASE)
+      PerformanceOverlay.BeginSection(EPerformanceSection::WorldTimers);
+#endif
+      ImplPtr->TimerManager->Update(DeltaTime);
+#if !defined(_RELEASE)
+      PerformanceOverlay.EndSection(EPerformanceSection::WorldTimers);
+#endif
+    }
+    if (ImplPtr->CollisionSystem) {
+#if !defined(_RELEASE)
+      PerformanceOverlay.BeginSection(EPerformanceSection::WorldCollision);
+#endif
+      ImplPtr->CollisionSystem->CheckCollisions();
+#if !defined(_RELEASE)
+      PerformanceOverlay.EndSection(EPerformanceSection::WorldCollision);
+#endif
+    }
   }
 }
 
