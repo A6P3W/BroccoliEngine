@@ -41,6 +41,7 @@
 #include "NetworkManager.h"
 #include "OnlinePlayManager.h"
 #include "PathResolver.h"
+#include "PerformanceOverlay.h"
 #include "RenderSystem.h"
 #include "ResourceManager.h"
 #include "SceneManager.h"
@@ -306,7 +307,16 @@ bool Application::Run() {
       CurrentScene->UpdateCurrentFps(DeltaTime);
     }
 
+#if !defined(_RELEASE)
+    auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
+    PerformanceOverlay.BeginUpdate();
+#endif
     Update(DeltaTime, true);
+#if !defined(_RELEASE)
+    PerformanceOverlay.EndUpdate();
+
+    PerformanceOverlay.BeginRender();
+#endif
     Draw(true);
   }
 
@@ -397,8 +407,20 @@ bool Application::Draw(bool CompleteFrame) {
 
 #if !defined(_RELEASE)
   DebugOverlayManager::GetInstance().Draw();
+  PerformanceOverlayManager::GetInstance().Draw();
 #endif
   if (ImGuiInitialized) rlImGuiEnd();
+#if !defined(_RELEASE)
+  auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
+  PerformanceOverlay.EndRender();
+
+  int TargetFps = 0;
+  if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
+    TargetFps = CurrentScene->GetTargetFps();
+  }
+  PerformanceOverlay.CommitFrame(TargetFps);
+  PerformanceOverlay.Update(DeltaTime);
+#endif
   if (CompleteFrame) {
     EndDrawing();
   } else {
