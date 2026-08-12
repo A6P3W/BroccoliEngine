@@ -41,6 +41,7 @@
 #include "NetworkManager.h"
 #include "OnlinePlayManager.h"
 #include "PathResolver.h"
+#include "PerformanceOverlay.h"
 #include "RenderSystem.h"
 #include "ResourceManager.h"
 #include "SceneManager.h"
@@ -306,7 +307,17 @@ bool Application::Run() {
       CurrentScene->UpdateCurrentFps(DeltaTime);
     }
 
+#if !defined(_RELEASE)
+    auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
+    PerformanceOverlay.BeginFrame();
+    PerformanceOverlay.BeginUpdate();
+#endif
     Update(DeltaTime, true);
+#if !defined(_RELEASE)
+    PerformanceOverlay.EndUpdate();
+
+    PerformanceOverlay.BeginRender();
+#endif
     Draw(true);
   }
 
@@ -331,24 +342,79 @@ bool Application::Run() {
 }
 
 bool Application::Update(float FrameDeltaTime, bool ProcessInput) {
+#if !defined(_RELEASE)
+  auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
+#endif
   if (ImGuiInitialized) rlImGuiBeginDelta(FrameDeltaTime);
 
+#if !defined(_RELEASE)
+  PerformanceOverlay.BeginSection(EPerformanceSection::Scene);
+#endif
   SceneManager::GetInstance().ProcessSceneChanges();
-  if (AutomationSubsystem) AutomationSubsystem->Update();
+#if !defined(_RELEASE)
+  PerformanceOverlay.EndSection(EPerformanceSection::Scene);
+#endif
+  if (AutomationSubsystem) {
+#if !defined(_RELEASE)
+    PerformanceOverlay.BeginSection(EPerformanceSection::Automation);
+#endif
+    AutomationSubsystem->Update();
+#if !defined(_RELEASE)
+    PerformanceOverlay.EndSection(EPerformanceSection::Automation);
+#endif
+  }
+#if !defined(_RELEASE)
+  PerformanceOverlay.BeginSection(EPerformanceSection::EOS);
+#endif
   EOSCoreManager::GetInstance().Tick();
+#if !defined(_RELEASE)
+  PerformanceOverlay.EndSection(EPerformanceSection::EOS);
+  PerformanceOverlay.BeginSection(EPerformanceSection::Network);
+#endif
   NetworkManager::GetInstance().Service();
-  if (ProcessInput) InputManager::GetInstance().Update();
+#if !defined(_RELEASE)
+  PerformanceOverlay.EndSection(EPerformanceSection::Network);
+#endif
+  if (ProcessInput) {
+#if !defined(_RELEASE)
+    PerformanceOverlay.BeginSection(EPerformanceSection::Input);
+#endif
+    InputManager::GetInstance().Update();
+#if !defined(_RELEASE)
+    PerformanceOverlay.EndSection(EPerformanceSection::Input);
+#endif
+  }
+#if !defined(_RELEASE)
+  PerformanceOverlay.BeginSection(EPerformanceSection::Http);
+#endif
   HttpManager::GetInstance().Update();
 #if !defined(_RELEASE)
+  PerformanceOverlay.EndSection(EPerformanceSection::Http);
+  PerformanceOverlay.BeginSection(EPerformanceSection::DebugOverlay);
   DebugOverlayManager::GetInstance().Update(FrameDeltaTime);
+  PerformanceOverlay.EndSection(EPerformanceSection::DebugOverlay);
 #endif
 
   World* CurrentScene = SceneManager::GetInstance().GetCurrentScene();
   if (CurrentScene != nullptr && CurrentScene->GetSoundManager() != nullptr) {
+#if !defined(_RELEASE)
+    PerformanceOverlay.BeginSection(EPerformanceSection::Audio);
+#endif
     CurrentScene->GetSoundManager()->Update();
+#if !defined(_RELEASE)
+    PerformanceOverlay.EndSection(EPerformanceSection::Audio);
+#endif
   }
   if (AutomationSubsystem && AutomationSubsystem->IsPaused()) return true;
-  if (CurrentScene != nullptr) CurrentScene->Update(FrameDeltaTime);
+  if (CurrentScene != nullptr) {
+#if !defined(_RELEASE)
+    PerformanceOverlay.BeginSection(EPerformanceSection::World);
+#endif
+    CurrentScene->Update(FrameDeltaTime);
+#if !defined(_RELEASE)
+    PerformanceOverlay.EndSection(EPerformanceSection::World);
+#endif
+  }
   return true;
 }
 
@@ -397,8 +463,21 @@ bool Application::Draw(bool CompleteFrame) {
 
 #if !defined(_RELEASE)
   DebugOverlayManager::GetInstance().Draw();
+  PerformanceOverlayManager::GetInstance().Draw();
 #endif
   if (ImGuiInitialized) rlImGuiEnd();
+#if !defined(_RELEASE)
+  auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
+  PerformanceOverlay.EndRender();
+  PerformanceOverlay.EndFrame();
+
+  int TargetFps = 0;
+  if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
+    TargetFps = CurrentScene->GetTargetFps();
+  }
+  PerformanceOverlay.CommitFrame(TargetFps);
+  PerformanceOverlay.Update(DeltaTime);
+#endif
   if (CompleteFrame) {
     EndDrawing();
   } else {
