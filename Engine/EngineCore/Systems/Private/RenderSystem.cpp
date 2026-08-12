@@ -436,6 +436,16 @@ FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPos) const {
   return {(localX * cosT - localY * sinT) + camPos.X, (localX * sinT + localY * cosT) + camPos.Y};
 }
 
+FRect2D RenderSystem::GetScreenRect() const {
+  return {
+      FVector2D::ZeroVector(), {static_cast<float>(VirtualWidth), static_cast<float>(VirtualHeight)}
+  };
+}
+
+bool RenderSystem::IsScreenPointVisible(const FVector2D& ScreenPosition) const {
+  return GetScreenRect().Contains(ScreenPosition);
+}
+
 void RenderSystem::UpdateDrawStatistics() {
   Impl->LastSubmittedCommandCount = Impl->CommandBuffer.size();
   Impl->LastCulledCommandCount = 0;
