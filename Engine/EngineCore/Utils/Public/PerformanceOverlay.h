@@ -59,6 +59,9 @@ class BROCCOLI_ENGINE_API PerformanceOverlayManager {
  public:
   static PerformanceOverlayManager& GetInstance();
 
+  void BeginFrame();
+  void EndFrame();
+
   void BeginUpdate();
   void EndUpdate();
 
@@ -95,17 +98,22 @@ class BROCCOLI_ENGINE_API PerformanceOverlayManager {
 
   FPerformanceStats Stats;
   std::array<FPerformanceSectionMeasurement, SectionCount> SectionMeasurements;
+  std::chrono::steady_clock::time_point FrameStartTime;
   std::chrono::steady_clock::time_point UpdateStartTime;
   std::chrono::steady_clock::time_point RenderStartTime;
+  double CurrentFrameMs = 0.0;
   double CurrentUpdateMs = 0.0;
   double CurrentRenderMs = 0.0;
+  double AccumulatedFrameMs = 0.0;
   double AccumulatedUpdateMs = 0.0;
   double AccumulatedRenderMs = 0.0;
   double AccumulatedDisplayTime = 0.0;
   int CurrentTargetFps = 0;
   unsigned int AccumulatedFrameCount = 0;
+  bool IsFrameMeasurementActive = false;
   bool IsUpdateMeasurementActive = false;
   bool IsRenderMeasurementActive = false;
+  bool HasFrameMeasurement = false;
   bool HasUpdateMeasurement = false;
   bool HasRenderMeasurement = false;
   bool HasCommittedFrame = false;

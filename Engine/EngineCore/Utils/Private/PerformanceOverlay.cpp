@@ -15,6 +15,21 @@ PerformanceOverlayManager& PerformanceOverlayManager::GetInstance() {
   return Instance;
 }
 
+void PerformanceOverlayManager::BeginFrame() {
+  FrameStartTime = std::chrono::steady_clock::now();
+  IsFrameMeasurementActive = true;
+  HasFrameMeasurement = false;
+}
+
+void PerformanceOverlayManager::EndFrame() {
+  if (!IsFrameMeasurementActive) return;
+
+  const auto EndTime = std::chrono::steady_clock::now();
+  CurrentFrameMs = std::chrono::duration<double, std::milli>(EndTime - FrameStartTime).count();
+  IsFrameMeasurementActive = false;
+  HasFrameMeasurement = true;
+}
+
 void PerformanceOverlayManager::BeginUpdate() {
   ResetCurrentSectionMeasurements();
   UpdateStartTime = std::chrono::steady_clock::now();
@@ -63,11 +78,12 @@ void PerformanceOverlayManager::EndSection(EPerformanceSection Section) {
 }
 
 void PerformanceOverlayManager::CommitFrame(int TargetFps) {
-  if (!HasUpdateMeasurement || !HasRenderMeasurement) return;
+  if (!HasUpdateMeasurement || !HasRenderMeasurement || !HasFrameMeasurement) return;
 
   CurrentTargetFps = TargetFps;
   HasUpdateMeasurement = false;
   HasRenderMeasurement = false;
+  HasFrameMeasurement = false;
   HasCommittedFrame = true;
 }
 
@@ -76,6 +92,7 @@ void PerformanceOverlayManager::Update(float DeltaTime) {
 
   AccumulatedUpdateMs += CurrentUpdateMs;
   AccumulatedRenderMs += CurrentRenderMs;
+  AccumulatedFrameMs += CurrentFrameMs;
   for (FPerformanceSectionMeasurement& Measurement : SectionMeasurements) {
     Measurement.AccumulatedMs += Measurement.CurrentMs;
   }
@@ -88,7 +105,7 @@ void PerformanceOverlayManager::Update(float DeltaTime) {
   const double FrameCount = static_cast<double>(AccumulatedFrameCount);
   Stats.UpdateMs = AccumulatedUpdateMs / FrameCount;
   Stats.RenderMs = AccumulatedRenderMs / FrameCount;
-  Stats.FrameMs = Stats.UpdateMs + Stats.RenderMs;
+  Stats.FrameMs = AccumulatedFrameMs / FrameCount;
   Stats.LoadPercent = CurrentTargetFps > 0
                           ? Stats.FrameMs / (1000.0 / static_cast<double>(CurrentTargetFps)) * 100.0
                           : 0.0;
@@ -97,6 +114,7 @@ void PerformanceOverlayManager::Update(float DeltaTime) {
 
   AccumulatedUpdateMs = 0.0;
   AccumulatedRenderMs = 0.0;
+  AccumulatedFrameMs = 0.0;
   for (FPerformanceSectionMeasurement& Measurement : SectionMeasurements) {
     Measurement.AccumulatedMs = 0.0;
   }

@@ -309,6 +309,7 @@ bool Application::Run() {
 
 #if !defined(_RELEASE)
     auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
+    PerformanceOverlay.BeginFrame();
     PerformanceOverlay.BeginUpdate();
 #endif
     Update(DeltaTime, true);
@@ -468,6 +469,7 @@ bool Application::Draw(bool CompleteFrame) {
 #if !defined(_RELEASE)
   auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
   PerformanceOverlay.EndRender();
+  PerformanceOverlay.EndFrame();
 
   int TargetFps = 0;
   if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
