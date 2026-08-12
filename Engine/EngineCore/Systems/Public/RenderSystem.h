@@ -7,6 +7,7 @@
 
 #include "BroccoliEngineAPI.h"
 #include "Color.h"
+#include "Geometry2D.h"
 #include "UMath.h"
 
 enum class RenderType { Graph, Box, Text, Line, RectGraph, Circle };
@@ -129,6 +130,8 @@ class BROCCOLI_ENGINE_API RenderSystem {
 
   FVector2D WorldToScreen(const FVector2D& worldPosition) const;
   FVector2D ScreenToWorld(const FVector2D& screenPosition) const;
+  FRect2D GetScreenRect() const;
+  bool IsScreenPointVisible(const FVector2D& ScreenPosition) const;
 
   void Draw();
 
