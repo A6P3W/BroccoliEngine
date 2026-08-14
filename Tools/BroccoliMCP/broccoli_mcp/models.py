@@ -11,7 +11,7 @@ from typing import Any
 from .errors import InvalidEngineResponse
 
 MAX_ACTOR_ID = (1 << 64) - 1
-LOG_LEVELS = frozenset({"debug", "info", "warning", "error"})
+LOG_LEVELS = frozenset({"debug", "log", "info", "warning", "error"})
 AUTOMATION_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,127}$")
 
 
@@ -1042,6 +1042,7 @@ class RecentLogs:
   OldestAvailableSequence: int
   LatestSequence: int
   NextAfterSequence: int
+  DroppedEntries: int
   HistoryLost: bool
   HasMore: bool
 
@@ -1058,6 +1059,7 @@ class RecentLogs:
       "oldestAvailableSequence",
       "latestSequence",
       "nextAfterSequence",
+      "droppedEntries",
       "historyLost",
       "hasMore",
     )
@@ -1121,6 +1123,7 @@ class RecentLogs:
       ),
       LatestSequence=_uint64_field(Data, "latestSequence", Operation),
       NextAfterSequence=_uint64_field(Data, "nextAfterSequence", Operation),
+      DroppedEntries=_uint64_field(Data, "droppedEntries", Operation),
       HistoryLost=HistoryLost,
       HasMore=HasMore,
     )
@@ -1132,6 +1135,7 @@ class RecentLogs:
       "oldestAvailableSequence": Self.OldestAvailableSequence,
       "latestSequence": Self.LatestSequence,
       "nextAfterSequence": Self.NextAfterSequence,
+      "droppedEntries": Self.DroppedEntries,
       "historyLost": Self.HistoryLost,
       "hasMore": Self.HasMore,
     }

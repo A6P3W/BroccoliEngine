@@ -179,6 +179,7 @@ bool RemoveQueuedLogEntry(FMLogState& State) {
 
 void FlushFile(FMLogState& State) {
   if (State.LogFile.is_open()) State.LogFile.flush();
+  std::cout.flush();
   State.LastFlushTime = std::chrono::steady_clock::now();
 }
 
@@ -274,6 +275,17 @@ bool EnqueueInternal(FMLogState& State, std::unique_lock<std::mutex>& Lock, FLog
     });
     if (!State.AcceptingLogs) return false;
   }
+
+  if (Item.Command == ELogQueueCommand::Entry) {
+    Item.Entry.Sequence = State.NextSequence.fetch_add(1);
+    if (Item.Entry.Sequence == 0) return false;
+    {
+      std::scoped_lock BufferLock(State.BufferMutex);
+      if (State.Entries.size() == MaxLogEntries) State.Entries.pop_front();
+      State.Entries.push_back(Item.Entry);
+    }
+  }
+
   State.Queue.push_back(std::move(Item));
   Lock.unlock();
   State.QueueCondition.notify_one();
@@ -287,26 +299,7 @@ bool Enqueue(FLogQueueItem&& Item) {
 }
 
 bool EnqueueEntry(FLogEntry&& Entry) {
-  FMLogState& State = GetLogState();
-  std::unique_lock Lock(State.QueueMutex);
-  if (!State.AcceptingLogs) return false;
-
-  if (Entry.Level == ELogLevel::Log && State.Queue.size() >= MaxQueuedLogs) {
-    ++State.DroppedLogEntries;
-    return false;
-  }
-
-  Entry.Sequence = State.NextSequence.fetch_add(1);
-  if (Entry.Sequence == 0) return false;
-  {
-    std::scoped_lock BufferLock(State.BufferMutex);
-    if (State.Entries.size() == MaxLogEntries) State.Entries.pop_front();
-    State.Entries.push_back(Entry);
-  }
-
-  return EnqueueInternal(
-      State, Lock, FLogQueueItem{ELogQueueCommand::Entry, std::move(Entry), {}}
-  );
+  return Enqueue(FLogQueueItem{ELogQueueCommand::Entry, std::move(Entry), {}});
 }
 
 void EnqueueFlushBarrierAndWait() {
