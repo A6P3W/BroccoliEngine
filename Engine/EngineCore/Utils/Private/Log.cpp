@@ -44,6 +44,7 @@ struct FMLogState {
   std::thread Worker;
   std::mutex LifecycleMutex;
   bool Running = false;
+  bool ShutdownInProgress = false;
   bool AcceptingLogs = false;
   std::atomic<bool> Stopped = false;
   std::atomic<bool> PendingWarningFlush = false;
@@ -368,10 +369,11 @@ void MLog::Shutdown() {
   FMLogState& State = GetLogState();
   {
     std::scoped_lock LifecycleLock(State.LifecycleMutex);
-    if (!State.Running) {
+    if (!State.Running || State.ShutdownInProgress) {
       State.Stopped.store(true, std::memory_order_relaxed);
       return;
     }
+    State.ShutdownInProgress = true;
     State.Stopped.store(true, std::memory_order_relaxed);
     {
       std::scoped_lock QueueLock(State.QueueMutex);
@@ -396,6 +398,7 @@ void MLog::Shutdown() {
     }
     State.Queue.clear();
     State.Running = false;
+    State.ShutdownInProgress = false;
   }
 }
 
@@ -426,9 +429,8 @@ FLogQueryResult MLog::GetRecentEntries(const FLogQuery& Query) {
     if (Query.AfterSequence) {
       const uint64_t AfterSequence = *Query.AfterSequence;
       Result.NextAfterSequence = AfterSequence;
-      Result.bHistoryLost = (AfterSequence < Result.OldestAvailableSequence &&
-                             Result.OldestAvailableSequence - AfterSequence > 1) ||
-                            Result.DroppedEntries > 0;
+      Result.bHistoryLost = AfterSequence < Result.OldestAvailableSequence &&
+                            Result.OldestAvailableSequence - AfterSequence > 1;
       for (const FLogEntry& Entry : State.Entries) {
         if (Entry.Sequence <= AfterSequence || !PassesLevel(Entry.Level, Query.MinimumLevel)) {
           continue;
@@ -440,7 +442,7 @@ FLogQueryResult MLog::GetRecentEntries(const FLogQuery& Query) {
         Result.Entries.push_back(Entry);
       }
     } else {
-      Result.bHistoryLost = Result.DroppedEntries > 0;
+      Result.bHistoryLost = false;
       for (auto Iterator = State.Entries.rbegin(); Iterator != State.Entries.rend(); ++Iterator) {
         if (!PassesLevel(Iterator->Level, Query.MinimumLevel)) {
           continue;
