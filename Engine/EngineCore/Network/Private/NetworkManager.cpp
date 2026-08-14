@@ -47,6 +47,7 @@ ENetworkTransportType GetConfiguredTransportType() {
   std::free(ConfigValue);
   if (ConfigResult != 0 || ConfigString.empty()) {
     M_LOG(
+        Log,
         "[NetworkManager] NetworkTransport is not set. default={}",
         GetTransportTypeName(DefaultType)
     );
@@ -59,6 +60,7 @@ ENetworkTransportType GetConfiguredTransportType() {
     return ENetworkTransportType::ENet;
   }
   M_LOG(
+      Log,
       "[NetworkManager] Unknown NetworkTransport value: value={} default={}",
       ConfigString,
       GetTransportTypeName(DefaultType)
@@ -98,7 +100,9 @@ NetworkManager& NetworkManager::GetInstance() {
 NetworkManager::NetworkManager() : ImplPtr(new Impl()) {
   ImplPtr->TransportType = GetConfiguredTransportType();
   M_LOG(
-      "[NetworkManager] Transport configured: type={}", GetTransportTypeName(ImplPtr->TransportType)
+      Log,
+      "[NetworkManager] Transport configured: type={}",
+      GetTransportTypeName(ImplPtr->TransportType)
   );
 }
 
@@ -110,17 +114,19 @@ NetworkManager::~NetworkManager() {
 
 bool NetworkManager::SetTransportType(ENetworkTransportType Type) {
   if (IsRunning()) {
-    M_LOG("[NetworkManager] Transport change rejected while running.");
+    M_LOG(Log, "[NetworkManager] Transport change rejected while running.");
     return false;
   }
   if (Type != ENetworkTransportType::ENet && Type != ENetworkTransportType::EOSP2P) {
-    M_LOG("[NetworkManager] Transport change rejected: unknown type={}", static_cast<int>(Type));
+    M_LOG(
+        Log, "[NetworkManager] Transport change rejected: unknown type={}", static_cast<int>(Type)
+    );
     return false;
   }
 
   ImplPtr->Transport.reset();
   ImplPtr->TransportType = Type;
-  M_LOG("[NetworkManager] Transport selected: type={}", GetTransportTypeName(Type));
+  M_LOG(Log, "[NetworkManager] Transport selected: type={}", GetTransportTypeName(Type));
   return true;
 }
 
@@ -140,6 +146,7 @@ bool NetworkManager::StartServer(uint16_t Port, size_t MaxConnections, size_t Ch
   if (!CreateSelectedTransport() ||
       !ImplPtr->Transport->StartHost(Port, MaxConnections, ChannelCount)) {
     M_LOG(
+        Log,
         "[NetworkManager] Listen server start failed: transport={} port={}",
         GetTransportTypeName(ImplPtr->TransportType),
         Port
@@ -155,6 +162,7 @@ bool NetworkManager::StartServer(uint16_t Port, size_t MaxConnections, size_t Ch
   ImplPtr->LoggedReceivedPacketTypes.clear();
   ImplPtr->bAcceptingSends = true;
   M_LOG(
+      Log,
       "[NetworkManager] Listen server ready: transport={} port={}",
       GetTransportTypeName(ImplPtr->TransportType),
       Port
@@ -173,6 +181,7 @@ bool NetworkManager::ConnectToServer(
   const FNetworkEndpoint Endpoint{HostName, Port};
   if (!ImplPtr->Transport->Connect(Endpoint, ChannelCount, ImplPtr->ServerPeerId)) {
     M_LOG(
+        Log,
         "[NetworkManager] Client connection start failed: transport={} target={} port={}",
         GetTransportTypeName(ImplPtr->TransportType),
         HostName,
@@ -188,6 +197,7 @@ bool NetworkManager::ConnectToServer(
   ImplPtr->LoggedReceivedPacketTypes.clear();
   ImplPtr->bAcceptingSends = true;
   M_LOG(
+      Log,
       "[NetworkManager] Client connection started: transport={} target={} port={}",
       GetTransportTypeName(ImplPtr->TransportType),
       HostName,
@@ -230,7 +240,7 @@ void NetworkManager::Disconnect() {
       ImplPtr->Transport->Disconnect(PeerId);
     }
   }
-  M_LOG("[NetworkManager] Graceful disconnect requested.");
+  M_LOG(Log, "[NetworkManager] Graceful disconnect requested.");
 }
 
 void NetworkManager::Stop() {
@@ -258,7 +268,7 @@ void NetworkManager::Stop() {
     BroadcastDisconnected(ConnectionId, ESessionDisconnectReason::LocalLeave);
   }
   if (!DisconnectedConnectionIds.empty()) {
-    M_LOG("[NetworkManager] Stop cleared peers: count={}", DisconnectedConnectionIds.size());
+    M_LOG(Log, "[NetworkManager] Stop cleared peers: count={}", DisconnectedConnectionIds.size());
   }
 }
 
@@ -342,8 +352,7 @@ NetworkManager::CallbackHandle NetworkManager::AddOnDisconnected(DisconnectedCal
   return Handle;
 }
 
-NetworkManager::CallbackHandle NetworkManager::AddOnPacketReceived(
-    PacketReceivedCallback Callback
+NetworkManager::CallbackHandle NetworkManager::AddOnPacketReceived(PacketReceivedCallback Callback
 ) {
   if (!Callback) {
     return 0;
@@ -411,6 +420,7 @@ bool NetworkManager::CreateSelectedTransport() {
   ImplPtr->Transport = CreateNetworkTransport(ImplPtr->TransportType);
   if (!ImplPtr->Transport) {
     M_LOG(
+        Log,
         "[NetworkManager] Transport creation failed: type={}",
         GetTransportTypeName(ImplPtr->TransportType)
     );
@@ -420,6 +430,7 @@ bool NetworkManager::CreateSelectedTransport() {
   BindTransportCallbacks();
   ImplPtr->Transport->SetPeerAuthorizationCallback(ImplPtr->PeerAuthorization);
   M_LOG(
+      Log,
       "[NetworkManager] Transport created for start: type={}",
       GetTransportTypeName(ImplPtr->TransportType)
   );
@@ -505,6 +516,7 @@ void NetworkManager::HandleTransportConnected(FNetworkPeerId PeerId) {
   }
   const auto Iterator = ImplPtr->PeersByConnectionId.find(ConnectionId);
   M_LOG(
+      Log,
       "[NetworkTransportTest] Connection verified: peer={} connection={} transport={} "
       "remoteUser={}",
       PeerId,
@@ -525,6 +537,7 @@ void NetworkManager::HandleTransportDisconnected(
   RemovePeer(PeerId);
   if (ConnectionId != 0) {
     M_LOG(
+        Log,
         "[NetworkTransportTest] Disconnect verified: peer={} connection={} reason={}",
         PeerId,
         ConnectionId,
@@ -545,6 +558,7 @@ void NetworkManager::HandleTransportConnectionStateChanged(
   }
   Iterator->second.ConnectionState = State;
   M_LOG(
+      Log,
       "[NetworkManager] Peer state changed: peer={} connection={} state={}",
       PeerId,
       ConnectionId,
@@ -570,6 +584,7 @@ void NetworkManager::HandleTransportPacket(FReceivedPacket&& Packet) {
   const uint8_t PacketTypeValue = static_cast<uint8_t>(PacketType);
   if (ImplPtr->LoggedReceivedPacketTypes.insert(PacketTypeValue).second) {
     M_LOG(
+        Log,
         "[NetworkTransportTest] Receive verified: packetType={} peer={} connection={} channel={} "
         "bytes={}",
         GetPacketTypeName(PacketType),

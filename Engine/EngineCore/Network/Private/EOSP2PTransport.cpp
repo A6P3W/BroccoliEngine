@@ -55,7 +55,7 @@ class FEOSP2PTransport final : public INetworkTransport {
   FEOSP2PTransport() {
     SocketId.ApiVersion = EOS_P2P_SOCKETID_API_LATEST;
     strcpy_s(SocketId.SocketName, SocketName);
-    M_LOG("[NetworkTransport] Created transport=EOSP2P socket={}", SocketName);
+    M_LOG(Log, "[NetworkTransport] Created transport=EOSP2P socket={}", SocketName);
   }
 
   ~FEOSP2PTransport() override { Stop(); }
@@ -63,12 +63,13 @@ class FEOSP2PTransport final : public INetworkTransport {
   bool StartHost(uint16_t Port, size_t MaxConnections, size_t ChannelCount) override {
     Stop();
     if (!Initialize(MaxConnections, ChannelCount)) {
-      M_LOG("[EOSP2PTransport] StartHost failed: port={} (unused by EOS P2P).", Port);
+      M_LOG(Log, "[EOSP2PTransport] StartHost failed: port={} (unused by EOS P2P).", Port);
       return false;
     }
 
     Hosting = true;
     M_LOG(
+        Log,
         "[EOSP2PTransportTest] Foundation ready: mode=host socket={} maxPeers={} channels={}",
         SocketName,
         MaximumConnections,
@@ -77,19 +78,19 @@ class FEOSP2PTransport final : public INetworkTransport {
     return true;
   }
 
-  bool Connect(
-      const FNetworkEndpoint& Endpoint, size_t ChannelCount, FNetworkPeerId& OutPeerId
-  ) override {
+  bool Connect(const FNetworkEndpoint& Endpoint, size_t ChannelCount, FNetworkPeerId& OutPeerId)
+      override {
     Stop();
     OutPeerId = 0;
     if (!Initialize(1, ChannelCount)) {
-      M_LOG("[EOSP2PTransport] Connect failed: EOS P2P initialization failed.");
+      M_LOG(Log, "[EOSP2PTransport] Connect failed: EOS P2P initialization failed.");
       return false;
     }
 
     EOS_ProductUserId RemoteUserId = EOS_ProductUserId_FromString(Endpoint.HostName.c_str());
     if (!RemoteUserId) {
       M_LOG(
+          Log,
           "[EOSP2PTransport] Connect failed: host must be a Product User ID. host={}",
           Endpoint.HostName
       );
@@ -99,7 +100,7 @@ class FEOSP2PTransport final : public INetworkTransport {
 
     OutPeerId = RegisterPeer(RemoteUserId);
     if (OutPeerId == 0) {
-      M_LOG("[EOSP2PTransport] Connect failed: remote user registration failed.");
+      M_LOG(Log, "[EOSP2PTransport] Connect failed: remote user registration failed.");
       Stop();
       return false;
     }
@@ -108,14 +109,15 @@ class FEOSP2PTransport final : public INetworkTransport {
     if (!Send(
             OutPeerId, 0, ENetPacketReliability::Reliable, &ConnectionProbe, sizeof(ConnectionProbe)
         )) {
-      M_LOG("[EOSP2PTransport] Connect failed: initial connection probe send failed.");
+      M_LOG(Log, "[EOSP2PTransport] Connect failed: initial connection probe send failed.");
       Stop();
       OutPeerId = 0;
       return false;
     }
-    M_LOG("[EOSP2PTransportTest] Initial connection probe sent: peer={}", OutPeerId);
+    M_LOG(Log, "[EOSP2PTransportTest] Initial connection probe sent: peer={}", OutPeerId);
 
     M_LOG(
+        Log,
         "[EOSP2PTransportTest] Connection target ready: remoteUser={} peer={} socket={} "
         "portUnused={}",
         Endpoint.HostName,
@@ -142,11 +144,14 @@ class FEOSP2PTransport final : public INetworkTransport {
       return false;
     }
     if (SizeResult != EOS_EResult::EOS_Success) {
-      M_LOG("[EOSP2PTransport] GetNextReceivedPacketSize failed: {}", SafeEOSResult(SizeResult));
+      M_LOG(
+          Log, "[EOSP2PTransport] GetNextReceivedPacketSize failed: {}", SafeEOSResult(SizeResult)
+      );
       return false;
     }
     if (PacketSize == 0 || PacketSize > EOS_P2P_MAX_PACKET_SIZE) {
       M_LOG(
+          Log,
           "[EOSP2PTransport] Invalid received size: bytes={} limit={}",
           PacketSize,
           EOS_P2P_MAX_PACKET_SIZE
@@ -167,15 +172,18 @@ class FEOSP2PTransport final : public INetworkTransport {
         P2PHandle, &Options, &RemoteUserId, &ReceivedSocket, &Channel, Data.data(), &BytesWritten
     );
     if (Result != EOS_EResult::EOS_Success) {
-      M_LOG("[EOSP2PTransport] ReceivePacket failed: {}", SafeEOSResult(Result));
+      M_LOG(Log, "[EOSP2PTransport] ReceivePacket failed: {}", SafeEOSResult(Result));
       return false;
     }
     if (!IsExpectedSocket(&ReceivedSocket)) {
-      M_LOG("[EOSP2PTransport] Packet dropped: unexpected socket={}", ReceivedSocket.SocketName);
+      M_LOG(
+          Log, "[EOSP2PTransport] Packet dropped: unexpected socket={}", ReceivedSocket.SocketName
+      );
       return true;
     }
     if (Channel >= MaximumChannels) {
       M_LOG(
+          Log,
           "[EOSP2PTransport] Packet dropped: unknown channel={} configuredChannels={}",
           Channel,
           MaximumChannels
@@ -184,6 +192,7 @@ class FEOSP2PTransport final : public INetworkTransport {
     }
     if (!RemoteUserId || BytesWritten == 0 || BytesWritten > PacketSize) {
       M_LOG(
+          Log,
           "[EOSP2PTransport] Packet dropped: invalid metadata bytes={} expectedMax={}",
           BytesWritten,
           PacketSize
@@ -193,7 +202,7 @@ class FEOSP2PTransport final : public INetworkTransport {
 
     const FNetworkPeerId PeerId = RegisterPeer(RemoteUserId);
     if (PeerId == 0) {
-      M_LOG("[EOSP2PTransport] Packet dropped: sender registration failed.");
+      M_LOG(Log, "[EOSP2PTransport] Packet dropped: sender registration failed.");
       return true;
     }
 
@@ -201,6 +210,7 @@ class FEOSP2PTransport final : public INetworkTransport {
     if (!LoggedReceive) {
       LoggedReceive = true;
       M_LOG(
+          Log,
           "[EOSP2PTransportTest] Receive verified: peer={} channel={} bytes={} socket={}",
           PeerId,
           Channel,
@@ -227,11 +237,12 @@ class FEOSP2PTransport final : public INetworkTransport {
   ) override {
     if (!Running || !P2PHandle || !LocalUserId || !Data || Size == 0 ||
         InterruptedPeers.find(PeerId) != InterruptedPeers.end()) {
-      M_LOG("[EOSP2PTransport] Send rejected: invalid transport or data. bytes={}", Size);
+      M_LOG(Log, "[EOSP2PTransport] Send rejected: invalid transport or data. bytes={}", Size);
       return false;
     }
     if (Channel >= MaximumChannels) {
       M_LOG(
+          Log,
           "[EOSP2PTransport] Send rejected: channel={} configuredChannels={}",
           Channel,
           MaximumChannels
@@ -240,6 +251,7 @@ class FEOSP2PTransport final : public INetworkTransport {
     }
     if (Size > EOS_P2P_MAX_PACKET_SIZE || Size > (std::numeric_limits<uint32_t>::max)()) {
       M_LOG(
+          Log,
           "[EOSP2PTransportTest] Oversize send rejected: bytes={} limit={}",
           Size,
           EOS_P2P_MAX_PACKET_SIZE
@@ -249,7 +261,7 @@ class FEOSP2PTransport final : public INetworkTransport {
 
     const auto Iterator = PeersById.find(PeerId);
     if (Iterator == PeersById.end() || !Iterator->second) {
-      M_LOG("[EOSP2PTransport] Send rejected: unknown peer={}", PeerId);
+      M_LOG(Log, "[EOSP2PTransport] Send rejected: unknown peer={}", PeerId);
       return false;
     }
 
@@ -267,6 +279,7 @@ class FEOSP2PTransport final : public INetworkTransport {
     const EOS_EResult Result = EOS_P2P_SendPacket(P2PHandle, &Options);
     if (Result != EOS_EResult::EOS_Success) {
       M_LOG(
+          Log,
           "[EOSP2PTransport] SendPacket failed: peer={} channel={} bytes={} result={}",
           PeerId,
           Channel,
@@ -281,8 +294,10 @@ class FEOSP2PTransport final : public INetworkTransport {
     if (!ReliabilityLogged) {
       ReliabilityLogged = true;
       M_LOG(
+          Log,
           "[EOSP2PTransportTest] Send verified: reliability={} peer={} channel={} bytes={}",
-          Reliability == ENetPacketReliability::Reliable ? "ReliableOrdered" : "UnreliableUnordered",
+          Reliability == ENetPacketReliability::Reliable ? "ReliableOrdered"
+                                                         : "UnreliableUnordered",
           PeerId,
           Channel,
           Size
@@ -320,7 +335,9 @@ class FEOSP2PTransport final : public INetworkTransport {
     Options.RemoteUserId = Iterator->second;
     Options.SocketId = &SocketId;
     const EOS_EResult Result = EOS_P2P_CloseConnection(P2PHandle, &Options);
-    M_LOG("[EOSP2PTransport] CloseConnection: peer={} result={}", PeerId, SafeEOSResult(Result));
+    M_LOG(
+        Log, "[EOSP2PTransport] CloseConnection: peer={} result={}", PeerId, SafeEOSResult(Result)
+    );
   }
 
   void Stop() override {
@@ -336,10 +353,10 @@ class FEOSP2PTransport final : public INetworkTransport {
       Options.LocalUserId = LocalUserId;
       Options.SocketId = &SocketId;
       const EOS_EResult Result = EOS_P2P_CloseConnections(P2PHandle, &Options);
-      M_LOG("[EOSP2PTransport] CloseConnections result={}", SafeEOSResult(Result));
+      M_LOG(Log, "[EOSP2PTransport] CloseConnections result={}", SafeEOSResult(Result));
     }
     ClearState();
-    M_LOG("[EOSP2PTransportTest] Shutdown verified: notifications removed and peers cleared.");
+    M_LOG(Log, "[EOSP2PTransportTest] Shutdown verified: notifications removed and peers cleared.");
   }
 
   bool IsRunning() const override { return Running; }
@@ -370,17 +387,17 @@ class FEOSP2PTransport final : public INetworkTransport {
     P2PHandle = EOSCoreManager::GetInstance().GetP2PHandle();
     LocalUserId = EOSAuthManager::GetInstance().GetLocalUserId();
     if (!EOSCoreManager::GetInstance().IsInitialized() || !P2PHandle) {
-      M_LOG("[EOSP2PTransport] Initialize failed: EOS P2P handle is unavailable.");
+      M_LOG(Log, "[EOSP2PTransport] Initialize failed: EOS P2P handle is unavailable.");
       ClearState();
       return false;
     }
     if (!LocalUserId || !EOSAuthManager::GetInstance().IsLoggedIn()) {
-      M_LOG("[EOSP2PTransport] Initialize failed: local Product User ID is unavailable.");
+      M_LOG(Log, "[EOSP2PTransport] Initialize failed: local Product User ID is unavailable.");
       ClearState();
       return false;
     }
     if (ChannelCount == 0 || ChannelCount > 256) {
-      M_LOG("[EOSP2PTransport] Initialize failed: invalid channel count={}", ChannelCount);
+      M_LOG(Log, "[EOSP2PTransport] Initialize failed: invalid channel count={}", ChannelCount);
       ClearState();
       return false;
     }
@@ -388,7 +405,7 @@ class FEOSP2PTransport final : public INetworkTransport {
     MaximumConnections = (std::min)(MaxConnections, static_cast<size_t>(EOS_P2P_MAX_CONNECTIONS));
     MaximumChannels = ChannelCount;
     if (MaximumConnections == 0 || !RegisterNotifications()) {
-      M_LOG("[EOSP2PTransport] Initialize failed: notification registration failed.");
+      M_LOG(Log, "[EOSP2PTransport] Initialize failed: notification registration failed.");
       UnregisterNotifications();
       ClearState();
       return false;
@@ -396,6 +413,7 @@ class FEOSP2PTransport final : public INetworkTransport {
 
     Running = true;
     M_LOG(
+        Log,
         "[EOSP2PTransportTest] Initialized: localUser={} p2pHandle={} socket={} notifications=4",
         ProductUserIdToString(LocalUserId),
         static_cast<const void*>(P2PHandle),
@@ -515,12 +533,13 @@ class FEOSP2PTransport final : public INetworkTransport {
 
   void OnConnectionRequest(const EOS_P2P_OnIncomingConnectionRequestInfo* Data) {
     if (!Data || !Running || !Hosting || !IsExpectedSocket(Data->SocketId)) {
-      M_LOG("[EOSP2PTransport] Incoming connection rejected: invalid state or socket.");
+      M_LOG(Log, "[EOSP2PTransport] Incoming connection rejected: invalid state or socket.");
       return;
     }
     const std::string RemoteUserId = ProductUserIdToString(Data->RemoteUserId);
     if (RemoteUserId.empty() || !IsPeerAuthorized || !IsPeerAuthorized(RemoteUserId)) {
       M_LOG(
+          Log,
           "[EOSP2PTransportTest] Incoming connection rejected: unauthorized remoteUser={}",
           RemoteUserId.empty() ? "<invalid>" : RemoteUserId
       );
@@ -528,6 +547,7 @@ class FEOSP2PTransport final : public INetworkTransport {
     }
     if (PeersById.size() >= MaximumConnections && FindPeerId(Data->RemoteUserId) == 0) {
       M_LOG(
+          Log,
           "[EOSP2PTransportTest] Incoming connection rejected: maximum peers reached "
           "remoteUser={} maxPeers={}",
           RemoteUserId,
@@ -545,6 +565,7 @@ class FEOSP2PTransport final : public INetworkTransport {
     const FNetworkPeerId PeerId =
         Result == EOS_EResult::EOS_Success ? RegisterPeer(Data->RemoteUserId) : 0;
     M_LOG(
+        Log,
         "[EOSP2PTransportTest] Incoming request: remoteUser={} peer={} result={}",
         ProductUserIdToString(Data->RemoteUserId),
         PeerId,
@@ -569,6 +590,7 @@ class FEOSP2PTransport final : public INetworkTransport {
       OnConnectionStateChanged(PeerId, ETransportConnectionState::Connected);
     }
     M_LOG(
+        Log,
         "[EOSP2PTransportTest] Connection established: remoteUser={} peer={} connectionType={} "
         "networkType={}",
         ProductUserIdToString(Data->RemoteUserId),
@@ -595,6 +617,7 @@ class FEOSP2PTransport final : public INetworkTransport {
       OnConnectionStateChanged(PeerId, ETransportConnectionState::Interrupted);
     }
     M_LOG(
+        Log,
         "[EOSP2PTransportTest] Connection interrupted: remoteUser={} peer={}",
         ProductUserIdToString(Data->RemoteUserId),
         PeerId
@@ -608,6 +631,7 @@ class FEOSP2PTransport final : public INetworkTransport {
     const FNetworkPeerId PeerId = FindPeerId(Data->RemoteUserId);
     const bool WasConnected = ConnectedPeers.find(PeerId) != ConnectedPeers.end();
     M_LOG(
+        Log,
         "[EOSP2PTransportTest] Connection closed: remoteUser={} peer={} reason={}",
         ProductUserIdToString(Data->RemoteUserId),
         PeerId,
@@ -655,6 +679,7 @@ class FEOSP2PTransport final : public INetworkTransport {
     }
     for (FNetworkPeerId PeerId : TimedOutPeers) {
       M_LOG(
+          Log,
           "[EOSP2PTransportTest] Interrupted connection timed out: peer={} timeoutSeconds={}",
           PeerId,
           InterruptedConnectionTimeout.count()
@@ -668,8 +693,8 @@ class FEOSP2PTransport final : public INetworkTransport {
     }
   }
 
-  static void EOS_CALL
-  HandleConnectionRequest(const EOS_P2P_OnIncomingConnectionRequestInfo* Data) {
+  static void EOS_CALL HandleConnectionRequest(const EOS_P2P_OnIncomingConnectionRequestInfo* Data
+  ) {
     auto* Transport = static_cast<FEOSP2PTransport*>(Data ? Data->ClientData : nullptr);
     if (Transport) {
       Transport->OnConnectionRequest(Data);

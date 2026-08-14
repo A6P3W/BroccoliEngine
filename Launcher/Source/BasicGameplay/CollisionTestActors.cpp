@@ -45,14 +45,14 @@ void ACollisionTestActorBase::OnUpdate(float DeltaTime) {
 
 void ACollisionTestActorBase::BeginOverlap(AActor* OtherActor) {
   // 衝突した相手のアクターのクラス名（GetActorClassName()）を含むログを出力
-  M_LOG("{} BeginOverlap with {}", ShapeLabel, OtherActor->GetActorClassName());
+  M_LOG(Log, "{} BeginOverlap with {}", ShapeLabel, OtherActor->GetActorClassName());
   // 衝突検知の発生をアクターのワールド座標位置にデバッグ描画（1.0秒間表示）
   DRAW_WORLD_LOG("CollisionBegin", 1.0f, this, "BeginOverlap: {}", OtherActor->GetActorClassName());
 }
 
 void ACollisionTestActorBase::EndOverlap(AActor* OtherActor) {
   // 衝突状態から離脱した相手のアクター名を含むログを出力
-  M_LOG("{} EndOverlap with {}", ShapeLabel, OtherActor->GetActorClassName());
+  M_LOG(Log, "{} EndOverlap with {}", ShapeLabel, OtherActor->GetActorClassName());
   // 離脱の発生をワールド座標位置にデバッグ描画（1.0秒間表示）
   DRAW_WORLD_LOG("CollisionEnd", 1.0f, this, "EndOverlap: {}", OtherActor->GetActorClassName());
 }

@@ -29,10 +29,11 @@ const char* SafeEOSString(const char* Text) { return Text ? Text : "<null>"; }
 bool IsNullOrEmpty(const char* Text) { return Text == nullptr || Text[0] == '\0'; }
 void EOS_CALL HandleEOSLogMessage(const EOS_LogMessage* Message) {
   if (!Message) {
-    M_LOG("[EOS] category=<null> level=<null> message=<null>");
+    M_LOG(Log, "[EOS] category=<null> level=<null> message=<null>");
     return;
   }
   M_LOG(
+      Log,
       "[EOS] category={} level={} message={}",
       SafeEOSString(Message->Category),
       static_cast<int>(Message->Level),
@@ -60,24 +61,24 @@ bool EOSCoreManager::InitializeOnlineServices(const char* ProductVersion) {
 
   return Initialize(Config);
 #else
-  M_LOG("EOS_ProductCredentials.h not found. EOS initialization skipped.");
+  M_LOG(Log, "EOS_ProductCredentials.h not found. EOS initialization skipped.");
   return false;
 #endif
 }
 
 bool EOSCoreManager::Initialize(const FEOSConfig& Config) {
   if (bInitialized) {
-    M_LOG("EOSCoreManager already initialized.");
+    M_LOG(Log, "EOSCoreManager already initialized.");
     return true;
   }
   if (IsNullOrEmpty(Config.ProductName) || IsNullOrEmpty(Config.ProductVersion)) {
-    M_LOG("EOS initialize skipped: ProductName or ProductVersion is empty.");
+    M_LOG(Log, "EOS initialize skipped: ProductName or ProductVersion is empty.");
     return false;
   }
   if (IsNullOrEmpty(Config.ProductId) || IsNullOrEmpty(Config.SandboxId) ||
       IsNullOrEmpty(Config.DeploymentId) || IsNullOrEmpty(Config.ClientId) ||
       IsNullOrEmpty(Config.ClientSecret)) {
-    M_LOG("EOS initialize skipped: platform credentials are incomplete.");
+    M_LOG(Log, "EOS initialize skipped: platform credentials are incomplete.");
     return false;
   }
   EOS_InitializeOptions InitializeOptions = {};
@@ -85,22 +86,27 @@ bool EOSCoreManager::Initialize(const FEOSConfig& Config) {
   InitializeOptions.ProductName = Config.ProductName;
   InitializeOptions.ProductVersion = Config.ProductVersion;
   EOS_EResult InitializeResult = EOS_Initialize(&InitializeOptions);
-  M_LOG("EOS_Initialize result: {}", SafeEOSString(EOS_EResult_ToString(InitializeResult)));
+  M_LOG(Log, "EOS_Initialize result: {}", SafeEOSString(EOS_EResult_ToString(InitializeResult)));
   if (InitializeResult != EOS_EResult::EOS_Success) {
     return false;
   }
   bSDKInitialized = true;
   EOS_EResult LogCallbackResult = EOS_Logging_SetCallback(HandleEOSLogMessage);
   M_LOG(
-      "EOS_Logging_SetCallback result: {}", SafeEOSString(EOS_EResult_ToString(LogCallbackResult))
+      Log,
+      "EOS_Logging_SetCallback result: {}",
+      SafeEOSString(EOS_EResult_ToString(LogCallbackResult))
   );
   EOS_EResult LogLevelResult =
       EOS_Logging_SetLogLevel(EOS_ELogCategory::EOS_LC_ALL_CATEGORIES, EOS_ELogLevel::EOS_LOG_Info);
-  M_LOG("EOS_Logging_SetLogLevel result: {}", SafeEOSString(EOS_EResult_ToString(LogLevelResult)));
+  M_LOG(
+      Log, "EOS_Logging_SetLogLevel result: {}", SafeEOSString(EOS_EResult_ToString(LogLevelResult))
+  );
   const char* EncryptionKey = Config.EncryptionKey;
   if (!IsNullOrEmpty(EncryptionKey) &&
       std::strlen(EncryptionKey) != EOS_PLATFORM_OPTIONS_ENCRYPTIONKEY_LENGTH) {
     M_LOG(
+        Log,
         "EOS EncryptionKey ignored: length is {}, expected {}.",
         std::strlen(EncryptionKey),
         EOS_PLATFORM_OPTIONS_ENCRYPTIONKEY_LENGTH
@@ -123,7 +129,7 @@ bool EOSCoreManager::Initialize(const FEOSConfig& Config) {
     std::filesystem::create_directories(CacheDirectoryPath, CacheError);
   }
   if (CacheError) {
-    M_LOG("EOS cache directory creation failed: {}", CacheError.message());
+    M_LOG(Log, "EOS cache directory creation failed: {}", CacheError.message());
     DRAW_SCREEN_LOG(
         "EOSCacheDirectory", 15.0f, "EOS cache directory creation failed: {}", CacheError.message()
     );
@@ -141,7 +147,7 @@ bool EOSCoreManager::Initialize(const FEOSConfig& Config) {
   PlatformOptions.bIsServer = EOS_FALSE;
   PlatformHandle = EOS_Platform_Create(&PlatformOptions);
   if (!PlatformHandle) {
-    M_LOG("EOS_Platform_Create failed.");
+    M_LOG(Log, "EOS_Platform_Create failed.");
     EOS_Shutdown();
     bSDKInitialized = false;
     return false;
@@ -150,7 +156,9 @@ bool EOSCoreManager::Initialize(const FEOSConfig& Config) {
   bTickLogged = false;
   TickCount = 0;
   M_LOG(
-      "EOS_Platform_Create succeeded. PlatformHandle={}", static_cast<const void*>(PlatformHandle)
+      Log,
+      "EOS_Platform_Create succeeded. PlatformHandle={}",
+      static_cast<const void*>(PlatformHandle)
   );
   return true;
 }
@@ -162,25 +170,25 @@ void EOSCoreManager::Tick() {
   EOS_Platform_Tick(PlatformHandle);
   ++TickCount;
   if (!bTickLogged) {
-    M_LOG("EOS_Platform_Tick started. Count={}", TickCount);
+    M_LOG(Log, "EOS_Platform_Tick started. Count={}", TickCount);
     bTickLogged = true;
   } else if (TickCount % 10000 == 0) {
-    M_LOG("EOS_Platform_Tick running. Count={}", TickCount);
+    M_LOG(Log, "EOS_Platform_Tick running. Count={}", TickCount);
   }
 }
 
 void EOSCoreManager::Shutdown() {
   if (TickCount > 0) {
-    M_LOG("EOS_Platform_Tick total count: {}", TickCount);
+    M_LOG(Log, "EOS_Platform_Tick total count: {}", TickCount);
   }
   if (PlatformHandle) {
     EOS_Platform_Release(PlatformHandle);
     PlatformHandle = nullptr;
-    M_LOG("EOS_Platform_Release completed.");
+    M_LOG(Log, "EOS_Platform_Release completed.");
   }
   if (bSDKInitialized) {
     EOS_EResult ShutdownResult = EOS_Shutdown();
-    M_LOG("EOS_Shutdown result: {}", SafeEOSString(EOS_EResult_ToString(ShutdownResult)));
+    M_LOG(Log, "EOS_Shutdown result: {}", SafeEOSString(EOS_EResult_ToString(ShutdownResult)));
   }
   bInitialized = false;
   bSDKInitialized = false;

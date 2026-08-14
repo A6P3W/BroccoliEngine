@@ -163,15 +163,16 @@ bool TryParseUnsigned(std::string_view Text, uint64_t& OutValue) {
 std::optional<ELogLevel> ParseLogLevel(std::string_view Text) {
   std::string Lowercase(Text);
   std::transform(
-      Lowercase.begin(), Lowercase.end(), Lowercase.begin(), [](unsigned char Character) {
-        return static_cast<char>(std::tolower(Character));
-      }
+      Lowercase.begin(),
+      Lowercase.end(),
+      Lowercase.begin(),
+      [](unsigned char Character) { return static_cast<char>(std::tolower(Character)); }
   );
   if (Lowercase == "debug") {
     return ELogLevel::Debug;
   }
-  if (Lowercase == "info") {
-    return ELogLevel::Info;
+  if (Lowercase == "log" || Lowercase == "info") {
+    return ELogLevel::Log;
   }
   if (Lowercase == "warning") {
     return ELogLevel::Warning;
@@ -526,8 +527,7 @@ FAutomationHttpResponse FAutomationApiController::PatchWorldActorTransform(
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetWorldActorMethods(
-    std::string_view ActorIdText
+FAutomationHttpResponse FAutomationApiController::GetWorldActorMethods(std::string_view ActorIdText
 ) {
   FActorId ActorId = InvalidActorId;
   if (!TryParseActorId(ActorIdText, ActorId)) {
@@ -620,6 +620,7 @@ FAutomationHttpResponse FAutomationApiController::InvokeWorldActorMethod(
           Registry->FindMethod(ClassName, MethodNameText);
       if (!Descriptor) {
         M_LOG(
+            Log,
             "Automation actor method rejected: actorId={} class={} "
             "method={} code=METHOD_NOT_REGISTERED",
             ActorId,
@@ -632,6 +633,7 @@ FAutomationHttpResponse FAutomationApiController::InvokeWorldActorMethod(
       }
       if (!IsActorMethodPermissionAllowed(Descriptor->Permission)) {
         M_LOG(
+            Log,
             "Automation actor method rejected: actorId={} class={} "
             "method={} code=PERMISSION_DENIED",
             ActorId,
@@ -646,6 +648,7 @@ FAutomationHttpResponse FAutomationApiController::InvokeWorldActorMethod(
               Descriptor->InputSchema, Arguments, ValidationError
           )) {
         M_LOG(
+            Log,
             "Automation actor method rejected: actorId={} class={} "
             "method={} code=INVALID_ARGUMENT",
             ActorId,
@@ -659,6 +662,7 @@ FAutomationHttpResponse FAutomationApiController::InvokeWorldActorMethod(
       }
 
       M_LOG(
+          Log,
           "Automation actor method starting: actorId={} class={} method={}",
           ActorId,
           ClassName,
@@ -666,6 +670,7 @@ FAutomationHttpResponse FAutomationApiController::InvokeWorldActorMethod(
       );
       nlohmann::json Result = Descriptor->Handler(*Actor, Arguments);
       M_LOG(
+          Log,
           "Automation actor method completed: actorId={} class={} method={}",
           ActorId,
           ClassName,
@@ -871,62 +876,62 @@ FAutomationHttpResponse FAutomationApiController::ExecuteSystemCommand(
       return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
     }
 
-    FAutomationCommandTicket Ticket =
-        CommandQueue.Enqueue([Registry = SystemCommandRegistry,
-                              CommandNameText = std::string(CommandName),
-                              Arguments = Body]() {
-          const FAutomationSystemCommandDescriptor* Descriptor =
-              Registry->FindCommand(CommandNameText);
-          if (!Descriptor) {
-            M_LOG(
-                "Automation system command rejected: command={} "
-                "code=COMMAND_NOT_REGISTERED",
-                CommandNameText
-            );
-            return MakeAutomationError(
-                EAutomationErrorCode::CommandNotRegistered, CommandNotRegisteredMessage
-            );
-          }
-          if (Descriptor->Permission != EAutomationPermission::SystemMutation) {
-            M_LOG(
-                "Automation system command rejected: command={} "
-                "code=PERMISSION_DENIED",
-                CommandNameText
-            );
-            return MakeAutomationError(
-                EAutomationErrorCode::PermissionDenied, CommandPermissionDeniedMessage
-            );
-          }
+    FAutomationCommandTicket Ticket = CommandQueue.Enqueue([Registry = SystemCommandRegistry,
+                                                            CommandNameText =
+                                                                std::string(CommandName),
+                                                            Arguments = Body]() {
+      const FAutomationSystemCommandDescriptor* Descriptor = Registry->FindCommand(CommandNameText);
+      if (!Descriptor) {
+        M_LOG(
+            Log,
+            "Automation system command rejected: command={} "
+            "code=COMMAND_NOT_REGISTERED",
+            CommandNameText
+        );
+        return MakeAutomationError(
+            EAutomationErrorCode::CommandNotRegistered, CommandNotRegisteredMessage
+        );
+      }
+      if (Descriptor->Permission != EAutomationPermission::SystemMutation) {
+        M_LOG(
+            Log,
+            "Automation system command rejected: command={} "
+            "code=PERMISSION_DENIED",
+            CommandNameText
+        );
+        return MakeAutomationError(
+            EAutomationErrorCode::PermissionDenied, CommandPermissionDeniedMessage
+        );
+      }
 
-          FAutomationSchemaValidationError ValidationError;
-          if (!FAutomationJsonSchemaValidator::ValidateValue(
-                  Descriptor->InputSchema, Arguments, ValidationError
-              )) {
-            M_LOG(
-                "Automation system command rejected: command={} "
-                "code=INVALID_ARGUMENT",
-                CommandNameText
-            );
-            return MakeAutomationError(
-                EAutomationErrorCode::InvalidArgument,
-                ValidationError.JsonPath + ": " + ValidationError.Message
-            );
-          }
+      FAutomationSchemaValidationError ValidationError;
+      if (!FAutomationJsonSchemaValidator::ValidateValue(
+              Descriptor->InputSchema, Arguments, ValidationError
+          )) {
+        M_LOG(
+            Log,
+            "Automation system command rejected: command={} "
+            "code=INVALID_ARGUMENT",
+            CommandNameText
+        );
+        return MakeAutomationError(
+            EAutomationErrorCode::InvalidArgument,
+            ValidationError.JsonPath + ": " + ValidationError.Message
+        );
+      }
 
-          nlohmann::json Result = Descriptor->Handler(Arguments);
-          M_LOG("Automation system command completed: command={}", CommandNameText);
-          return MakeAutomationSuccess(
-              {{"commandName", CommandNameText}, {"result", std::move(Result)}}
-          );
-        });
+      nlohmann::json Result = Descriptor->Handler(Arguments);
+      M_LOG(Log, "Automation system command completed: command={}", CommandNameText);
+      return MakeAutomationSuccess({{"commandName", CommandNameText}, {"result", std::move(Result)}}
+      );
+    });
     return WaitForResult(std::move(Ticket));
   } catch (...) {
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetRecentLogs(
-    const FAutomationLogQueryText& Query
+FAutomationHttpResponse FAutomationApiController::GetRecentLogs(const FAutomationLogQueryText& Query
 ) {
   if (Query.bHasUnknownParameter) {
     return {
@@ -966,7 +971,8 @@ FAutomationHttpResponse FAutomationApiController::GetRecentLogs(
       return {
           400,
           MakeAutomationError(
-              EAutomationErrorCode::InvalidArgument, "level must be debug, info, warning, or error."
+              EAutomationErrorCode::InvalidArgument,
+              "level must be debug, log, info, warning, or error."
           )
       };
     }
@@ -1005,6 +1011,7 @@ FAutomationHttpResponse FAutomationApiController::GetRecentLogs(
              {"oldestAvailableSequence", Result.OldestAvailableSequence},
              {"latestSequence", Result.LatestSequence},
              {"nextAfterSequence", Result.NextAfterSequence},
+             {"droppedEntries", Result.DroppedEntries},
              {"historyLost", Result.bHistoryLost},
              {"hasMore", Result.bHasMore}}
         )
@@ -1183,9 +1190,8 @@ nlohmann::json FAutomationApiController::SerializeActor(const FAutomationActorSn
       {"instanceName", Actor.InstanceName},
       {"className", Actor.ClassName},
       {"transform",
-       {{"location", {{"x", LocationX}, {"y", LocationY}}},
-        {"rotation", Rotation},
-        {"scale", Scale}}}
+       {{"location", {{"x", LocationX}, {"y", LocationY}}}, {"rotation", Rotation}, {"scale", Scale}
+       }}
   };
 }
 
@@ -1214,7 +1220,7 @@ FAutomationHttpResponse FAutomationApiController::WaitForResult(FAutomationComma
       Ticket.Result.wait_for(std::chrono::seconds(Config.RequestTimeoutSeconds));
   if (Status != std::future_status::ready) {
     Ticket.Cancel();
-    M_LOG("Automation request timed out.");
+    M_LOG(Log, "Automation request timed out.");
     return {504, MakeAutomationError(EAutomationErrorCode::RequestTimeout, RequestTimeoutMessage)};
   }
 

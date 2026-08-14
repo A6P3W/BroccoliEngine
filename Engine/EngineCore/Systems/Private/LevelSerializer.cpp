@@ -23,9 +23,10 @@ namespace {
 std::string GetLowercaseExtension(const std::string& FilePath) {
   std::string Extension = std::filesystem::path(FilePath).extension().string();
   std::transform(
-      Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char Character) {
-        return static_cast<char>(std::tolower(Character));
-      }
+      Extension.begin(),
+      Extension.end(),
+      Extension.begin(),
+      [](unsigned char Character) { return static_cast<char>(std::tolower(Character)); }
   );
   return Extension;
 }
@@ -65,7 +66,8 @@ bool LevelSerializer::Save(
     data.Rotation = actor->GetActorRotation();
     data.Scale = actor->GetActorScale();
     if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor)) {
-      data.CustomProperties["ImagePath"] = PathResolver::SanitizeResourcePath(spriteActor->GetImagePath());
+      data.CustomProperties["ImagePath"] =
+          PathResolver::SanitizeResourcePath(spriteActor->GetImagePath());
     }
     actors.push_back(data);
   }
@@ -90,19 +92,19 @@ bool LevelSerializer::Load(
   if (outMeta) {
     *outMeta = meta;
   }
-  M_LOG("Loaded actor count: {}", actors.size());
+  M_LOG(Log, "Loaded actor count: {}", actors.size());
   auto& registry = ActorRegistry::GetInstance();
   std::vector<AActor*> spawnedActors;
 
   if (bLoadGameMode && world->IsServer() && !meta.GameModeClassName.empty()) {
-    M_LOG("Spawning GameMode: {}", meta.GameModeClassName);
+    M_LOG(Log, "Spawning GameMode: {}", meta.GameModeClassName);
     AActor* gameModeActor = registry.Spawn(world, meta.GameModeClassName);
     AGameModeBase* gameMode = dynamic_cast<AGameModeBase*>(gameModeActor);
     if (gameMode) {
       world->SetGameMode(gameMode);
       spawnedActors.push_back(gameMode);
     } else {
-      M_LOG("GameMode spawn failed or class is not AGameModeBase: {}", meta.GameModeClassName);
+      M_LOG(Log, "GameMode spawn failed or class is not AGameModeBase: {}", meta.GameModeClassName);
       if (gameModeActor) {
         gameModeActor->Destroy();
       }
@@ -112,7 +114,7 @@ bool LevelSerializer::Load(
   for (const auto& data : actors) {
     AActor* actor = registry.Spawn(world, data.ClassName, data.Location, data.Rotation);
     if (!actor) {
-      M_LOG("Spawn failed: {} (not registered?)", data.ClassName);
+      M_LOG(Log, "Spawn failed: {} (not registered?)", data.ClassName);
       continue;
     }
 
@@ -177,13 +179,13 @@ bool LevelSerializer::SaveData(
   } else if (Extension == ".blevel") {
     DataToWrite = SimpleCrypto::Process(JsonData);
   } else {
-    M_LOG("Level data save failed: unsupported file extension '{}'.", Extension);
+    M_LOG(Log, "Level data save failed: unsupported file extension '{}'.", Extension);
     return false;
   }
 
   std::ofstream ofs(filePath, std::ios::binary);
   if (!ofs.is_open()) {
-    M_LOG("Level data save failed: could not open '{}'.", filePath);
+    M_LOG(Log, "Level data save failed: could not open '{}'.", filePath);
     return false;
   }
   ofs.write(DataToWrite.data(), static_cast<std::streamsize>(DataToWrite.size()));
@@ -204,7 +206,7 @@ bool LevelSerializer::LoadData(
   outActors.clear();
   std::ifstream ifs(filePath, std::ios::binary);
   if (!ifs.is_open()) {
-    M_LOG("Level data load failed: could not open '{}'.", filePath);
+    M_LOG(Log, "Level data load failed: could not open '{}'.", filePath);
     return false;
   }
   const std::string FileData(
@@ -218,7 +220,7 @@ bool LevelSerializer::LoadData(
   } else if (Extension == ".blevel") {
     JsonData = SimpleCrypto::Process(FileData);
   } else {
-    M_LOG("Level data load failed: unsupported file extension '{}'.", Extension);
+    M_LOG(Log, "Level data load failed: unsupported file extension '{}'.", Extension);
     return false;
   }
 
@@ -226,7 +228,7 @@ bool LevelSerializer::LoadData(
   try {
     root = json::parse(JsonData);
   } catch (const json::exception& e) {
-    M_LOG("Level data load failed: invalid or corrupted JSON. {}", e.what());
+    M_LOG(Log, "Level data load failed: invalid or corrupted JSON. {}", e.what());
     return false;
   }
   if (root.contains("meta") && root["meta"].is_object()) {

@@ -72,7 +72,7 @@ void AWidgetTestPawn::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerI
   );
 }
 
-void AWidgetTestPawn::OnInteractPressed() { M_LOG("F"); }
+void AWidgetTestPawn::OnInteractPressed() { M_LOG(Log, "F"); }
 
 void AWidgetTestPawn::OnMove(const FInputActionValue& Value) {
   // 移動制御コンポーネントへ、ワールド座標系の力を加算

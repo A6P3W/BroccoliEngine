@@ -27,6 +27,7 @@ LOG_DATA = {
   "oldestAvailableSequence": 42,
   "latestSequence": 125,
   "nextAfterSequence": 125,
+  "droppedEntries": 0,
   "historyLost": False,
   "hasMore": False,
 }
@@ -109,6 +110,7 @@ class FakeLogClient:
       OldestAvailableSequence=42,
       LatestSequence=125,
       NextAfterSequence=125,
+      DroppedEntries=0,
       HistoryLost=False,
       HasMore=False,
     )

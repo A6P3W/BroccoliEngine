@@ -167,7 +167,7 @@ void Application::Shutdown() {
   if (ImGuiInitialized) {
     rlImGuiShutdown();
     ImGuiInitialized = false;
-    M_LOG("Application ImGui shutdown completed.");
+    M_LOG(Log, "Application ImGui shutdown completed.");
   }
 
   if (OffscreenBuffer != nullptr) {
@@ -175,7 +175,7 @@ void Application::Shutdown() {
     UnloadRenderTexture(*Buffer);
     delete Buffer;
     OffscreenBuffer = nullptr;
-    M_LOG("Application offscreen buffer released.");
+    M_LOG(Log, "Application offscreen buffer released.");
   }
 
   if (RaylibInitialized) {
@@ -190,8 +190,10 @@ void Application::Shutdown() {
   if (RaylibInitialized) {
     CloseWindow();
     RaylibInitialized = false;
-    M_LOG("raylib shutdown completed.");
+    M_LOG(Log, "raylib shutdown completed.");
   }
+
+  MLog::Shutdown();
 }
 
 void Application::InitializeAutomation() {
@@ -226,6 +228,7 @@ void Application::QuitGame() { ShouldQuitGame = true; }
 
 bool Application::Run() {
   PathResolver::InitializeWorkingDirectory();
+  MLog::Initialize();
   SetProcessDPIAware();
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
@@ -237,12 +240,12 @@ bool Application::Run() {
   } else {
     Mode = "Game";
   }
-  M_LOG("Starting: {}", Mode);
+  M_LOG(Log, "Starting: {}", Mode);
 
   const std::string WindowTitle = "BroccoliEngine - " + Mode;
   InitWindow(1920, 1080, WindowTitle.c_str());
   if (!IsWindowReady()) {
-    M_LOG("raylib InitWindow failed.");
+    M_LOG(Error, "raylib InitWindow failed.");
     return false;
   }
   RaylibInitialized = true;
@@ -259,13 +262,13 @@ bool Application::Run() {
 
   InitAudioDevice();
   AudioInitialized = IsAudioDeviceReady();
-  if (!AudioInitialized) M_LOG("raylib InitAudioDevice failed.");
+  if (!AudioInitialized) M_LOG(Warning, "raylib InitAudioDevice failed.");
 
   rlImGuiSetup(true);
   ImGuiInitialized = ImGui::GetCurrentContext() != nullptr;
   InitOffscreenBuffer();
   if (OffscreenBuffer == nullptr) {
-    M_LOG("raylib LoadRenderTexture failed for the virtual screen.");
+    M_LOG(Error, "raylib LoadRenderTexture failed for the virtual screen.");
     Shutdown();
     return false;
   }
@@ -292,7 +295,7 @@ bool Application::Run() {
         Update(DeltaTime, false);
         Draw(false);
       })) {
-    M_LOG("Live window resize redraw hook installation failed.");
+    M_LOG(Warning, "Live window resize redraw hook installation failed.");
   }
 
   while (!WindowShouldClose() && !ShouldQuitGame) {
@@ -319,6 +322,7 @@ bool Application::Run() {
     PerformanceOverlay.BeginRender();
 #endif
     Draw(true);
+    MLog::EndFrame();
   }
 
   RemoveLiveResizeHook();

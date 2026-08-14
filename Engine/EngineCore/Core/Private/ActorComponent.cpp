@@ -77,7 +77,7 @@ void MActorComponent::RegisterComponent() {
   }
 
   if (Owner == nullptr) {
-    M_LOG("RegisterComponent ignored: Owner is null");
+    M_LOG(Log, "RegisterComponent ignored: Owner is null");
     return;
   }
 
@@ -132,7 +132,7 @@ void MActorComponent::DestroyComponent() {
   if (Owner != nullptr) {
     const auto* rootComponent = Owner->GetRootComponent();
     if (rootComponent != nullptr && static_cast<const MActorComponent*>(rootComponent) == this) {
-      M_LOG("DestroyComponent ignored: attempted to destroy RootComponent");
+      M_LOG(Log, "DestroyComponent ignored: attempted to destroy RootComponent");
       return;
     }
   }

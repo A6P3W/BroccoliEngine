@@ -39,7 +39,7 @@ void APawn::SetupPlayerInputComponent(MEnhancedInputComponent* comp) {
   comp->BindAction(InputActionLower::MoveY, ETriggerEvent::Triggered, this, &APawn::OnMove);
 }
 
-void APawn::OnInteractPressed() { M_LOG("FFFF"); }
+void APawn::OnInteractPressed() { M_LOG(Log, "FFFF"); }
 
 void APawn::OnMove(const FInputActionValue& Value) {
   auto MovementComponents = GetComponents<MNetMovementComponent>();

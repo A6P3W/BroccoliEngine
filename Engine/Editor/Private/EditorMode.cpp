@@ -64,8 +64,8 @@ void EditorMode::OnMousePress(const FVector2D& worldPos) {
       SelectingActor = hitActor;
       SelectedPointComponent = hitActor->GetComponents<EditorSelectPointComponent>()[0];
       SelectedPointComponent->Selected(true);
-      M_LOG("Hit Actor: {}", hitActor->GetActorClassName());
-      M_LOG("Current Actor Action: {}", (int)GetActorAction());
+      M_LOG(Log, "Hit Actor: {}", hitActor->GetActorClassName());
+      M_LOG(Log, "Current Actor Action: {}", (int)GetActorAction());
       State = EEditorState::Dragging;
       return;
     }
@@ -122,10 +122,10 @@ void EditorMode::OnMouseRelease(const FVector2D& worldPos) {
 bool EditorMode::SaveLevel(const std::string& filePath) {
   if (LevelSerializer::Save(GetWorld(), filePath, SelectedGameModeClass)) {
     CurrentLevelPath = filePath;
-    M_LOG("Level saved to '{}'", filePath);
+    M_LOG(Log, "Level saved to '{}'", filePath);
 
   } else {
-    M_LOG("Failed to save level to '{}'", filePath);
+    M_LOG(Log, "Failed to save level to '{}'", filePath);
     return false;
   }
   return true;
@@ -149,9 +149,10 @@ bool EditorMode::QuickSaveLevel() {
     std::string PathStr = FilePath;
     std::string LowerPath = PathStr;
     std::transform(
-        LowerPath.begin(), LowerPath.end(), LowerPath.begin(), [](unsigned char Character) {
-          return static_cast<char>(std::tolower(Character));
-        }
+        LowerPath.begin(),
+        LowerPath.end(),
+        LowerPath.begin(),
+        [](unsigned char Character) { return static_cast<char>(std::tolower(Character)); }
     );
     const std::string JsonSuffix = ".blevel.json";
     const std::string BLevelSuffix = ".blevel";
@@ -159,12 +160,10 @@ bool EditorMode::QuickSaveLevel() {
         LowerPath.compare(LowerPath.size() - JsonSuffix.size(), JsonSuffix.size(), JsonSuffix) ==
             0) {
       PathStr = PathStr.substr(0, PathStr.size() - JsonSuffix.size()) + ".BLevel.json";
-    } else if (
-        LowerPath.size() >= BLevelSuffix.size() &&
-        LowerPath.compare(
-            LowerPath.size() - BLevelSuffix.size(), BLevelSuffix.size(), BLevelSuffix
-        ) == 0
-    ) {
+    } else if (LowerPath.size() >= BLevelSuffix.size() &&
+               LowerPath.compare(
+                   LowerPath.size() - BLevelSuffix.size(), BLevelSuffix.size(), BLevelSuffix
+               ) == 0) {
       PathStr = PathStr.substr(0, PathStr.size() - BLevelSuffix.size()) + ".BLevel.json";
     } else {
       PathStr += ".BLevel.json";
@@ -180,7 +179,7 @@ EditorMode::EditorMode() {
   if (!gameModes.empty()) {
     SelectedGameModeClass = gameModes[0];
   }
-  M_LOG("EditorMode initialized");
+  M_LOG(Log, "EditorMode initialized");
   bEditorActor = true;
   SetDefaultPawnClass(EditorPawn::StaticClassName());
   SetDefaultPlayerControllerClass(EditorController::StaticClassName());
@@ -188,7 +187,7 @@ EditorMode::EditorMode() {
 
 void EditorMode::CopySelectedActor() {
   if (!SelectedActor || SelectedActor->IsPendingDestroy()) {
-    M_LOG("Copy failed: No actor selected.");
+    M_LOG(Log, "Copy failed: No actor selected.");
     return;
   }
 
@@ -204,6 +203,7 @@ void EditorMode::CopySelectedActor() {
 
   bHasClipboard = true;
   M_LOG(
+      Log,
       "Copied Actor: {} at ({}, {})",
       ClipboardData.ClassName,
       ClipboardData.Location.X,
@@ -213,7 +213,7 @@ void EditorMode::CopySelectedActor() {
 
 void EditorMode::PasteActor() {
   if (!bHasClipboard) {
-    M_LOG("Paste failed: Clipboard is empty.");
+    M_LOG(Log, "Paste failed: Clipboard is empty.");
     return;
   }
 
@@ -224,7 +224,7 @@ void EditorMode::PasteActor() {
   );
 
   if (!newActor) {
-    M_LOG("Paste failed: Could not spawn actor '{}'.", ClipboardData.ClassName);
+    M_LOG(Log, "Paste failed: Could not spawn actor '{}'.", ClipboardData.ClassName);
     return;
   }
 
@@ -239,29 +239,31 @@ void EditorMode::PasteActor() {
 
   SetSelectedActor(newActor);
 
-  M_LOG("Pasted Actor: {} at ({}, {})", ClipboardData.ClassName, pasteLocation.X, pasteLocation.Y);
+  M_LOG(
+      Log, "Pasted Actor: {} at ({}, {})", ClipboardData.ClassName, pasteLocation.X, pasteLocation.Y
+  );
 }
 
 void EditorMode::CutSelectedActor() {
   if (!SelectedActor || SelectedActor->IsPendingDestroy()) {
-    M_LOG("Cut failed: No actor selected.");
+    M_LOG(Log, "Cut failed: No actor selected.");
     return;
   }
 
   CopySelectedActor();
   DeleteSelectedActor();
 
-  M_LOG("Cut completed.");
+  M_LOG(Log, "Cut completed.");
 }
 
 void EditorMode::DeleteSelectedActor() {
   if (!SelectedActor || SelectedActor->IsPendingDestroy()) {
-    M_LOG("Delete failed: No actor selected.");
+    M_LOG(Log, "Delete failed: No actor selected.");
     return;
   }
   SelectedActor->Destroy();
   SetSelectedActor(nullptr);
-  M_LOG("Selected actor destroyed.");
+  M_LOG(Log, "Selected actor destroyed.");
 }
 
 void EditorMode::OnUpdate(float DeltaTime) {

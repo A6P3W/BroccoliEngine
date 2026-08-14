@@ -31,9 +31,9 @@ void ACanvasTestActor::BeginPlay() {
         Canvas->Clear(FColor{255, 255, 255, 255});
         Canvas->EndDrawing();
       }
-      M_LOG("CanvasTestActor: Canvas created successfully (512x512).");
+      M_LOG(Log, "CanvasTestActor: Canvas created successfully (512x512).");
     } else {
-      M_LOG("CanvasTestActor: Failed to create canvas.");
+      M_LOG(Error, "CanvasTestActor: Failed to create canvas.");
     }
   }
 }
@@ -94,7 +94,7 @@ void ACanvasTestActor::OnUpdate(float DeltaTime) {
       Canvas->Clear(FColor{255, 255, 255, 255});
       Canvas->EndDrawing();
     }
-    M_LOG("CanvasTestActor: Canvas cleared.");
+    M_LOG(Log, "CanvasTestActor: Canvas cleared.");
   }
 }
 

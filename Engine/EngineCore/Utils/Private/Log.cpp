@@ -3,28 +3,55 @@
 #include <Windows.h>
 
 #include <algorithm>
+#include <atomic>
+#include <condition_variable>
 #include <cstdio>
 #include <ctime>
 #include <deque>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <iostream>
-#include <limits>
 #include <mutex>
 #include <stdexcept>
+#include <thread>
 
 namespace {
 constexpr size_t MaxLogEntries = 1000;
+constexpr size_t MaxQueuedLogs = 8192;
 constexpr size_t MaxLogMessageBytes = 4096;
 constexpr size_t MaxLogCategoryBytes = 128;
+constexpr auto LogFlushInterval = std::chrono::seconds(5);
+
+enum class ELogQueueCommand : uint8_t { Entry, FlushBarrier, Shutdown };
+
+struct FLogQueueItem {
+  ELogQueueCommand Command = ELogQueueCommand::Entry;
+  FLogEntry Entry;
+  std::shared_ptr<std::promise<void>> Completion;
+};
 
 struct FMLogState {
   std::mutex BufferMutex;
   std::deque<FLogEntry> Entries;
-  uint64_t NextSequence = 1;
+  std::atomic<uint64_t> NextSequence = 1;
+  std::atomic<uint64_t> DroppedLogEntries = 0;
 
-  std::mutex SinkMutex;
+  std::mutex QueueMutex;
+  std::condition_variable QueueCondition;
+  std::condition_variable QueueSpaceCondition;
+  std::deque<FLogQueueItem> Queue;
+  std::thread Worker;
+  std::mutex LifecycleMutex;
+  bool Running = false;
+  bool ShutdownInProgress = false;
+  bool AcceptingLogs = false;
+  std::atomic<bool> Stopped = false;
+  std::atomic<bool> PendingWarningFlush = false;
+
   std::filesystem::path LogFilePath;
+  std::ofstream LogFile;
+  std::chrono::steady_clock::time_point LastFlushTime;
 };
 
 FMLogState& GetLogState() {
@@ -138,75 +165,244 @@ std::filesystem::path CreateLogFilePath() {
 bool PassesLevel(ELogLevel Level, const std::optional<ELogLevel>& MinimumLevel) {
   return !MinimumLevel || static_cast<uint8_t>(Level) >= static_cast<uint8_t>(*MinimumLevel);
 }
+
+bool RemoveQueuedLogEntry(FMLogState& State) {
+  const auto Iterator =
+      std::find_if(State.Queue.begin(), State.Queue.end(), [](const FLogQueueItem& Item) {
+        return Item.Command == ELogQueueCommand::Entry && Item.Entry.Level == ELogLevel::Log;
+      });
+  if (Iterator == State.Queue.end()) return false;
+  State.Queue.erase(Iterator);
+  ++State.DroppedLogEntries;
+  return true;
+}
+
+void FlushFile(FMLogState& State) {
+  if (State.LogFile.is_open()) State.LogFile.flush();
+  std::cout.flush();
+  State.LastFlushTime = std::chrono::steady_clock::now();
+}
+
+void WriteEntry(FMLogState& State, const FLogEntry& Entry) {
+  const std::string SinkMessage = std::format("[{}] {}\n", Entry.Category, Entry.Message);
+  const std::wstring WideMessage = Utf8ToWide(SinkMessage);
+  if (!WideMessage.empty()) {
+    OutputDebugStringW(WideMessage.c_str());
+    const HANDLE Console = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD ConsoleMode = 0;
+    if (Console != INVALID_HANDLE_VALUE && GetConsoleMode(Console, &ConsoleMode) != FALSE) {
+      DWORD Written = 0;
+      WriteConsoleW(
+          Console, WideMessage.data(), static_cast<DWORD>(WideMessage.size()), &Written, nullptr
+      );
+    } else {
+      std::cout << SinkMessage;
+    }
+  } else {
+    OutputDebugStringA(SinkMessage.c_str());
+    std::cout << SinkMessage;
+  }
+
+  if (State.LogFile.is_open()) State.LogFile << SinkMessage;
+}
+
+void WorkerMain() {
+  FMLogState& State = GetLogState();
+  try {
+    State.LogFilePath = CreateLogFilePath();
+    State.LogFile.open(State.LogFilePath, std::ios::out | std::ios::app);
+  } catch (...) {
+  }
+  State.LastFlushTime = std::chrono::steady_clock::now();
+
+  while (true) {
+    FLogQueueItem Item;
+    {
+      std::unique_lock Lock(State.QueueMutex);
+      State.QueueCondition.wait_for(Lock, LogFlushInterval, [&State] {
+        return !State.Queue.empty();
+      });
+      if (State.Queue.empty()) {
+        Lock.unlock();
+        FlushFile(State);
+        continue;
+      }
+      Item = std::move(State.Queue.front());
+      State.Queue.pop_front();
+      State.QueueSpaceCondition.notify_all();
+    }
+
+    if (Item.Command == ELogQueueCommand::Shutdown) {
+      FlushFile(State);
+      break;
+    }
+    if (Item.Command == ELogQueueCommand::FlushBarrier) {
+      FlushFile(State);
+      if (Item.Completion) {
+        try {
+          Item.Completion->set_value();
+        } catch (...) {
+        }
+      }
+      continue;
+    }
+
+    try {
+      WriteEntry(State, Item.Entry);
+    } catch (...) {
+    }
+    if (std::chrono::steady_clock::now() - State.LastFlushTime >= LogFlushInterval)
+      FlushFile(State);
+  }
+
+  FlushFile(State);
+  if (State.LogFile.is_open()) State.LogFile.close();
+}
+
+bool EnqueueInternal(FMLogState& State, std::unique_lock<std::mutex>& Lock, FLogQueueItem&& Item) {
+  if (!State.AcceptingLogs) return false;
+
+  const bool IsNormalLog =
+      Item.Command == ELogQueueCommand::Entry && Item.Entry.Level == ELogLevel::Log;
+  while (State.Queue.size() >= MaxQueuedLogs) {
+    if (IsNormalLog) {
+      ++State.DroppedLogEntries;
+      return false;
+    }
+    if (RemoveQueuedLogEntry(State)) break;
+    State.QueueSpaceCondition.wait(Lock, [&State] {
+      return State.Queue.size() < MaxQueuedLogs || !State.AcceptingLogs;
+    });
+    if (!State.AcceptingLogs) return false;
+  }
+
+  if (Item.Command == ELogQueueCommand::Entry) {
+    Item.Entry.Sequence = State.NextSequence.fetch_add(1);
+    if (Item.Entry.Sequence == 0) return false;
+    {
+      std::scoped_lock BufferLock(State.BufferMutex);
+      if (State.Entries.size() == MaxLogEntries) State.Entries.pop_front();
+      State.Entries.push_back(Item.Entry);
+    }
+  }
+
+  State.Queue.push_back(std::move(Item));
+  Lock.unlock();
+  State.QueueCondition.notify_one();
+  return true;
+}
+
+bool Enqueue(FLogQueueItem&& Item) {
+  FMLogState& State = GetLogState();
+  std::unique_lock Lock(State.QueueMutex);
+  return EnqueueInternal(State, Lock, std::move(Item));
+}
+
+bool EnqueueEntry(FLogEntry&& Entry) {
+  return Enqueue(FLogQueueItem{ELogQueueCommand::Entry, std::move(Entry), {}});
+}
+
+void EnqueueFlushBarrierAndWait() {
+  FMLogState& State = GetLogState();
+  if (State.Stopped.load(std::memory_order_relaxed)) return;
+
+  auto Completion = std::make_shared<std::promise<void>>();
+  std::future<void> Future = Completion->get_future();
+  if (!Enqueue({ELogQueueCommand::FlushBarrier, {}, Completion})) return;
+  try {
+    Future.wait();
+  } catch (...) {
+  }
+}
 }  // namespace
 
 void MLog::Write(ELogLevel Level, std::string_view Category, std::string_view Message) noexcept {
+  FMLogState& State = GetLogState();
+  if (State.Stopped.load(std::memory_order_relaxed)) return;
+
   std::string SafeCategory;
   std::string SafeMessage;
+  FLogEntry Entry;
   try {
     SafeCategory = TruncateUtf8(
         Category.empty() ? std::string_view("Unknown") : Category, MaxLogCategoryBytes
     );
     SafeMessage = TruncateUtf8(Message, MaxLogMessageBytes);
-    FLogEntry Entry;
     Entry.Timestamp = std::chrono::system_clock::now();
     Entry.Level = Level;
     Entry.Category = SafeCategory;
     Entry.Message = SafeMessage;
 
-    FMLogState& State = GetLogState();
-    {
-      std::scoped_lock Lock(State.BufferMutex);
-      if (State.NextSequence == 0) {
-        throw std::overflow_error("Log sequence exhausted");
-      }
-      Entry.Sequence = State.NextSequence;
-      State.NextSequence =
-          State.NextSequence == (std::numeric_limits<uint64_t>::max)() ? 0 : State.NextSequence + 1;
-      if (State.Entries.size() == MaxLogEntries) {
-        State.Entries.pop_front();
-      }
-      State.Entries.push_back(std::move(Entry));
-    }
+    Initialize();
   } catch (...) {
+    return;
   }
 
-  try {
-    const std::string SinkMessage = std::format("[{}] {}\n", SafeCategory, SafeMessage);
-    FMLogState& State = GetLogState();
-    std::scoped_lock Lock(State.SinkMutex);
+  if (!EnqueueEntry(std::move(Entry))) return;
 
-    const std::wstring WideMessage = Utf8ToWide(SinkMessage);
-    if (!WideMessage.empty()) {
-      OutputDebugStringW(WideMessage.c_str());
-      const HANDLE Console = GetStdHandle(STD_OUTPUT_HANDLE);
-      DWORD ConsoleMode = 0;
-      if (Console != INVALID_HANDLE_VALUE && GetConsoleMode(Console, &ConsoleMode) != FALSE) {
-        DWORD Written = 0;
-        WriteConsoleW(
-            Console, WideMessage.data(), static_cast<DWORD>(WideMessage.size()), &Written, nullptr
-        );
-      } else {
-        std::cout << SinkMessage;
-      }
-    } else {
-      OutputDebugStringA(SinkMessage.c_str());
-      std::cout << SinkMessage;
-    }
-
-    if (State.LogFilePath.empty()) {
-      State.LogFilePath = CreateLogFilePath();
-    }
-    std::ofstream LogFile(State.LogFilePath, std::ios::app);
-    if (LogFile.is_open()) {
-      LogFile << SinkMessage;
-    }
-  } catch (const std::exception& Error) {
-    std::cerr << "[MLog Error] " << Error.what() << std::endl;
-  } catch (...) {
-    std::cerr << "[MLog Error] Unknown logging failure." << std::endl;
+  if (Level == ELogLevel::Warning || Level == ELogLevel::Error) {
+    State.PendingWarningFlush.store(true, std::memory_order_relaxed);
   }
 }
+
+void MLog::Initialize() {
+  FMLogState& State = GetLogState();
+  if (State.Stopped.load(std::memory_order_relaxed)) return;
+  std::scoped_lock Lock(State.LifecycleMutex);
+  if (State.Running || State.Stopped.load(std::memory_order_relaxed)) return;
+  {
+    std::scoped_lock QueueLock(State.QueueMutex);
+    State.AcceptingLogs = true;
+  }
+  State.Running = true;
+  State.Worker = std::thread(WorkerMain);
+}
+
+void MLog::Shutdown() {
+  FMLogState& State = GetLogState();
+  {
+    std::scoped_lock LifecycleLock(State.LifecycleMutex);
+    if (!State.Running || State.ShutdownInProgress) {
+      State.Stopped.store(true, std::memory_order_relaxed);
+      return;
+    }
+    State.ShutdownInProgress = true;
+    State.Stopped.store(true, std::memory_order_relaxed);
+    {
+      std::scoped_lock QueueLock(State.QueueMutex);
+      State.AcceptingLogs = false;
+      State.Queue.push_back({ELogQueueCommand::Shutdown, {}, {}});
+    }
+    State.QueueCondition.notify_one();
+    State.QueueSpaceCondition.notify_all();
+  }
+  if (State.Worker.joinable()) State.Worker.join();
+
+  {
+    std::scoped_lock LifecycleLock(State.LifecycleMutex);
+    std::scoped_lock QueueLock(State.QueueMutex);
+    for (auto& Item : State.Queue) {
+      if (Item.Command == ELogQueueCommand::FlushBarrier && Item.Completion) {
+        try {
+          Item.Completion->set_value();
+        } catch (...) {
+        }
+      }
+    }
+    State.Queue.clear();
+    State.Running = false;
+    State.ShutdownInProgress = false;
+  }
+}
+
+void MLog::EndFrame() {
+  FMLogState& State = GetLogState();
+  if (State.PendingWarningFlush.exchange(false, std::memory_order_relaxed)) {
+    Enqueue({ELogQueueCommand::FlushBarrier, {}, {}});
+  }
+}
+
+void MLog::Flush() { EnqueueFlushBarrierAndWait(); }
 
 FLogQueryResult MLog::GetRecentEntries(const FLogQuery& Query) {
   if (Query.Limit == 0 || Query.Limit > MaxLogEntries) {
@@ -215,6 +411,7 @@ FLogQueryResult MLog::GetRecentEntries(const FLogQuery& Query) {
 
   FLogQueryResult Result;
   FMLogState& State = GetLogState();
+  Result.DroppedEntries = State.DroppedLogEntries.load();
   {
     std::scoped_lock Lock(State.BufferMutex);
     if (!State.Entries.empty()) {
@@ -238,6 +435,7 @@ FLogQueryResult MLog::GetRecentEntries(const FLogQuery& Query) {
         Result.Entries.push_back(Entry);
       }
     } else {
+      Result.bHistoryLost = false;
       for (auto Iterator = State.Entries.rbegin(); Iterator != State.Entries.rend(); ++Iterator) {
         if (!PassesLevel(Iterator->Level, Query.MinimumLevel)) {
           continue;
@@ -262,14 +460,14 @@ std::string_view MLog::ToLevelString(ELogLevel Level) {
   switch (Level) {
     case ELogLevel::Debug:
       return "debug";
-    case ELogLevel::Info:
-      return "info";
+    case ELogLevel::Log:
+      return "log";
     case ELogLevel::Warning:
       return "warning";
     case ELogLevel::Error:
       return "error";
   }
-  return "info";
+  return "log";
 }
 
 std::string MLog::FormatTimestamp(const std::chrono::system_clock::time_point& Timestamp) {

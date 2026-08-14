@@ -46,6 +46,7 @@ void MNetworkTestRepComponent::RequestTest(int PlayerId) {
   // NetworkId: アクターが一意に持つネットワーク識別子。
   // ComponentNetworkId: コンポーネントが一意に持つネットワーク識別子。
   M_LOG(
+      Log,
       "Component RPC test input: actor={} component={} player={}",
       GetOwner() ? GetOwner()->NetworkId : 0,
       ComponentNetworkId,
@@ -91,6 +92,7 @@ void MNetworkTestRepComponent::Server_ComponentTest(int PlayerId) {
   // NetworkId: アクターが一意に持つネットワーク識別子。
   // ComponentNetworkId: コンポーネントが一意に持つネットワーク識別子。
   M_LOG(
+      Log,
       "Server_ComponentTest received: actor={} component={} player={} counter={}",
       GetOwner() ? GetOwner()->NetworkId : 0,
       ComponentNetworkId,
@@ -113,6 +115,7 @@ void MNetworkTestRepComponent::Multicast_ComponentTest(int PlayerId, int Counter
   // NetworkId: アクターが一意に持つネットワーク識別子。
   // ComponentNetworkId: コンポーネントが一意に持つネットワーク識別子。
   M_LOG(
+      Log,
       "Multicast_ComponentTest received: actor={} component={} player={} counter={}",
       GetOwner() ? GetOwner()->NetworkId : 0,
       ComponentNetworkId,
@@ -128,6 +131,7 @@ void MNetworkTestRepComponent::OnRepReplicatedCounter(int OldValue) {
   // NetworkId: アクターが一意に持つネットワーク識別子。
   // ComponentNetworkId: コンポーネントが一意に持つネットワーク識別子。
   M_LOG(
+      Log,
       "OnRep component counter: actor={} component={} old={} new={}",
       GetOwner() ? GetOwner()->NetworkId : 0,
       ComponentNetworkId,

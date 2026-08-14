@@ -53,7 +53,7 @@ void ANetworkTestBreakableActor::BeginOverlap(AActor* OtherActor) {
   if (dynamic_cast<ANetworkTestPawn*>(OtherActor)) {
     // コンソールおよびログファイルにデバッグ用メッセージを出力するエンジンログマクロ
     // NetworkId: アクターが一意に持つネットワーク識別子
-    M_LOG("NetworkTestBreakableActor destroyed by player overlap: actor={}", NetworkId);
+    M_LOG(Log, "NetworkTestBreakableActor destroyed by player overlap: actor={}", NetworkId);
     // アクターの破棄処理。ネットワーク同期されているため、クライアント側のアクターも同期して破棄されます。
     Destroy();
   }

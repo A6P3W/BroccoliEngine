@@ -31,7 +31,7 @@ FAutomationSubsystem::~FAutomationSubsystem() { Shutdown(); }
 bool FAutomationSubsystem::Initialize(const FAutomationConfig& Config) {
   Shutdown();
   if (!Config.Enabled) {
-    M_LOG("Automation disabled.");
+    M_LOG(Log, "Automation disabled.");
     return true;
   }
 
@@ -47,11 +47,11 @@ bool FAutomationSubsystem::Initialize(const FAutomationConfig& Config) {
     MethodRegistry->Freeze();
     ComponentMethodRegistry->Freeze();
   } catch (const std::exception& Exception) {
-    M_LOG("Automation method registration failed: {}", Exception.what());
+    M_LOG(Log, "Automation method registration failed: {}", Exception.what());
     Shutdown();
     return false;
   } catch (...) {
-    M_LOG("Automation method registration failed with an unknown exception.");
+    M_LOG(Log, "Automation method registration failed with an unknown exception.");
     Shutdown();
     return false;
   }
@@ -61,11 +61,11 @@ bool FAutomationSubsystem::Initialize(const FAutomationConfig& Config) {
     RegisterBuiltInSystemCommands();
     SystemCommandRegistry->Freeze();
   } catch (const std::exception& Exception) {
-    M_LOG("Automation system command registration failed: {}", Exception.what());
+    M_LOG(Log, "Automation system command registration failed: {}", Exception.what());
     Shutdown();
     return false;
   } catch (...) {
-    M_LOG("Automation system command registration failed with an unknown exception.");
+    M_LOG(Log, "Automation system command registration failed with an unknown exception.");
     Shutdown();
     return false;
   }
@@ -114,7 +114,7 @@ bool FAutomationSubsystem::Initialize(const FAutomationConfig& Config) {
   );
   HttpServer = std::make_unique<FAutomationHttpServer>(Config, *ApiController);
   if (!HttpServer->Start()) {
-    M_LOG("Automation server startup failed; the engine will continue without Automation.");
+    M_LOG(Log, "Automation server startup failed; the engine will continue without Automation.");
     Shutdown();
     return false;
   }
@@ -130,6 +130,7 @@ void FAutomationSubsystem::RegisterBuiltInSystemCommands() {
         const bool Changed = !bPaused;
         bPaused = true;
         M_LOG(
+            Log,
             "Automation system command state changed: command=pause_game changed={} paused=true",
             Changed
         );
@@ -139,10 +140,14 @@ void FAutomationSubsystem::RegisterBuiltInSystemCommands() {
       }
   );
   AutomationHelper::RegisterSystemCommand(
-      *SystemCommandRegistry, "resume_game", "Resume world updates.", [this]() {
+      *SystemCommandRegistry,
+      "resume_game",
+      "Resume world updates.",
+      [this]() {
         const bool Changed = bPaused;
         bPaused = false;
         M_LOG(
+            Log,
             "Automation system command state changed: command=resume_game changed={} paused=false",
             Changed
         );
