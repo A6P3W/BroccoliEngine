@@ -157,19 +157,19 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   StartBtnPtr->SetOnPressed([]() { M_LOG(Log, "Start Game!"); });
 
   // トグルボタンの状態変更イベント
-  ToggleBtnPtr->SetOnToggled([ToggleTextPtr](bool bIsOn) {
-    ToggleTextPtr->SetText(bIsOn ? "Toggle: ON" : "Toggle: OFF");
-    M_LOG(Log, "Toggle Button: {}", bIsOn ? "ON" : "OFF");
+  ToggleBtnPtr->SetOnToggled([ToggleTextPtr](bool BIsOn) {
+    ToggleTextPtr->SetText(BIsOn ? "Toggle: ON" : "Toggle: OFF");
+    M_LOG(Log, "Toggle Button: {}", BIsOn ? "ON" : "OFF");
   });
 
   // テキストボックスの編集中の文字列変更イベント
-  NameInputPtr->SetOnTextChanged([](const std::string& text) { M_LOG(Log, "Input changed: {}", text); });
+  NameInputPtr->SetOnTextChanged([](const std::string& Text) { M_LOG(Log, "Input changed: {}", Text); });
 
   // テキストボックスの編集完了（Enter押下など）イベント
-  NameInputPtr->SetOnTextCommitted([CommittedTextPtr](const std::string& text) {
-    const std::string displayText = text.empty() ? "<empty>" : text;
-    CommittedTextPtr->SetText("Input: " + displayText);
-    M_LOG(Log, "Input committed: {}", displayText);
+  NameInputPtr->SetOnTextCommitted([CommittedTextPtr](const std::string& Text) {
+    const std::string DisplayText = Text.empty() ? "<empty>" : Text;
+    CommittedTextPtr->SetText("Input: " + DisplayText);
+    M_LOG(Log, "Input committed: {}", DisplayText);
   });
 
   // ゲーム終了処理のイベント

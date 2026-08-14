@@ -245,7 +245,7 @@ bool Application::Run() {
   const std::string WindowTitle = "BroccoliEngine - " + Mode;
   InitWindow(1920, 1080, WindowTitle.c_str());
   if (!IsWindowReady()) {
-    M_LOG(Log, "raylib InitWindow failed.");
+    M_LOG(Error, "raylib InitWindow failed.");
     return false;
   }
   RaylibInitialized = true;
@@ -262,13 +262,13 @@ bool Application::Run() {
 
   InitAudioDevice();
   AudioInitialized = IsAudioDeviceReady();
-  if (!AudioInitialized) M_LOG(Log, "raylib InitAudioDevice failed.");
+  if (!AudioInitialized) M_LOG(Warning, "raylib InitAudioDevice failed.");
 
   rlImGuiSetup(true);
   ImGuiInitialized = ImGui::GetCurrentContext() != nullptr;
   InitOffscreenBuffer();
   if (OffscreenBuffer == nullptr) {
-    M_LOG(Log, "raylib LoadRenderTexture failed for the virtual screen.");
+    M_LOG(Error, "raylib LoadRenderTexture failed for the virtual screen.");
     Shutdown();
     return false;
   }
@@ -295,7 +295,7 @@ bool Application::Run() {
         Update(DeltaTime, false);
         Draw(false);
       })) {
-    M_LOG(Log, "Live window resize redraw hook installation failed.");
+    M_LOG(Warning, "Live window resize redraw hook installation failed.");
   }
 
   while (!WindowShouldClose() && !ShouldQuitGame) {

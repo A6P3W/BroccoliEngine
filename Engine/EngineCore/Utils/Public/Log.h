@@ -33,6 +33,7 @@ struct FLogQueryResult {
   uint64_t OldestAvailableSequence = 0;
   uint64_t LatestSequence = 0;
   uint64_t NextAfterSequence = 0;
+  uint64_t DroppedEntries = 0;
   bool bHistoryLost = false;
   bool bHasMore = false;
 };

@@ -171,7 +171,7 @@ std::optional<ELogLevel> ParseLogLevel(std::string_view Text) {
   if (Lowercase == "debug") {
     return ELogLevel::Debug;
   }
-  if (Lowercase == "info") {
+  if (Lowercase == "log" || Lowercase == "info") {
     return ELogLevel::Log;
   }
   if (Lowercase == "warning") {
@@ -971,7 +971,8 @@ FAutomationHttpResponse FAutomationApiController::GetRecentLogs(const FAutomatio
       return {
           400,
           MakeAutomationError(
-              EAutomationErrorCode::InvalidArgument, "level must be debug, info, warning, or error."
+              EAutomationErrorCode::InvalidArgument,
+              "level must be debug, log, info, warning, or error."
           )
       };
     }
@@ -1010,6 +1011,7 @@ FAutomationHttpResponse FAutomationApiController::GetRecentLogs(const FAutomatio
              {"oldestAvailableSequence", Result.OldestAvailableSequence},
              {"latestSequence", Result.LatestSequence},
              {"nextAfterSequence", Result.NextAfterSequence},
+             {"droppedEntries", Result.DroppedEntries},
              {"historyLost", Result.bHistoryLost},
              {"hasMore", Result.bHasMore}}
         )
