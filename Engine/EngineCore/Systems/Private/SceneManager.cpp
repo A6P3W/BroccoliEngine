@@ -23,6 +23,7 @@ std::string ResolveRuntimeLevelPath(const std::string& LevelPath) {
   std::error_code ErrorCode;
   bool InputExists = std::filesystem::exists(InputPath, ErrorCode);
   M_LOG(
+      Log,
       "[SceneManager] ResolveRuntimeLevelPath: ResolvedPathStr='{}' exists={}",
       ResolvedPathStr,
       InputExists
@@ -33,12 +34,13 @@ std::string ResolveRuntimeLevelPath(const std::string& LevelPath) {
 
   std::string Extension = FileUtils::PathToUtf8(InputPath.extension());
   std::transform(
-      Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char Character) {
-        return static_cast<char>(std::tolower(Character));
-      }
+      Extension.begin(),
+      Extension.end(),
+      Extension.begin(),
+      [](unsigned char Character) { return static_cast<char>(std::tolower(Character)); }
   );
   if (Extension != ".blevel") {
-    M_LOG("[SceneManager] ResolveRuntimeLevelPath: Extension '{}' != '.blevel'", Extension);
+    M_LOG(Log, "[SceneManager] ResolveRuntimeLevelPath: Extension '{}' != '.blevel'", Extension);
     return NormalizeRuntimeLevelPath(InputPath);
   }
 
@@ -47,6 +49,7 @@ std::string ResolveRuntimeLevelPath(const std::string& LevelPath) {
   ErrorCode.clear();
   bool JsonExists = std::filesystem::exists(JsonPath, ErrorCode);
   M_LOG(
+      Log,
       "[SceneManager] ResolveRuntimeLevelPath: JsonPath='{}' jsonExists={}",
       FileUtils::PathToUtf8(JsonPath),
       JsonExists
@@ -136,6 +139,7 @@ bool SceneManager::OpenLevelByPath(const std::string& LevelPath, ENetMode NetMod
   }
   const std::string RuntimeLevelPath = ResolveRuntimeLevelPath(LevelPath);
   M_LOG(
+      Log,
       "[SceneManager] Queue level: requested={} runtime={} netMode={}",
       LevelPath,
       RuntimeLevelPath,
@@ -215,6 +219,7 @@ void SceneManager::ProcessSceneChanges() {
     auto NewScene = SceneFactory();
     if (!NewScene) {
       M_LOG(
+          Log,
           "[SceneManager] Scene change failed; current scene preserved: id={} levelPath={}",
           NewSceneId,
           NewLevelPath
@@ -250,6 +255,7 @@ void SceneManager::ProcessSceneChanges() {
       ImplPtr->CurrentScene->GetReplicationSystem()->NotifySceneLoaded();
     }
     M_LOG(
+        Log,
         "Scene changed to ID: {}, NetMode: {}, CameraActive: {}",
         ImplPtr->CurrentSceneId,
         static_cast<int>(ImplPtr->CurrentScene->GetNetMode()),

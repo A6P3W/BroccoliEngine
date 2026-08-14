@@ -172,7 +172,7 @@ inline void RegisterActorDescriptor(
 ) {
   std::string Error;
   if (!Registry.RegisterMethod(std::move(ClassName), std::move(Descriptor), &Error)) {
-    M_LOG_ERROR("Automation method registration failed: {}", Error);
+    M_LOG(Error, "Automation method registration failed: {}", Error);
     throw std::runtime_error(Error);
   }
 }
@@ -184,7 +184,7 @@ inline void RegisterComponentDescriptor(
 ) {
   std::string Error;
   if (!Registry.RegisterMethod(std::move(ClassName), std::move(Descriptor), &Error)) {
-    M_LOG_ERROR("Automation component method registration failed: {}", Error);
+    M_LOG(Error, "Automation component method registration failed: {}", Error);
     throw std::runtime_error(Error);
   }
 }

@@ -16,11 +16,11 @@
 #undef DrawTextEx
 #undef PlaySound
 
+#include <wrl/client.h>
+
 #include <filesystem>
 #include <system_error>
 #include <vector>
-
-#include <wrl/client.h>
 
 #include "BroccoliRaylib.h"
 #include "FileUtils.h"
@@ -131,6 +131,7 @@ void LogInitialDirectory(const char* DialogName, const std::string& ResourceDir)
   const bool bDirectoryExists =
       std::filesystem::is_directory(FileUtils::Utf8ToPath(ResourceDir), ErrorCode);
   M_LOG(
+      Log,
       "[FileDialog] {} initialDir='{}' isDirectory={} error={}",
       DialogName,
       ResourceDir,
@@ -195,10 +196,10 @@ std::string ShowFileDialog(
       const HRESULT FolderResult = SHCreateItemFromParsingName(
           WideResourceDir.c_str(), nullptr, IID_PPV_ARGS(&InitialFolder)
       );
-      M_LOG("[FileDialog] {} SHCreateItemFromParsingName result={}", DialogName, FolderResult);
+      M_LOG(Log, "[FileDialog] {} SHCreateItemFromParsingName result={}", DialogName, FolderResult);
       if (SUCCEEDED(FolderResult)) {
         const HRESULT SetFolderResult = Dialog->SetFolder(InitialFolder.Get());
-        M_LOG("[FileDialog] {} SetFolder result={}", DialogName, SetFolderResult);
+        M_LOG(Log, "[FileDialog] {} SetFolder result={}", DialogName, SetFolderResult);
       }
     }
 

@@ -167,6 +167,7 @@ void ANetworkTestPawn::BeginOverlap(AActor* OtherActor) {
     // コンソールおよびログファイルにデバッグ用メッセージを出力するエンジンログマクロ
     // NetworkId: アクターが一意に持つネットワーク識別子
     M_LOG(
+        Log,
         "Player overlap detected! My NetworkId: {}, Other NetworkId: {}",
         NetworkId,
         OtherPawn->NetworkId

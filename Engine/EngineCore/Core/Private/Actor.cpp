@@ -532,7 +532,7 @@ void AActor::EnsureNetComponentName(MActorComponent* Component) {
   }
 
   if (bRenamed) {
-    M_LOG("Duplicate NetComponentName on {}. Renamed to {}", GetActorClassName(), candidate);
+    M_LOG(Log, "Duplicate NetComponentName on {}. Renamed to {}", GetActorClassName(), candidate);
   }
 
   Component->SetNetComponentName(std::move(candidate));

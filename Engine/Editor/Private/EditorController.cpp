@@ -80,22 +80,22 @@ void EditorController::SetupInputMappings() {
 
 void EditorController::OnSelectModePressed() {
   EditorModePtr->SetActorAction(EActorAction::Select);
-  M_LOG("EditorMode: Select");
+  M_LOG(Log, "EditorMode: Select");
 }
 
 void EditorController::OnMoveModePressed() {
   EditorModePtr->SetActorAction(EActorAction::Move);
-  M_LOG("EditorMode: Move");
+  M_LOG(Log, "EditorMode: Move");
 }
 
 void EditorController::OnRotateModePressed() {
   EditorModePtr->SetActorAction(EActorAction::Rotate);
-  M_LOG("EditorMode: Rotate");
+  M_LOG(Log, "EditorMode: Rotate");
 }
 
 void EditorController::OnScaleModePressed() {
   EditorModePtr->SetActorAction(EActorAction::Scale);
-  M_LOG("EditorMode: Scale");
+  M_LOG(Log, "EditorMode: Scale");
 }
 
 void EditorController::OnCopyPressed() {

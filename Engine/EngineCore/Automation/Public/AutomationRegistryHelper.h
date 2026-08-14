@@ -130,7 +130,8 @@ nlohmann::json MakeInputSchema(const TParameters&... Parameters) {
           Required.push_back(Parameters.Name);
         }
       }(),
-      ...);
+      ...
+  );
 
   nlohmann::json Schema = {
       {"type", "object"}, {"properties", std::move(Properties)}, {"additionalProperties", false}
@@ -158,11 +159,7 @@ TValue ReadArgument(const nlohmann::json& Arguments, const TParameter& Parameter
 }
 
 template <class TTraits, class TParametersTuple, size_t... TIndices>
-auto ReadArguments(
-    const nlohmann::json& Arguments,
-    const TParametersTuple& Parameters,
-    std::index_sequence<TIndices...>
-) {
+auto ReadArguments(const nlohmann::json& Arguments, const TParametersTuple& Parameters, std::index_sequence<TIndices...>) {
   return std::tuple<TAutomationArgumentStorage<
       std::tuple_element_t<TIndices, typename TTraits::ArgumentTuple>>...>{
       ReadArgument<TAutomationArgumentStorage<
@@ -185,9 +182,8 @@ consteval bool ParametersMatch(std::index_sequence<TIndices...>) {
 
 template <class TReturn>
 nlohmann::json ConvertReturnValue(TReturn&& Result) {
-  return TAutomationJsonConverter<std::remove_cvref_t<TReturn>>::ToJson(
-      std::forward<TReturn>(Result)
-  );
+  return TAutomationJsonConverter<std::remove_cvref_t<TReturn>>::ToJson(std::forward<TReturn>(Result
+  ));
 }
 
 template <class TObject, class TMethod, class TParametersTuple>
@@ -230,7 +226,7 @@ inline void RegisterDescriptor(
 ) {
   std::string Error;
   if (!Registry.RegisterMethod(std::move(ClassName), std::move(Descriptor), &Error)) {
-    M_LOG_ERROR("Automation method registration failed: {}", Error);
+    M_LOG(Error, "Automation method registration failed: {}", Error);
     throw std::runtime_error(Error);
   }
 }
@@ -242,7 +238,7 @@ inline void RegisterComponentDescriptor(
 ) {
   std::string Error;
   if (!Registry.RegisterMethod(std::move(ClassName), std::move(Descriptor), &Error)) {
-    M_LOG_ERROR("Automation component method registration failed: {}", Error);
+    M_LOG(Error, "Automation component method registration failed: {}", Error);
     throw std::runtime_error(Error);
   }
 }
@@ -252,7 +248,7 @@ inline void RegisterSystemCommandDescriptor(
 ) {
   std::string Error;
   if (!Registry.RegisterCommand(std::move(Descriptor), &Error)) {
-    M_LOG_ERROR("Automation system command registration failed: {}", Error);
+    M_LOG(Error, "Automation system command registration failed: {}", Error);
     throw std::runtime_error(Error);
   }
 }
@@ -401,9 +397,8 @@ void RegisterMethodWithResultAdapter(
   );
   Descriptor.Handler = [Method,
                         ResultAdapter = std::move(ResultAdapter),
-                        ParameterDefinitions = std::move(ParameterDefinitions)](
-                           AActor& Actor, const nlohmann::json& Arguments
-                       ) {
+                        ParameterDefinitions = std::move(ParameterDefinitions
+                        )](AActor& Actor, const nlohmann::json& Arguments) {
     auto* TypedActor = dynamic_cast<TActor*>(&Actor);
     if (!TypedActor) {
       throw std::runtime_error("Automation actor type mismatch.");
@@ -468,9 +463,8 @@ void RegisterSystemCommand(
       [](const auto&... Values) { return Detail::MakeInputSchema(Values...); }, ParameterDefinitions
   );
   Descriptor.Handler = [Callable = std::move(Callable),
-                        ParameterDefinitions = std::move(ParameterDefinitions)](
-                           const nlohmann::json& Arguments
-                       ) mutable {
+                        ParameterDefinitions = std::move(ParameterDefinitions
+                        )](const nlohmann::json& Arguments) mutable {
     auto Values = Detail::ReadArguments<TTraits>(
         Arguments, ParameterDefinitions, std::make_index_sequence<TTraits::ArgumentCount>{}
     );
@@ -531,9 +525,8 @@ void RegisterSystemCommandWithResultAdapter(
   );
   Descriptor.Handler = [Callable = std::move(Callable),
                         ResultAdapter = std::move(ResultAdapter),
-                        ParameterDefinitions = std::move(ParameterDefinitions)](
-                           const nlohmann::json& Arguments
-                       ) mutable {
+                        ParameterDefinitions = std::move(ParameterDefinitions
+                        )](const nlohmann::json& Arguments) mutable {
     auto Values = Detail::ReadArguments<TTraits>(
         Arguments, ParameterDefinitions, std::make_index_sequence<TTraits::ArgumentCount>{}
     );

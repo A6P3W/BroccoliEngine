@@ -21,7 +21,12 @@ std::string GetActiveWiFiIPv4() {
       GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
   ULONG Result = GetAdaptersAddresses(AF_INET, Flags, nullptr, nullptr, &BufferSize);
   if (Result != ERROR_BUFFER_OVERFLOW || BufferSize == 0) {
-    M_LOG("[NetworkUtils] Adapter size lookup failed: result={} bufferSize={}", Result, BufferSize);
+    M_LOG(
+        Log,
+        "[NetworkUtils] Adapter size lookup failed: result={} bufferSize={}",
+        Result,
+        BufferSize
+    );
     return {};
   }
 
@@ -29,7 +34,7 @@ std::string GetActiveWiFiIPv4() {
   auto* Addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(Buffer.data());
   Result = GetAdaptersAddresses(AF_INET, Flags, nullptr, Addresses, &BufferSize);
   if (Result != NO_ERROR) {
-    M_LOG("[NetworkUtils] Adapter lookup failed: result={}", Result);
+    M_LOG(Log, "[NetworkUtils] Adapter lookup failed: result={}", Result);
     return {};
   }
 
@@ -59,6 +64,7 @@ std::string GetActiveWiFiIPv4() {
 
       LoggedAddress = true;
       M_LOG(
+          Log,
           "[NetworkUtils] IPv4 adapter candidate: adapter={} address={} prefix={} ifType={} "
           "status={} wifi={} gateway={}",
           Adapter->AdapterName ? Adapter->AdapterName : "<unknown>",
@@ -76,6 +82,7 @@ std::string GetActiveWiFiIPv4() {
 
     if (!LoggedAddress) {
       M_LOG(
+          Log,
           "[NetworkUtils] Adapter has no IPv4 address: adapter={} ifType={} status={} wifi={} "
           "gateway={}",
           Adapter->AdapterName ? Adapter->AdapterName : "<unknown>",
@@ -91,7 +98,7 @@ std::string GetActiveWiFiIPv4() {
 std::string GetDefaultRouteIPv4() {
   SOCKET RouteSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (RouteSocket == INVALID_SOCKET) {
-    M_LOG("[NetworkUtils] Default-route socket creation failed: {}", WSAGetLastError());
+    M_LOG(Log, "[NetworkUtils] Default-route socket creation failed: {}", WSAGetLastError());
     return {};
   }
 
@@ -104,7 +111,7 @@ std::string GetDefaultRouteIPv4() {
           reinterpret_cast<const sockaddr*>(&RouteTarget),
           static_cast<int>(sizeof(RouteTarget))
       ) == SOCKET_ERROR) {
-    M_LOG("[NetworkUtils] Default-route detection failed: {}", WSAGetLastError());
+    M_LOG(Log, "[NetworkUtils] Default-route detection failed: {}", WSAGetLastError());
     closesocket(RouteSocket);
     return {};
   }
@@ -113,7 +120,7 @@ std::string GetDefaultRouteIPv4() {
   int EndpointSize = static_cast<int>(sizeof(LocalEndpoint));
   if (getsockname(RouteSocket, reinterpret_cast<sockaddr*>(&LocalEndpoint), &EndpointSize) ==
       SOCKET_ERROR) {
-    M_LOG("[NetworkUtils] Default-route endpoint lookup failed: {}", WSAGetLastError());
+    M_LOG(Log, "[NetworkUtils] Default-route endpoint lookup failed: {}", WSAGetLastError());
     closesocket(RouteSocket);
     return {};
   }
@@ -126,7 +133,7 @@ std::string GetDefaultRouteIPv4() {
           AddressBuffer.data(),
           static_cast<DWORD>(AddressBuffer.size())
       )) {
-    M_LOG("[NetworkUtils] Default-route address conversion failed: {}", WSAGetLastError());
+    M_LOG(Log, "[NetworkUtils] Default-route address conversion failed: {}", WSAGetLastError());
     return {};
   }
   return AddressBuffer.data();
@@ -159,30 +166,34 @@ std::string NetworkUtils::GetLocalIPAddress() {
   WSADATA WsaData = {};
   const int StartupResult = WSAStartup(MAKEWORD(2, 2), &WsaData);
   if (StartupResult != 0) {
-    M_LOG("[NetworkUtils] WSAStartup failed: {}", StartupResult);
+    M_LOG(Log, "[NetworkUtils] WSAStartup failed: {}", StartupResult);
     return {};
   }
 
   const std::string WiFiAddress = GetActiveWiFiIPv4();
   if (!WiFiAddress.empty()) {
-    M_LOG("[NetworkUtils] Local IPv4 address selected from active Wi-Fi: {}", WiFiAddress);
+    M_LOG(Log, "[NetworkUtils] Local IPv4 address selected from active Wi-Fi: {}", WiFiAddress);
     WSACleanup();
     return WiFiAddress;
   }
 
-  M_LOG("[NetworkUtils] Active Wi-Fi address unavailable. Trying the default route.");
+  M_LOG(Log, "[NetworkUtils] Active Wi-Fi address unavailable. Trying the default route.");
 
   const std::string DefaultRouteAddress = GetDefaultRouteIPv4();
   if (!DefaultRouteAddress.empty()) {
-    M_LOG("[NetworkUtils] Local IPv4 address selected from default route: {}", DefaultRouteAddress);
+    M_LOG(
+        Log,
+        "[NetworkUtils] Local IPv4 address selected from default route: {}",
+        DefaultRouteAddress
+    );
     WSACleanup();
     return DefaultRouteAddress;
   }
 
-  M_LOG("[NetworkUtils] Default-route address unavailable. Falling back to host addresses.");
+  M_LOG(Log, "[NetworkUtils] Default-route address unavailable. Falling back to host addresses.");
   char HostName[256] = {};
   if (gethostname(HostName, static_cast<int>(sizeof(HostName))) != 0) {
-    M_LOG("[NetworkUtils] gethostname failed: {}", WSAGetLastError());
+    M_LOG(Log, "[NetworkUtils] gethostname failed: {}", WSAGetLastError());
     WSACleanup();
     return {};
   }
@@ -194,7 +205,7 @@ std::string NetworkUtils::GetLocalIPAddress() {
   addrinfo* ResultList = nullptr;
   const int AddrInfoResult = getaddrinfo(HostName, nullptr, &Hints, &ResultList);
   if (AddrInfoResult != 0) {
-    M_LOG("[NetworkUtils] getaddrinfo failed: {}", AddrInfoResult);
+    M_LOG(Log, "[NetworkUtils] getaddrinfo failed: {}", AddrInfoResult);
     WSACleanup();
     return {};
   }
@@ -228,9 +239,9 @@ std::string NetworkUtils::GetLocalIPAddress() {
   WSACleanup();
 
   if (BestAddress.empty()) {
-    M_LOG("[NetworkUtils] Local IPv4 address was not found.");
+    M_LOG(Log, "[NetworkUtils] Local IPv4 address was not found.");
   } else {
-    M_LOG("[NetworkUtils] Fallback local IPv4 address selected: {}", BestAddress);
+    M_LOG(Log, "[NetworkUtils] Fallback local IPv4 address selected: {}", BestAddress);
   }
 
   return BestAddress;

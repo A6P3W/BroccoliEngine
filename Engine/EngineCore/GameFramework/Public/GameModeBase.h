@@ -1,12 +1,12 @@
 #pragma once
-#include "BroccoliEngineAPI.h"
 #include <string>
 
 #include "Actor.h"
+#include "ActorManager.h"
+#include "BroccoliEngineAPI.h"
 #include "CollisionSystem.h"
 #include "Log.h"
 #include "NetworkTypes.h"
-#include "ActorManager.h"
 #include "PlayerController.h"
 #include "TimerManager.h"
 #include "UMath.h"
@@ -64,7 +64,13 @@ class BROCCOLI_ENGINE_API AGameModeBase : public AActor {
     auto* Pawn = GetWorld()->SpawnActor<TPawn>(Location);
     SetPlayerPawn(Pawn);
     Controller->Possess(Pawn);
-    M_LOG("Spawned Player Pawn: {} at ({}, {})", Pawn->GetActorClassName(), Location.X, Location.Y);
+    M_LOG(
+        Log,
+        "Spawned Player Pawn: {} at ({}, {})",
+        Pawn->GetActorClassName(),
+        Location.X,
+        Location.Y
+    );
     return Controller;
   }
 

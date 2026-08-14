@@ -1,14 +1,13 @@
 #include "GameModeBase.h"
 
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
-#include "NetworkManager.h"
-
+#include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "CameraComponent.h"
 #include "CollisionSystem.h"
-#include "ActorManager.h"
+#include "NetworkManager.h"
 #include "Pawn.h"
 #include "PlayerStart.h"
 #include "TimerManager.h"
@@ -36,11 +35,17 @@ AGameModeBase::AGameModeBase() : ImplPtr(new Impl()) {
 
 AGameModeBase::~AGameModeBase() { delete ImplPtr; }
 APawn* AGameModeBase::GetPlayerPawn() const { return ImplPtr->PlayerPawn; }
-const std::string& AGameModeBase::GetDefaultPlayerControllerClass() const { return ImplPtr->DefaultPlayerControllerClass; }
+const std::string& AGameModeBase::GetDefaultPlayerControllerClass() const {
+  return ImplPtr->DefaultPlayerControllerClass;
+}
 bool AGameModeBase::IsHostPlayerSpawned() const { return ImplPtr->HostPlayerSpawned; }
 void AGameModeBase::SetPlayerPawn(APawn* Pawn) { ImplPtr->PlayerPawn = Pawn; }
-void AGameModeBase::SetDefaultPawnClass(const std::string& ClassName) { ImplPtr->DefaultPawnClass = ClassName; }
-void AGameModeBase::SetDefaultPlayerControllerClass(const std::string& ClassName) { ImplPtr->DefaultPlayerControllerClass = ClassName; }
+void AGameModeBase::SetDefaultPawnClass(const std::string& ClassName) {
+  ImplPtr->DefaultPawnClass = ClassName;
+}
+void AGameModeBase::SetDefaultPlayerControllerClass(const std::string& ClassName) {
+  ImplPtr->DefaultPlayerControllerClass = ClassName;
+}
 void AGameModeBase::BeginPlay() {
   AActor::BeginPlay();
   if (GetWorld() && GetWorld()->IsServer() && !ImplPtr->HostPlayerSpawned) {
@@ -70,6 +75,7 @@ void AGameModeBase::OnClientDisconnected(FNetworkConnectionId ConnectionId) {
       if (dynamic_cast<APlayerController*>(actor) || dynamic_cast<APawn*>(actor)) {
         actor->Destroy();
         M_LOG(
+            Log,
             "Destroyed actor {} for disconnected client {}",
             actor->GetActorClassName(),
             ConnectionId
@@ -145,11 +151,16 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
   if (ConnectionId == 0) {
     controller = GetWorld()->GetOrCreateLocalPlayerController();
   } else {
-    AActor* controllerActor =
-        registry.Spawn(GetWorld(), ImplPtr->DefaultPlayerControllerClass, spawnLocation, spawnRotation);
+    AActor* controllerActor = registry.Spawn(
+        GetWorld(), ImplPtr->DefaultPlayerControllerClass, spawnLocation, spawnRotation
+    );
     controller = dynamic_cast<APlayerController*>(controllerActor);
     if (!controller) {
-      M_LOG("SpawnDefaultPlayer failed: {} is not APlayerController", ImplPtr->DefaultPlayerControllerClass);
+      M_LOG(
+          Log,
+          "SpawnDefaultPlayer failed: {} is not APlayerController",
+          ImplPtr->DefaultPlayerControllerClass
+      );
       if (controllerActor) {
         controllerActor->Destroy();
       }
@@ -157,10 +168,11 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
     }
   }
 
-  AActor* pawnActor = registry.Spawn(GetWorld(), ImplPtr->DefaultPawnClass, spawnLocation, spawnRotation);
+  AActor* pawnActor =
+      registry.Spawn(GetWorld(), ImplPtr->DefaultPawnClass, spawnLocation, spawnRotation);
   auto* pawn = dynamic_cast<APawn*>(pawnActor);
   if (!pawn) {
-    M_LOG("SpawnDefaultPlayer failed: {} is not APawn", ImplPtr->DefaultPawnClass);
+    M_LOG(Log, "SpawnDefaultPlayer failed: {} is not APawn", ImplPtr->DefaultPawnClass);
     if (pawnActor) {
       pawnActor->Destroy();
     }
@@ -191,6 +203,7 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
   controller->Possess(pawn);
 
   M_LOG(
+      Log,
       "Spawned Player Pawn: {} at ({}, {})",
       pawn->GetActorClassName(),
       spawnLocation.X,

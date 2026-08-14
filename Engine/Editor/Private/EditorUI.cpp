@@ -128,7 +128,7 @@ void EditorUI::DrawCreateNewActorModal(EditorMode* editorMode) {
       Request.ParentClassName = ParentClassName;
       Request.OutputDirectory = FileUtils::Utf8ToPath(SelectedPath);
       LastResult = Generator.Generate(Request);
-      M_LOG("{}", LastResult.Message);
+      M_LOG(Log, "{}", LastResult.Message);
       if (LastResult.bSuccess) {
         std::memset(ClassName, 0, sizeof(ClassName));
       }

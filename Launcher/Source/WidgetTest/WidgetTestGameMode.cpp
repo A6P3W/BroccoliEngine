@@ -32,11 +32,11 @@ void AWidgetTestGameMode::BeginPlay() {
   UIManager::GetInstance()->AddWidget(mainMenuWidget);
   UIManager::GetInstance()->SetFocusedWidget(mainMenuWidget);
 
-  M_LOG("WidgetTestGameMode: MUIVerticalBoxComponent sample is available in WidgetTestUIMain.");
+  M_LOG(Log, "WidgetTestGameMode: MUIVerticalBoxComponent sample is available in WidgetTestUIMain.");
 
   // キャンバステストアクターを動的にスポーン
   GetWorld()->GetActorManager()->SpawnObject<ACanvasTestActor>();
-  M_LOG("WidgetTestGameMode: CanvasTestActor spawned.");
+  M_LOG(Log, "WidgetTestGameMode: CanvasTestActor spawned.");
 }
 
 void AWidgetTestGameMode::OnUpdate(float DeltaTime) { AGameModeBase::OnUpdate(DeltaTime); }

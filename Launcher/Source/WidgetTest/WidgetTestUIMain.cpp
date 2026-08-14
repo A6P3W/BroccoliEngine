@@ -154,32 +154,32 @@ AWidgetTestUIMain::AWidgetTestUIMain() {
   committedText->RegisterComponent();
 
   // 各種UIの押下・値変更時のイベントハンドリングを設定
-  StartBtnPtr->SetOnPressed([]() { M_LOG("Start Game!"); });
+  StartBtnPtr->SetOnPressed([]() { M_LOG(Log, "Start Game!"); });
 
   // トグルボタンの状態変更イベント
   ToggleBtnPtr->SetOnToggled([ToggleTextPtr](bool bIsOn) {
     ToggleTextPtr->SetText(bIsOn ? "Toggle: ON" : "Toggle: OFF");
-    M_LOG("Toggle Button: {}", bIsOn ? "ON" : "OFF");
+    M_LOG(Log, "Toggle Button: {}", bIsOn ? "ON" : "OFF");
   });
 
   // テキストボックスの編集中の文字列変更イベント
-  NameInputPtr->SetOnTextChanged([](const std::string& text) { M_LOG("Input changed: {}", text); });
+  NameInputPtr->SetOnTextChanged([](const std::string& text) { M_LOG(Log, "Input changed: {}", text); });
 
   // テキストボックスの編集完了（Enter押下など）イベント
   NameInputPtr->SetOnTextCommitted([CommittedTextPtr](const std::string& text) {
     const std::string displayText = text.empty() ? "<empty>" : text;
     CommittedTextPtr->SetText("Input: " + displayText);
-    M_LOG("Input committed: {}", displayText);
+    M_LOG(Log, "Input committed: {}", displayText);
   });
 
   // ゲーム終了処理のイベント
   ExitBtnPtr->SetOnPressed([]() {
-    M_LOG("Exit Game!");
+    M_LOG(Log, "Exit Game!");
     // アプリケーションを終了する
     Application::QuitGame();
   });
-  LeftNavBtnPtr->SetOnPressed([]() { M_LOG("Left navigation button pressed."); });
-  RightNavBtnPtr->SetOnPressed([]() { M_LOG("Right navigation button pressed."); });
+  LeftNavBtnPtr->SetOnPressed([]() { M_LOG(Log, "Left navigation button pressed."); });
+  RightNavBtnPtr->SetOnPressed([]() { M_LOG(Log, "Right navigation button pressed."); });
 
   // 垂直ボックス内の要素間で、上下の方向キー操作によるナビゲーション（フォーカス遷移）を自動構築
   VerticalBoxPtr->BuildNavigation();

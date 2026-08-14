@@ -52,7 +52,7 @@ class FENetTransport final : public INetworkTransport {
  public:
   FENetTransport() {
     Initialized = enet_initialize() == 0;
-    M_LOG("[NetworkTransport] Created transport=ENet initialized={}", Initialized);
+    M_LOG(Log, "[NetworkTransport] Created transport=ENet initialized={}", Initialized);
   }
 
   ~FENetTransport() override {
@@ -65,7 +65,7 @@ class FENetTransport final : public INetworkTransport {
   bool StartHost(uint16_t Port, size_t MaxConnections, size_t ChannelCount) override {
     Stop();
     if (!Initialized) {
-      M_LOG("[NetworkTransport] ENet StartHost failed: ENet is not initialized.");
+      M_LOG(Log, "[NetworkTransport] ENet StartHost failed: ENet is not initialized.");
       return false;
     }
 
@@ -74,11 +74,12 @@ class FENetTransport final : public INetworkTransport {
     Address.port = Port;
     Host = enet_host_create(&Address, MaxConnections, ChannelCount, 0, 0);
     if (!Host) {
-      M_LOG("[NetworkTransport] ENet StartHost failed: port={}", Port);
+      M_LOG(Log, "[NetworkTransport] ENet StartHost failed: port={}", Port);
       return false;
     }
 
     M_LOG(
+        Log,
         "[NetworkTransport] ENet host started: port={} maxPeers={} channels={}",
         Port,
         MaxConnections,
@@ -87,25 +88,24 @@ class FENetTransport final : public INetworkTransport {
     return true;
   }
 
-  bool Connect(
-      const FNetworkEndpoint& Endpoint, size_t ChannelCount, FNetworkPeerId& OutPeerId
-  ) override {
+  bool Connect(const FNetworkEndpoint& Endpoint, size_t ChannelCount, FNetworkPeerId& OutPeerId)
+      override {
     Stop();
     OutPeerId = 0;
     if (!Initialized) {
-      M_LOG("[NetworkTransport] ENet Connect failed: ENet is not initialized.");
+      M_LOG(Log, "[NetworkTransport] ENet Connect failed: ENet is not initialized.");
       return false;
     }
 
     Host = enet_host_create(nullptr, 1, ChannelCount, 0, 0);
     if (!Host) {
-      M_LOG("[NetworkTransport] ENet Connect failed: client host creation failed.");
+      M_LOG(Log, "[NetworkTransport] ENet Connect failed: client host creation failed.");
       return false;
     }
 
     ENetAddress Address{};
     if (enet_address_set_host(&Address, Endpoint.HostName.c_str()) != 0) {
-      M_LOG("[NetworkTransport] ENet Connect failed: host={}", Endpoint.HostName);
+      M_LOG(Log, "[NetworkTransport] ENet Connect failed: host={}", Endpoint.HostName);
       Stop();
       return false;
     }
@@ -113,13 +113,14 @@ class FENetTransport final : public INetworkTransport {
 
     ENetPeer* Peer = enet_host_connect(Host, &Address, ChannelCount, 0);
     if (!Peer) {
-      M_LOG("[NetworkTransport] ENet Connect failed: peer creation failed.");
+      M_LOG(Log, "[NetworkTransport] ENet Connect failed: peer creation failed.");
       Stop();
       return false;
     }
 
     OutPeerId = RegisterPeer(Peer);
     M_LOG(
+        Log,
         "[NetworkTransport] ENet connection requested: host={} port={} peer={} resolved={} "
         "state={} channels={}",
         Endpoint.HostName,
@@ -141,6 +142,7 @@ class FENetTransport final : public INetworkTransport {
     const int ServiceResult = enet_host_service(Host, &Event, 0);
     if (ServiceResult < 0) {
       M_LOG(
+          Log,
           "[NetworkTransport] ENet service error: result={} peerCount={}",
           ServiceResult,
           PeersById.size()
@@ -155,6 +157,7 @@ class FENetTransport final : public INetworkTransport {
       case ENET_EVENT_TYPE_CONNECT: {
         const FNetworkPeerId PeerId = RegisterPeer(Event.peer);
         M_LOG(
+            Log,
             "[NetworkTransport] ENet peer connected: peer={} remote={} state={} eventData={} "
             "roundTripTime={} packetLoss={}",
             PeerId,
@@ -177,6 +180,7 @@ class FENetTransport final : public INetworkTransport {
         const enet_uint32 PacketLoss = Event.peer->packetLoss;
         RemovePeer(Event.peer);
         M_LOG(
+            Log,
             "[NetworkTransport] ENet peer disconnected: peer={} remote={} state={} eventData={} "
             "roundTripTime={} packetLoss={}",
             PeerId,
@@ -282,7 +286,7 @@ class FENetTransport final : public INetworkTransport {
     enet_host_destroy(Host);
     Host = nullptr;
     ClearPeers();
-    M_LOG("[NetworkTransport] ENet transport stopped.");
+    M_LOG(Log, "[NetworkTransport] ENet transport stopped.");
   }
 
   bool IsRunning() const override { return Host != nullptr; }
@@ -322,6 +326,7 @@ class FENetTransport final : public INetworkTransport {
 
     LoggedSend = true;
     M_LOG(
+        Log,
         "[ENetTransportTest] Send verified: reliability={} target={} channel={} bytes={}",
         Reliability == ENetPacketReliability::Reliable ? "Reliable" : "Unreliable",
         Target,

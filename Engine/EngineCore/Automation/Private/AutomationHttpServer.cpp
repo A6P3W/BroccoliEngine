@@ -145,7 +145,8 @@ struct FAutomationHttpServer::Impl {
     Server.set_payload_max_length(Config.MaxRequestBodyBytes);
 
     Server.Get(
-        "/api/v1/state", [this](const httplib::Request& Request, httplib::Response& Response) {
+        "/api/v1/state",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
           try {
             if (Request.body.size() > Config.MaxRequestBodyBytes) {
               SetJsonResponse(
@@ -206,7 +207,8 @@ struct FAutomationHttpServer::Impl {
         }
     );
     Server.Get(
-        "/api/v1/system/commands", [this](const httplib::Request&, httplib::Response& Response) {
+        "/api/v1/system/commands",
+        [this](const httplib::Request&, httplib::Response& Response) {
           try {
             const FAutomationHttpResponse ApiResponse = ApiController.GetSystemCommands();
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
@@ -220,7 +222,8 @@ struct FAutomationHttpServer::Impl {
         }
     );
     Server.Get(
-        "/api/v1/actor-classes", [this](const httplib::Request&, httplib::Response& Response) {
+        "/api/v1/actor-classes",
+        [this](const httplib::Request&, httplib::Response& Response) {
           try {
             const FAutomationHttpResponse ApiResponse = ApiController.GetActorClasses();
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
@@ -421,24 +424,46 @@ struct FAutomationHttpServer::Impl {
         }
     );
 
-    Server.Get(R"(/api/v1/world/actors/([0-9]+)/components/([0-9]+)/methods)", [this](const httplib::Request& Request, httplib::Response& Response) {
-      try {
-        const FAutomationHttpResponse ApiResponse = ApiController.GetWorldActorComponentMethods(Request.matches[1].str(), Request.matches[2].str());
-        SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
-      } catch (...) {
-        SetJsonResponse(Response, 500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage));
-      }
-    });
-    Server.Post(R"(/api/v1/world/actors/([0-9]+)/components/([0-9]+)/methods/([a-z][a-z0-9_]{0,127}))", [this](const httplib::Request& Request, httplib::Response& Response) {
-      try {
-        nlohmann::json Body;
-        if (!TryParseJsonBody(Request, Response, Config.MaxRequestBodyBytes, Body)) return;
-        const FAutomationHttpResponse ApiResponse = ApiController.InvokeWorldActorComponentMethod(Request.matches[1].str(), Request.matches[2].str(), Request.matches[3].str(), Body);
-        SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
-      } catch (...) {
-        SetJsonResponse(Response, 500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage));
-      }
-    });
+    Server.Get(
+        R"(/api/v1/world/actors/([0-9]+)/components/([0-9]+)/methods)",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            const FAutomationHttpResponse ApiResponse = ApiController.GetWorldActorComponentMethods(
+                Request.matches[1].str(), Request.matches[2].str()
+            );
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
+    Server.Post(
+        R"(/api/v1/world/actors/([0-9]+)/components/([0-9]+)/methods/([a-z][a-z0-9_]{0,127}))",
+        [this](const httplib::Request& Request, httplib::Response& Response) {
+          try {
+            nlohmann::json Body;
+            if (!TryParseJsonBody(Request, Response, Config.MaxRequestBodyBytes, Body)) return;
+            const FAutomationHttpResponse ApiResponse =
+                ApiController.InvokeWorldActorComponentMethod(
+                    Request.matches[1].str(),
+                    Request.matches[2].str(),
+                    Request.matches[3].str(),
+                    Body
+                );
+            SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
+          } catch (...) {
+            SetJsonResponse(
+                Response,
+                500,
+                MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)
+            );
+          }
+        }
+    );
 
     const auto MethodNotAllowedHandler = [](const httplib::Request&, httplib::Response& Response) {
       SetJsonResponse(
@@ -567,6 +592,7 @@ bool FAutomationHttpServer::Start() {
 
   if (ImplPtr->Config.BindAddress != "127.0.0.1" || ImplPtr->Config.Port == 0) {
     M_LOG(
+        Log,
         "Automation server refused invalid bind configuration: {}:{}",
         ImplPtr->Config.BindAddress,
         ImplPtr->Config.Port
@@ -574,11 +600,14 @@ bool FAutomationHttpServer::Start() {
     return false;
   }
 
-  M_LOG("Automation server starting on {}:{}", ImplPtr->Config.BindAddress, ImplPtr->Config.Port);
+  M_LOG(
+      Log, "Automation server starting on {}:{}", ImplPtr->Config.BindAddress, ImplPtr->Config.Port
+  );
   const int BoundPort =
       ImplPtr->Server.bind_to_port(ImplPtr->Config.BindAddress, ImplPtr->Config.Port);
   if (BoundPort < 0) {
     M_LOG(
+        Log,
         "Automation server failed to bind to {}:{}",
         ImplPtr->Config.BindAddress,
         ImplPtr->Config.Port
@@ -593,22 +622,22 @@ bool FAutomationHttpServer::Start() {
       const bool ListenSucceeded = ImplPtr->Server.listen_after_bind();
       ImplPtr->bRunning.store(false);
       if (!ListenSucceeded && !ImplPtr->bStopRequested.load()) {
-        M_LOG("Automation server listener stopped unexpectedly.");
+        M_LOG(Log, "Automation server listener stopped unexpectedly.");
       }
     });
   } catch (const std::exception& Exception) {
     ImplPtr->bRunning.store(false);
     ImplPtr->Server.stop();
-    M_LOG("Automation server thread creation failed: {}", Exception.what());
+    M_LOG(Log, "Automation server thread creation failed: {}", Exception.what());
     return false;
   } catch (...) {
     ImplPtr->bRunning.store(false);
     ImplPtr->Server.stop();
-    M_LOG("Automation server thread creation failed.");
+    M_LOG(Log, "Automation server thread creation failed.");
     return false;
   }
 
-  M_LOG("Automation server listening on {}:{}", ImplPtr->Config.BindAddress, BoundPort);
+  M_LOG(Log, "Automation server listening on {}:{}", ImplPtr->Config.BindAddress, BoundPort);
   return true;
 }
 
@@ -630,9 +659,9 @@ void FAutomationHttpServer::Stop() {
   StopAcceptingRequests();
   std::scoped_lock Lock(ImplPtr->LifecycleMutex);
   if (ImplPtr->ServerThread.joinable()) {
-    M_LOG("Automation server stopping.");
+    M_LOG(Log, "Automation server stopping.");
     ImplPtr->ServerThread.join();
-    M_LOG("Automation server stopped.");
+    M_LOG(Log, "Automation server stopped.");
   }
   ImplPtr->bRunning.store(false);
 }

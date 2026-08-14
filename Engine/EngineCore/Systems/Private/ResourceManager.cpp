@@ -157,6 +157,7 @@ class FRaylibResourceStore {
     Resource.Path = GetFontPath(Weight);
     if (!FontFileExists(Resource.Path)) {
       M_LOG(
+          Log,
           "Font file for weight {} was not found at: {}. Falling back to weight {}.",
           Weight,
           Resource.Path,
@@ -171,7 +172,9 @@ class FRaylibResourceStore {
     if (!Resource.OwnsFont) {
       Resource.FontData = GetFontDefault();
       M_LOG(
-          "Font file was not found at: {}. Falling back to the raylib default font.", Resource.Path
+          Log,
+          "Font file was not found at: {}. Falling back to the raylib default font.",
+          Resource.Path
       );
     }
 
@@ -322,7 +325,7 @@ int ResourceManager::LoadResourceGraph(const std::string& Path) {
   const std::string ResolvedPath = PathResolver::Resolve(Path);
   int Handle = GetResourceStore().LoadTextureResource(ResolvedPath);
   if (Handle == InvalidResourceHandle) {
-    M_LOG("Texture load failed: {}. Using the default texture.", ResolvedPath);
+    M_LOG(Log, "Texture load failed: {}. Using the default texture.", ResolvedPath);
     Handle = ImplPtr->DefaultGraph;
     GetResourceStore().AddTextureAlias(ResolvedPath, Handle);
   }
@@ -334,7 +337,7 @@ int ResourceManager::NormalizeFontWeight(int Weight) {
     return Weight;
   }
 
-  M_LOG("Invalid font weight: {}. Falling back to {}.", Weight, DefaultFontWeight);
+  M_LOG(Log, "Invalid font weight: {}. Falling back to {}.", Weight, DefaultFontWeight);
   return DefaultFontWeight;
 }
 

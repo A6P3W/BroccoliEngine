@@ -15,7 +15,7 @@ void ASceneLifecycleActor::BeginPlay() {
       LifecycleTimer, this, &ASceneLifecycleActor::ToggleSpawnedActor, 3.0f, true
   );
   ToggleSpawnedActor();
-  M_LOG("SceneLifecycleActor: a marker is spawned/destroyed every three seconds.");
+  M_LOG(Log, "SceneLifecycleActor: a marker is spawned/destroyed every three seconds.");
 }
 
 void ASceneLifecycleActor::OnUpdate(float DeltaTime) {
@@ -29,7 +29,7 @@ void ASceneLifecycleActor::OnUpdate(float DeltaTime) {
 void ASceneLifecycleActor::ToggleSpawnedActor() {
   // 生成済みのアクターが存在し、かつそれが破棄中ではない場合、そのアクターを破棄する
   if (SpawnedActor && !SpawnedActor->IsPendingDestroy()) {
-    M_LOG("SceneTest: destroy spawned marker.");
+    M_LOG(Log, "SceneTest: destroy spawned marker.");
     // アクターをワールドから完全に破棄
     SpawnedActor->Destroy();
     SpawnedActor = nullptr;
@@ -42,7 +42,7 @@ void ASceneLifecycleActor::ToggleSpawnedActor() {
     SpawnedActor = GetWorld()->SpawnActor<ASceneSpawnedMarkerActor>(
         GetActorLocation() + FVector2D{140.0f, 0.0f}
     );
-    M_LOG("SceneTest: spawn marker actor.");
+    M_LOG(Log, "SceneTest: spawn marker actor.");
   }
 }
 

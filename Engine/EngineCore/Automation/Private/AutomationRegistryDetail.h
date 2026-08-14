@@ -28,7 +28,7 @@ inline bool RejectRegistration(
     *OutError = Message;
   }
 
-  M_LOG("Automation {} registration rejected: {}", RegistryName, Message);
+  M_LOG(Log, "Automation {} registration rejected: {}", RegistryName, Message);
   return false;
 }
 

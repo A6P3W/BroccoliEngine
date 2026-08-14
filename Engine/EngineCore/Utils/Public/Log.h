@@ -12,12 +12,12 @@
 
 #include "BroccoliEngineAPI.h"
 
-enum class ELogLevel : uint8_t { Debug = 0, Info, Warning, Error };
+enum class ELogLevel : uint8_t { Debug = 0, Log, Warning, Error };
 
 struct FLogEntry {
   uint64_t Sequence = 0;
   std::chrono::system_clock::time_point Timestamp;
-  ELogLevel Level = ELogLevel::Info;
+  ELogLevel Level = ELogLevel::Log;
   std::string Category;
   std::string Message;
 };
@@ -40,12 +40,7 @@ struct FLogQueryResult {
 class BROCCOLI_ENGINE_API MLog {
  public:
   template <typename... Args>
-  static void Log(const char* FunctionName, std::string_view Format, Args&&... Arguments) noexcept {
-    LogWithLevel(ELogLevel::Info, FunctionName, Format, std::forward<Args>(Arguments)...);
-  }
-
-  template <typename... Args>
-  static void LogWithLevel(
+  static void Log(
       ELogLevel Level, const char* FunctionName, std::string_view Format, Args&&... Arguments
   ) noexcept {
     try {
@@ -63,6 +58,11 @@ class BROCCOLI_ENGINE_API MLog {
     }
   }
 
+  static void Initialize();
+  static void Shutdown();
+  static void EndFrame();
+  static void Flush();
+
   static FLogQueryResult GetRecentEntries(const FLogQuery& Query);
   static std::string_view ToLevelString(ELogLevel Level);
   static std::string FormatTimestamp(const std::chrono::system_clock::time_point& Timestamp);
@@ -71,10 +71,6 @@ class BROCCOLI_ENGINE_API MLog {
   static void Write(ELogLevel Level, std::string_view Category, std::string_view Message) noexcept;
 };
 
-#define M_LOG(fmt, ...) MLog::LogWithLevel(ELogLevel::Info, __FUNCTION__, fmt, ##__VA_ARGS__)
-#define M_LOG_DEBUG(fmt, ...) MLog::LogWithLevel(ELogLevel::Debug, __FUNCTION__, fmt, ##__VA_ARGS__)
-#define M_LOG_WARNING(fmt, ...) \
-  MLog::LogWithLevel(ELogLevel::Warning, __FUNCTION__, fmt, ##__VA_ARGS__)
-#define M_LOG_ERROR(fmt, ...) MLog::LogWithLevel(ELogLevel::Error, __FUNCTION__, fmt, ##__VA_ARGS__)
+#define M_LOG(Level, Format, ...) MLog::Log(ELogLevel::Level, __FUNCTION__, Format, ##__VA_ARGS__)
 
 #include "DebugOverlay.h"

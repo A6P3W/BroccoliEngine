@@ -231,9 +231,6 @@ std::string PathResolver::Resolve(const std::string& Path) {
   const std::filesystem::path PathObj = FileUtils::Utf8ToPath(Path);
   if (PathObj.is_absolute()) {
     std::string Normalized = NormalizePath(Path);
-#if defined(_DEBUG)
-    M_LOG("[PathResolver] Resolve (absolute): input='{}' -> result='{}'", Path, Normalized);
-#endif
     return Normalized;
   }
 
@@ -249,12 +246,6 @@ std::string PathResolver::Resolve(const std::string& Path) {
   } else {
     Result = Sanitized;
   }
-
-#if defined(_DEBUG)
-  M_LOG(
-      "[PathResolver] Resolve: input='{}' sanitized='{}' -> result='{}'", Path, Sanitized, Result
-  );
-#endif
   return Result;
 }
 
@@ -304,13 +295,16 @@ void PathResolver::InitializeWorkingDirectory() {
       const bool IsGameRootDirectory = std::filesystem::is_directory(GameRoot, ErrorCode);
       if (ErrorCode) {
         M_LOG(
+            Log,
             "Failed to inspect game directory {}: {}",
             FileUtils::PathToUtf8(GameRoot),
             ErrorCode.message()
         );
       } else if (!IsGameRootDirectory) {
         M_LOG(
-            "Game directory was not found under project root: {}", FileUtils::PathToUtf8(GameRoot)
+            Log,
+            "Game directory was not found under project root: {}",
+            FileUtils::PathToUtf8(GameRoot)
         );
       } else {
         ErrorCode.clear();
@@ -320,11 +314,12 @@ void PathResolver::InitializeWorkingDirectory() {
           if (!GGameSourceDir.empty() && GGameSourceDir.back() != '/') {
             GGameSourceDir += '/';
           }
-          M_LOG("Working directory set to game folder: {}", GGameSourceDir);
-          M_LOG("Game resource directory: {}", GetGameResourceDir());
+          M_LOG(Log, "Working directory set to game folder: {}", GGameSourceDir);
+          M_LOG(Log, "Game resource directory: {}", GetGameResourceDir());
           return;
         }
         M_LOG(
+            Log,
             "Failed to set working directory to game folder {}: {}",
             FileUtils::PathToUtf8(GameRoot),
             ErrorCode.message()
@@ -338,12 +333,12 @@ void PathResolver::InitializeWorkingDirectory() {
       std::error_code ErrorCode;
       std::filesystem::current_path(FileUtils::Utf8ToPath(GameSourceDir), ErrorCode);
       if (ErrorCode) {
-        M_LOG("Failed to set working directory to {}: {}", GameSourceDir, ErrorCode.message());
+        M_LOG(Log, "Failed to set working directory to {}: {}", GameSourceDir, ErrorCode.message());
       } else {
-        M_LOG("Working directory set to game folder: {}", GameSourceDir);
+        M_LOG(Log, "Working directory set to game folder: {}", GameSourceDir);
       }
     } else {
-      M_LOG("Could not detect GameSourceDir. Keeping current working directory.");
+      M_LOG(Log, "Could not detect GameSourceDir. Keeping current working directory.");
     }
   }
 }

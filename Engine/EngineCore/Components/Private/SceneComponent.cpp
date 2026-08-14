@@ -22,9 +22,7 @@ struct MSceneComponent::Impl {
 };
 MSceneComponent::MSceneComponent() : ImplPtr(new Impl()) {}
 
-MSceneComponent::~MSceneComponent() {
-  delete ImplPtr;
-}
+MSceneComponent::~MSceneComponent() { delete ImplPtr; }
 
 MSceneComponent* MSceneComponent::GetParentComponent() const { return ImplPtr->ParentComponent; }
 
@@ -66,14 +64,14 @@ bool MSceneComponent::AttachToComponent(
     MSceneComponent* Parent, const FAttachmentTransformRules& Rules
 ) {
   if (Parent == this) {
-    M_LOG("AttachToComponent rejected: parent is self.");
+    M_LOG(Log, "AttachToComponent rejected: parent is self.");
     return false;
   }
 
   for (MSceneComponent* Current = Parent; Current != nullptr;
        Current = Current->GetParentComponent()) {
     if (Current == this) {
-      M_LOG("AttachToComponent rejected: cyclic component hierarchy.");
+      M_LOG(Log, "AttachToComponent rejected: cyclic component hierarchy.");
       return false;
     }
   }
@@ -96,7 +94,7 @@ bool MSceneComponent::AttachToComponent(
     } else {
       const FScale ParentScale = Parent->GetWorldScale();
       if (std::abs(ParentScale.Scale) < 1e-6f) {
-        M_LOG("AttachToComponent rejected: parent scale is zero.");
+        M_LOG(Log, "AttachToComponent rejected: parent scale is zero.");
         return false;
       }
 
@@ -121,7 +119,7 @@ bool MSceneComponent::AttachToComponent(
     } else {
       const FScale ParentScale = Parent->GetWorldScale();
       if (std::abs(ParentScale.Scale) < 1e-6f) {
-        M_LOG("AttachToComponent rejected: parent scale is zero.");
+        M_LOG(Log, "AttachToComponent rejected: parent scale is zero.");
         return false;
       }
 
@@ -140,7 +138,9 @@ bool MSceneComponent::AttachToComponent(
 
     if (ImplPtr->ParentComponent != nullptr &&
         std::find(
-            ImplPtr->ParentComponent->ImplPtr->ChildComponents.begin(), ImplPtr->ParentComponent->ImplPtr->ChildComponents.end(), this
+            ImplPtr->ParentComponent->ImplPtr->ChildComponents.begin(),
+            ImplPtr->ParentComponent->ImplPtr->ChildComponents.end(),
+            this
         ) == ImplPtr->ParentComponent->ImplPtr->ChildComponents.end()) {
       ImplPtr->ParentComponent->ImplPtr->ChildComponents.push_back(this);
     }
@@ -167,7 +167,8 @@ bool MSceneComponent::SetWorldLocation(const FVector2D& NewWorldLocation) {
 
     // 親がいる場合、ワールド座標を親のローカル座標系に変換する必要がある
     FVector2D ParentWorldLoc = ImplPtr->ParentComponent->GetWorldLocation();
-    float ParentWorldRotRad = UMath::DegToRad(ImplPtr->ParentComponent->GetWorldRotation().Rotation);
+    float ParentWorldRotRad =
+        UMath::DegToRad(ImplPtr->ParentComponent->GetWorldRotation().Rotation);
 
     // 1. 親との差分を取る
     float diffX = NewWorldLocation.X - ParentWorldLoc.X;
