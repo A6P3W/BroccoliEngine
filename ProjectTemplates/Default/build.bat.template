@@ -1,7 +1,30 @@
 @echo off
 setlocal
 
-set "CONFIG=%~1"
+set "CONFIG="
+set "DO_CONFIGURE="
+
+:parse_args
+if "%~1"=="" goto after_parse_args
+if /i "%~1"=="--reconfigure" (
+  set "DO_CONFIGURE=1"
+  shift
+  goto parse_args
+)
+if /i "%~1"=="-r" (
+  set "DO_CONFIGURE=1"
+  shift
+  goto parse_args
+)
+if not defined CONFIG (
+  set "CONFIG=%~1"
+  shift
+  goto parse_args
+)
+shift
+goto parse_args
+
+:after_parse_args
 if "%CONFIG%"=="" set "CONFIG=Debug"
 
 if /i "%CONFIG%"=="Debug" set "BUILD_PRESET=debug-local"
@@ -15,7 +38,7 @@ if not defined BUILD_PRESET (
 set "CMAKE_COMMAND=cmake"
 where cmake >nul 2>nul
 if errorlevel 1 goto find_visual_studio_cmake
-goto configure
+goto configure_check
 
 :find_visual_studio_cmake
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
@@ -33,6 +56,11 @@ if not exist "%CMAKE_COMMAND%" (
   exit /b 1
 )
 
+:configure_check
+if not exist "build\windows-x64\CMakeCache.txt" set "DO_CONFIGURE=1"
+
+if not defined DO_CONFIGURE goto do_build
+
 :configure
 if exist "CMakeUserPresets.json" (
   findstr /C:"{YOUR_VCPKG_ROOT_DIRECTORY}" "CMakeUserPresets.json" >nul 2>&1
@@ -46,6 +74,7 @@ if exist "CMakeUserPresets.json" (
 "%CMAKE_COMMAND%" --preset windows-x64-local
 if errorlevel 1 exit /b %errorlevel%
 
+:do_build
 "%CMAKE_COMMAND%" --build --preset %BUILD_PRESET%
 if errorlevel 1 exit /b %errorlevel%
 
