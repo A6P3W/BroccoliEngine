@@ -11,5 +11,8 @@ enum class ENetPacketType : uint8_t {
   ActorRPC,
   PlayerInput,
   ServerTravel,
-  ClientTravelReady
+  ClientTravelReady,
+  ServerTimeRequest,
+  ServerTimeResponse,
+  RaceStartTime
 };
