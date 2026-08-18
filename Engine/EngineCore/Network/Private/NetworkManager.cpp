@@ -1,6 +1,7 @@
 #include "NetworkManager.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdlib>
 #include <string_view>
 #include <unordered_map>
@@ -28,6 +29,12 @@ const char* GetPacketTypeName(ENetPacketType PacketType) {
       return "ServerTravel";
     case ENetPacketType::ClientTravelReady:
       return "ClientTravelReady";
+    case ENetPacketType::ServerTimeRequest:
+      return "ServerTimeRequest";
+    case ENetPacketType::ServerTimeResponse:
+      return "ServerTimeResponse";
+    case ENetPacketType::RaceStartTime:
+      return "RaceStartTime";
     case ENetPacketType::None:
     default:
       return "None";
@@ -66,6 +73,11 @@ ENetworkTransportType GetConfiguredTransportType() {
       GetTransportTypeName(DefaultType)
   );
   return DefaultType;
+}
+
+double GetMonotonicTimeSeconds() {
+  const auto TimeSinceEpoch = std::chrono::steady_clock::now().time_since_epoch();
+  return std::chrono::duration<double>(TimeSinceEpoch).count();
 }
 }  // namespace
 
@@ -159,6 +171,9 @@ bool NetworkManager::StartServer(uint16_t Port, size_t MaxConnections, size_t Ch
   bIsClient = false;
   NextConnectionId = 1;
   LocalConnectionId = 0;
+  ServerTimeOffset = 0.0;
+  PendingRaceStartTime = 0.0;
+  bHasPendingRaceStartTime = false;
   ImplPtr->LoggedReceivedPacketTypes.clear();
   ImplPtr->bAcceptingSends = true;
   M_LOG(
@@ -194,6 +209,9 @@ bool NetworkManager::ConnectToServer(
   bIsServer = false;
   bIsClient = true;
   LocalConnectionId = 0;
+  ServerTimeOffset = 0.0;
+  PendingRaceStartTime = 0.0;
+  bHasPendingRaceStartTime = false;
   ImplPtr->LoggedReceivedPacketTypes.clear();
   ImplPtr->bAcceptingSends = true;
   M_LOG(
@@ -263,6 +281,9 @@ void NetworkManager::Stop() {
   bIsClient = false;
   NextConnectionId = 1;
   LocalConnectionId = 0;
+  ServerTimeOffset = 0.0;
+  PendingRaceStartTime = 0.0;
+  bHasPendingRaceStartTime = false;
   ClearPeers();
   for (FNetworkConnectionId ConnectionId : DisconnectedConnectionIds) {
     BroadcastDisconnected(ConnectionId, ESessionDisconnectReason::LocalLeave);
@@ -334,6 +355,20 @@ size_t NetworkManager::GetConnectedClientCount() const {
   ));
 }
 
+double NetworkManager::GetEstimatedServerTime() const {
+  return GetMonotonicTimeSeconds() + ServerTimeOffset;
+}
+
+bool NetworkManager::ConsumePendingRaceStartTime(double& OutStartTime) {
+  if (!bHasPendingRaceStartTime) {
+    return false;
+  }
+  OutStartTime = PendingRaceStartTime;
+  PendingRaceStartTime = 0.0;
+  bHasPendingRaceStartTime = false;
+  return true;
+}
+
 NetworkManager::CallbackHandle NetworkManager::AddOnConnected(ConnectedCallback Callback) {
   if (!Callback) {
     return 0;
@@ -352,7 +387,8 @@ NetworkManager::CallbackHandle NetworkManager::AddOnDisconnected(DisconnectedCal
   return Handle;
 }
 
-NetworkManager::CallbackHandle NetworkManager::AddOnPacketReceived(PacketReceivedCallback Callback
+NetworkManager::CallbackHandle NetworkManager::AddOnPacketReceived(
+    PacketReceivedCallback Callback
 ) {
   if (!Callback) {
     return 0;
@@ -527,6 +563,12 @@ void NetworkManager::HandleTransportConnected(FNetworkPeerId PeerId) {
           ? Iterator->second.RemoteProductUserId
           : "<none>"
   );
+  if (bIsClient) {
+    FNetBuffer Buffer;
+    Buffer.Write(ENetPacketType::ServerTimeRequest);
+    Buffer.Write(GetMonotonicTimeSeconds());
+    SendToPeer(PeerId, Buffer, ENetPacketReliability::Reliable, 0);
+  }
   BroadcastConnected(ConnectionId);
 }
 
@@ -578,6 +620,43 @@ void NetworkManager::HandleTransportPacket(FReceivedPacket&& Packet) {
   ENetPacketType PacketType = ENetPacketType::None;
   if (!Buffer.Read(PacketType)) {
     return;
+  }
+
+  if (PacketType == ENetPacketType::ServerTimeRequest && bIsServer) {
+    double ClientSendTime = 0.0;
+    if (!Buffer.Read(ClientSendTime)) {
+      return;
+    }
+    FNetBuffer Response;
+    Response.Write(ENetPacketType::ServerTimeResponse);
+    Response.Write(ClientSendTime);
+    Response.Write(GetMonotonicTimeSeconds());
+    SendToPeer(Packet.Sender, Response, ENetPacketReliability::Reliable, 0);
+    return;
+  }
+  if (PacketType == ENetPacketType::ServerTimeResponse && bIsClient) {
+    double ClientSendTime = 0.0;
+    double ServerReceiveTime = 0.0;
+    if (!Buffer.Read(ClientSendTime) || !Buffer.Read(ServerReceiveTime)) {
+      return;
+    }
+    const double ClientReceiveTime = GetMonotonicTimeSeconds();
+    ServerTimeOffset = ServerReceiveTime - (ClientSendTime + ClientReceiveTime) * 0.5;
+    M_LOG(
+        Log,
+        "[NetworkManager] Server time synchronized: offset={} rtt={}",
+        ServerTimeOffset,
+        ClientReceiveTime - ClientSendTime
+    );
+    return;
+  }
+  if (PacketType == ENetPacketType::RaceStartTime && bIsClient) {
+    double StartTime = 0.0;
+    if (!Buffer.Read(StartTime)) {
+      return;
+    }
+    PendingRaceStartTime = StartTime;
+    bHasPendingRaceStartTime = true;
   }
   Buffer.ResetRead();
 
