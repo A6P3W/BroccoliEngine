@@ -14,5 +14,5 @@ enum class ENetPacketType : uint8_t {
   ClientTravelReady,
   ServerTimeRequest,
   ServerTimeResponse,
-  RaceStartTime
+  UserMessage
 };

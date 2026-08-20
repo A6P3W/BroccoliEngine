@@ -33,8 +33,8 @@ const char* GetPacketTypeName(ENetPacketType PacketType) {
       return "ServerTimeRequest";
     case ENetPacketType::ServerTimeResponse:
       return "ServerTimeResponse";
-    case ENetPacketType::RaceStartTime:
-      return "RaceStartTime";
+    case ENetPacketType::UserMessage:
+      return "UserMessage";
     case ENetPacketType::None:
     default:
       return "None";
@@ -172,8 +172,6 @@ bool NetworkManager::StartServer(uint16_t Port, size_t MaxConnections, size_t Ch
   NextConnectionId = 1;
   LocalConnectionId = 0;
   ServerTimeOffset = 0.0;
-  PendingRaceStartTime = 0.0;
-  bHasPendingRaceStartTime = false;
   ImplPtr->LoggedReceivedPacketTypes.clear();
   ImplPtr->bAcceptingSends = true;
   M_LOG(
@@ -210,8 +208,6 @@ bool NetworkManager::ConnectToServer(
   bIsClient = true;
   LocalConnectionId = 0;
   ServerTimeOffset = 0.0;
-  PendingRaceStartTime = 0.0;
-  bHasPendingRaceStartTime = false;
   ImplPtr->LoggedReceivedPacketTypes.clear();
   ImplPtr->bAcceptingSends = true;
   M_LOG(
@@ -282,8 +278,6 @@ void NetworkManager::Stop() {
   NextConnectionId = 1;
   LocalConnectionId = 0;
   ServerTimeOffset = 0.0;
-  PendingRaceStartTime = 0.0;
-  bHasPendingRaceStartTime = false;
   ClearPeers();
   for (FNetworkConnectionId ConnectionId : DisconnectedConnectionIds) {
     BroadcastDisconnected(ConnectionId, ESessionDisconnectReason::LocalLeave);
@@ -357,16 +351,6 @@ size_t NetworkManager::GetConnectedClientCount() const {
 
 double NetworkManager::GetEstimatedServerTime() const {
   return GetMonotonicTimeSeconds() + ServerTimeOffset;
-}
-
-bool NetworkManager::ConsumePendingRaceStartTime(double& OutStartTime) {
-  if (!bHasPendingRaceStartTime) {
-    return false;
-  }
-  OutStartTime = PendingRaceStartTime;
-  PendingRaceStartTime = 0.0;
-  bHasPendingRaceStartTime = false;
-  return true;
 }
 
 NetworkManager::CallbackHandle NetworkManager::AddOnConnected(ConnectedCallback Callback) {
@@ -649,14 +633,6 @@ void NetworkManager::HandleTransportPacket(FReceivedPacket&& Packet) {
         ClientReceiveTime - ClientSendTime
     );
     return;
-  }
-  if (PacketType == ENetPacketType::RaceStartTime && bIsClient) {
-    double StartTime = 0.0;
-    if (!Buffer.Read(StartTime)) {
-      return;
-    }
-    PendingRaceStartTime = StartTime;
-    bHasPendingRaceStartTime = true;
   }
   Buffer.ResetRead();
 
