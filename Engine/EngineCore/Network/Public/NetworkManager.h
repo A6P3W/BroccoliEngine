@@ -52,7 +52,6 @@ class BROCCOLI_ENGINE_API NetworkManager {
   FNetworkConnectionId GetLocalConnectionId() const { return LocalConnectionId; }
   double GetEstimatedServerTime() const;
   double GetServerTimeOffset() const { return ServerTimeOffset; }
-  bool ConsumePendingRaceStartTime(double& OutStartTime);
 
   void SetLocalConnectionId(FNetworkConnectionId ConnectionId) { LocalConnectionId = ConnectionId; }
 
@@ -99,8 +98,6 @@ class BROCCOLI_ENGINE_API NetworkManager {
   FNetworkConnectionId ServerConnectionId = 1;
   FNetworkConnectionId LocalConnectionId = 0;
   double ServerTimeOffset = 0.0;
-  double PendingRaceStartTime = 0.0;
-  bool bHasPendingRaceStartTime = false;
 
   struct Impl;
   Impl* ImplPtr = nullptr;
