@@ -1,6 +1,7 @@
 #include "EditorUI.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <algorithm>
 #include <cctype>
@@ -24,6 +25,7 @@
 
 void EditorUI::UpdateAndDraw(EditorMode* editorMode) {
   DrawMenuBar(editorMode);
+  DrawDockSpace();
   DrawCreateNewActorModal(editorMode);
 
   DrawClassBrowser(editorMode);
@@ -32,6 +34,70 @@ void EditorUI::UpdateAndDraw(EditorMode* editorMode) {
   DrawWorldSettings(editorMode);
 
   DrawSelectAction(editorMode);
+}
+
+void EditorUI::DrawDockSpace() {
+  ImGuiViewport* MainViewport = ImGui::GetMainViewport();
+  ImGui::SetNextWindowPos(MainViewport->WorkPos);
+  ImGui::SetNextWindowSize(MainViewport->WorkSize);
+  ImGui::SetNextWindowViewport(MainViewport->ID);
+
+  constexpr ImGuiWindowFlags WindowFlags =
+      ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
+      ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
+  constexpr ImGuiDockNodeFlags DockSpaceFlags = ImGuiDockNodeFlags_PassthruCentralNode;
+
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+  ImGui::Begin("BroccoliEditorDockSpaceHost", nullptr, WindowFlags);
+  ImGui::PopStyleVar(3);
+
+  const ImGuiID DockSpaceId = ImGui::GetID("BroccoliEditorDockSpace");
+  const bool HasSavedLayout = ImGui::DockBuilderGetNode(DockSpaceId) != nullptr;
+  ImGui::DockSpace(DockSpaceId, ImVec2(0.0f, 0.0f), DockSpaceFlags);
+
+  if (!HasSavedLayout || ResetDockLayoutRequested) {
+    BuildDefaultDockLayout();
+    ResetDockLayoutRequested = false;
+  }
+
+  ImGui::End();
+}
+
+void EditorUI::BuildDefaultDockLayout() {
+  const ImGuiID DockSpaceId = ImGui::GetID("BroccoliEditorDockSpace");
+  const ImGuiViewport* MainViewport = ImGui::GetMainViewport();
+
+  ImGui::DockBuilderRemoveNode(DockSpaceId);
+  ImGui::DockBuilderAddNode(
+      DockSpaceId, ImGuiDockNodeFlags_DockSpace | ImGuiDockNodeFlags_PassthruCentralNode
+  );
+  ImGui::DockBuilderSetNodeSize(DockSpaceId, MainViewport->WorkSize);
+
+  ImGuiID CenterNodeId = DockSpaceId;
+  ImGuiID LeftNodeId =
+      ImGui::DockBuilderSplitNode(CenterNodeId, ImGuiDir_Left, 0.21f, nullptr, &CenterNodeId);
+  ImGuiID RightNodeId =
+      ImGui::DockBuilderSplitNode(CenterNodeId, ImGuiDir_Right, 0.25f, nullptr, &CenterNodeId);
+  const ImGuiID BottomNodeId =
+      ImGui::DockBuilderSplitNode(CenterNodeId, ImGuiDir_Down, 0.13f, nullptr, &CenterNodeId);
+
+  ImGuiID ClassBrowserNodeId = LeftNodeId;
+  const ImGuiID OutlinerNodeId = ImGui::DockBuilderSplitNode(
+      ClassBrowserNodeId, ImGuiDir_Down, 0.45f, nullptr, &ClassBrowserNodeId
+  );
+  ImGuiID InspectorNodeId = RightNodeId;
+  const ImGuiID WorldSettingsNodeId =
+      ImGui::DockBuilderSplitNode(InspectorNodeId, ImGuiDir_Down, 0.35f, nullptr, &InspectorNodeId);
+
+  ImGui::DockBuilderDockWindow("Class Browser", ClassBrowserNodeId);
+  ImGui::DockBuilderDockWindow("Outliner", OutlinerNodeId);
+  ImGui::DockBuilderDockWindow("Inspector", InspectorNodeId);
+  ImGui::DockBuilderDockWindow("World Settings", WorldSettingsNodeId);
+  ImGui::DockBuilderDockWindow("Action", BottomNodeId);
+  ImGui::DockBuilderFinish(DockSpaceId);
 }
 
 void EditorUI::DrawMenuBar(EditorMode* editorMode) {
@@ -65,6 +131,12 @@ void EditorUI::DrawMenuBar(EditorMode* editorMode) {
       }
       if (ImGui::MenuItem("Simulate")) {
         editorMode->Simulate();
+      }
+      ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("View")) {
+      if (ImGui::MenuItem("Reset Layout")) {
+        ResetDockLayoutRequested = true;
       }
       ImGui::EndMenu();
     }

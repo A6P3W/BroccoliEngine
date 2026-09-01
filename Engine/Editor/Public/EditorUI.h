@@ -6,6 +6,8 @@ class EditorUI {
   void UpdateAndDraw(EditorMode* editorMode);
 
  private:
+  void DrawDockSpace();
+  void BuildDefaultDockLayout();
   void DrawMenuBar(EditorMode* editorMode);
   void DrawCreateNewActorModal(EditorMode* editorMode);
   void DrawClassBrowser(EditorMode* editorMode);
@@ -13,4 +15,6 @@ class EditorUI {
   void DrawInspector(EditorMode* editorMode);
   void DrawWorldSettings(EditorMode* editorMode);
   void DrawSelectAction(EditorMode* editorMode);
+
+  bool ResetDockLayoutRequested = false;
 };

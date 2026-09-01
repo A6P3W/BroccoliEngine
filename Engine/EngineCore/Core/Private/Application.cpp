@@ -266,6 +266,10 @@ bool Application::Run() {
 
   rlImGuiSetup(true);
   ImGuiInitialized = ImGui::GetCurrentContext() != nullptr;
+  if (ImGuiInitialized) {
+    ImGuiIO& Io = ImGui::GetIO();
+    Io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  }
   InitOffscreenBuffer();
   if (OffscreenBuffer == nullptr) {
     M_LOG(Error, "raylib LoadRenderTexture failed for the virtual screen.");
