@@ -28,13 +28,10 @@ class EditorPawn : public APawn {
   void OnMouseRightRelease(const FInputActionValue& Value);
   void OnMouseMove(const FInputActionValue& Value);
   void OnWheel(const FInputActionValue& Value);
-  FVector2D GetMouseWorldPosition() const;
 
   EditorMode* EditorModePtr = nullptr;
 
-  bool bRightMousePressed = false;
-  FVector2D DragStartMousePos;
-  FVector2D DragStartCameraPos;
+  bool RightMousePressed = false;
 
   int MousePointX = 0;
   int MousePointY = 0;

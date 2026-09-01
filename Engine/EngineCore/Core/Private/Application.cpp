@@ -404,6 +404,11 @@ bool Application::Update(float FrameDeltaTime, bool ProcessInput) {
 #endif
 
   World* CurrentScene = SceneManager::GetInstance().GetCurrentScene();
+  if (CurrentScene != nullptr) {
+    if (auto* CurrentEditorMode = dynamic_cast<EditorMode*>(CurrentScene->GetGameMode())) {
+      CurrentEditorMode->SetViewportRenderTexture(OffscreenBuffer);
+    }
+  }
   if (CurrentScene != nullptr && CurrentScene->GetSoundManager() != nullptr) {
 #if !defined(_RELEASE)
     PerformanceOverlay.BeginSection(EPerformanceSection::Audio);
@@ -446,28 +451,30 @@ bool Application::Draw(bool CompleteFrame) {
   BeginDrawing();
   ClearBackground(BLACK);
 
-  const int ScreenWidth = GetScreenWidth();
-  const int ScreenHeight = GetScreenHeight();
-  const float ScaleX = static_cast<float>(ScreenWidth) / VirtualWidth;
-  const float ScaleY = static_cast<float>(ScreenHeight) / VirtualHeight;
-  const float Scale = (std::min)(ScaleX, ScaleY);
-  const float DrawWidth = VirtualWidth * Scale;
-  const float DrawHeight = VirtualHeight * Scale;
-  const Rectangle Source = {
-      0.0f,
-      0.0f,
-      static_cast<float>(VirtualWidth),
-      -static_cast<float>(VirtualHeight),
-  };
-  const Rectangle Destination = {
-      (ScreenWidth - DrawWidth) * 0.5f,
-      (ScreenHeight - DrawHeight) * 0.5f,
-      DrawWidth,
-      DrawHeight,
-  };
-  BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
-  DrawTexturePro(Buffer->texture, Source, Destination, {0.0f, 0.0f}, 0.0f, WHITE);
-  EndBlendMode();
+  if (!IsEditor) {
+    const int ScreenWidth = GetScreenWidth();
+    const int ScreenHeight = GetScreenHeight();
+    const float ScaleX = static_cast<float>(ScreenWidth) / VirtualWidth;
+    const float ScaleY = static_cast<float>(ScreenHeight) / VirtualHeight;
+    const float Scale = (std::min)(ScaleX, ScaleY);
+    const float DrawWidth = VirtualWidth * Scale;
+    const float DrawHeight = VirtualHeight * Scale;
+    const Rectangle Source = {
+        0.0f,
+        0.0f,
+        static_cast<float>(VirtualWidth),
+        -static_cast<float>(VirtualHeight),
+    };
+    const Rectangle Destination = {
+        (ScreenWidth - DrawWidth) * 0.5f,
+        (ScreenHeight - DrawHeight) * 0.5f,
+        DrawWidth,
+        DrawHeight,
+    };
+    BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
+    DrawTexturePro(Buffer->texture, Source, Destination, {0.0f, 0.0f}, 0.0f, WHITE);
+    EndBlendMode();
+  }
 
 #if !defined(_RELEASE)
   DebugOverlayManager::GetInstance().Draw();

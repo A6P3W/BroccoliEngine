@@ -19,6 +19,7 @@
 #include "Panels/ClassBrowserPanel.h"
 #include "Panels/InspectorPanel.h"
 #include "Panels/OutlinerPanel.h"
+#include "Panels/ViewportPanel.h"
 #include "Panels/WorldSettingsPanel.h"
 #include "PathResolver.h"
 
@@ -28,13 +29,16 @@ EditorUI::EditorUI() {
   PanelManager.RegisterPanel(std::make_unique<InspectorPanel>());
   PanelManager.RegisterPanel(std::make_unique<WorldSettingsPanel>());
   PanelManager.RegisterPanel(std::make_unique<ActionPanel>());
+  PanelManager.RegisterPanel(std::make_unique<ViewportPanel>());
 }
 
 void EditorUI::UpdateAndDraw(EditorMode* Mode) {
   DrawMenuBar(Mode);
   DrawDockSpace();
 
-  EditorContext Context{.Mode = Mode};
+  FEditorViewportState& ViewportState = Mode->GetViewportState();
+  ViewportState.ResetFrameState();
+  EditorContext Context{.Mode = Mode, .Viewport = &ViewportState};
   PanelManager.DrawPanels(Context);
   DrawCreateNewActorModal(Mode);
 }
@@ -48,8 +52,8 @@ void EditorUI::DrawDockSpace() {
   constexpr ImGuiWindowFlags WindowFlags =
       ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
       ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
-      ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
-  constexpr ImGuiDockNodeFlags DockSpaceFlags = ImGuiDockNodeFlags_PassthruCentralNode;
+      ImGuiWindowFlags_NoNavFocus;
+  constexpr ImGuiDockNodeFlags DockSpaceFlags = ImGuiDockNodeFlags_None;
 
   ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
   ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -59,9 +63,10 @@ void EditorUI::DrawDockSpace() {
 
   const ImGuiID DockSpaceId = ImGui::GetID("BroccoliEditorDockSpace");
   const bool HasSavedLayout = ImGui::DockBuilderGetNode(DockSpaceId) != nullptr;
+  const bool HasViewportLayout = ImGui::FindWindowSettingsByID(ImHashStr("Viewport")) != nullptr;
   ImGui::DockSpace(DockSpaceId, ImVec2(0.0f, 0.0f), DockSpaceFlags);
 
-  if (!HasSavedLayout || ResetDockLayoutRequested) {
+  if (!HasSavedLayout || !HasViewportLayout || ResetDockLayoutRequested) {
     BuildDefaultDockLayout();
     ResetDockLayoutRequested = false;
   }
@@ -74,9 +79,7 @@ void EditorUI::BuildDefaultDockLayout() {
   const ImGuiViewport* MainViewport = ImGui::GetMainViewport();
 
   ImGui::DockBuilderRemoveNode(DockSpaceId);
-  ImGui::DockBuilderAddNode(
-      DockSpaceId, ImGuiDockNodeFlags_DockSpace | ImGuiDockNodeFlags_PassthruCentralNode
-  );
+  ImGui::DockBuilderAddNode(DockSpaceId, ImGuiDockNodeFlags_DockSpace);
   ImGui::DockBuilderSetNodeSize(DockSpaceId, MainViewport->WorkSize);
 
   ImGuiID CenterNodeId = DockSpaceId;
@@ -100,6 +103,7 @@ void EditorUI::BuildDefaultDockLayout() {
   ImGui::DockBuilderDockWindow("Inspector", InspectorNodeId);
   ImGui::DockBuilderDockWindow("World Settings", WorldSettingsNodeId);
   ImGui::DockBuilderDockWindow("Action", BottomNodeId);
+  ImGui::DockBuilderDockWindow("Viewport", CenterNodeId);
   ImGui::DockBuilderFinish(DockSpaceId);
 }
 
