@@ -77,6 +77,17 @@ bool LineIntersects(const FVector2D& Start, const FVector2D& End, const FScreenB
          ClipLine(-DeltaY, Start.Y - Bounds.MinY, MinT, MaxT) &&
          ClipLine(DeltaY, Bounds.MaxY - Start.Y, MinT, MaxT);
 }
+
+FScreenRenderArea BuildScreenRenderArea(const FVector2D& RenderTargetSize) {
+  const float Scale = (std::min)(RenderTargetSize.X / static_cast<float>(VirtualWidth),
+                                 RenderTargetSize.Y / static_cast<float>(VirtualHeight));
+  const FVector2D Size = {
+      static_cast<float>(VirtualWidth) * Scale, static_cast<float>(VirtualHeight) * Scale
+  };
+  return {
+      {(RenderTargetSize.X - Size.X) * 0.5f, (RenderTargetSize.Y - Size.Y) * 0.5f}, Size, Scale
+  };
+}
 }  // namespace
 
 struct FRenderContext {
@@ -85,11 +96,13 @@ struct FRenderContext {
   float CameraCos = 1.0f;
   float CameraSin = 0.0f;
   float CameraRotation = 0.0f;
+  FVector2D RenderTargetSize = FVector2D::ZeroVector();
+  FScreenRenderArea ScreenArea;
   FScreenBounds ViewBounds;
 
   FVector2D WorldToScreen(const FVector2D& Position) const {
-    const float CenterX = VirtualWidth * 0.5f;
-    const float CenterY = VirtualHeight * 0.5f;
+    const float CenterX = RenderTargetSize.X * 0.5f;
+    const float CenterY = RenderTargetSize.Y * 0.5f;
     const float LocalX = Position.X - CameraPosition.X;
     const float LocalY = Position.Y - CameraPosition.Y;
     return {
@@ -99,11 +112,23 @@ struct FRenderContext {
   }
 
   FVector2D ToScreenPosition(const FVector2D& Position, RenderSpace Space) const {
-    return (Space == RenderSpace::World) ? WorldToScreen(Position) : Position;
+    if (Space == RenderSpace::World) {
+      return WorldToScreen(Position);
+    }
+    return {
+        ScreenArea.Position.X + Position.X * ScreenArea.Scale,
+        ScreenArea.Position.Y + Position.Y * ScreenArea.Scale
+    };
   }
 
   float GetSpaceScale(RenderSpace Space) const {
-    return (Space == RenderSpace::World) ? CameraFOV : 1.0f;
+    return (Space == RenderSpace::World) ? CameraFOV : ScreenArea.Scale;
+  }
+
+  float GetStrokeThickness(RenderSpace Space) const {
+    return (Space == RenderSpace::Screen)
+               ? (std::max)(DefaultStrokeThickness, DefaultStrokeThickness * ScreenArea.Scale)
+               : DefaultStrokeThickness;
   }
 
   float GetSpaceRotation(RenderSpace Space) const {
@@ -137,6 +162,7 @@ struct FLineDrawParameters {
 
 struct FRectGraphDrawParameters {
   FVector2D Position;
+  float Scale = 1.0f;
 };
 
 FGraphDrawParameters BuildGraphDrawParameters(
@@ -153,10 +179,14 @@ FBoxDrawParameters BuildBoxDrawParameters(
     const BoxData& Box, RenderSpace Space, const FRenderContext& Context
 ) {
   if (Space == RenderSpace::Screen) {
-    const FVector2D V1 = Box.Location;
-    const FVector2D V2 = {Box.Location.X + Box.WidthHeight.X, Box.Location.Y};
-    const FVector2D V3 = {Box.Location.X + Box.WidthHeight.X, Box.Location.Y + Box.WidthHeight.Y};
-    const FVector2D V4 = {Box.Location.X, Box.Location.Y + Box.WidthHeight.Y};
+    const FVector2D V1 = Context.ToScreenPosition(Box.Location, Space);
+    const FVector2D V2 =
+        Context.ToScreenPosition({Box.Location.X + Box.WidthHeight.X, Box.Location.Y}, Space);
+    const FVector2D V3 = Context.ToScreenPosition(
+        {Box.Location.X + Box.WidthHeight.X, Box.Location.Y + Box.WidthHeight.Y}, Space
+    );
+    const FVector2D V4 =
+        Context.ToScreenPosition({Box.Location.X, Box.Location.Y + Box.WidthHeight.Y}, Space);
     return {V1, V2, V3, V4};
   }
 
@@ -198,7 +228,10 @@ FLineDrawParameters BuildLineDrawParameters(
 FRectGraphDrawParameters BuildRectGraphDrawParameters(
     const RectGraphData& RectGraph, RenderSpace Space, const FRenderContext& Context
 ) {
-  return {Context.ToScreenPosition(RectGraph.DestLocation, Space)};
+  return {
+      Context.ToScreenPosition(RectGraph.DestLocation, Space),
+      Space == RenderSpace::Screen ? Context.ScreenArea.Scale : 1.0f
+  };
 }
 
 FScreenBounds MakeBoundsFromBox(const FBoxDrawParameters& Box) {
@@ -271,8 +304,14 @@ struct FVisibilityVisitor {
       return true;
     }
 
+    const float TextScale = Common.space == RenderSpace::Screen ? Context.ScreenArea.Scale : 1.0f;
     return Intersects(
-        MakeScreenBounds(Position.X, Position.Y, Position.X + TextSize.x, Position.Y + TextSize.y),
+        MakeScreenBounds(
+            Position.X,
+            Position.Y,
+            Position.X + TextSize.x * TextScale,
+            Position.Y + TextSize.y * TextScale
+        ),
         Context.ViewBounds
     );
   }
@@ -289,8 +328,8 @@ struct FVisibilityVisitor {
         MakeScreenBounds(
             Parameters.Position.X,
             Parameters.Position.Y,
-            Parameters.Position.X + RectGraph.SrcSize.X,
-            Parameters.Position.Y + RectGraph.SrcSize.Y
+            Parameters.Position.X + RectGraph.SrcSize.X * Parameters.Scale,
+            Parameters.Position.Y + RectGraph.SrcSize.Y * Parameters.Scale
         ),
         Context.ViewBounds
     );
@@ -302,6 +341,9 @@ class RenderSystemImpl {
  public:
   std::vector<RenderCommand> CommandBuffer;
   MCameraComponent* MainCamera = nullptr;
+  FVector2D RenderTargetSize = {
+      static_cast<float>(VirtualWidth), static_cast<float>(VirtualHeight)
+  };
   bool BViewCullingEnabled = true;
   float ViewCullingMargin = 8.0f;
   std::size_t LastSubmittedCommandCount = 0;
@@ -405,8 +447,8 @@ FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
     camRot = Impl->MainCamera->GetWorldRotation().Rotation;
     camFOV = Impl->MainCamera->GetFOV();
   }
-  const float centerX = VirtualWidth * 0.5f;
-  const float centerY = VirtualHeight * 0.5f;
+  const float centerX = Impl->RenderTargetSize.X * 0.5f;
+  const float centerY = Impl->RenderTargetSize.Y * 0.5f;
   const float localX = worldPos.X - camPos.X;
   const float localY = worldPos.Y - camPos.Y;
   const float rad = UMath::DegToRad(-camRot);
@@ -426,8 +468,8 @@ FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPos) const {
     camRot = Impl->MainCamera->GetWorldRotation().Rotation;
     camFOV = Impl->MainCamera->GetFOV();
   }
-  const float centerX = VirtualWidth * 0.5f;
-  const float centerY = VirtualHeight * 0.5f;
+  const float centerX = Impl->RenderTargetSize.X * 0.5f;
+  const float centerY = Impl->RenderTargetSize.Y * 0.5f;
   const float safeFOV = (std::abs(camFOV) < 1e-6f) ? 1e-6f : camFOV;
   const float localX = (screenPos.X - centerX) / safeFOV;
   const float localY = (screenPos.Y - centerY) / safeFOV;
@@ -436,10 +478,20 @@ FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPos) const {
   return {(localX * cosT - localY * sinT) + camPos.X, (localX * sinT + localY * cosT) + camPos.Y};
 }
 
+void RenderSystem::SetRenderTargetSize(int Width, int Height) {
+  if (Width > 0 && Height > 0) {
+    Impl->RenderTargetSize = {static_cast<float>(Width), static_cast<float>(Height)};
+  }
+}
+
+const FVector2D& RenderSystem::GetRenderTargetSize() const { return Impl->RenderTargetSize; }
+
+FScreenRenderArea RenderSystem::GetScreenRenderArea() const {
+  return BuildScreenRenderArea(Impl->RenderTargetSize);
+}
+
 FRect2D RenderSystem::GetScreenRect() const {
-  return {
-      FVector2D::ZeroVector(), {static_cast<float>(VirtualWidth), static_cast<float>(VirtualHeight)}
-  };
+  return {FVector2D::ZeroVector(), Impl->RenderTargetSize};
 }
 
 bool RenderSystem::IsScreenPointVisible(const FVector2D& ScreenPosition) const {
@@ -463,16 +515,19 @@ FRenderContext RenderSystem::BuildRenderContext() const {
 
   const float ViewMargin = Impl->ViewCullingMargin;
   const float CameraRadians = UMath::DegToRad(-CameraRotation);
+  const FScreenRenderArea ScreenArea = BuildScreenRenderArea(Impl->RenderTargetSize);
   return {
       CameraPosition,
       CameraFOV,
       std::cos(CameraRadians),
       std::sin(CameraRadians),
       CameraRotation,
+      Impl->RenderTargetSize,
+      ScreenArea,
       {-ViewMargin,
        -ViewMargin,
-       static_cast<float>(VirtualWidth) + ViewMargin,
-       static_cast<float>(VirtualHeight) + ViewMargin}
+       Impl->RenderTargetSize.X + ViewMargin,
+       Impl->RenderTargetSize.Y + ViewMargin}
   };
 }
 
@@ -561,10 +616,11 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
             DrawTriangle(V1, V4, V3, DrawColor);
             DrawTriangle(V1, V3, V2, DrawColor);
           } else {
-            DrawLineEx(V1, V2, DefaultStrokeThickness, DrawColor);
-            DrawLineEx(V2, V3, DefaultStrokeThickness, DrawColor);
-            DrawLineEx(V3, V4, DefaultStrokeThickness, DrawColor);
-            DrawLineEx(V4, V1, DefaultStrokeThickness, DrawColor);
+            const float Thickness = Context.GetStrokeThickness(Command.common.space);
+            DrawLineEx(V1, V2, Thickness, DrawColor);
+            DrawLineEx(V2, V3, Thickness, DrawColor);
+            DrawLineEx(V3, V4, Thickness, DrawColor);
+            DrawLineEx(V4, V1, Thickness, DrawColor);
           }
         } else if constexpr (std::is_same_v<T, CircleData>) {
           const FCircleDrawParameters Parameters =
@@ -574,10 +630,11 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
             DrawCircleV(Center, std::abs(Parameters.Radius), ToRaylibColor(Data.Color));
           } else {
             const float Radius = std::abs(Parameters.Radius);
+            const float Thickness = Context.GetStrokeThickness(Command.common.space);
             DrawRing(
                 Center,
-                (std::max)(0.0f, Radius - DefaultStrokeThickness * 0.5f),
-                Radius + DefaultStrokeThickness * 0.5f,
+                (std::max)(0.0f, Radius - Thickness * 0.5f),
+                Radius + Thickness * 0.5f,
                 0.0f,
                 360.0f,
                 0,
@@ -587,7 +644,9 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
         } else if constexpr (std::is_same_v<T, TextData>) {
           const FVector2D Position = Context.ToScreenPosition(Data.Location, Command.common.space);
           const Font* FontData = GetRaylibFont(Data.Handle, Data.Text);
-          const float FontSize = GetRaylibFontSize(Data.Handle);
+          const float TextScale =
+              Command.common.space == RenderSpace::Screen ? Context.ScreenArea.Scale : 1.0f;
+          const float FontSize = GetRaylibFontSize(Data.Handle) * TextScale;
           if (FontData != nullptr && FontSize > 0.0f) {
             DrawTextEx(
                 *FontData,
@@ -604,7 +663,7 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
           DrawLineEx(
               {Parameters.Start.X, Parameters.Start.Y},
               {Parameters.End.X, Parameters.End.Y},
-              DefaultStrokeThickness,
+              Context.GetStrokeThickness(Command.common.space),
               ToRaylibColor(Data.Color)
           );
         } else if constexpr (std::is_same_v<T, RectGraphData>) {
@@ -626,7 +685,17 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
           }
           const Color Tint = MakeTextureTint(Data.Tint, Command.common.alpha, IsRenderTexture);
           if (IsRenderTexture) BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
-          DrawTextureRec(*Texture, Source, {Parameters.Position.X, Parameters.Position.Y}, Tint);
+          DrawTexturePro(
+              *Texture,
+              Source,
+              {Parameters.Position.X,
+               Parameters.Position.Y,
+               std::abs(Data.SrcSize.X * Parameters.Scale),
+               std::abs(Data.SrcSize.Y * Parameters.Scale)},
+              {0.0f, 0.0f},
+              0.0f,
+              Tint
+          );
           if (IsRenderTexture) BeginBlendMode(BLEND_CUSTOM_SEPARATE);
         }
       },

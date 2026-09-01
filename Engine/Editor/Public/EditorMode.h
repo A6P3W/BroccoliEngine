@@ -52,11 +52,14 @@ class EditorMode : public AGameModeBase {
 
   FEditorViewportState& GetViewportState() { return ViewportState; }
   const FEditorViewportState& GetViewportState() const { return ViewportState; }
-  void SetViewportRenderTexture(void* RenderTexture) {
+  void SetViewportRenderTexture(void* RenderTexture, int Width, int Height) {
     ViewportState.RenderTexture = RenderTexture;
+    ViewportState.RenderTargetSize = {static_cast<float>(Width), static_cast<float>(Height)};
   }
   bool IsViewportInputAvailable() const;
-  bool TryGetViewportVirtualMousePosition(FVector2D& OutPosition, bool RequireInside = true) const;
+  bool TryGetViewportRenderTargetMousePosition(
+      FVector2D& OutPosition, bool RequireInside = true
+  ) const;
 
   void Simulate();
 

@@ -5,7 +5,7 @@
 #include "BroccoliRaylib.h"
 #include "EditorContext.h"
 #include "EditorViewportState.h"
-#include "EngineDefine.h"
+#include "RenderSystem.h"
 
 void ViewportPanel::DrawContents(EditorContext& Context) {
   FEditorViewportState* Viewport = Context.Viewport;
@@ -17,26 +17,9 @@ void ViewportPanel::DrawContents(EditorContext& Context) {
   auto* RenderTexture = static_cast<RenderTexture2D*>(Viewport->RenderTexture);
   const ImVec2 AvailableSize = ImGui::GetContentRegionAvail();
   if (AvailableSize.x <= 0.0f || AvailableSize.y <= 0.0f) return;
+  Viewport->RequestedRenderSize = {AvailableSize.x, AvailableSize.y};
 
-  constexpr float AspectRatio = static_cast<float>(VirtualWidth) / VirtualHeight;
-  float DisplayWidth = AvailableSize.x;
-  float DisplayHeight = DisplayWidth / AspectRatio;
-  if (DisplayHeight > AvailableSize.y) {
-    DisplayHeight = AvailableSize.y;
-    DisplayWidth = DisplayHeight * AspectRatio;
-  }
-
-  const ImVec2 CursorPosition = ImGui::GetCursorPos();
-  ImGui::SetCursorPos({
-      CursorPosition.x + (AvailableSize.x - DisplayWidth) * 0.5f,
-      CursorPosition.y + (AvailableSize.y - DisplayHeight) * 0.5f,
-  });
-  ImGui::Image(
-      ImTextureID(RenderTexture->texture.id),
-      {DisplayWidth, DisplayHeight},
-      {0.0f, 1.0f},
-      {1.0f, 0.0f}
-  );
+  ImGui::Image(ImTextureID(RenderTexture->texture.id), AvailableSize, {0.0f, 1.0f}, {1.0f, 0.0f});
 
   const ImVec2 ImageMinimum = ImGui::GetItemRectMin();
   const ImVec2 ImageSize = ImGui::GetItemRectSize();
@@ -44,4 +27,19 @@ void ViewportPanel::DrawContents(EditorContext& Context) {
   Viewport->ImageSize = {ImageSize.x, ImageSize.y};
   Viewport->Hovered = ImGui::IsItemHovered();
   Viewport->Focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+
+  if (Viewport->RenderTargetSize.X <= 0.0f || Viewport->RenderTargetSize.Y <= 0.0f) return;
+
+  const FScreenRenderArea SafeArea = RenderSystem::GetInstance().GetScreenRenderArea();
+  const ImVec2 SafeAreaMinimum = {
+      ImageMinimum.x + SafeArea.Position.X * ImageSize.x / Viewport->RenderTargetSize.X,
+      ImageMinimum.y + SafeArea.Position.Y * ImageSize.y / Viewport->RenderTargetSize.Y
+  };
+  const ImVec2 SafeAreaMaximum = {
+      SafeAreaMinimum.x + SafeArea.Size.X * ImageSize.x / Viewport->RenderTargetSize.X,
+      SafeAreaMinimum.y + SafeArea.Size.Y * ImageSize.y / Viewport->RenderTargetSize.Y
+  };
+  ImGui::GetWindowDrawList()->AddRect(
+      SafeAreaMinimum, SafeAreaMaximum, IM_COL32(255, 196, 0, 200), 0.0f, 0, 1.0f
+  );
 }

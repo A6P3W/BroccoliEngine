@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <functional>
 #include <string>
 #include <utility>
@@ -203,21 +204,32 @@ void Application::InitializeAutomation() {
   if (!AutomationSubsystem->Initialize(Config)) AutomationSubsystem.reset();
 }
 
-void Application::InitOffscreenBuffer() {
+bool Application::InitOffscreenBuffer(int Width, int Height) {
+  if (Width <= 0 || Height <= 0) return false;
+
+  if (OffscreenBuffer != nullptr) {
+    const RenderTexture2D* ExistingBuffer = AsRenderTexture(OffscreenBuffer);
+    if (ExistingBuffer->texture.width == Width && ExistingBuffer->texture.height == Height) {
+      RenderSystem::GetInstance().SetRenderTargetSize(Width, Height);
+      return true;
+    }
+  }
+
+  auto* Buffer = new RenderTexture2D(LoadRenderTexture(Width, Height));
+  if (!IsRenderTextureValid(*Buffer)) {
+    delete Buffer;
+    return false;
+  }
+  SetTextureFilter(Buffer->texture, TEXTURE_FILTER_BILINEAR);
+
   if (OffscreenBuffer != nullptr) {
     RenderTexture2D* ExistingBuffer = AsRenderTexture(OffscreenBuffer);
     UnloadRenderTexture(*ExistingBuffer);
     delete ExistingBuffer;
   }
-
-  auto* Buffer = new RenderTexture2D(LoadRenderTexture(VirtualWidth, VirtualHeight));
-  if (!IsRenderTextureValid(*Buffer)) {
-    delete Buffer;
-    OffscreenBuffer = nullptr;
-    return;
-  }
-  SetTextureFilter(Buffer->texture, TEXTURE_FILTER_BILINEAR);
   OffscreenBuffer = Buffer;
+  RenderSystem::GetInstance().SetRenderTargetSize(Width, Height);
+  return true;
 }
 
 void Application::SetWindowResolution(int Width, int Height) {
@@ -270,8 +282,7 @@ bool Application::Run() {
     ImGuiIO& Io = ImGui::GetIO();
     Io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   }
-  InitOffscreenBuffer();
-  if (OffscreenBuffer == nullptr) {
+  if (!InitOffscreenBuffer(VirtualWidth, VirtualHeight)) {
     M_LOG(Error, "raylib LoadRenderTexture failed for the virtual screen.");
     Shutdown();
     return false;
@@ -359,6 +370,36 @@ bool Application::Update(float FrameDeltaTime, bool ProcessInput) {
   PerformanceOverlay.BeginSection(EPerformanceSection::Scene);
 #endif
   SceneManager::GetInstance().ProcessSceneChanges();
+  World* CurrentScene = SceneManager::GetInstance().GetCurrentScene();
+  if (CurrentScene != nullptr) {
+    if (auto* CurrentEditorMode = dynamic_cast<EditorMode*>(CurrentScene->GetGameMode())) {
+      const FVector2D RequestedSize = CurrentEditorMode->GetViewportState().RequestedRenderSize;
+      if (RequestedSize.X > 0.0f && RequestedSize.Y > 0.0f) {
+        constexpr int ResizeQuantum = 4;
+        const int RequestedWidth =
+            (std::max)(ResizeQuantum,
+                       static_cast<int>(std::lround(RequestedSize.X / ResizeQuantum)) *
+                           ResizeQuantum);
+        const int RequestedHeight =
+            (std::max)(ResizeQuantum,
+                       static_cast<int>(std::lround(RequestedSize.Y / ResizeQuantum)) *
+                           ResizeQuantum);
+        if (!InitOffscreenBuffer(RequestedWidth, RequestedHeight)) {
+          M_LOG(
+              Warning,
+              "Viewport render texture resize failed: {}x{}",
+              RequestedWidth,
+              RequestedHeight
+          );
+        }
+      }
+
+      const RenderTexture2D* Buffer = AsRenderTexture(OffscreenBuffer);
+      CurrentEditorMode->SetViewportRenderTexture(
+          OffscreenBuffer, Buffer->texture.width, Buffer->texture.height
+      );
+    }
+  }
 #if !defined(_RELEASE)
   PerformanceOverlay.EndSection(EPerformanceSection::Scene);
 #endif
@@ -403,12 +444,6 @@ bool Application::Update(float FrameDeltaTime, bool ProcessInput) {
   PerformanceOverlay.EndSection(EPerformanceSection::DebugOverlay);
 #endif
 
-  World* CurrentScene = SceneManager::GetInstance().GetCurrentScene();
-  if (CurrentScene != nullptr) {
-    if (auto* CurrentEditorMode = dynamic_cast<EditorMode*>(CurrentScene->GetGameMode())) {
-      CurrentEditorMode->SetViewportRenderTexture(OffscreenBuffer);
-    }
-  }
   if (CurrentScene != nullptr && CurrentScene->GetSoundManager() != nullptr) {
 #if !defined(_RELEASE)
     PerformanceOverlay.BeginSection(EPerformanceSection::Audio);

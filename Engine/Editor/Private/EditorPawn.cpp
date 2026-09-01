@@ -59,18 +59,22 @@ void EditorPawn::OnMove(const FInputActionValue& Value) {
 void EditorPawn::OnMouseLeftPress(const FInputActionValue&) {
   if (EditorModePtr == nullptr || !EditorModePtr->IsViewportInputAvailable()) return;
 
-  FVector2D MouseVirtualPosition;
-  if (EditorModePtr->TryGetViewportVirtualMousePosition(MouseVirtualPosition)) {
-    EditorModePtr->OnMousePress(RenderSystem::GetInstance().ScreenToWorld(MouseVirtualPosition));
+  FVector2D MouseRenderTargetPosition;
+  if (EditorModePtr->TryGetViewportRenderTargetMousePosition(MouseRenderTargetPosition)) {
+    EditorModePtr->OnMousePress(
+        RenderSystem::GetInstance().ScreenToWorld(MouseRenderTargetPosition)
+    );
   }
 }
 
 void EditorPawn::OnMouseLeftRelease(const FInputActionValue&) {
   if (EditorModePtr == nullptr || EditorModePtr->GetState() != EEditorState::Dragging) return;
 
-  FVector2D MouseVirtualPosition;
-  if (EditorModePtr->TryGetViewportVirtualMousePosition(MouseVirtualPosition, false)) {
-    EditorModePtr->OnMouseRelease(RenderSystem::GetInstance().ScreenToWorld(MouseVirtualPosition));
+  FVector2D MouseRenderTargetPosition;
+  if (EditorModePtr->TryGetViewportRenderTargetMousePosition(MouseRenderTargetPosition, false)) {
+    EditorModePtr->OnMouseRelease(
+        RenderSystem::GetInstance().ScreenToWorld(MouseRenderTargetPosition)
+    );
   } else {
     EditorModePtr->OnMouseRelease(FVector2D::ZeroVector());
   }
@@ -97,10 +101,10 @@ void EditorPawn::OnMouseMove(const FInputActionValue&) {
   if (EditorModePtr == nullptr) return;
 
   const Vector2 MouseDelta = GetMouseDelta();
-  const FVector2D VirtualDelta =
-      EditorModePtr->GetViewportState().ScreenDeltaToVirtual({MouseDelta.x, MouseDelta.y});
+  const FVector2D RenderTargetDelta =
+      EditorModePtr->GetViewportState().ScreenDeltaToRenderTarget({MouseDelta.x, MouseDelta.y});
   if (EditorModePtr->GetState() == EEditorState::Dragging) {
-    EditorModePtr->OnMouseMove(VirtualDelta);
+    EditorModePtr->OnMouseMove(RenderTargetDelta);
   }
   if (RightMousePressed) {
     const Vector2 MousePosition = GetMousePosition();
@@ -110,7 +114,7 @@ void EditorPawn::OnMouseMove(const FInputActionValue&) {
         CurrentMousePosition.Y - static_cast<float>(MousePointY)
     };
     const FVector2D ViewportDelta =
-        EditorModePtr->GetViewportState().ScreenDeltaToVirtual(ScreenDelta);
+        EditorModePtr->GetViewportState().ScreenDeltaToRenderTarget(ScreenDelta);
 
     if (ViewportDelta.SizeSquared() > 0.0001f) {
       float FieldOfView = Camera ? Camera->GetFOV() : 1.0f;

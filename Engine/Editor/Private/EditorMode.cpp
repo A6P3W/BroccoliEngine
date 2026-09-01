@@ -300,18 +300,18 @@ bool EditorMode::IsViewportInputAvailable() const {
   return ViewportState.Hovered && ViewportState.ContainsScreenPoint(ScreenPosition);
 }
 
-bool EditorMode::TryGetViewportVirtualMousePosition(
+bool EditorMode::TryGetViewportRenderTargetMousePosition(
     FVector2D& OutPosition, bool RequireInside
 ) const {
   const Vector2 MousePosition = GetMousePosition();
-  return ViewportState.ScreenToVirtual(
+  return ViewportState.ScreenToRenderTarget(
       {MousePosition.x, MousePosition.y}, OutPosition, RequireInside
   );
 }
 
 bool EditorMode::TryGetMouseWorldPosition(FVector2D& OutPosition, bool RequireInside) const {
-  FVector2D VirtualPosition;
-  if (!TryGetViewportVirtualMousePosition(VirtualPosition, RequireInside)) return false;
-  OutPosition = RenderSystem::GetInstance().ScreenToWorld(VirtualPosition);
+  FVector2D RenderTargetPosition;
+  if (!TryGetViewportRenderTargetMousePosition(RenderTargetPosition, RequireInside)) return false;
+  OutPosition = RenderSystem::GetInstance().ScreenToWorld(RenderTargetPosition);
   return true;
 }
