@@ -16,18 +16,14 @@ void ClassBrowserPanel::DrawContents(EditorContext& Context) {
   std::vector<std::string> SortedClasses = Mode->GetClassList();
   std::sort(SortedClasses.begin(), SortedClasses.end());
 
-  if (RecentClasses.empty() && !SortedClasses.empty()) {
-    const size_t InitialCount = (std::min)(SortedClasses.size(), static_cast<size_t>(5));
-    RecentClasses.assign(SortedClasses.begin(), SortedClasses.begin() + InitialCount);
-  }
-
   const auto OnClassSelected = [&](const std::string& ClassName) {
     Mode->SelectClass(ClassName);
     const auto ExistingClass = std::find(RecentClasses.begin(), RecentClasses.end(), ClassName);
-    if (ExistingClass == RecentClasses.end()) {
-      RecentClasses.insert(RecentClasses.begin(), ClassName);
-      if (RecentClasses.size() > 5) RecentClasses.pop_back();
+    if (ExistingClass != RecentClasses.end()) {
+      RecentClasses.erase(ExistingClass);
     }
+    RecentClasses.insert(RecentClasses.begin(), ClassName);
+    if (RecentClasses.size() > 5) RecentClasses.pop_back();
   };
 
   ImGui::Text("Selected:");

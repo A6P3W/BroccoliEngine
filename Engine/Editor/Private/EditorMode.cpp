@@ -227,25 +227,25 @@ void EditorMode::PasteActor() {
     return;
   }
 
-  AActor* newActor = ActorRegistry::GetInstance().Spawn(
+  AActor* NewActor = ActorRegistry::GetInstance().Spawn(
       GetWorld(), ClipboardData.ClassName, PasteLocation, ClipboardData.Rotation
   );
 
-  if (!newActor) {
+  if (!NewActor) {
     M_LOG(Log, "Paste failed: Could not spawn actor '{}'.", ClipboardData.ClassName);
     return;
   }
 
-  newActor->SetActorScale(ClipboardData.Scale);
+  NewActor->SetActorScale(ClipboardData.Scale);
 
-  if (auto spriteActor = dynamic_cast<ASpriteActor*>(newActor)) {
-    auto it = ClipboardData.CustomProperties.find("ImagePath");
-    if (it != ClipboardData.CustomProperties.end()) {
-      spriteActor->SetImagePath(it->second);
+  if (auto SpriteActor = dynamic_cast<ASpriteActor*>(NewActor)) {
+    auto It = ClipboardData.CustomProperties.find("ImagePath");
+    if (It != ClipboardData.CustomProperties.end()) {
+      SpriteActor->SetImagePath(It->second);
     }
   }
 
-  SetSelectedActor(newActor);
+  SetSelectedActor(NewActor);
 
   M_LOG(
       Log, "Pasted Actor: {} at ({}, {})", ClipboardData.ClassName, PasteLocation.X, PasteLocation.Y
