@@ -9,7 +9,12 @@
     "cpr",
     "enet",
     "minizip",
-    "imgui",
+    {
+      "name": "imgui",
+      "features": [
+        "docking-experimental"
+      ]
+    },
     "raylib"
   ]
 }

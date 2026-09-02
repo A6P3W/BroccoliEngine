@@ -13,6 +13,12 @@
 enum class RenderType { Graph, Box, Text, Line, RectGraph, Circle };
 enum class RenderSpace { World, Screen };
 
+struct FScreenRenderArea {
+  FVector2D Position = FVector2D::ZeroVector();
+  FVector2D Size = FVector2D::ZeroVector();
+  float Scale = 1.0f;
+};
+
 struct GraphData {
   FVector2D Location;
   FRotator Rotation;
@@ -130,6 +136,9 @@ class BROCCOLI_ENGINE_API RenderSystem {
 
   FVector2D WorldToScreen(const FVector2D& worldPosition) const;
   FVector2D ScreenToWorld(const FVector2D& screenPosition) const;
+  void SetRenderTargetSize(int Width, int Height);
+  const FVector2D& GetRenderTargetSize() const;
+  FScreenRenderArea GetScreenRenderArea() const;
   FRect2D GetScreenRect() const;
   bool IsScreenPointVisible(const FVector2D& ScreenPosition) const;
 

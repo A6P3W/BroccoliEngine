@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 
+#include "EditorViewportState.h"
 #include "GameModeBase.h"
 #include "LevelSerializer.h"
 #include "UMath.h"
@@ -49,6 +50,17 @@ class EditorMode : public AGameModeBase {
   EActorAction GetActorAction() const { return ActorAction; }
   void SetActorAction(EActorAction action) { ActorAction = action; }
 
+  FEditorViewportState& GetViewportState() { return ViewportState; }
+  const FEditorViewportState& GetViewportState() const { return ViewportState; }
+  void SetViewportRenderTexture(void* RenderTexture, int Width, int Height) {
+    ViewportState.RenderTexture = RenderTexture;
+    ViewportState.RenderTargetSize = {static_cast<float>(Width), static_cast<float>(Height)};
+  }
+  bool IsViewportInputAvailable() const;
+  bool TryGetViewportRenderTargetMousePosition(
+      FVector2D& OutPosition, bool RequireInside = true
+  ) const;
+
   void Simulate();
 
   // --- アクタ操作 ---
@@ -75,12 +87,13 @@ class EditorMode : public AGameModeBase {
   AActor* SelectedActor = nullptr;   // 選択中のアクタ
   EditorSelectPointComponent* SelectedPointComponent = nullptr;
   EActorAction ActorAction = EActorAction::Select;
+  FEditorViewportState ViewportState;
 
   static std::string PendingLoadPath;
 
   std::string CurrentLevelPath;
 
-  FVector2D GetMouseWorldPosition() const;
+  bool TryGetMouseWorldPosition(FVector2D& OutPosition, bool RequireInside = true) const;
 
   // --- クリップボード ---
   FActorSaveData ClipboardData;

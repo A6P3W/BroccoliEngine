@@ -11,6 +11,7 @@ class EditorPawn : public APawn {
  public:
   DEFINE_ACTOR_CLASS(EditorPawn);
   EditorPawn();
+  ~EditorPawn() override;
 
   void OnUpdate(float DeltaTime) override;
   void OnPossessedBy(APlayerController* NewController) override;
@@ -28,15 +29,14 @@ class EditorPawn : public APawn {
   void OnMouseRightRelease(const FInputActionValue& Value);
   void OnMouseMove(const FInputActionValue& Value);
   void OnWheel(const FInputActionValue& Value);
-  FVector2D GetMouseWorldPosition() const;
+
+  void BeginCameraDrag();
+  void EndCameraDrag();
+  void UpdateCameraDrag();
 
   EditorMode* EditorModePtr = nullptr;
 
-  bool bRightMousePressed = false;
-  FVector2D DragStartMousePos;
-  FVector2D DragStartCameraPos;
-
-  int MousePointX = 0;
-  int MousePointY = 0;
+  bool CameraDragActive = false;
+  bool DiscardNextCameraDelta = false;
   MSpriteComponent* GameScreenView;
 };

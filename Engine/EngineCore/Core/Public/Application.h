@@ -23,7 +23,7 @@ class BROCCOLI_ENGINE_API Application {
   bool Draw(bool CompleteFrame);
   void Shutdown();
   void InitializeAutomation();
-  void InitOffscreenBuffer();
+  bool InitOffscreenBuffer(int Width, int Height);
 
   float DeltaTime = 0.0f;
   bool RaylibInitialized = false;

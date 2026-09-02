@@ -5,14 +5,13 @@
 #include "Actor.h"
 #include "ActorManager.h"
 #include "ActorRegistry.h"
+#include "BroccoliRaylib.h"
 #include "EditorController.h"
 #include "EditorPawn.h"
 #include "EditorSelectPointComponent.h"
 #include "EditorUI.h"
 #include "FileDialog.h"
-#include "InputManager.h"
 #include "Log.h"
-#include "MouseDevice.h"
 #include "PathResolver.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
@@ -96,9 +95,13 @@ void EditorMode::OnMouseMove(const FVector2D& Delta) {
   switch (GetActorAction()) {
     case EActorAction::Select:
       break;
-    case EActorAction::Move:
-      SelectingActor->SetActorLocation(GetMouseWorldPosition());
+    case EActorAction::Move: {
+      FVector2D MouseWorldPosition;
+      if (TryGetMouseWorldPosition(MouseWorldPosition, false)) {
+        SelectingActor->SetActorLocation(MouseWorldPosition);
+      }
       break;
+    }
     case EActorAction::Rotate:
       SelectingActor->AddActorRotation(FRotator(Delta.X * 0.25f));
       break;
@@ -149,10 +152,9 @@ bool EditorMode::QuickSaveLevel() {
     std::string PathStr = FilePath;
     std::string LowerPath = PathStr;
     std::transform(
-        LowerPath.begin(),
-        LowerPath.end(),
-        LowerPath.begin(),
-        [](unsigned char Character) { return static_cast<char>(std::tolower(Character)); }
+        LowerPath.begin(), LowerPath.end(), LowerPath.begin(), [](unsigned char Character) {
+          return static_cast<char>(std::tolower(Character));
+        }
     );
     const std::string JsonSuffix = ".blevel.json";
     const std::string BLevelSuffix = ".blevel";
@@ -160,10 +162,12 @@ bool EditorMode::QuickSaveLevel() {
         LowerPath.compare(LowerPath.size() - JsonSuffix.size(), JsonSuffix.size(), JsonSuffix) ==
             0) {
       PathStr = PathStr.substr(0, PathStr.size() - JsonSuffix.size()) + ".BLevel.json";
-    } else if (LowerPath.size() >= BLevelSuffix.size() &&
-               LowerPath.compare(
-                   LowerPath.size() - BLevelSuffix.size(), BLevelSuffix.size(), BLevelSuffix
-               ) == 0) {
+    } else if (
+        LowerPath.size() >= BLevelSuffix.size() &&
+        LowerPath.compare(
+            LowerPath.size() - BLevelSuffix.size(), BLevelSuffix.size(), BLevelSuffix
+        ) == 0
+    ) {
       PathStr = PathStr.substr(0, PathStr.size() - BLevelSuffix.size()) + ".BLevel.json";
     } else {
       PathStr += ".BLevel.json";
@@ -217,30 +221,34 @@ void EditorMode::PasteActor() {
     return;
   }
 
-  FVector2D pasteLocation = GetMouseWorldPosition();
+  FVector2D PasteLocation;
+  if (!TryGetMouseWorldPosition(PasteLocation)) {
+    M_LOG(Log, "Paste failed: Mouse is outside the editor viewport.");
+    return;
+  }
 
-  AActor* newActor = ActorRegistry::GetInstance().Spawn(
-      GetWorld(), ClipboardData.ClassName, pasteLocation, ClipboardData.Rotation
+  AActor* NewActor = ActorRegistry::GetInstance().Spawn(
+      GetWorld(), ClipboardData.ClassName, PasteLocation, ClipboardData.Rotation
   );
 
-  if (!newActor) {
+  if (!NewActor) {
     M_LOG(Log, "Paste failed: Could not spawn actor '{}'.", ClipboardData.ClassName);
     return;
   }
 
-  newActor->SetActorScale(ClipboardData.Scale);
+  NewActor->SetActorScale(ClipboardData.Scale);
 
-  if (auto spriteActor = dynamic_cast<ASpriteActor*>(newActor)) {
-    auto it = ClipboardData.CustomProperties.find("ImagePath");
-    if (it != ClipboardData.CustomProperties.end()) {
-      spriteActor->SetImagePath(it->second);
+  if (auto SpriteActor = dynamic_cast<ASpriteActor*>(NewActor)) {
+    auto It = ClipboardData.CustomProperties.find("ImagePath");
+    if (It != ClipboardData.CustomProperties.end()) {
+      SpriteActor->SetImagePath(It->second);
     }
   }
 
-  SetSelectedActor(newActor);
+  SetSelectedActor(NewActor);
 
   M_LOG(
-      Log, "Pasted Actor: {} at ({}, {})", ClipboardData.ClassName, pasteLocation.X, pasteLocation.Y
+      Log, "Pasted Actor: {} at ({}, {})", ClipboardData.ClassName, PasteLocation.X, PasteLocation.Y
   );
 }
 
@@ -286,10 +294,24 @@ void EditorMode::BeginPlay() {
   PendingLoadPath.clear();
 }
 
-FVector2D EditorMode::GetMouseWorldPosition() const {
-  const MouseDevice* Mouse = InputManager::GetInstance().GetDevice<MouseDevice>();
-  if (Mouse == nullptr) return FVector2D::ZeroVector();
-  return RenderSystem::GetInstance().ScreenToWorld(
-      {static_cast<float>(Mouse->GetMouseX()), static_cast<float>(Mouse->GetMouseY())}
+bool EditorMode::IsViewportInputAvailable() const {
+  const Vector2 MousePosition = GetMousePosition();
+  const FVector2D ScreenPosition{MousePosition.x, MousePosition.y};
+  return ViewportState.Hovered && ViewportState.ContainsScreenPoint(ScreenPosition);
+}
+
+bool EditorMode::TryGetViewportRenderTargetMousePosition(
+    FVector2D& OutPosition, bool RequireInside
+) const {
+  const Vector2 MousePosition = GetMousePosition();
+  return ViewportState.ScreenToRenderTarget(
+      {MousePosition.x, MousePosition.y}, OutPosition, RequireInside
   );
+}
+
+bool EditorMode::TryGetMouseWorldPosition(FVector2D& OutPosition, bool RequireInside) const {
+  FVector2D RenderTargetPosition;
+  if (!TryGetViewportRenderTargetMousePosition(RenderTargetPosition, RequireInside)) return false;
+  OutPosition = RenderSystem::GetInstance().ScreenToWorld(RenderTargetPosition);
+  return true;
 }

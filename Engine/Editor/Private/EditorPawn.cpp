@@ -1,18 +1,22 @@
 #include "EditorPawn.h"
 
-#include <imgui.h>
+#include <algorithm>
 
 #include "BroccoliRaylib.h"
 #include "CameraComponent.h"
 #include "EditorMode.h"
 #include "EnhancedInputComponent.h"
-#include "InputManager.h"
-#include "MouseDevice.h"
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "SpriteComponent.h"
 #include "World.h"
 REGISTER_ACTOR(EditorPawn);
+
+namespace {
+constexpr float MinEditorFOV = 0.01f;
+constexpr float MaxEditorFOV = 1000.0f;
+}  // namespace
+
 EditorPawn::EditorPawn() {
   GameScreenView = NewObject<MSpriteComponent>(this);
   if (GameScreenView) {
@@ -23,105 +27,132 @@ EditorPawn::EditorPawn() {
   bEditorActor = true;
 }
 
+EditorPawn::~EditorPawn() { EndCameraDrag(); }
+
 void EditorPawn::OnPossessedBy(APlayerController* NewController) {
   APawn::OnPossessedBy(NewController);
 }
 
-void EditorPawn::SetupPlayerInputComponent(MEnhancedInputComponent* comp) {
-  comp->BindAction(
+void EditorPawn::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputComponent) {
+  PlayerInputComponent->BindAction(
       InputActionMouse::MouseLeft, ETriggerEvent::Started, this, &EditorPawn::OnMouseLeftPress
   );
-  comp->BindAction(
+  PlayerInputComponent->BindAction(
       InputActionMouse::MouseLeft, ETriggerEvent::Completed, this, &EditorPawn::OnMouseLeftRelease
   );
 
-  comp->BindAction(
+  PlayerInputComponent->BindAction(
       InputActionMouse::MouseRight, ETriggerEvent::Started, this, &EditorPawn::OnMouseRightPress
   );
-  comp->BindAction(
+  PlayerInputComponent->BindAction(
       InputActionMouse::MouseRight, ETriggerEvent::Completed, this, &EditorPawn::OnMouseRightRelease
   );
 
-  comp->BindAction(InputAction::Look, ETriggerEvent::Triggered, this, &EditorPawn::OnMouseMove);
-  comp->BindAction(InputActionMouse::Wheel, ETriggerEvent::Triggered, this, &EditorPawn::OnWheel);
+  PlayerInputComponent->BindAction(
+      InputAction::Look, ETriggerEvent::Triggered, this, &EditorPawn::OnMouseMove
+  );
+  PlayerInputComponent->BindAction(
+      InputActionMouse::Wheel, ETriggerEvent::Triggered, this, &EditorPawn::OnWheel
+  );
 }
 
 void EditorPawn::OnUpdate(float DeltaTime) {
-  FVector2D ZeroPoint = {150, 150};
-  GameScreenView->SetWorldLocation(RenderSystem::GetInstance().ScreenToWorld(ZeroPoint));
+  if (CameraDragActive && (!IsWindowFocused() || EditorModePtr == nullptr || Camera == nullptr ||
+                           !EditorModePtr->GetViewportState().HasValidImage() ||
+                           !IsMouseButtonDown(MOUSE_BUTTON_RIGHT))) {
+    EndCameraDrag();
+  }
+  UpdateCameraDrag();
 }
 void EditorPawn::BeginPlay() {
   EditorModePtr = dynamic_cast<EditorMode*>(GetWorld()->GetGameMode());
 }
 void EditorPawn::OnMove(const FInputActionValue& Value) {
-  if (!bRightMousePressed) return;
+  if (!CameraDragActive) return;
 }
 void EditorPawn::OnMouseLeftPress(const FInputActionValue&) {
-  if (ImGui::GetIO().WantCaptureMouse) return;
-  EditorModePtr->OnMousePress(GetMouseWorldPosition());
+  if (EditorModePtr == nullptr || !EditorModePtr->IsViewportInputAvailable()) return;
+
+  FVector2D MouseRenderTargetPosition;
+  if (EditorModePtr->TryGetViewportRenderTargetMousePosition(MouseRenderTargetPosition)) {
+    EditorModePtr->OnMousePress(
+        RenderSystem::GetInstance().ScreenToWorld(MouseRenderTargetPosition)
+    );
+  }
 }
 
 void EditorPawn::OnMouseLeftRelease(const FInputActionValue&) {
-  EditorModePtr->OnMouseRelease(GetMouseWorldPosition());
-}
+  if (EditorModePtr == nullptr || EditorModePtr->GetState() != EEditorState::Dragging) return;
 
-void EditorPawn::OnMouseRightPress(const FInputActionValue& Value) {
-  if (ImGui::GetIO().WantCaptureMouse) return;
-  bRightMousePressed = true;
-  const Vector2 MousePosition = GetMousePosition();
-  DragStartMousePos = {MousePosition.x, MousePosition.y};
-  DragStartCameraPos = GetActorLocation();
-  HideCursor();
-  MousePointX = static_cast<int>(MousePosition.x);
-  MousePointY = static_cast<int>(MousePosition.y);
-}
-
-void EditorPawn::OnMouseRightRelease(const FInputActionValue& Value) {
-  if (!bRightMousePressed) return;
-  bRightMousePressed = false;
-  ShowCursor();
-  SetMousePosition(MousePointX, MousePointY);
-}
-
-void EditorPawn::OnMouseMove(const FInputActionValue& Value) {
-  if (EditorModePtr->GetState() == EEditorState::Dragging) {
-    EditorModePtr->OnMouseMove(Value.Axis2D);
+  FVector2D MouseRenderTargetPosition;
+  if (EditorModePtr->TryGetViewportRenderTargetMousePosition(MouseRenderTargetPosition, false)) {
+    EditorModePtr->OnMouseRelease(
+        RenderSystem::GetInstance().ScreenToWorld(MouseRenderTargetPosition)
+    );
+  } else {
+    EditorModePtr->OnMouseRelease(FVector2D::ZeroVector());
   }
-  if (bRightMousePressed) {
-    const Vector2 MousePosition = GetMousePosition();
-    FVector2D currentMousePos = {MousePosition.x, MousePosition.y};
-    FVector2D screenDelta = {
-        currentMousePos.X - static_cast<float>(MousePointX),
-        currentMousePos.Y - static_cast<float>(MousePointY)
-    };
+}
 
-    if (screenDelta.SizeSquared() > 0.0001f) {
-      float fov = Camera ? Camera->GetFOV() : 1.0f;
-      if (std::abs(fov) < 1e-6f) fov = 1e-6f;
+void EditorPawn::OnMouseRightPress(const FInputActionValue&) { BeginCameraDrag(); }
 
-      FVector2D worldDelta = screenDelta * (1.0f / fov);
-      worldDelta = worldDelta.RotateVector(GetActorRotation());
+void EditorPawn::BeginCameraDrag() {
+  if (CameraDragActive || EditorModePtr == nullptr || Camera == nullptr ||
+      EditorModePtr->GetState() == EEditorState::Dragging ||
+      !EditorModePtr->IsViewportInputAvailable()) {
+    return;
+  }
 
-      AddActorWorldOffset(worldDelta * -1.0f);
+  CameraDragActive = true;
+  DiscardNextCameraDelta = true;
+  DisableCursor();
+}
 
-      SetMousePosition(MousePointX, MousePointY);
-    }
+void EditorPawn::EndCameraDrag() {
+  if (!CameraDragActive) return;
+
+  CameraDragActive = false;
+  DiscardNextCameraDelta = false;
+  EnableCursor();
+}
+
+void EditorPawn::OnMouseRightRelease(const FInputActionValue&) { EndCameraDrag(); }
+
+void EditorPawn::UpdateCameraDrag() {
+  if (!CameraDragActive || EditorModePtr == nullptr || Camera == nullptr) return;
+
+  const Vector2 MouseDelta = GetMouseDelta();
+  if (DiscardNextCameraDelta) {
+    DiscardNextCameraDelta = false;
+    return;
+  }
+  const FVector2D RenderTargetDelta =
+      EditorModePtr->GetViewportState().ScreenDeltaToRenderTarget({MouseDelta.x, MouseDelta.y});
+  if (RenderTargetDelta.SizeSquared() <= 0.0001f) return;
+
+  const float FieldOfView = std::clamp(Camera->GetFOV(), MinEditorFOV, MaxEditorFOV);
+  FVector2D WorldDelta = RenderTargetDelta * (1.0f / FieldOfView);
+  WorldDelta = WorldDelta.RotateVector(GetActorRotation());
+  AddActorWorldOffset(WorldDelta * -1.0f);
+}
+
+void EditorPawn::OnMouseMove(const FInputActionValue&) {
+  if (EditorModePtr == nullptr || CameraDragActive) return;
+
+  const Vector2 MouseDelta = GetMouseDelta();
+  const FVector2D RenderTargetDelta =
+      EditorModePtr->GetViewportState().ScreenDeltaToRenderTarget({MouseDelta.x, MouseDelta.y});
+  if (EditorModePtr->GetState() == EEditorState::Dragging) {
+    EditorModePtr->OnMouseMove(RenderTargetDelta);
   }
 }
 
 void EditorPawn::OnWheel(const FInputActionValue& Value) {
-  if (bRightMousePressed) {
-    float zoomAmount = Value.Axis1D * -0.1f;
-    if (Camera) {
-      Camera->SetFOV(Camera->GetFOV() * (1.0f - zoomAmount));
-    }
+  if (EditorModePtr == nullptr || !EditorModePtr->IsViewportInputAvailable() || Camera == nullptr) {
+    return;
   }
-}
 
-FVector2D EditorPawn::GetMouseWorldPosition() const {
-  const MouseDevice* Mouse = InputManager::GetInstance().GetDevice<MouseDevice>();
-  if (Mouse == nullptr) return FVector2D::ZeroVector();
-  return RenderSystem::GetInstance().ScreenToWorld(
-      {static_cast<float>(Mouse->GetMouseX()), static_cast<float>(Mouse->GetMouseY())}
-  );
+  const float ZoomAmount = Value.Axis1D * -0.1f;
+  const float NewFieldOfView = Camera->GetFOV() * (1.0f - ZoomAmount);
+  Camera->SetFOV(std::clamp(NewFieldOfView, MinEditorFOV, MaxEditorFOV));
 }
