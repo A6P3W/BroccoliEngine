@@ -1,5 +1,6 @@
 #include "GridLine.h"
 
+#include <algorithm>
 #include <cmath>
 #include <format>
 #include <string>
@@ -18,46 +19,49 @@ void AGridLine::BeginPlay() {
 
 void AGridLine::OnUpdate(float DeltaTime) { SimpleDraw(CollisionCellSize, FColor{255, 255, 255}); }
 
-void AGridLine::SimpleDraw(float cellSize, FColor color) {
+void AGridLine::SimpleDraw(float CellSize, FColor Color) {
   auto Cam = RenderSystem::GetInstance().GetCamera();
   if (!Cam) return;
 
   FVector2D CamPos = Cam->GetWorldLocation();
-  float fov = Cam->GetFOV();
+  float Fov = Cam->GetFOV();
 
-  float minScreenSpacing = 50.0f;
-  int skipFactor = 1;
+  float MinScreenSpacing = 50.0f;
+  int SkipFactor = 1;
 
-  while ((cellSize * fov * skipFactor) < minScreenSpacing) {
-    skipFactor *= 2;
+  while ((CellSize * Fov * SkipFactor) < MinScreenSpacing) {
+    SkipFactor *= 2;
   }
 
-  float visualCellSize = cellSize * skipFactor;
+  float VisualCellSize = CellSize * SkipFactor;
 
   const float ScreenDiagonal =
       std::sqrt(static_cast<float>(VirtualWidth * VirtualWidth + VirtualHeight * VirtualHeight));
-  float worldRadius = (ScreenDiagonal * 0.5f) / fov;
+  float WorldRadius = (ScreenDiagonal * 0.5f) / Fov;
 
-  float startX = std::floor((CamPos.X - worldRadius) / visualCellSize) * visualCellSize;
-  float endX = std::ceil((CamPos.X + worldRadius) / visualCellSize) * visualCellSize;
-  float startY = std::floor((CamPos.Y - worldRadius) / visualCellSize) * visualCellSize;
-  float endY = std::ceil((CamPos.Y + worldRadius) / visualCellSize) * visualCellSize;
+  float StartX = std::floor((CamPos.X - WorldRadius) / VisualCellSize) * VisualCellSize;
+  float EndX = std::ceil((CamPos.X + WorldRadius) / VisualCellSize) * VisualCellSize;
+  float StartY = std::floor((CamPos.Y - WorldRadius) / VisualCellSize) * VisualCellSize;
+  float EndY = std::ceil((CamPos.Y + WorldRadius) / VisualCellSize) * VisualCellSize;
 
-  color.A = static_cast<uint8_t>((skipFactor == 1) ? 60 : 100);
+  const float ScreenSpacing = VisualCellSize * Fov;
+  const float AlphaT =
+      std::clamp((ScreenSpacing - MinScreenSpacing) / MinScreenSpacing, 0.0f, 1.0f);
+  Color.A = static_cast<uint8_t>(std::lerp(100.0f, 200.0f, AlphaT));
 
   // 垂直線
-  for (float x = startX; x <= endX; x += visualCellSize) {
-    RenderSystem::GetInstance().SubmitLine({x, startY}, {x, endY}, color, RenderSpace::World, 999);
+  for (float X = StartX; X <= EndX; X += VisualCellSize) {
+    RenderSystem::GetInstance().SubmitLine({X, StartY}, {X, EndY}, Color, RenderSpace::World, 999);
   }
   // 水平線
-  for (float y = startY; y <= endY; y += visualCellSize) {
-    RenderSystem::GetInstance().SubmitLine({startX, y}, {endX, y}, color, RenderSpace::World, 999);
+  for (float Y = StartY; Y <= EndY; Y += VisualCellSize) {
+    RenderSystem::GetInstance().SubmitLine({StartX, Y}, {EndX, Y}, Color, RenderSpace::World, 999);
   }
 
   RenderSystem::GetInstance().SubmitLine(
-      {0, startY}, {0, endY}, FColor{255, 100, 100, 120}, RenderSpace::World, 999
+      {0, StartY}, {0, EndY}, FColor{255, 100, 100, 220}, RenderSpace::World, 999
   );
   RenderSystem::GetInstance().SubmitLine(
-      {startX, 0}, {endX, 0}, FColor{255, 100, 100, 120}, RenderSpace::World, 999
+      {StartX, 0}, {EndX, 0}, FColor{255, 100, 100, 220}, RenderSpace::World, 999
   );
 }

@@ -7,7 +7,7 @@ class AGridLine : public AActor {
   AGridLine();
   void BeginPlay() override;
   void OnUpdate(float DeltaTime) override;
-  void SimpleDraw(float cellSize, FColor color);
+  void SimpleDraw(float CellSize, FColor Color);
 
  private:
   float CollisionCellSize;

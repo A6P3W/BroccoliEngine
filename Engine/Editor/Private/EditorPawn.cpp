@@ -13,8 +13,8 @@
 REGISTER_ACTOR(EditorPawn);
 
 namespace {
-constexpr float MinEditorFOV = 0.1f;
-constexpr float MaxEditorFOV = 10.0f;
+constexpr float MinEditorFOV = 0.01f;
+constexpr float MaxEditorFOV = 1000.0f;
 }  // namespace
 
 EditorPawn::EditorPawn() {
@@ -63,9 +63,6 @@ void EditorPawn::OnUpdate(float DeltaTime) {
     EndCameraDrag();
   }
   UpdateCameraDrag();
-
-  FVector2D ZeroPoint = {150, 150};
-  GameScreenView->SetWorldLocation(RenderSystem::GetInstance().ScreenToWorld(ZeroPoint));
 }
 void EditorPawn::BeginPlay() {
   EditorModePtr = dynamic_cast<EditorMode*>(GetWorld()->GetGameMode());
