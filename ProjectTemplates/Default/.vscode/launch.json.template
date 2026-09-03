@@ -5,27 +5,9 @@
       "name": "Launch Game (Debug)",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${input:gamePath}",
-      "cwd": "${input:gameDirectory}",
+      "program": "${command:cmake.launchTargetPath}",
+      "cwd": "${command:cmake.launchTargetDirectory}",
       "console": "integratedTerminal"
-    }
-  ],
-  "inputs": [
-    {
-      "id": "gamePath",
-      "type": "command",
-      "command": "cmake.launchTargetPath",
-      "args": {
-        "targetName": "{PROJECT_NAME}"
-      }
-    },
-    {
-      "id": "gameDirectory",
-      "type": "command",
-      "command": "cmake.getLaunchTargetDirectory",
-      "args": {
-        "targetName": "{PROJECT_NAME}"
-      }
     }
   ]
 }
