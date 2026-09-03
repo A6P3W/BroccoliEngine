@@ -43,7 +43,7 @@ void ABasicGameplayPawn::BeginPlay() {
   // 基底クラス APawn の BeginPlay 処理を実行
   APawn::BeginPlay();
   // コンソールおよびログファイルにデバッグ用メッセージを出力するエンジンマクロ
-  M_LOG("BasicGameplayPawn: WASD moves the pawn; the pawn camera follows automatically.");
+  M_LOG(Log, "BasicGameplayPawn: WASD moves the pawn; the pawn camera follows automatically.");
 }
 
 void ABasicGameplayPawn::OnUpdate(float DeltaTime) {

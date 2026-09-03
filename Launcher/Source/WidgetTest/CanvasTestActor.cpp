@@ -61,10 +61,6 @@ void ACanvasTestActor::OnUpdate(float DeltaTime) {
   // ワールド座標 → キャンバス内のローカルピクセル座標へ変換
   FVector2D LocalPaintPos = Canvas->WorldToCanvasLocal(WorldMousePos);
 
-  // デバッグ情報をログに出力（毎フレームは冗長なのでコメントアウト可能）
-  // M_LOG("Canvas Mouse: Screen({:.0f},{:.0f}) Local({:.0f},{:.0f})",
-  //     ScreenPos.X, ScreenPos.Y, LocalPaintPos.X, LocalPaintPos.Y);
-
   // 範囲内かつ左クリック中の場合、キャンバスに描画
   if (Mouse->GetPressing(EMouseButton::Left)) {
     if (LocalPaintPos.X >= 0 && LocalPaintPos.X < Canvas->GetCanvasWidth() &&
