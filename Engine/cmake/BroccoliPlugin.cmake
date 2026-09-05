@@ -51,7 +51,7 @@ function(broccoli_link_configured_plugins_to_game)
     message(FATAL_ERROR "broccoli_link_configured_plugins_to_game requires TARGET.")
   endif()
 
-  set(PluginsWithRuntimeCopy)
+  set(UsesDelayedPluginLoad FALSE)
   foreach(Configuration IN ITEMS Debug Editor Release)
     string(TOUPPER "${Configuration}" ConfigurationUpper)
     set(PluginListVariable "BROCCOLI_PLUGINS_${ConfigurationUpper}")
@@ -62,19 +62,20 @@ function(broccoli_link_configured_plugins_to_game)
           PRIVATE "$<$<CONFIG:${Configuration}>:${Plugin}>"
         )
 
-        if(NOT "${Plugin}" IN_LIST PluginsWithRuntimeCopy)
-          add_custom_command(TARGET "${BroccoliPluginGame_TARGET}" POST_BUILD
-            COMMAND "${CMAKE_COMMAND}"
-                    "-DBROCCOLI_PLUGIN_RUNTIME_SOURCE=$<$<CONFIG:${Configuration}>:$<TARGET_FILE:${Plugin}>>"
-                    "-DBROCCOLI_PLUGIN_RUNTIME_DESTINATION=$<TARGET_FILE_DIR:${BroccoliPluginGame_TARGET}>"
-                    -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/CopyPluginRuntime.cmake"
-            VERBATIM
+        if(MSVC)
+          target_link_options(
+            "${BroccoliPluginGame_TARGET}"
+            PRIVATE "$<$<CONFIG:${Configuration}>:/DELAYLOAD:$<TARGET_FILE_NAME:${Plugin}>>"
           )
-          list(APPEND PluginsWithRuntimeCopy "${Plugin}")
+          set(UsesDelayedPluginLoad TRUE)
         endif()
       endif()
     endforeach()
   endforeach()
+
+  if(MSVC AND UsesDelayedPluginLoad)
+    target_link_libraries("${BroccoliPluginGame_TARGET}" PRIVATE delayimp)
+  endif()
 endfunction()
 
 function(broccoli_add_plugin)

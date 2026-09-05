@@ -45,8 +45,6 @@ def PackageRuntime(
   CopyFile(EngineBinary, BinariesDirectory)
   if EosBinary.is_file():
     CopyFile(EosBinary, BinariesDirectory)
-  for RuntimeDll in OutputDirectory.glob("*.dll"):
-    CopyFile(RuntimeDll, BinariesDirectory)
   CopyFile(BootstrapBinary, PublishDirectory)
   (PublishDirectory / BootstrapBinary.name).replace(PublishDirectory / f"{GameName}.exe")
   if PluginsDirectory.is_dir():
