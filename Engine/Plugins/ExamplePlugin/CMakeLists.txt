@@ -18,6 +18,7 @@ set_target_properties(ExamplePlugin PROPERTIES
   ARCHIVE_OUTPUT_DIRECTORY "${BROCCOLI_PLUGIN_OUTPUT_DIRECTORY}"
   PDB_OUTPUT_DIRECTORY "${BROCCOLI_PLUGIN_OUTPUT_DIRECTORY}"
 )
+broccoli_configure_plugin(TARGET ExamplePlugin)
 add_custom_command(TARGET ExamplePlugin POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
           "${CMAKE_CURRENT_SOURCE_DIR}/plugin.json"

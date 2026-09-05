@@ -17,3 +17,12 @@ include("${BROCCOLI_PROJECT_ROOT}/Intermediate/Generated/Plugins.cmake")
 
 add_subdirectory(Engine)
 add_subdirectory(Launcher)
+
+foreach(Configuration IN ITEMS Debug Editor Release)
+  add_custom_target("BroccoliProjectBuild_${Configuration}")
+  add_dependencies("BroccoliProjectBuild_${Configuration}" "${BROCCOLI_PROJECT_NAME}")
+  broccoli_add_configured_plugins_to_target(
+    TARGET "BroccoliProjectBuild_${Configuration}"
+    CONFIGURATION "${Configuration}"
+  )
+endforeach()

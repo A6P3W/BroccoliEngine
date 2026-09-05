@@ -167,7 +167,9 @@ def TestInPlaceCreatesVerifiedSubmodule(
   ProjectSettings = json.loads(
     (RepositoryRoot / ".broccoli-project.json").read_text(encoding="utf-8")
   )
-  assert ProjectSettings["plugins"] == {"ExamplePlugin": True}
+  assert ProjectSettings["plugins"] == [
+    {"name": "ExamplePlugin", "configurations": ["Debug", "Editor", "Release"]}
+  ]
   assert HeadCommit in RunGit(
     RepositoryRoot,
     "submodule",

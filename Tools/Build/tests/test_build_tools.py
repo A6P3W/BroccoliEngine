@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -37,24 +38,108 @@ def TestPrepareOutputRemovesGeneratedArtifacts(TmpPath: Path) -> None:
   )
 
 
-def TestGeneratePluginsCmakeReflectsProjectSetting(TmpPath: Path) -> None:
-  SettingsPath = TmpPath / ".broccoli-project.json"
-  SettingsPath.write_text(
-    '{"plugins": {"ExamplePlugin": false}}\n', encoding="utf-8", newline="\n"
+def WritePluginSettings(TmpPath: Path, Plugins: object) -> None:
+  (TmpPath / ".broccoli-project.json").write_text(
+    json.dumps({"schema_version": 1, "plugins": Plugins}) + "\n",
+    encoding="utf-8",
+    newline="\n",
+  )
+
+
+def TestGeneratePluginsCmakeReflectsConfigurationSettings(TmpPath: Path) -> None:
+  WritePluginSettings(
+    TmpPath,
+    [{"name": "ExamplePlugin", "configurations": ["Debug", "Editor", "Release"]}],
   )
 
   assert GeneratePluginsCmake(TmpPath)
   assert not GeneratePluginsCmake(TmpPath)
   assert (TmpPath / "Intermediate" / "Generated" / "Plugins.cmake").read_text(
     encoding="utf-8"
-  ) == "set(BROCCOLI_BUILD_EXAMPLE_PLUGIN OFF)\n"
+  ) == (
+    "set(BROCCOLI_PLUGINS\n"
+    "  ExamplePlugin\n"
+    ")\n\n"
+    "set(BROCCOLI_PLUGINS_DEBUG\n"
+    "  ExamplePlugin\n"
+    ")\n\n"
+    "set(BROCCOLI_PLUGINS_EDITOR\n"
+    "  ExamplePlugin\n"
+    ")\n\n"
+    "set(BROCCOLI_PLUGINS_RELEASE\n"
+    "  ExamplePlugin\n"
+    ")\n"
+  )
 
-  ArtifactDirectory = TmpPath / "Bin" / "x64" / "Debug" / "Plugins" / "ExamplePlugin"
-  ArtifactDirectory.mkdir(parents=True)
-  (ArtifactDirectory / "ExamplePlugin.dll").write_bytes(b"plugin")
+
+def TestGeneratePluginsCmakeRemovesOnlyDisabledConfigurationArtifacts(TmpPath: Path) -> None:
+  WritePluginSettings(TmpPath, [{"name": "ExamplePlugin", "configurations": ["Editor"]}])
+  for Configuration in ("Debug", "Editor", "Release"):
+    ArtifactDirectory = TmpPath / "Bin" / "x64" / Configuration / "Plugins" / "ExamplePlugin"
+    ArtifactDirectory.mkdir(parents=True)
+    (ArtifactDirectory / "ExamplePlugin.dll").write_bytes(b"plugin")
+
+  assert GeneratePluginsCmake(TmpPath)
   RemoveDisabledExamplePluginArtifacts(TmpPath)
 
-  assert not ArtifactDirectory.exists()
+  assert not (TmpPath / "Bin" / "x64" / "Debug" / "Plugins" / "ExamplePlugin").exists()
+  assert (TmpPath / "Bin" / "x64" / "Editor" / "Plugins" / "ExamplePlugin").is_dir()
+  assert not (TmpPath / "Bin" / "x64" / "Release" / "Plugins" / "ExamplePlugin").exists()
+
+
+def TestGeneratePluginsCmakeRemovesAllArtifactsWhenPluginIsUndefined(TmpPath: Path) -> None:
+  WritePluginSettings(TmpPath, [])
+  for Configuration in ("Debug", "Editor", "Release"):
+    ArtifactDirectory = TmpPath / "Bin" / "x64" / Configuration / "Plugins" / "ExamplePlugin"
+    ArtifactDirectory.mkdir(parents=True)
+
+  assert GeneratePluginsCmake(TmpPath)
+  RemoveDisabledExamplePluginArtifacts(TmpPath)
+
+  assert (TmpPath / "Intermediate" / "Generated" / "Plugins.cmake").read_text(
+    encoding="utf-8"
+  ) == (
+    "set(BROCCOLI_PLUGINS)\n\n"
+    "set(BROCCOLI_PLUGINS_DEBUG)\n\n"
+    "set(BROCCOLI_PLUGINS_EDITOR)\n\n"
+    "set(BROCCOLI_PLUGINS_RELEASE)\n"
+  )
+  for Configuration in ("Debug", "Editor", "Release"):
+    assert not (
+      TmpPath / "Bin" / "x64" / Configuration / "Plugins" / "ExamplePlugin"
+    ).exists()
+
+
+@pytest.mark.parametrize(
+  ("Plugins", "Message"),
+  [
+    ({"ExamplePlugin": True}, "must be an array"),
+    (["ExamplePlugin"], "must be an object"),
+    ([{"name": "", "configurations": []}], "non-empty string"),
+    ([{"name": "ExamplePlugin", "configurations": "Editor"}], "must be an array"),
+    ([{"name": "ExamplePlugin", "configurations": [1]}], "must be a string"),
+    ([{"name": "ExamplePlugin", "configurations": ["Profile"]}], "unknown configuration"),
+    ([{"name": "ExamplePlugin", "configurations": ["Editor", "Editor"]}], "duplicated"),
+    (
+      [{"name": "ExamplePlugin", "configurations": ["Editor"], "enabled": True}],
+      "not supported",
+    ),
+    (
+      [
+        {"name": "ExamplePlugin", "configurations": ["Debug"]},
+        {"name": "ExamplePlugin", "configurations": ["Editor"]},
+      ],
+      "more than once",
+    ),
+  ],
+)
+def TestGeneratePluginsCmakeRejectsInvalidSettings(
+  TmpPath: Path, Plugins: object, Message: str
+) -> None:
+  WritePluginSettings(TmpPath, Plugins)
+
+  with pytest.raises(ValueError, match=Message):
+    GeneratePluginsCmake(TmpPath)
 
 
 def TestStageRuntimeStagesEditorBinariesWithoutResources(TmpPath: Path) -> None:

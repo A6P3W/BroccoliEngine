@@ -8,7 +8,11 @@ import sys
 from pathlib import Path
 
 from .package_runtime import PackageRuntime
-from .plugins import GeneratePluginsCmake, RemoveDisabledExamplePluginArtifacts
+from .plugins import (
+  GeneratePluginsCmake,
+  LoadPluginConfigurations,
+  RemoveDisabledExamplePluginArtifacts,
+)
 from .prepare_output import PrepareOutput
 from .stage_runtime import StageRuntime
 from .verify_runtime import VerifyRuntime
@@ -65,8 +69,9 @@ def Main() -> int:
   Arguments = CreateParser().parse_args()
   try:
     if Arguments.Command == "generate-plugins":
-      Changed = GeneratePluginsCmake(Arguments.project_dir)
-      RemoveDisabledExamplePluginArtifacts(Arguments.project_dir)
+      PluginConfigurations = LoadPluginConfigurations(Arguments.project_dir)
+      Changed = GeneratePluginsCmake(Arguments.project_dir, PluginConfigurations)
+      RemoveDisabledExamplePluginArtifacts(Arguments.project_dir, PluginConfigurations)
       if Changed and Arguments.changed_exit_code:
         return 2
     elif Arguments.Command == "prepare-output":

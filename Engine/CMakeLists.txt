@@ -147,7 +147,7 @@ set_target_properties(BroccoliEngine PROPERTIES
   PDB_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
 )
 
-if(BROCCOLI_BUILD_EXAMPLE_PLUGIN)
+if("ExamplePlugin" IN_LIST BROCCOLI_PLUGINS)
   add_subdirectory(Plugins/ExamplePlugin)
 endif()
 

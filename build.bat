@@ -84,7 +84,7 @@ if exist "CMakeUserPresets.json" (
 if errorlevel 1 exit /b %errorlevel%
 
 :do_build
-"%CMAKE_COMMAND%" --build --preset %BUILD_PRESET%
+"%CMAKE_COMMAND%" --build --preset %BUILD_PRESET% --target BroccoliProjectBuild_%CONFIG%
 if errorlevel 1 exit /b %errorlevel%
 
 endlocal
