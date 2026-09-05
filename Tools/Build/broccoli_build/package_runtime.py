@@ -33,7 +33,9 @@ def PackageRuntime(
   RequireFile(EngineBinary, "BroccoliEngine.dll")
   RequireFile(BootstrapBinary, "BroccoliBootstrap.exe")
   ResourcesDirectory = OutputDirectory / "Resources"
+  PluginsDirectory = OutputDirectory / "Plugins"
   RequireDirectory(ResourcesDirectory, "Staged resources directory")
+  RequireDirectory(PluginsDirectory, "Staged plugin directory")
   RequireFile(ConvertLevelsScript, "ConvertLevels.py")
 
   RemovePath(PublishDirectory)
@@ -46,6 +48,7 @@ def PackageRuntime(
     CopyFile(EosBinary, BinariesDirectory)
   CopyFile(BootstrapBinary, PublishDirectory)
   (PublishDirectory / BootstrapBinary.name).replace(PublishDirectory / f"{GameName}.exe")
+  CopyDirectory(PluginsDirectory, BinariesDirectory / "Plugins")
   CopyDirectory(ResourcesDirectory, PublishDirectory / "Resources")
   if OnlineResourcesDirectory.is_dir():
     PublishedOnlineResourcesDirectory = PublishDirectory / "Resources-EOS"
