@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from .package_runtime import PackageRuntime
+from .plugins import GeneratePluginsCmake, RemoveDisabledExamplePluginArtifacts
 from .prepare_output import PrepareOutput
 from .stage_runtime import StageRuntime
 from .verify_runtime import VerifyRuntime
@@ -23,6 +24,12 @@ def CreateParser() -> argparse.ArgumentParser:
 
   PrepareParser = Commands.add_parser("prepare-output", help="Remove generated runtime output")
   PrepareParser.add_argument("--output-dir", type=PathArgument, required=True)
+
+  PluginsParser = Commands.add_parser(
+    "generate-plugins", help="Generate the CMake plugin selection for a project"
+  )
+  PluginsParser.add_argument("--project-dir", type=PathArgument, required=True)
+  PluginsParser.add_argument("--changed-exit-code", action="store_true")
 
   StageParser = Commands.add_parser("stage-runtime", help="Stage local runtime dependencies")
   StageParser.add_argument("--configuration", required=True)
@@ -57,7 +64,12 @@ def CreateParser() -> argparse.ArgumentParser:
 def Main() -> int:
   Arguments = CreateParser().parse_args()
   try:
-    if Arguments.Command == "prepare-output":
+    if Arguments.Command == "generate-plugins":
+      Changed = GeneratePluginsCmake(Arguments.project_dir)
+      RemoveDisabledExamplePluginArtifacts(Arguments.project_dir)
+      if Changed and Arguments.changed_exit_code:
+        return 2
+    elif Arguments.Command == "prepare-output":
       PrepareOutput(Arguments.output_dir)
     elif Arguments.Command == "stage-runtime":
       StageRuntime(

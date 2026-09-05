@@ -6,11 +6,13 @@ set(VCPKG_MANIFEST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/BroccoliEngine/Engine" CACHE
 project({PROJECT_NAME}Workspace LANGUAGES CXX)
 
 set(BROCCOLI_PROJECT_NAME "{PROJECT_NAME}")
+set(BROCCOLI_PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
 set(BROCCOLI_ENGINE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/BroccoliEngine")
 set(BROCCOLI_GAME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/{PROJECT_NAME}")
 set(BROCCOLI_OUTPUT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
 
 include("${BROCCOLI_ENGINE_ROOT}/ProjectDefaults.cmake")
+include("${BROCCOLI_PROJECT_ROOT}/Intermediate/Generated/Plugins.cmake")
 
 add_subdirectory(BroccoliEngine/Engine)
 add_subdirectory({PROJECT_NAME})

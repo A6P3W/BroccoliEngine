@@ -57,6 +57,15 @@ if not exist "%CMAKE_COMMAND%" (
 )
 
 :configure_check
+uv run --project "Tools\Build" --frozen python -m broccoli_build generate-plugins --project-dir "%CD%" --changed-exit-code
+if errorlevel 3 exit /b %errorlevel%
+if errorlevel 2 (
+  set "DO_CONFIGURE=1"
+  goto plugins_generated
+)
+if errorlevel 1 exit /b %errorlevel%
+
+:plugins_generated
 if not exist "build\windows-x64\CMakeCache.txt" set "DO_CONFIGURE=1"
 
 if not defined DO_CONFIGURE goto do_build

@@ -10,7 +10,6 @@ def VerifyRuntime(
     OutputDirectory / "BroccoliEngine.dll",
   ]
   RequiredDirectories = [
-    OutputDirectory / "Plugins",
     OutputDirectory / "Resources" / "Engine",
     OutputDirectory / "Resources" / GameName,
   ]
@@ -22,7 +21,6 @@ def VerifyRuntime(
     PublishBinary = PublishDirectory / "Binaries" / f"{GameName}.exe"
     if not PublishBinary.is_file():
       MissingPaths.append(PublishBinary)
-    RequiredDirectories.append(PublishDirectory / "Binaries" / "Plugins")
     JsonFiles.extend(PublishDirectory.glob("Resources/**/*.BLevel.json"))
     JsonFiles.extend(PublishDirectory.glob("Resources-EOS/**/*.BLevel.json"))
 

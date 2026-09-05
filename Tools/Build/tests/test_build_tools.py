@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 from broccoli_build.package_runtime import PackageRuntime
+from broccoli_build.plugins import GeneratePluginsCmake, RemoveDisabledExamplePluginArtifacts
 from broccoli_build.prepare_output import PrepareOutput
 from broccoli_build.stage_runtime import StageRuntime
 from broccoli_build.verify_runtime import VerifyRuntime
@@ -34,6 +35,26 @@ def TestPrepareOutputRemovesGeneratedArtifacts(TmpPath: Path) -> None:
   assert not any(
     (TmpPath / Name).exists() for Name in ("Logs", "Saved", "Resources", "Resources-EOS", "Log.txt")
   )
+
+
+def TestGeneratePluginsCmakeReflectsProjectSetting(TmpPath: Path) -> None:
+  SettingsPath = TmpPath / ".broccoli-project.json"
+  SettingsPath.write_text(
+    '{"plugins": {"ExamplePlugin": false}}\n', encoding="utf-8", newline="\n"
+  )
+
+  assert GeneratePluginsCmake(TmpPath)
+  assert not GeneratePluginsCmake(TmpPath)
+  assert (TmpPath / "Intermediate" / "Generated" / "Plugins.cmake").read_text(
+    encoding="utf-8"
+  ) == "set(BROCCOLI_BUILD_EXAMPLE_PLUGIN OFF)\n"
+
+  ArtifactDirectory = TmpPath / "Bin" / "x64" / "Debug" / "Plugins" / "ExamplePlugin"
+  ArtifactDirectory.mkdir(parents=True)
+  (ArtifactDirectory / "ExamplePlugin.dll").write_bytes(b"plugin")
+  RemoveDisabledExamplePluginArtifacts(TmpPath)
+
+  assert not ArtifactDirectory.exists()
 
 
 def TestStageRuntimeStagesEditorBinariesWithoutResources(TmpPath: Path) -> None:
@@ -169,6 +190,44 @@ def TestPackageRuntimeCreatesVerifiedLayout(TmpPath: Path) -> None:
   assert (PublishDirectory / "Resources-EOS" / "online.BLevel").is_file()
   assert not (PublishDirectory / "Resources-EOS" / "online.BLevel.json").exists()
   assert (PublishDirectory / "Resources-EOS" / "online.txt").is_file()
+
+
+def TestPackageRuntimeAcceptsBuildWithoutPlugins(TmpPath: Path) -> None:
+  OutputDirectory = TmpPath / "Output"
+  PublishDirectory = TmpPath / "Publish"
+  OnlineResourcesDirectory = TmpPath / "OnlineResources"
+  ResourcesDirectory = OutputDirectory / "Resources"
+  (ResourcesDirectory / "Engine").mkdir(parents=True)
+  (ResourcesDirectory / "Game").mkdir(parents=True)
+  (ResourcesDirectory / "Engine" / "engine.txt").write_text("engine", encoding="utf-8")
+  (ResourcesDirectory / "Game" / "level.BLevel").write_bytes(b"level")
+  OnlineResourcesDirectory.mkdir()
+  GameBinary = OutputDirectory / "Game-game.exe"
+  EngineBinary = OutputDirectory / "BroccoliEngine.dll"
+  EosBinary = OutputDirectory / "EOSSDK-Win64-Shipping.dll"
+  BootstrapBinary = OutputDirectory / "BroccoliBootstrap.exe"
+  ConvertLevelsScript = TmpPath / "ConvertLevels.py"
+  GameBinary.write_bytes(b"game")
+  EngineBinary.write_bytes(b"engine")
+  EosBinary.write_bytes(b"eos")
+  BootstrapBinary.write_bytes(b"bootstrap")
+  WriteConvertLevelsScript(ConvertLevelsScript)
+
+  PackageRuntime(
+    "Release",
+    OutputDirectory,
+    PublishDirectory,
+    GameBinary,
+    EngineBinary,
+    "Game",
+    EosBinary,
+    OnlineResourcesDirectory,
+    ConvertLevelsScript,
+    BootstrapBinary,
+  )
+
+  VerifyRuntime(OutputDirectory, "Game", PublishDirectory)
+  assert not (PublishDirectory / "Binaries" / "Plugins").exists()
 
 
 def TestVerifyRuntimeReportsMissingArtifacts(TmpPath: Path) -> None:
