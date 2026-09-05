@@ -8,6 +8,7 @@
 #include "ExamplePlugin/ExamplePlugin.h"
 #include "LevelStarter/LevelStarterGameMode.h"
 #include "LevelStarter/LevelStarterWidget.h"
+#include "Log.h"
 #include "PathResolver.h"
 #include "SceneManager.h"
 
@@ -20,6 +21,7 @@ void SetupGame() {
   EOSCoreManager::GetInstance().InitializeOnlineServices();
 
   const int ExamplePluginRandomNumber = ExamplePlugin::GetRandomNumber();
+  M_LOG(Log, "ExamplePlugin random number: {}", ExamplePluginRandomNumber);
   (void)ExamplePluginRandomNumber;
 
   // ゲーム起動時に最初に読み込むレベル（ステージ）ファイルのパスを設定
