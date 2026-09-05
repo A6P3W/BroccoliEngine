@@ -57,6 +57,7 @@ target_compile_definitions(BroccoliEngine
 target_include_directories(BroccoliEngine
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Plugin/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Automation/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Core/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Systems/Public>
@@ -144,6 +145,33 @@ set_target_properties(BroccoliEngine PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
   ARCHIVE_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
   PDB_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
+)
+
+set(BROCCOLI_PLUGIN_OUTPUT_DIRECTORY
+  "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>/Plugins/ExamplePlugin")
+
+add_library(ExamplePlugin SHARED
+  "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/ExamplePlugin/Source/ExamplePlugin.cpp"
+)
+target_compile_features(ExamplePlugin PRIVATE cxx_std_20)
+target_link_libraries(ExamplePlugin PRIVATE Broccoli::Engine)
+if(MSVC)
+  broccoli_apply_common_msvc_options(ExamplePlugin)
+  set_property(TARGET ExamplePlugin PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<OR:$<CONFIG:Debug>,$<CONFIG:Editor>>:Debug>DLL")
+endif()
+set_target_properties(ExamplePlugin PROPERTIES
+  OUTPUT_NAME ExamplePlugin
+  RUNTIME_OUTPUT_DIRECTORY "${BROCCOLI_PLUGIN_OUTPUT_DIRECTORY}"
+  LIBRARY_OUTPUT_DIRECTORY "${BROCCOLI_PLUGIN_OUTPUT_DIRECTORY}"
+  ARCHIVE_OUTPUT_DIRECTORY "${BROCCOLI_PLUGIN_OUTPUT_DIRECTORY}"
+  PDB_OUTPUT_DIRECTORY "${BROCCOLI_PLUGIN_OUTPUT_DIRECTORY}"
+)
+add_custom_command(TARGET ExamplePlugin POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${CMAKE_CURRENT_SOURCE_DIR}/Plugins/ExamplePlugin/plugin.json"
+          "$<TARGET_FILE_DIR:ExamplePlugin>/plugin.json"
+  VERBATIM
 )
 
 if(WIN32)
