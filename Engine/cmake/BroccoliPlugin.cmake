@@ -42,6 +42,41 @@ function(broccoli_add_configured_plugins_to_target)
   endforeach()
 endfunction()
 
+function(broccoli_link_configured_plugins_to_game)
+  set(Options)
+  set(OneValueArguments TARGET)
+  cmake_parse_arguments(BroccoliPluginGame "${Options}" "${OneValueArguments}" "" ${ARGN})
+
+  if(NOT BroccoliPluginGame_TARGET)
+    message(FATAL_ERROR "broccoli_link_configured_plugins_to_game requires TARGET.")
+  endif()
+
+  set(PluginsWithRuntimeCopy)
+  foreach(Configuration IN ITEMS Debug Editor Release)
+    string(TOUPPER "${Configuration}" ConfigurationUpper)
+    set(PluginListVariable "BROCCOLI_PLUGINS_${ConfigurationUpper}")
+    foreach(Plugin IN LISTS ${PluginListVariable})
+      if(TARGET "${Plugin}")
+        target_link_libraries(
+          "${BroccoliPluginGame_TARGET}"
+          PRIVATE "$<$<CONFIG:${Configuration}>:${Plugin}>"
+        )
+
+        if(NOT "${Plugin}" IN_LIST PluginsWithRuntimeCopy)
+          add_custom_command(TARGET "${BroccoliPluginGame_TARGET}" POST_BUILD
+            COMMAND "${CMAKE_COMMAND}"
+                    "-DBROCCOLI_PLUGIN_RUNTIME_SOURCE=$<$<CONFIG:${Configuration}>:$<TARGET_FILE:${Plugin}>>"
+                    "-DBROCCOLI_PLUGIN_RUNTIME_DESTINATION=$<TARGET_FILE_DIR:${BroccoliPluginGame_TARGET}>"
+                    -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/CopyPluginRuntime.cmake"
+            VERBATIM
+          )
+          list(APPEND PluginsWithRuntimeCopy "${Plugin}")
+        endif()
+      endif()
+    endforeach()
+  endforeach()
+endfunction()
+
 function(broccoli_add_plugin)
   set(Options)
   set(OneValueArguments NAME)

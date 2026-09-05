@@ -44,6 +44,7 @@ function(broccoli_add_game)
   )
   target_include_directories(${GameName} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
   target_link_libraries(${GameName} PRIVATE Broccoli::Engine)
+  broccoli_link_configured_plugins_to_game(TARGET ${GameName})
   add_dependencies(${GameName} BroccoliBootstrap)
 
   if(MSVC)
