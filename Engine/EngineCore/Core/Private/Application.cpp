@@ -245,7 +245,12 @@ void Application::QuitGame() { ShouldQuitGame = true; }
 bool Application::Run() {
   PathResolver::InitializeWorkingDirectory();
   MLog::Initialize();
-  PluginHost::GetInstance().Initialize(std::filesystem::current_path() / "Plugins");
+  const std::filesystem::path ExecutableDirectory = PathResolver::GetExecutableDirectory();
+  if (ExecutableDirectory.empty()) {
+    M_LOG(Error, "Could not determine the executable directory for plugin discovery.");
+  } else {
+    PluginHost::GetInstance().Initialize(ExecutableDirectory / "Plugins");
+  }
   SetProcessDPIAware();
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 

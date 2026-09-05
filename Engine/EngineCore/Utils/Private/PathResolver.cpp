@@ -1,8 +1,13 @@
 #include "PathResolver.h"
 
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+
 #include <cctype>
 #include <filesystem>
 #include <string>
+#include <vector>
 
 #include "EngineDefine.h"
 #include "FileUtils.h"
@@ -284,6 +289,23 @@ std::string PathResolver::GetGameResourceDir() {
     std::string Dir = "Resources/" + GetGameName() + "/";
     return Dir;
   }
+}
+
+std::filesystem::path PathResolver::GetExecutableDirectory() {
+#if defined(_WIN32)
+  std::vector<wchar_t> Buffer(MAX_PATH);
+  while (true) {
+    const DWORD Length =
+        GetModuleFileNameW(nullptr, Buffer.data(), static_cast<DWORD>(Buffer.size()));
+    if (Length == 0) return {};
+    if (Length < Buffer.size() - 1) {
+      return std::filesystem::path(Buffer.data(), Buffer.data() + Length).parent_path();
+    }
+    Buffer.resize(Buffer.size() * 2);
+  }
+#else
+  return {};
+#endif
 }
 
 void PathResolver::InitializeWorkingDirectory() {
