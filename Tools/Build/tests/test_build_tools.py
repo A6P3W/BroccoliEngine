@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+from broccoli_build import cli
 from broccoli_build.package_runtime import PackageRuntime
 from broccoli_build.plugins import GeneratePluginsCmake, RemoveDisabledExamplePluginArtifacts
 from broccoli_build.prepare_output import PrepareOutput
@@ -44,6 +45,228 @@ def WritePluginSettings(TmpPath: Path, Plugins: object) -> None:
     encoding="utf-8",
     newline="\n",
   )
+
+
+def TestBuildParserNormalizesConfigurationNames() -> None:
+  Parser = cli.CreateParser()
+
+  Arguments = Parser.parse_args(["build", "eDiToR"])
+
+  assert Arguments.configuration == "Editor"
+
+
+def TestBuildParserAcceptsConfigOption() -> None:
+  Parser = cli.CreateParser()
+
+  Arguments = Parser.parse_args(["build", "--config", "release"])
+
+  assert Arguments.config == "Release"
+
+
+def TestBuildConfiguresOnlyWhenPluginSettingsChange(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+  WritePluginSettings(TmpPath, [])
+  CacheFile = TmpPath / "build" / "windows-x64" / "CMakeCache.txt"
+  CacheFile.parent.mkdir(parents=True)
+  CacheFile.write_text("cache", encoding="utf-8")
+  Commands: list[tuple[list[str], Path]] = []
+
+  def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
+    Commands.append((Command, cwd))
+
+  monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
+  monkeypatch.setattr(cli.subprocess, "run", RecordRun)
+
+  cli.Build(TmpPath, "Debug", False)
+
+  assert Commands == [
+    (["cmake", "--preset", "windows-x64-local"], TmpPath),
+    (["cmake", "--build", "--preset", "debug-local", "--target", "BroccoliProjectBuild_Debug"], TmpPath),
+  ]
+  Commands.clear()
+
+  cli.Build(TmpPath, "Debug", False)
+
+  assert Commands == [
+    (["cmake", "--build", "--preset", "debug-local", "--target", "BroccoliProjectBuild_Debug"], TmpPath)
+  ]
+
+
+def TestRegenerateDoesNotBuild(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+  WritePluginSettings(TmpPath, [])
+  Commands: list[list[str]] = []
+
+  def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
+    Commands.append(Command)
+
+  monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
+  monkeypatch.setattr(cli.subprocess, "run", RecordRun)
+
+  cli.Regenerate(TmpPath)
+
+  assert Commands == [["cmake", "--preset", "windows-x64-local"]]
+
+
+def TestBuildRecordsLatestConfiguration(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+  WritePluginSettings(TmpPath, [])
+  CacheFile = TmpPath / "build" / "windows-x64" / "CMakeCache.txt"
+  CacheFile.parent.mkdir(parents=True)
+  CacheFile.write_text("cache", encoding="utf-8")
+
+  monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
+  monkeypatch.setattr(cli.subprocess, "run", lambda *_, **__: None)
+
+  cli.Build(TmpPath, "Release", False)
+
+  assert cli.LoadLatestBuildConfiguration(TmpPath) == "Release"
+
+
+def TestRunUsesLatestConfigurationAndForwardsArguments(
+  TmpPath: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  WritePluginSettings(TmpPath, [])
+  ExecutablePath = TmpPath / "Publish" / "Debug" / "Launcher.exe"
+  ExecutablePath.parent.mkdir(parents=True)
+  ExecutablePath.write_bytes(b"launcher")
+  (TmpPath / "Intermediate").mkdir()
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
+    "Debug\n", encoding="utf-8"
+  )
+  Commands: list[tuple[list[str], Path]] = []
+
+  def RecordPopen(Command: list[str], cwd: Path) -> None:
+    Commands.append((Command, cwd))
+
+  monkeypatch.setattr(cli.subprocess, "Popen", RecordPopen)
+
+  cli.Run(TmpPath, cli.LoadLatestBuildConfiguration(TmpPath), ["--example", "value"])
+
+  assert Commands == [([str(ExecutablePath), "--example", "value"], TmpPath)]
+
+
+def TestRunUsesGeneratedProjectName(TmpPath: Path) -> None:
+  (TmpPath / ".broccoli-project.json").write_text(
+    '{"project_name": "ExampleGame", "plugins": []}\n', encoding="utf-8"
+  )
+
+  assert cli.GetRunExecutable(TmpPath, "Editor") == (
+    TmpPath / "Bin" / "x64" / "Editor" / "ExampleGame-game.exe"
+  )
+  assert cli.GetRunExecutable(TmpPath, "Debug") == TmpPath / "Publish" / "Debug" / "ExampleGame.exe"
+
+
+def TestRunRejectsMissingLatestConfiguration(TmpPath: Path) -> None:
+  with pytest.raises(ValueError, match="Latest build configuration does not exist"):
+    cli.LoadLatestBuildConfiguration(TmpPath)
+
+
+def TestRunParserForwardsArgumentsAfterLatestSeparator(TmpPath: Path) -> None:
+  (TmpPath / "Intermediate").mkdir()
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
+    "Editor\n", encoding="utf-8"
+  )
+  CliArguments, ApplicationArguments = cli.SplitRunApplicationArguments(
+    ["run", "--latest", "--project-dir", str(TmpPath), "--", "--automation"]
+  )
+  Arguments = cli.CreateParser().parse_args(CliArguments)
+
+  Configuration = cli.ResolveRunInvocation(Arguments)
+
+  assert Configuration == "Editor"
+  assert ApplicationArguments == ["--automation"]
+
+
+@pytest.mark.parametrize(
+  ("RawArguments", "ExpectedApplicationArguments"),
+  [
+    (["run", "Debug", "--", "-automation"], ["-automation"]),
+    (["run", "Debug", "--", "level1"], ["level1"]),
+    (["run", "--latest", "--", "--config", "custom"], ["--config", "custom"]),
+  ],
+)
+def TestRunSeparatesApplicationArguments(
+  RawArguments: list[str], ExpectedApplicationArguments: list[str]
+) -> None:
+  CliArguments, ApplicationArguments = cli.SplitRunApplicationArguments(RawArguments)
+
+  assert ApplicationArguments == ExpectedApplicationArguments
+  cli.CreateParser().parse_args(CliArguments)
+
+
+def TestRunRejectsApplicationArgumentsWithoutSeparator() -> None:
+  with pytest.raises(SystemExit):
+    cli.CreateParser().parse_args(["run", "Debug", "-automation"])
+
+
+def TestMainForwardsSeparatedArgumentsWithoutReinterpretingThem(
+  TmpPath: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  (TmpPath / "Intermediate").mkdir()
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
+    "Editor\n", encoding="utf-8"
+  )
+  Calls: list[tuple[Path, str, list[str]]] = []
+
+  def RecordRun(ProjectDirectory: Path, Configuration: str, ApplicationArguments: list[str]) -> None:
+    Calls.append((ProjectDirectory, Configuration, ApplicationArguments))
+
+  monkeypatch.setattr(cli, "Run", RecordRun)
+  monkeypatch.setattr(
+    cli.sys,
+    "argv",
+    [
+      "broccoli_build",
+      "run",
+      "--latest",
+      "--project-dir",
+      str(TmpPath),
+      "--",
+      "--config",
+      "custom",
+    ],
+  )
+
+  assert cli.Main() == 0
+  assert Calls == [(TmpPath.resolve(), "Editor", ["--config", "custom"])]
+
+
+def TestCleanOnlyRemovesTheRequestedConfiguration(
+  TmpPath: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  for Configuration in ("Debug", "Editor"):
+    (TmpPath / "Bin" / "x64" / Configuration).mkdir(parents=True)
+    (TmpPath / "Publish" / Configuration).mkdir(parents=True)
+  CacheFile = TmpPath / "build" / "windows-x64" / "CMakeCache.txt"
+  CacheFile.parent.mkdir(parents=True)
+  CacheFile.write_text("cache", encoding="utf-8")
+  Commands: list[list[str]] = []
+
+  def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
+    Commands.append(Command)
+
+  monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
+  monkeypatch.setattr(cli.subprocess, "run", RecordRun)
+
+  cli.Clean(TmpPath, "Debug", False)
+
+  assert Commands == [["cmake", "--build", "--preset", "debug-local", "--target", "clean"]]
+  assert not (TmpPath / "Bin" / "x64" / "Debug").exists()
+  assert not (TmpPath / "Publish" / "Debug").exists()
+  assert (TmpPath / "Bin" / "x64" / "Editor").is_dir()
+  assert (TmpPath / "Publish" / "Editor").is_dir()
+
+
+def TestCleanAllRemovesOnlyGeneratedDirectories(TmpPath: Path) -> None:
+  for Directory in ("build/windows-x64", "Intermediate", "Bin", "Publish"):
+    (TmpPath / Directory).mkdir(parents=True)
+  SourceFile = TmpPath / "Source" / "main.cpp"
+  SourceFile.parent.mkdir()
+  SourceFile.write_text("source", encoding="utf-8")
+
+  cli.Clean(TmpPath, None, True)
+
+  assert not (TmpPath / "build" / "windows-x64").exists()
+  assert not any((TmpPath / Directory).exists() for Directory in ("Intermediate", "Bin", "Publish"))
+  assert SourceFile.is_file()
 
 
 def TestGeneratePluginsCmakeReflectsConfigurationSettings(TmpPath: Path) -> None:

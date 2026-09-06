@@ -99,9 +99,8 @@ try {
       ".broccoli-project.json",
       "CMakeLists.txt",
       "CMakePresets.json",
-      "build.bat",
+      "broccoli.bat",
       "CMakeUserPresets.json",
-      "run.bat",
       "BroccoliEngine",
       "$ProjectName\CMakeLists.txt",
       "BroccoliEngine\Engine\CMakeLists.txt",
@@ -152,10 +151,10 @@ try {
     }
 
     Invoke-NativeCommand -Description "Debug build" -Command {
-      & ".\build.bat" Debug
+      & ".\broccoli.bat" build Debug
     }
     Invoke-NativeCommand -Description "Editor build" -Command {
-      & ".\build.bat" Editor
+      & ".\broccoli.bat" build Editor
     }
 
     if (-not $SkipLaunch) {

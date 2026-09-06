@@ -102,21 +102,23 @@ CMakeから直接ビルドする場合:
 cmake --build --preset debug-local
 ```
 
-または、プロジェクトルートのビルドスクリプトを使用します。
+または、プロジェクトルートの統合CLIを使用します。
 
 ```cmd
-build.bat Debug
+broccoli.bat build Debug
 ```
 
 Editorビルドの場合:
 
 ```cmd
-build.bat Editor
+broccoli.bat build Editor
 ```
 
 ビルド後は次のコマンドで起動できます。
 
 ```cmd
-run.bat Debug
-run.bat Editor
+broccoli.bat run Debug
+broccoli.bat run Editor
 ```
+
+broccoli.bat --helpで詳細を確認してください。

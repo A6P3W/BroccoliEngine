@@ -54,10 +54,12 @@ copy CMakeUserPresets.json.template CMakeUserPresets.json
 リポジトリルートで実行してください。
 
 ```cmd
-build.bat Debug
-build.bat Editor
-run.bat Debug -automation
+broccoli.bat build Debug
+broccoli.bat build Editor
+broccoli.bat run Debug -- -automation
 ```
+
+構成別の生成物を削除するには `broccoli.bat clean Debug` を、すべてのビルド生成物を削除するには `broccoli.bat clean --all` を実行します。
 
 `Launcher` は `Broccoli::Engine` をリンクし、ゲームプロジェクトと同じリソース変換、
 ランタイム配置、およびパッケージング処理を使用します。`-automation` を付けると
@@ -101,8 +103,7 @@ MyGame/
 ├── .broccoli-project.json
 ├── CMakeLists.txt
 ├── CMakePresets.json
-├── build.bat
-├── run.bat
+├── broccoli.bat
 ├── BroccoliEngine/
 └── MyGame/
     ├── CMakeLists.txt
@@ -135,10 +136,8 @@ python BroccoliEngine\SetupProject.py --reset-project
 ### 生成したゲームのビルドと実行
 
 ```cmd
-build.bat Debug
-build.bat Editor
-run.bat Debug
-run.bat Editor
+broccoli.bat build
+broccoli.bat run --latest
 ```
 
 Editorでは `/Game/*` を `<ProjectName>/Resources/*` へ解決し、配布版では

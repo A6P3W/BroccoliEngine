@@ -6,9 +6,9 @@ end_of_line = lf
 変更したファイルには.clang-formatを適用すること。
 
 BroccoliEngineソリューションの変更後のビルドテスト方法
-BroccoliEngineフォルダの./build.bat
+BroccoliEngineフォルダの./broccoli.bat build
 
 ゲームソリューションの変更後のビルドテスト方法
-ゲームフォルダの./build.bat
+ゲームフォルダの./broccoli.bat build
 
 c++20環境
