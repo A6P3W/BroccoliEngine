@@ -1,5 +1,11 @@
 #include "SystemController.h"
-#include "../Detail/HttpControllerUtilities.h"
+#include "../Detail/HttpErrorMapping.h"
+#include "../Detail/HttpParsing.h"
+#include "../Detail/HttpSerialization.h"
+
+using namespace AutomationHttpDetail;
+
+#include "Registry/Schema/SchemaValidator.h"
 
 FAutomationSystemController::FAutomationSystemController(
     FAutomationHttpRequestExecutor& InExecutor,
@@ -115,4 +121,3 @@ FAutomationHttpResponse FAutomationSystemController::ExecuteSystemCommand(
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
   }
 }
-

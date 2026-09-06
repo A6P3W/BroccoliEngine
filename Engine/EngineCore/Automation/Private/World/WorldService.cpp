@@ -262,7 +262,18 @@ EAutomationComponentResolveStatus ResolveComponent(
   AActor* Actor = nullptr;
   const EAutomationActorResolveStatus ActorStatus = ResolveActor(ActorId, Actor);
   if (ActorStatus != EAutomationActorResolveStatus::Success) {
-    return static_cast<EAutomationComponentResolveStatus>(ActorStatus);
+    switch (ActorStatus) {
+      case EAutomationActorResolveStatus::WorldNotAvailable:
+        return EAutomationComponentResolveStatus::WorldNotAvailable;
+      case EAutomationActorResolveStatus::ActorNotFound:
+        return EAutomationComponentResolveStatus::ActorNotFound;
+      case EAutomationActorResolveStatus::ActorPendingDestroy:
+        return EAutomationComponentResolveStatus::ActorPendingDestroy;
+      case EAutomationActorResolveStatus::InvalidState:
+      case EAutomationActorResolveStatus::Success:
+        return EAutomationComponentResolveStatus::InvalidState;
+    }
+    return EAutomationComponentResolveStatus::InvalidState;
   }
   MActorComponent* Component = Actor->FindComponentById(ComponentId);
   if (!Component) {

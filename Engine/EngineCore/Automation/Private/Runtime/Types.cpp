@@ -23,6 +23,10 @@ std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode) {
       return "CLASS_NOT_REGISTERED";
     case EAutomationErrorCode::ActorPendingDestroy:
       return "ACTOR_PENDING_DESTROY";
+    case EAutomationErrorCode::ComponentNotFound:
+      return "COMPONENT_NOT_FOUND";
+    case EAutomationErrorCode::ComponentPendingDestroy:
+      return "COMPONENT_PENDING_DESTROY";
     case EAutomationErrorCode::Conflict:
       return "CONFLICT";
     case EAutomationErrorCode::MethodNotRegistered:

@@ -1,5 +1,9 @@
 #include "DiscoveryController.h"
-#include "../Detail/HttpControllerUtilities.h"
+#include "../Detail/HttpErrorMapping.h"
+#include "../Detail/HttpParsing.h"
+#include "../Detail/HttpSerialization.h"
+
+using namespace AutomationHttpDetail;
 
 FAutomationDiscoveryController::FAutomationDiscoveryController(
     FAutomationHttpRequestExecutor& InExecutor,

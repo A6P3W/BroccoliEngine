@@ -2,6 +2,12 @@
 
 #include "HttpControllerBase.h"
 
+#include <nlohmann/json.hpp>
+#include <string_view>
+
+#include "Runtime/RuntimeState.h"
+#include "World/WorldTypes.h"
+
 class FAutomationWorldController final : public FAutomationHttpControllerBase {
  public:
   FAutomationWorldController(
@@ -36,4 +42,3 @@ class FAutomationWorldController final : public FAutomationHttpControllerBase {
   FAutomationDestroyActorProvider DestroyActorProvider;
   FAutomationPatchActorTransformProvider PatchActorTransformProvider;
 };
-

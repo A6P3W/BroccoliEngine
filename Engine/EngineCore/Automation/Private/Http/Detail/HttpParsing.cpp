@@ -1,106 +1,11 @@
-#pragma once
-
+#include "HttpParsing.h"
 #include <algorithm>
 #include <cctype>
 #include <charconv>
 #include <cmath>
-#include <filesystem>
 #include <initializer_list>
 #include <limits>
-#include <optional>
-#include <stdexcept>
-#include <string>
-#include <utility>
-
-#include "Actor.h"
-#include "ActorComponent.h"
-#include "Log.h"
-#include "Registry/ComponentMethodRegistry.h"
-#include "Registry/Schema/SchemaValidator.h"
-
-namespace {
-
-constexpr std::string_view QueueUnavailableMessage =
-    "The automation command queue is not accepting requests.";
-constexpr std::string_view RequestTimeoutMessage =
-    "The main thread did not complete the request before the timeout.";
-constexpr std::string_view InvalidResponseMessage =
-    "The automation command returned an invalid response.";
-constexpr std::string_view UnknownExceptionMessage =
-    "The automation request failed with an unknown exception.";
-constexpr std::string_view InternalErrorMessage = "The automation request failed.";
-constexpr std::string_view WorldNotAvailableMessage = "No world is currently available.";
-constexpr std::string_view ActorNotFoundMessage = "The requested actor was not found.";
-constexpr std::string_view ClassNotRegisteredMessage =
-    "The requested actor class is not registered.";
-constexpr std::string_view ActorPendingDestroyMessage =
-    "The requested actor is pending destruction.";
-constexpr std::string_view InvalidActorIdMessage =
-    "The actorId must be an unsigned decimal integer greater than zero.";
-constexpr std::string_view MethodNotRegisteredMessage =
-    "The requested method is not registered for this actor class.";
-constexpr std::string_view PermissionDeniedMessage =
-    "The requested method permission is not allowed.";
-constexpr std::string_view InvalidMethodNameMessage =
-    "The methodName must match ^[a-z][a-z0-9_]{0,127}$.";
-constexpr std::string_view CommandNotRegisteredMessage =
-    "The requested system command is not registered.";
-constexpr std::string_view CommandPermissionDeniedMessage =
-    "The requested command permission is not allowed.";
-constexpr std::string_view InvalidCommandNameMessage =
-    "The commandName must match ^[a-z][a-z0-9_]{0,127}$.";
-
-nlohmann::json MakeWorldReadError(EAutomationWorldReadStatus Status) {
-  switch (Status) {
-    case EAutomationWorldReadStatus::WorldNotAvailable:
-      return MakeAutomationError(EAutomationErrorCode::WorldNotAvailable, WorldNotAvailableMessage);
-    case EAutomationWorldReadStatus::ActorNotFound:
-      return MakeAutomationError(EAutomationErrorCode::ActorNotFound, ActorNotFoundMessage);
-    case EAutomationWorldReadStatus::InvalidState:
-    case EAutomationWorldReadStatus::Success:
-      return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
-  }
-  return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
-}
-
-nlohmann::json MakeWorldMutationError(EAutomationWorldMutationStatus Status) {
-  switch (Status) {
-    case EAutomationWorldMutationStatus::WorldNotAvailable:
-      return MakeAutomationError(EAutomationErrorCode::WorldNotAvailable, WorldNotAvailableMessage);
-    case EAutomationWorldMutationStatus::ClassNotRegistered:
-      return MakeAutomationError(
-          EAutomationErrorCode::ClassNotRegistered, ClassNotRegisteredMessage
-      );
-    case EAutomationWorldMutationStatus::ActorNotFound:
-      return MakeAutomationError(EAutomationErrorCode::ActorNotFound, ActorNotFoundMessage);
-    case EAutomationWorldMutationStatus::ActorPendingDestroy:
-      return MakeAutomationError(
-          EAutomationErrorCode::ActorPendingDestroy, ActorPendingDestroyMessage
-      );
-    case EAutomationWorldMutationStatus::InvalidState:
-    case EAutomationWorldMutationStatus::Success:
-      return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
-  }
-  return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
-}
-
-nlohmann::json MakeActorResolveError(EAutomationActorResolveStatus Status) {
-  switch (Status) {
-    case EAutomationActorResolveStatus::WorldNotAvailable:
-      return MakeAutomationError(EAutomationErrorCode::WorldNotAvailable, WorldNotAvailableMessage);
-    case EAutomationActorResolveStatus::ActorNotFound:
-      return MakeAutomationError(EAutomationErrorCode::ActorNotFound, ActorNotFoundMessage);
-    case EAutomationActorResolveStatus::ActorPendingDestroy:
-      return MakeAutomationError(
-          EAutomationErrorCode::ActorPendingDestroy, ActorPendingDestroyMessage
-      );
-    case EAutomationActorResolveStatus::InvalidState:
-    case EAutomationActorResolveStatus::Success:
-      return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
-  }
-  return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
-}
-
+namespace AutomationHttpDetail {
 bool IsActorMethodPermissionAllowed(EAutomationPermission Permission) {
   return Permission == EAutomationPermission::ReadOnly ||
          Permission == EAutomationPermission::WorldMutation;
@@ -181,18 +86,6 @@ std::optional<ELogLevel> ParseLogLevel(std::string_view Text) {
   }
   return std::nullopt;
 }
-
-bool TryParseActorId(std::string_view Text, FActorId& OutActorId);
-bool TryParseComponentId(std::string_view Text, FComponentId& OutComponentId);
-bool TryParseSpawnRequest(
-    const nlohmann::json& Body, FAutomationSpawnActorRequest& OutRequest, std::string& OutError
-);
-bool TryParseTransformPatch(
-    const nlohmann::json& Body, FAutomationTransformPatch& OutPatch, std::string& OutError
-);
-nlohmann::json SerializeActor(const FAutomationActorSnapshot& Actor);
-nlohmann::json SerializeActorList(const FAutomationActorListSnapshot& Snapshot);
-
 
 bool TryParseActorId(std::string_view Text, FActorId& OutActorId) {
   OutActorId = InvalidActorId;
@@ -345,39 +238,5 @@ bool TryParseTransformPatch(
   return true;
 }
 
-nlohmann::json SerializeActor(const FAutomationActorSnapshot& Actor) {
-  const float LocationX = Actor.Location.X;
-  const float LocationY = Actor.Location.Y;
-  const float Rotation = Actor.Rotation.Rotation;
-  const float Scale = Actor.Scale.Scale;
-  if (Actor.ActorId == InvalidActorId || Actor.InstanceName.empty() || Actor.ClassName.empty() ||
-      !std::isfinite(LocationX) || !std::isfinite(LocationY) || !std::isfinite(Rotation) ||
-      !std::isfinite(Scale)) {
-    throw std::runtime_error("Invalid actor snapshot");
-  }
 
-  return {
-      {"actorId", Actor.ActorId},
-      {"instanceName", Actor.InstanceName},
-      {"className", Actor.ClassName},
-      {"transform",
-       {{"location", {{"x", LocationX}, {"y", LocationY}}},
-        {"rotation", Rotation},
-        {"scale", Scale}}}
-  };
 }
-
-nlohmann::json SerializeActorList(const FAutomationActorListSnapshot& Snapshot) {
-  nlohmann::json Actors = nlohmann::json::array();
-  for (const FAutomationActorSnapshot& Actor : Snapshot.Actors) {
-    Actors.push_back(SerializeActor(Actor));
-  }
-  return {
-      {"sceneName", Snapshot.SceneName},
-      {"actorCount", Snapshot.Actors.size()},
-      {"actors", std::move(Actors)}
-  };
-}
-
-
-}  // namespace

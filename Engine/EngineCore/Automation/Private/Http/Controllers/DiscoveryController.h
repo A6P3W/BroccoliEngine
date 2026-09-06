@@ -2,6 +2,11 @@
 
 #include "HttpControllerBase.h"
 
+#include <string_view>
+
+#include "Registry/ActorMethodRegistry.h"
+#include "World/DiscoveryTypes.h"
+
 class FAutomationDiscoveryController final : public FAutomationHttpControllerBase {
  public:
   FAutomationDiscoveryController(
@@ -24,4 +29,3 @@ class FAutomationDiscoveryController final : public FAutomationHttpControllerBas
   FAutomationLevelListProvider LevelListProvider;
   FAutomationActorClassExistsProvider ActorClassExistsProvider;
 };
-

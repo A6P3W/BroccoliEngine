@@ -1,5 +1,9 @@
 #include "LogController.h"
-#include "../Detail/HttpControllerUtilities.h"
+#include "../Detail/HttpErrorMapping.h"
+#include "../Detail/HttpParsing.h"
+#include "../Detail/HttpSerialization.h"
+
+using namespace AutomationHttpDetail;
 
 FAutomationLogController::FAutomationLogController(
     FAutomationHttpRequestExecutor& InExecutor, FAutomationCommandQueue& InCommandQueue

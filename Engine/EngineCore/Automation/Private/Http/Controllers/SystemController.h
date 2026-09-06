@@ -2,6 +2,11 @@
 
 #include "HttpControllerBase.h"
 
+#include <nlohmann/json.hpp>
+#include <string_view>
+
+#include "Registry/SystemCommandRegistry.h"
+
 class FAutomationSystemController final : public FAutomationHttpControllerBase {
  public:
   FAutomationSystemController(
@@ -19,4 +24,3 @@ class FAutomationSystemController final : public FAutomationHttpControllerBase {
   FAutomationCommandQueue& CommandQueue;
   FAutomationSystemCommandRegistry* SystemCommandRegistry = nullptr;
 };
-

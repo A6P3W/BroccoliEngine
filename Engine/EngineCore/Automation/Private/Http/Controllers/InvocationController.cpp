@@ -1,5 +1,13 @@
 #include "InvocationController.h"
-#include "../Detail/HttpControllerUtilities.h"
+#include "../Detail/HttpErrorMapping.h"
+#include "../Detail/HttpParsing.h"
+#include "../Detail/HttpSerialization.h"
+
+using namespace AutomationHttpDetail;
+
+#include "Actor.h"
+#include "ActorComponent.h"
+#include "Registry/Schema/SchemaValidator.h"
 
 FAutomationInvocationController::FAutomationInvocationController(
     FAutomationHttpRequestExecutor& InExecutor,
@@ -204,16 +212,7 @@ FAutomationHttpResponse FAutomationInvocationController::GetWorldActorComponentM
           const EAutomationComponentResolveStatus Status =
               Resolver(ActorId, ComponentId, Component);
           if (Status != EAutomationComponentResolveStatus::Success) {
-            return MakeAutomationError(
-                Status == EAutomationComponentResolveStatus::WorldNotAvailable
-                    ? EAutomationErrorCode::WorldNotAvailable
-                : Status == EAutomationComponentResolveStatus::ActorPendingDestroy
-                    ? EAutomationErrorCode::ActorPendingDestroy
-                    : EAutomationErrorCode::ActorNotFound,
-                Status == EAutomationComponentResolveStatus::ComponentNotFound
-                    ? "The requested component was not found."
-                    : ActorNotFoundMessage
-            );
+            return MakeComponentResolveError(Status);
           }
           nlohmann::json Methods = nlohmann::json::array();
           for (const FAutomationComponentMethodSnapshot& Snapshot :
@@ -280,10 +279,9 @@ FAutomationHttpResponse FAutomationInvocationController::InvokeWorldActorCompone
                                                                 std::string(MethodName),
                                                             Arguments = Body["arguments"]]() {
       MActorComponent* Component = nullptr;
-      if (Resolver(ActorId, ComponentId, Component) != EAutomationComponentResolveStatus::Success) {
-        return MakeAutomationError(
-            EAutomationErrorCode::ActorNotFound, "The requested actor or component was not found."
-        );
+      const EAutomationComponentResolveStatus Status = Resolver(ActorId, ComponentId, Component);
+      if (Status != EAutomationComponentResolveStatus::Success) {
+        return MakeComponentResolveError(Status);
       }
       const std::string ClassName = Component->GetComponentClassName();
       const FAutomationComponentMethodDescriptor* Descriptor =
@@ -316,4 +314,3 @@ FAutomationHttpResponse FAutomationInvocationController::InvokeWorldActorCompone
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
   }
 }
-

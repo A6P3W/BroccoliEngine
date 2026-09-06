@@ -1,32 +1,6 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
-#include <string_view>
-
-#include "AutomationTypes.h"
-#include "Registry/ComponentMethodRegistry.h"
-#include "Registry/ActorMethodRegistry.h"
-#include "Registry/SystemCommandRegistry.h"
-#include "Runtime/CommandQueue.h"
-#include "Runtime/RuntimeState.h"
-#include "Http/HttpTypes.h"
-#include "World/DiscoveryTypes.h"
-#include "World/WorldTypes.h"
-
-class FAutomationHttpRequestExecutor {
- public:
-  FAutomationHttpRequestExecutor(
-      FAutomationCommandQueue& InCommandQueue, const FAutomationConfig& InConfig
-  );
-
-  FAutomationHttpResponse WaitForResult(FAutomationCommandTicket&& Ticket);
-
- private:
-  static int GetHttpStatusCode(const nlohmann::json& Body);
-
-  FAutomationCommandQueue& CommandQueue;
-  FAutomationConfig Config;
-};
+#include "Http/HttpExecutor.h"
 
 class FAutomationHttpControllerBase {
  protected:
@@ -39,4 +13,3 @@ class FAutomationHttpControllerBase {
 
   FAutomationHttpRequestExecutor& Executor;
 };
-

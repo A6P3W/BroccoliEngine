@@ -2,6 +2,13 @@
 
 #include "HttpControllerBase.h"
 
+#include <nlohmann/json.hpp>
+#include <string_view>
+
+#include "Registry/ActorMethodRegistry.h"
+#include "Registry/ComponentMethodRegistry.h"
+#include "World/WorldTypes.h"
+
 class FAutomationInvocationController final : public FAutomationHttpControllerBase {
  public:
   FAutomationInvocationController(
@@ -34,4 +41,3 @@ class FAutomationInvocationController final : public FAutomationHttpControllerBa
   FAutomationComponentMethodRegistry* ComponentMethodRegistry = nullptr;
   FAutomationComponentResolver ComponentResolver;
 };
-

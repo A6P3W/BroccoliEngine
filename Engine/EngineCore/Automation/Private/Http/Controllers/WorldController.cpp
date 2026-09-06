@@ -1,5 +1,9 @@
 #include "WorldController.h"
-#include "../Detail/HttpControllerUtilities.h"
+#include "../Detail/HttpErrorMapping.h"
+#include "../Detail/HttpParsing.h"
+#include "../Detail/HttpSerialization.h"
+
+using namespace AutomationHttpDetail;
 
 FAutomationWorldController::FAutomationWorldController(
     FAutomationHttpRequestExecutor& InExecutor,

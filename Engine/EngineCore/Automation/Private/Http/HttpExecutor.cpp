@@ -1,8 +1,12 @@
-#include "Controllers/Controllers.h"
-#include "Detail/HttpControllerUtilities.h"
+#include "Http/HttpExecutor.h"
+#include "Detail/HttpErrorMapping.h"
+
+using namespace AutomationHttpDetail;
 
 #include <chrono>
 #include <future>
+
+#include "Log.h"
 
 FAutomationHttpRequestExecutor::FAutomationHttpRequestExecutor(
     FAutomationCommandQueue& InCommandQueue, const FAutomationConfig& InConfig
@@ -57,7 +61,7 @@ int FAutomationHttpRequestExecutor::GetHttpStatusCode(const nlohmann::json& Body
   if (ErrorCode == "WORLD_NOT_AVAILABLE") {
     return 503;
   }
-  if (ErrorCode == "ACTOR_NOT_FOUND") {
+  if (ErrorCode == "ACTOR_NOT_FOUND" || ErrorCode == "COMPONENT_NOT_FOUND") {
     return 404;
   }
   if (ErrorCode == "CLASS_NOT_REGISTERED") {
@@ -69,7 +73,8 @@ int FAutomationHttpRequestExecutor::GetHttpStatusCode(const nlohmann::json& Body
   if (ErrorCode == "PERMISSION_DENIED") {
     return 403;
   }
-  if (ErrorCode == "ACTOR_PENDING_DESTROY" || ErrorCode == "CONFLICT") {
+  if (ErrorCode == "ACTOR_PENDING_DESTROY" || ErrorCode == "COMPONENT_PENDING_DESTROY" ||
+      ErrorCode == "CONFLICT") {
     return 409;
   }
   if (ErrorCode == "REQUEST_TIMEOUT") {
