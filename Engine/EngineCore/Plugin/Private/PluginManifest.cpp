@@ -1,6 +1,7 @@
 #include "PluginManifest.h"
 
 #include <fstream>
+#include <limits>
 #include <system_error>
 
 #include "nlohmann/json.hpp"
@@ -58,7 +59,12 @@ bool ParsePluginManifest(
     OutError = "The 'apiVersion' field must be an unsigned integer.";
     return false;
   }
-  OutManifest.ApiVersion = ApiVersionIterator->get<uint32_t>();
+  const auto ApiVersion = ApiVersionIterator->get<nlohmann::json::number_unsigned_t>();
+  if (ApiVersion > std::numeric_limits<uint32_t>::max()) {
+    OutError = "The 'apiVersion' field is out of range.";
+    return false;
+  }
+  OutManifest.ApiVersion = static_cast<uint32_t>(ApiVersion);
 
   std::string LibraryName;
   if (!GetRequiredString(Json, "library", LibraryName, OutError)) return false;

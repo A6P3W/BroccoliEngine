@@ -265,9 +265,10 @@ def TestPackageRuntimeCreatesVerifiedLayout(TmpPath: Path) -> None:
     OnlineResourcesDirectory,
     ConvertLevelsScript,
     BootstrapBinary,
+    ["ExamplePlugin"],
   )
 
-  VerifyRuntime(OutputDirectory, "Game", PublishDirectory)
+  VerifyRuntime(OutputDirectory, "Game", PublishDirectory, ["ExamplePlugin"])
   assert (PublishDirectory / "Game.exe").is_file()
   assert (PublishDirectory / "Binaries" / "Game.exe").is_file()
   assert (PublishDirectory / "Binaries" / "Plugins" / "ExamplePlugin" / "ExamplePlugin.dll").is_file()
@@ -275,6 +276,24 @@ def TestPackageRuntimeCreatesVerifiedLayout(TmpPath: Path) -> None:
   assert (PublishDirectory / "Resources-EOS" / "online.BLevel").is_file()
   assert not (PublishDirectory / "Resources-EOS" / "online.BLevel.json").exists()
   assert (PublishDirectory / "Resources-EOS" / "online.txt").is_file()
+
+  (PluginDirectory / "ExamplePlugin.dll").unlink()
+  with pytest.raises(ValueError, match="ExamplePlugin.dll"):
+    VerifyRuntime(OutputDirectory, "Game", PublishDirectory, ["ExamplePlugin"])
+  with pytest.raises(ValueError, match="ExamplePlugin.dll"):
+    PackageRuntime(
+      "Release",
+      OutputDirectory,
+      PublishDirectory,
+      GameBinary,
+      EngineBinary,
+      "Game",
+      EosBinary,
+      OnlineResourcesDirectory,
+      ConvertLevelsScript,
+      BootstrapBinary,
+      ["ExamplePlugin"],
+    )
 
 
 def TestPackageRuntimeAcceptsBuildWithoutPlugins(TmpPath: Path) -> None:

@@ -56,12 +56,14 @@ def CreateParser() -> argparse.ArgumentParser:
   PackageParser.add_argument("--online-resources-dir", type=PathArgument, required=True)
   PackageParser.add_argument("--convert-levels-script", type=PathArgument, required=True)
   PackageParser.add_argument("--bootstrap-binary", type=PathArgument, required=True)
+  PackageParser.add_argument("--required-plugin", action="append", default=[])
 
   VerifyParser = Commands.add_parser("verify-runtime", help="Verify runtime artifacts")
   VerifyParser.add_argument("--output-dir", type=PathArgument, required=True)
   VerifyParser.add_argument("--game-name", required=True)
   VerifyParser.add_argument("--publish-dir", type=PathArgument)
   VerifyParser.add_argument("--configuration")
+  VerifyParser.add_argument("--required-plugin", action="append", default=[])
   return Parser
 
 
@@ -99,12 +101,18 @@ def Main() -> int:
         Arguments.online_resources_dir,
         Arguments.convert_levels_script,
         Arguments.bootstrap_binary,
+        [PluginName for PluginName in Arguments.required_plugin if PluginName],
       )
     elif Arguments.Command == "verify-runtime":
       if Arguments.configuration is not None and Arguments.configuration.casefold() == "editor":
         print("Editor configuration: runtime verification skipped.")
       else:
-        VerifyRuntime(Arguments.output_dir, Arguments.game_name, Arguments.publish_dir)
+        VerifyRuntime(
+          Arguments.output_dir,
+          Arguments.game_name,
+          Arguments.publish_dir,
+          [PluginName for PluginName in Arguments.required_plugin if PluginName],
+        )
   except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as Error:
     print(Error, file=sys.stderr)
     return 1
