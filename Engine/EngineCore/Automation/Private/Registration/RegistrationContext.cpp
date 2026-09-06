@@ -8,7 +8,7 @@
 #include "Registry/ActorMethodRegistry.h"
 #include "Registry/ComponentMethodRegistry.h"
 #include "Log.h"
-#include "Registration/AutomationAutoRegistrar.h"
+#include "Registration/RegistrationStore.h"
 
 namespace {
 std::vector<BroccoliAutomationDetail::FAutomationRegistrationCallback>& GetCallbacks() {

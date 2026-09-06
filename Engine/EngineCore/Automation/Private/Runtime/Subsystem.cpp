@@ -5,7 +5,7 @@
 #include <utility>
 
 #include "Log.h"
-#include "Registration/AutomationAutoRegistrar.h"
+#include "Registration/RegistrationStore.h"
 #include "Registry/ComponentMethodRegistry.h"
 #include "Registry/ActorMethodRegistry.h"
 #include "Registry/SystemCommandRegistry.h"
