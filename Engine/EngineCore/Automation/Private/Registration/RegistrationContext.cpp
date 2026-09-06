@@ -1,32 +1,12 @@
 #include "Detail/AutomationRegistrationContext.h"
 
-#include <algorithm>
 #include <stdexcept>
 #include <utility>
-#include <vector>
 
 #include "Registry/ActorMethodRegistry.h"
 #include "Registry/ComponentMethodRegistry.h"
 #include "Log.h"
 #include "Registration/RegistrationStore.h"
-
-namespace {
-std::vector<BroccoliAutomationDetail::FAutomationRegistrationCallback>& GetCallbacks() {
-  static std::vector<BroccoliAutomationDetail::FAutomationRegistrationCallback> Callbacks;
-  return Callbacks;
-}
-
-void AddCallback(BroccoliAutomationDetail::FAutomationRegistrationCallback Callback) {
-  if (!Callback) {
-    return;
-  }
-  std::vector<BroccoliAutomationDetail::FAutomationRegistrationCallback>& Callbacks =
-      GetCallbacks();
-  if (std::find(Callbacks.begin(), Callbacks.end(), Callback) == Callbacks.end()) {
-    Callbacks.push_back(Callback);
-  }
-}
-}  // namespace
 
 namespace BroccoliAutomationDetail {
 FAutomationRegistrationContext::FAutomationRegistrationContext(
@@ -87,18 +67,6 @@ void FAutomationRegistrationContext::RegisterComponentMethod(
 FAutomationRegistrationToken::FAutomationRegistrationToken(
     FAutomationRegistrationCallback Callback
 ) {
-  AddCallback(Callback);
+  FAutomationRegistrationStore::Get().AddCallback(Callback);
 }
 }  // namespace BroccoliAutomationDetail
-
-void RegisterAllAutomationMethods(
-    FAutomationActorMethodRegistry& MethodRegistry,
-    FAutomationComponentMethodRegistry& ComponentMethodRegistry
-) {
-  BroccoliAutomationDetail::FAutomationRegistrationContext Context(
-      &MethodRegistry, &ComponentMethodRegistry
-  );
-  for (const BroccoliAutomationDetail::FAutomationRegistrationCallback Callback : GetCallbacks()) {
-    Callback(Context);
-  }
-}

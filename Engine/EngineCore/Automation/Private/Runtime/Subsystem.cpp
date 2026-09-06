@@ -88,7 +88,7 @@ struct FAutomationSubsystem::FImpl {
     MethodRegistry = std::make_unique<FAutomationActorMethodRegistry>();
     ComponentMethodRegistry = std::make_unique<FAutomationComponentMethodRegistry>();
     try {
-      RegisterAllAutomationMethods(*MethodRegistry, *ComponentMethodRegistry);
+      FAutomationRegistrationStore::Get().RegisterAll(*MethodRegistry, *ComponentMethodRegistry);
       MethodRegistry->Freeze();
       ComponentMethodRegistry->Freeze();
     } catch (const std::exception& Exception) {
