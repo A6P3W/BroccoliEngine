@@ -1,4 +1,4 @@
-#include "AutomationHttpServer.h"
+#include "HttpServer.h"
 
 #include <httplib.h>
 
@@ -9,7 +9,7 @@
 #include <thread>
 #include <utility>
 
-#include "AutomationHttpControllers.h"
+#include "Controllers/Controllers.h"
 #include "Log.h"
 
 namespace {

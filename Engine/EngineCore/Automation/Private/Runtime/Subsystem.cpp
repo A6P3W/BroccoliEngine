@@ -13,8 +13,8 @@
 #include "Runtime/CommandQueue.h"
 #include "Runtime/RuntimeState.h"
 #include "Runtime/StateProvider.h"
-#include "Transport/Http/AutomationHttpControllers.h"
-#include "Transport/Http/AutomationHttpServer.h"
+#include "Http/Controllers/Controllers.h"
+#include "Http/HttpServer.h"
 #include "World/DiscoveryService.h"
 #include "World/WorldService.h"
 
