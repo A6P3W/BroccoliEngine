@@ -9,7 +9,7 @@
 #include <thread>
 #include <utility>
 
-#include "AutomationApiController.h"
+#include "AutomationHttpControllers.h"
 #include "Log.h"
 
 namespace {
@@ -136,8 +136,8 @@ FAutomationActorQueryText ParseActorQuery(const httplib::Request& Request) {
 }  // namespace
 
 struct FAutomationHttpServer::Impl {
-  Impl(const FAutomationConfig& InConfig, FAutomationApiController& InApiController)
-      : Config(InConfig), ApiController(InApiController) {
+  Impl(const FAutomationConfig& InConfig, FAutomationHttpControllers InControllers)
+      : Config(InConfig), Controllers(InControllers) {
     RegisterRoutes();
   }
 
@@ -145,8 +145,7 @@ struct FAutomationHttpServer::Impl {
     Server.set_payload_max_length(Config.MaxRequestBodyBytes);
 
     Server.Get(
-        "/api/v1/state",
-        [this](const httplib::Request& Request, httplib::Response& Response) {
+        "/api/v1/state", [this](const httplib::Request& Request, httplib::Response& Response) {
           try {
             if (Request.body.size() > Config.MaxRequestBodyBytes) {
               SetJsonResponse(
@@ -157,7 +156,7 @@ struct FAutomationHttpServer::Impl {
               return;
             }
 
-            const FAutomationHttpResponse ApiResponse = ApiController.GetState();
+            const FAutomationHttpResponse ApiResponse = Controllers.World.GetState();
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (const std::exception&) {
             SetJsonResponse(
@@ -179,7 +178,7 @@ struct FAutomationHttpServer::Impl {
         [this](const httplib::Request& Request, httplib::Response& Response) {
           try {
             const FAutomationHttpResponse ApiResponse =
-                ApiController.GetWorldActors(ParseActorQuery(Request));
+                Controllers.World.GetWorldActors(ParseActorQuery(Request));
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -195,7 +194,7 @@ struct FAutomationHttpServer::Impl {
         [this](const httplib::Request& Request, httplib::Response& Response) {
           try {
             const FAutomationHttpResponse ApiResponse =
-                ApiController.GetRecentLogs(ParseLogQuery(Request));
+                Controllers.Log.GetRecentLogs(ParseLogQuery(Request));
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -207,10 +206,9 @@ struct FAutomationHttpServer::Impl {
         }
     );
     Server.Get(
-        "/api/v1/system/commands",
-        [this](const httplib::Request&, httplib::Response& Response) {
+        "/api/v1/system/commands", [this](const httplib::Request&, httplib::Response& Response) {
           try {
-            const FAutomationHttpResponse ApiResponse = ApiController.GetSystemCommands();
+            const FAutomationHttpResponse ApiResponse = Controllers.System.GetSystemCommands();
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -222,10 +220,9 @@ struct FAutomationHttpServer::Impl {
         }
     );
     Server.Get(
-        "/api/v1/actor-classes",
-        [this](const httplib::Request&, httplib::Response& Response) {
+        "/api/v1/actor-classes", [this](const httplib::Request&, httplib::Response& Response) {
           try {
-            const FAutomationHttpResponse ApiResponse = ApiController.GetActorClasses();
+            const FAutomationHttpResponse ApiResponse = Controllers.Discovery.GetActorClasses();
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -238,7 +235,7 @@ struct FAutomationHttpServer::Impl {
     );
     Server.Get("/api/v1/levels", [this](const httplib::Request&, httplib::Response& Response) {
       try {
-        const FAutomationHttpResponse ApiResponse = ApiController.GetLevels();
+        const FAutomationHttpResponse ApiResponse = Controllers.Discovery.GetLevels();
         SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
       } catch (...) {
         SetJsonResponse(
@@ -255,7 +252,7 @@ struct FAutomationHttpServer::Impl {
             const std::string ClassName =
                 Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
             const FAutomationHttpResponse ApiResponse =
-                ApiController.GetActorClassMethods(ClassName);
+                Controllers.Discovery.GetActorClassMethods(ClassName);
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -273,7 +270,7 @@ struct FAutomationHttpServer::Impl {
             const std::string ActorIdText =
                 Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
             const FAutomationHttpResponse ApiResponse =
-                ApiController.GetWorldActorComponents(ActorIdText);
+                Controllers.World.GetWorldActorComponents(ActorIdText);
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -291,7 +288,7 @@ struct FAutomationHttpServer::Impl {
             const std::string ActorIdText =
                 Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
             const FAutomationHttpResponse ApiResponse =
-                ApiController.GetWorldActorMethods(ActorIdText);
+                Controllers.Invocation.GetWorldActorMethods(ActorIdText);
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -308,7 +305,8 @@ struct FAutomationHttpServer::Impl {
           try {
             const std::string ActorIdText =
                 Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
-            const FAutomationHttpResponse ApiResponse = ApiController.GetWorldActor(ActorIdText);
+            const FAutomationHttpResponse ApiResponse =
+                Controllers.World.GetWorldActor(ActorIdText);
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -327,7 +325,7 @@ struct FAutomationHttpServer::Impl {
             if (!TryParseJsonBody(Request, Response, Config.MaxRequestBodyBytes, Body)) {
               return;
             }
-            const FAutomationHttpResponse ApiResponse = ApiController.CreateWorldActor(Body);
+            const FAutomationHttpResponse ApiResponse = Controllers.World.CreateWorldActor(Body);
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -344,7 +342,8 @@ struct FAutomationHttpServer::Impl {
           try {
             const std::string ActorIdText =
                 Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
-            const FAutomationHttpResponse ApiResponse = ApiController.DeleteWorldActor(ActorIdText);
+            const FAutomationHttpResponse ApiResponse =
+                Controllers.World.DeleteWorldActor(ActorIdText);
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -366,7 +365,7 @@ struct FAutomationHttpServer::Impl {
             const std::string ActorIdText =
                 Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
             const FAutomationHttpResponse ApiResponse =
-                ApiController.PatchWorldActorTransform(ActorIdText, Body);
+                Controllers.World.PatchWorldActorTransform(ActorIdText, Body);
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -390,7 +389,7 @@ struct FAutomationHttpServer::Impl {
             const std::string MethodName =
                 Request.matches.size() > 2 ? Request.matches[2].str() : std::string();
             const FAutomationHttpResponse ApiResponse =
-                ApiController.InvokeWorldActorMethod(ActorIdText, MethodName, Body);
+                Controllers.Invocation.InvokeWorldActorMethod(ActorIdText, MethodName, Body);
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -412,7 +411,7 @@ struct FAutomationHttpServer::Impl {
             const std::string CommandName =
                 Request.matches.size() > 1 ? Request.matches[1].str() : std::string();
             const FAutomationHttpResponse ApiResponse =
-                ApiController.ExecuteSystemCommand(CommandName, Body);
+                Controllers.System.ExecuteSystemCommand(CommandName, Body);
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -428,9 +427,10 @@ struct FAutomationHttpServer::Impl {
         R"(/api/v1/world/actors/([0-9]+)/components/([0-9]+)/methods)",
         [this](const httplib::Request& Request, httplib::Response& Response) {
           try {
-            const FAutomationHttpResponse ApiResponse = ApiController.GetWorldActorComponentMethods(
-                Request.matches[1].str(), Request.matches[2].str()
-            );
+            const FAutomationHttpResponse ApiResponse =
+                Controllers.Invocation.GetWorldActorComponentMethods(
+                    Request.matches[1].str(), Request.matches[2].str()
+                );
             SetJsonResponse(Response, ApiResponse.StatusCode, ApiResponse.Body);
           } catch (...) {
             SetJsonResponse(
@@ -448,7 +448,7 @@ struct FAutomationHttpServer::Impl {
             nlohmann::json Body;
             if (!TryParseJsonBody(Request, Response, Config.MaxRequestBodyBytes, Body)) return;
             const FAutomationHttpResponse ApiResponse =
-                ApiController.InvokeWorldActorComponentMethod(
+                Controllers.Invocation.InvokeWorldActorComponentMethod(
                     Request.matches[1].str(),
                     Request.matches[2].str(),
                     Request.matches[3].str(),
@@ -566,7 +566,7 @@ struct FAutomationHttpServer::Impl {
   }
 
   FAutomationConfig Config;
-  FAutomationApiController& ApiController;
+  FAutomationHttpControllers Controllers;
   httplib::Server Server;
   std::thread ServerThread;
   mutable std::mutex LifecycleMutex;
@@ -575,9 +575,9 @@ struct FAutomationHttpServer::Impl {
 };
 
 FAutomationHttpServer::FAutomationHttpServer(
-    const FAutomationConfig& InConfig, FAutomationApiController& InApiController
+    const FAutomationConfig& InConfig, FAutomationHttpControllers Controllers
 )
-    : ImplPtr(std::make_unique<Impl>(InConfig, InApiController)) {}
+    : ImplPtr(std::make_unique<Impl>(InConfig, Controllers)) {}
 
 FAutomationHttpServer::~FAutomationHttpServer() { Stop(); }
 

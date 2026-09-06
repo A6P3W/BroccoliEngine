@@ -1,4 +1,4 @@
-#include "AutomationApiController.h"
+#include "AutomationHttpControllers.h"
 
 #include <algorithm>
 #include <cctype>
@@ -16,8 +16,8 @@
 #include "Actor.h"
 #include "ActorComponent.h"
 #include "AutomationComponentMethodRegistry.h"
-#include "Registration/AutomationJsonSchemaValidator.h"
 #include "Log.h"
+#include "Registration/AutomationJsonSchemaValidator.h"
 
 namespace {
 constexpr std::string_view QueueUnavailableMessage =
@@ -163,10 +163,9 @@ bool TryParseUnsigned(std::string_view Text, uint64_t& OutValue) {
 std::optional<ELogLevel> ParseLogLevel(std::string_view Text) {
   std::string Lowercase(Text);
   std::transform(
-      Lowercase.begin(),
-      Lowercase.end(),
-      Lowercase.begin(),
-      [](unsigned char Character) { return static_cast<char>(std::tolower(Character)); }
+      Lowercase.begin(), Lowercase.end(), Lowercase.begin(), [](unsigned char Character) {
+        return static_cast<char>(std::tolower(Character));
+      }
   );
   if (Lowercase == "debug") {
     return ELogLevel::Debug;
@@ -182,46 +181,90 @@ std::optional<ELogLevel> ParseLogLevel(std::string_view Text) {
   }
   return std::nullopt;
 }
+
+bool TryParseActorId(std::string_view Text, FActorId& OutActorId);
+bool TryParseComponentId(std::string_view Text, FComponentId& OutComponentId);
+bool TryParseSpawnRequest(
+    const nlohmann::json& Body, FAutomationSpawnActorRequest& OutRequest, std::string& OutError
+);
+bool TryParseTransformPatch(
+    const nlohmann::json& Body, FAutomationTransformPatch& OutPatch, std::string& OutError
+);
+nlohmann::json SerializeActor(const FAutomationActorSnapshot& Actor);
+nlohmann::json SerializeActorList(const FAutomationActorListSnapshot& Snapshot);
 }  // namespace
 
-FAutomationApiController::FAutomationApiController(
+FAutomationHttpRequestExecutor::FAutomationHttpRequestExecutor(
+    FAutomationCommandQueue& InCommandQueue, const FAutomationConfig& InConfig
+)
+    : CommandQueue(InCommandQueue), Config(InConfig) {}
+
+FAutomationWorldController::FAutomationWorldController(
+    FAutomationHttpRequestExecutor& InExecutor,
     FAutomationCommandQueue& InCommandQueue,
-    const FAutomationConfig& InConfig,
     FAutomationStateProvider InStateProvider,
     FAutomationActorListProvider InActorListProvider,
     FAutomationActorProvider InActorProvider,
     FAutomationActorComponentListProvider InActorComponentListProvider,
     FAutomationSpawnActorProvider InSpawnActorProvider,
     FAutomationDestroyActorProvider InDestroyActorProvider,
-    FAutomationPatchActorTransformProvider InPatchActorTransformProvider,
-    FAutomationMethodRegistry* InMethodRegistry,
-    FAutomationActorResolver InActorResolver,
-    FAutomationComponentMethodRegistry* InComponentMethodRegistry,
-    FAutomationComponentResolver InComponentResolver,
-    FAutomationSystemCommandRegistry* InSystemCommandRegistry,
-    FAutomationActorClassListProvider InActorClassListProvider,
-    FAutomationLevelListProvider InLevelListProvider,
-    FAutomationActorClassExistsProvider InActorClassExistsProvider
+    FAutomationPatchActorTransformProvider InPatchActorTransformProvider
 )
-    : CommandQueue(InCommandQueue),
-      Config(InConfig),
+    : FAutomationHttpControllerBase(InExecutor),
+      CommandQueue(InCommandQueue),
       StateProvider(std::move(InStateProvider)),
       ActorListProvider(std::move(InActorListProvider)),
       ActorProvider(std::move(InActorProvider)),
       ActorComponentListProvider(std::move(InActorComponentListProvider)),
       SpawnActorProvider(std::move(InSpawnActorProvider)),
       DestroyActorProvider(std::move(InDestroyActorProvider)),
-      PatchActorTransformProvider(std::move(InPatchActorTransformProvider)),
-      MethodRegistry(InMethodRegistry),
-      ActorResolver(std::move(InActorResolver)),
-      ComponentMethodRegistry(InComponentMethodRegistry),
-      ComponentResolver(std::move(InComponentResolver)),
-      SystemCommandRegistry(InSystemCommandRegistry),
+      PatchActorTransformProvider(std::move(InPatchActorTransformProvider)) {}
+
+FAutomationDiscoveryController::FAutomationDiscoveryController(
+    FAutomationHttpRequestExecutor& InExecutor,
+    FAutomationCommandQueue& InCommandQueue,
+    FAutomationMethodRegistry& InMethodRegistry,
+    FAutomationActorClassListProvider InActorClassListProvider,
+    FAutomationLevelListProvider InLevelListProvider,
+    FAutomationActorClassExistsProvider InActorClassExistsProvider
+)
+    : FAutomationHttpControllerBase(InExecutor),
+      CommandQueue(InCommandQueue),
+      MethodRegistry(&InMethodRegistry),
       ActorClassListProvider(std::move(InActorClassListProvider)),
       LevelListProvider(std::move(InLevelListProvider)),
       ActorClassExistsProvider(std::move(InActorClassExistsProvider)) {}
 
-FAutomationHttpResponse FAutomationApiController::GetState() {
+FAutomationInvocationController::FAutomationInvocationController(
+    FAutomationHttpRequestExecutor& InExecutor,
+    FAutomationCommandQueue& InCommandQueue,
+    FAutomationMethodRegistry& InMethodRegistry,
+    FAutomationActorResolver InActorResolver,
+    FAutomationComponentMethodRegistry& InComponentMethodRegistry,
+    FAutomationComponentResolver InComponentResolver
+)
+    : FAutomationHttpControllerBase(InExecutor),
+      CommandQueue(InCommandQueue),
+      MethodRegistry(&InMethodRegistry),
+      ActorResolver(std::move(InActorResolver)),
+      ComponentMethodRegistry(&InComponentMethodRegistry),
+      ComponentResolver(std::move(InComponentResolver)) {}
+
+FAutomationSystemController::FAutomationSystemController(
+    FAutomationHttpRequestExecutor& InExecutor,
+    FAutomationCommandQueue& InCommandQueue,
+    FAutomationSystemCommandRegistry& InSystemCommandRegistry
+)
+    : FAutomationHttpControllerBase(InExecutor),
+      CommandQueue(InCommandQueue),
+      SystemCommandRegistry(&InSystemCommandRegistry) {}
+
+FAutomationLogController::FAutomationLogController(
+    FAutomationHttpRequestExecutor& InExecutor, FAutomationCommandQueue& InCommandQueue
+)
+    : FAutomationHttpControllerBase(InExecutor), CommandQueue(InCommandQueue) {}
+
+FAutomationHttpResponse FAutomationWorldController::GetState() {
   try {
     if (!StateProvider) {
       return {
@@ -243,7 +286,7 @@ FAutomationHttpResponse FAutomationApiController::GetState() {
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetActorClasses() {
+FAutomationHttpResponse FAutomationDiscoveryController::GetActorClasses() {
   try {
     if (!ActorClassListProvider) {
       return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
@@ -261,7 +304,7 @@ FAutomationHttpResponse FAutomationApiController::GetActorClasses() {
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetLevels() {
+FAutomationHttpResponse FAutomationDiscoveryController::GetLevels() {
   try {
     if (!LevelListProvider) {
       return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
@@ -283,7 +326,9 @@ FAutomationHttpResponse FAutomationApiController::GetLevels() {
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetActorClassMethods(std::string_view ClassName) {
+FAutomationHttpResponse FAutomationDiscoveryController::GetActorClassMethods(
+    std::string_view ClassName
+) {
   if (ClassName.empty() || ClassName.size() > 128) {
     return {
         400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, "The className is invalid.")
@@ -325,7 +370,7 @@ FAutomationHttpResponse FAutomationApiController::GetActorClassMethods(std::stri
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetWorldActors(
+FAutomationHttpResponse FAutomationWorldController::GetWorldActors(
     const FAutomationActorQueryText& QueryText
 ) {
   if (QueryText.bHasUnknownParameter) {
@@ -365,7 +410,7 @@ FAutomationHttpResponse FAutomationApiController::GetWorldActors(
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetWorldActor(std::string_view ActorIdText) {
+FAutomationHttpResponse FAutomationWorldController::GetWorldActor(std::string_view ActorIdText) {
   FActorId ActorId = InvalidActorId;
   if (!TryParseActorId(ActorIdText, ActorId)) {
     return {400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, InvalidActorIdMessage)};
@@ -390,7 +435,7 @@ FAutomationHttpResponse FAutomationApiController::GetWorldActor(std::string_view
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetWorldActorComponents(
+FAutomationHttpResponse FAutomationWorldController::GetWorldActorComponents(
     std::string_view ActorIdText
 ) {
   FActorId ActorId = InvalidActorId;
@@ -432,7 +477,7 @@ FAutomationHttpResponse FAutomationApiController::GetWorldActorComponents(
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::CreateWorldActor(const nlohmann::json& Body) {
+FAutomationHttpResponse FAutomationWorldController::CreateWorldActor(const nlohmann::json& Body) {
   FAutomationSpawnActorRequest Request;
   std::string Error;
   if (!TryParseSpawnRequest(Body, Request, Error)) {
@@ -463,7 +508,7 @@ FAutomationHttpResponse FAutomationApiController::CreateWorldActor(const nlohman
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::DeleteWorldActor(std::string_view ActorIdText) {
+FAutomationHttpResponse FAutomationWorldController::DeleteWorldActor(std::string_view ActorIdText) {
   FActorId ActorId = InvalidActorId;
   if (!TryParseActorId(ActorIdText, ActorId)) {
     return {400, MakeAutomationError(EAutomationErrorCode::InvalidArgument, InvalidActorIdMessage)};
@@ -488,7 +533,7 @@ FAutomationHttpResponse FAutomationApiController::DeleteWorldActor(std::string_v
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::PatchWorldActorTransform(
+FAutomationHttpResponse FAutomationWorldController::PatchWorldActorTransform(
     std::string_view ActorIdText, const nlohmann::json& Body
 ) {
   FActorId ActorId = InvalidActorId;
@@ -523,7 +568,8 @@ FAutomationHttpResponse FAutomationApiController::PatchWorldActorTransform(
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetWorldActorMethods(std::string_view ActorIdText
+FAutomationHttpResponse FAutomationInvocationController::GetWorldActorMethods(
+    std::string_view ActorIdText
 ) {
   FActorId ActorId = InvalidActorId;
   if (!TryParseActorId(ActorIdText, ActorId)) {
@@ -570,7 +616,7 @@ FAutomationHttpResponse FAutomationApiController::GetWorldActorMethods(std::stri
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::InvokeWorldActorMethod(
+FAutomationHttpResponse FAutomationInvocationController::InvokeWorldActorMethod(
     std::string_view ActorIdText, std::string_view MethodName, const nlohmann::json& Body
 ) {
   FActorId ActorId = InvalidActorId;
@@ -685,7 +731,7 @@ FAutomationHttpResponse FAutomationApiController::InvokeWorldActorMethod(
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetWorldActorComponentMethods(
+FAutomationHttpResponse FAutomationInvocationController::GetWorldActorComponentMethods(
     std::string_view ActorIdText, std::string_view ComponentIdText
 ) {
   FActorId ActorId = InvalidActorId;
@@ -745,7 +791,7 @@ FAutomationHttpResponse FAutomationApiController::GetWorldActorComponentMethods(
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::InvokeWorldActorComponentMethod(
+FAutomationHttpResponse FAutomationInvocationController::InvokeWorldActorComponentMethod(
     std::string_view ActorIdText,
     std::string_view ComponentIdText,
     std::string_view MethodName,
@@ -823,7 +869,7 @@ FAutomationHttpResponse FAutomationApiController::InvokeWorldActorComponentMetho
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetSystemCommands() {
+FAutomationHttpResponse FAutomationSystemController::GetSystemCommands() {
   try {
     if (!SystemCommandRegistry) {
       return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
@@ -850,7 +896,7 @@ FAutomationHttpResponse FAutomationApiController::GetSystemCommands() {
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::ExecuteSystemCommand(
+FAutomationHttpResponse FAutomationSystemController::ExecuteSystemCommand(
     std::string_view CommandName, const nlohmann::json& Body
 ) {
   if (!IsValidAutomationOperationName(CommandName)) {
@@ -872,62 +918,65 @@ FAutomationHttpResponse FAutomationApiController::ExecuteSystemCommand(
       return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
     }
 
-    FAutomationCommandTicket Ticket = CommandQueue.Enqueue([Registry = SystemCommandRegistry,
-                                                            CommandNameText =
-                                                                std::string(CommandName),
-                                                            Arguments = Body]() {
-      const FAutomationSystemCommandDescriptor* Descriptor = Registry->FindCommand(CommandNameText);
-      if (!Descriptor) {
-        M_LOG(
-            Log,
-            "Automation system command rejected: command={} "
-            "code=COMMAND_NOT_REGISTERED",
-            CommandNameText
-        );
-        return MakeAutomationError(
-            EAutomationErrorCode::CommandNotRegistered, CommandNotRegisteredMessage
-        );
-      }
-      if (Descriptor->Permission != EAutomationPermission::SystemMutation) {
-        M_LOG(
-            Log,
-            "Automation system command rejected: command={} "
-            "code=PERMISSION_DENIED",
-            CommandNameText
-        );
-        return MakeAutomationError(
-            EAutomationErrorCode::PermissionDenied, CommandPermissionDeniedMessage
-        );
-      }
+    FAutomationCommandTicket Ticket =
+        CommandQueue.Enqueue([Registry = SystemCommandRegistry,
+                              CommandNameText = std::string(CommandName),
+                              Arguments = Body]() {
+          const FAutomationSystemCommandDescriptor* Descriptor =
+              Registry->FindCommand(CommandNameText);
+          if (!Descriptor) {
+            M_LOG(
+                Log,
+                "Automation system command rejected: command={} "
+                "code=COMMAND_NOT_REGISTERED",
+                CommandNameText
+            );
+            return MakeAutomationError(
+                EAutomationErrorCode::CommandNotRegistered, CommandNotRegisteredMessage
+            );
+          }
+          if (Descriptor->Permission != EAutomationPermission::SystemMutation) {
+            M_LOG(
+                Log,
+                "Automation system command rejected: command={} "
+                "code=PERMISSION_DENIED",
+                CommandNameText
+            );
+            return MakeAutomationError(
+                EAutomationErrorCode::PermissionDenied, CommandPermissionDeniedMessage
+            );
+          }
 
-      FAutomationSchemaValidationError ValidationError;
-      if (!FAutomationJsonSchemaValidator::ValidateValue(
-              Descriptor->InputSchema, Arguments, ValidationError
-          )) {
-        M_LOG(
-            Log,
-            "Automation system command rejected: command={} "
-            "code=INVALID_ARGUMENT",
-            CommandNameText
-        );
-        return MakeAutomationError(
-            EAutomationErrorCode::InvalidArgument,
-            ValidationError.JsonPath + ": " + ValidationError.Message
-        );
-      }
+          FAutomationSchemaValidationError ValidationError;
+          if (!FAutomationJsonSchemaValidator::ValidateValue(
+                  Descriptor->InputSchema, Arguments, ValidationError
+              )) {
+            M_LOG(
+                Log,
+                "Automation system command rejected: command={} "
+                "code=INVALID_ARGUMENT",
+                CommandNameText
+            );
+            return MakeAutomationError(
+                EAutomationErrorCode::InvalidArgument,
+                ValidationError.JsonPath + ": " + ValidationError.Message
+            );
+          }
 
-      nlohmann::json Result = Descriptor->Handler(Arguments);
-      M_LOG(Log, "Automation system command completed: command={}", CommandNameText);
-      return MakeAutomationSuccess({{"commandName", CommandNameText}, {"result", std::move(Result)}}
-      );
-    });
+          nlohmann::json Result = Descriptor->Handler(Arguments);
+          M_LOG(Log, "Automation system command completed: command={}", CommandNameText);
+          return MakeAutomationSuccess(
+              {{"commandName", CommandNameText}, {"result", std::move(Result)}}
+          );
+        });
     return WaitForResult(std::move(Ticket));
   } catch (...) {
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
   }
 }
 
-FAutomationHttpResponse FAutomationApiController::GetRecentLogs(const FAutomationLogQueryText& Query
+FAutomationHttpResponse FAutomationLogController::GetRecentLogs(
+    const FAutomationLogQueryText& Query
 ) {
   if (Query.bHasUnknownParameter) {
     return {
@@ -1017,7 +1066,8 @@ FAutomationHttpResponse FAutomationApiController::GetRecentLogs(const FAutomatio
   }
 }
 
-bool FAutomationApiController::TryParseActorId(std::string_view Text, FActorId& OutActorId) {
+namespace {
+bool TryParseActorId(std::string_view Text, FActorId& OutActorId) {
   OutActorId = InvalidActorId;
   if (Text.empty()) {
     return false;
@@ -1035,9 +1085,7 @@ bool FAutomationApiController::TryParseActorId(std::string_view Text, FActorId& 
   return true;
 }
 
-bool FAutomationApiController::TryParseComponentId(
-    std::string_view Text, FComponentId& OutComponentId
-) {
+bool TryParseComponentId(std::string_view Text, FComponentId& OutComponentId) {
   OutComponentId = InvalidComponentId;
   uint64_t ParsedComponentId = 0;
   if (!TryParseUnsigned(Text, ParsedComponentId) || ParsedComponentId == 0) {
@@ -1047,7 +1095,7 @@ bool FAutomationApiController::TryParseComponentId(
   return true;
 }
 
-bool FAutomationApiController::TryParseSpawnRequest(
+bool TryParseSpawnRequest(
     const nlohmann::json& Body, FAutomationSpawnActorRequest& OutRequest, std::string& OutError
 ) {
   if (!HasOnlyAllowedFields(Body, {"className", "transform", "instanceName"})) {
@@ -1118,7 +1166,7 @@ bool FAutomationApiController::TryParseSpawnRequest(
   return true;
 }
 
-bool FAutomationApiController::TryParseTransformPatch(
+bool TryParseTransformPatch(
     const nlohmann::json& Body, FAutomationTransformPatch& OutPatch, std::string& OutError
 ) {
   if (!HasOnlyAllowedFields(Body, {"location", "rotation", "scale"})) {
@@ -1170,7 +1218,7 @@ bool FAutomationApiController::TryParseTransformPatch(
   return true;
 }
 
-nlohmann::json FAutomationApiController::SerializeActor(const FAutomationActorSnapshot& Actor) {
+nlohmann::json SerializeActor(const FAutomationActorSnapshot& Actor) {
   const float LocationX = Actor.Location.X;
   const float LocationY = Actor.Location.Y;
   const float Rotation = Actor.Rotation.Rotation;
@@ -1186,14 +1234,13 @@ nlohmann::json FAutomationApiController::SerializeActor(const FAutomationActorSn
       {"instanceName", Actor.InstanceName},
       {"className", Actor.ClassName},
       {"transform",
-       {{"location", {{"x", LocationX}, {"y", LocationY}}}, {"rotation", Rotation}, {"scale", Scale}
-       }}
+       {{"location", {{"x", LocationX}, {"y", LocationY}}},
+        {"rotation", Rotation},
+        {"scale", Scale}}}
   };
 }
 
-nlohmann::json FAutomationApiController::SerializeActorList(
-    const FAutomationActorListSnapshot& Snapshot
-) {
+nlohmann::json SerializeActorList(const FAutomationActorListSnapshot& Snapshot) {
   nlohmann::json Actors = nlohmann::json::array();
   for (const FAutomationActorSnapshot& Actor : Snapshot.Actors) {
     Actors.push_back(SerializeActor(Actor));
@@ -1205,7 +1252,11 @@ nlohmann::json FAutomationApiController::SerializeActorList(
   };
 }
 
-FAutomationHttpResponse FAutomationApiController::WaitForResult(FAutomationCommandTicket&& Ticket) {
+}  // namespace
+
+FAutomationHttpResponse FAutomationHttpRequestExecutor::WaitForResult(
+    FAutomationCommandTicket&& Ticket
+) {
   if (!Ticket.IsValid()) {
     return {
         503, MakeAutomationError(EAutomationErrorCode::EngineShuttingDown, QueueUnavailableMessage)
@@ -1228,7 +1279,7 @@ FAutomationHttpResponse FAutomationApiController::WaitForResult(FAutomationComma
   return {GetHttpStatusCode(Body), std::move(Body)};
 }
 
-int FAutomationApiController::GetHttpStatusCode(const nlohmann::json& Body) {
+int FAutomationHttpRequestExecutor::GetHttpStatusCode(const nlohmann::json& Body) {
   if (Body.value("success", false)) {
     return 200;
   }

@@ -13,7 +13,7 @@
 #include "Runtime/AutomationCommandQueue.h"
 #include "Runtime/AutomationRuntimeTypes.h"
 #include "Runtime/AutomationStateProvider.h"
-#include "Transport/Http/AutomationApiController.h"
+#include "Transport/Http/AutomationHttpControllers.h"
 #include "Transport/Http/AutomationHttpServer.h"
 #include "World/AutomationDiscoveryAdapter.h"
 #include "World/AutomationWorldAdapter.h"
@@ -34,26 +34,48 @@ struct FAutomationSubsystem::FImpl {
     CommandQueue = std::make_unique<FAutomationCommandQueue>();
     WorldAdapter = std::make_unique<FAutomationWorldAdapter>();
     FAutomationDiscoveryAdapter DiscoveryAdapter;
-    ApiController = std::make_unique<FAutomationApiController>(
+    HttpRequestExecutor = std::make_unique<FAutomationHttpRequestExecutor>(*CommandQueue, Config);
+    WorldController = std::make_unique<FAutomationWorldController>(
+        *HttpRequestExecutor,
         *CommandQueue,
-        Config,
         CreateAutomationStateProvider(RuntimeState),
         WorldAdapter->CreateActorListProvider(),
         WorldAdapter->CreateActorProvider(),
         WorldAdapter->CreateActorComponentListProvider(),
         WorldAdapter->CreateSpawnActorProvider(),
         WorldAdapter->CreateDestroyActorProvider(),
-        WorldAdapter->CreateTransformProvider(),
-        MethodRegistry.get(),
-        WorldAdapter->CreateActorResolver(),
-        ComponentMethodRegistry.get(),
-        WorldAdapter->CreateComponentResolver(),
-        SystemCommandRegistry.get(),
+        WorldAdapter->CreateTransformProvider()
+    );
+    DiscoveryController = std::make_unique<FAutomationDiscoveryController>(
+        *HttpRequestExecutor,
+        *CommandQueue,
+        *MethodRegistry,
         DiscoveryAdapter.CreateActorClassListProvider(),
         DiscoveryAdapter.CreateLevelListProvider(),
         DiscoveryAdapter.CreateActorClassExistsProvider()
     );
-    HttpServer = std::make_unique<FAutomationHttpServer>(Config, *ApiController);
+    InvocationController = std::make_unique<FAutomationInvocationController>(
+        *HttpRequestExecutor,
+        *CommandQueue,
+        *MethodRegistry,
+        WorldAdapter->CreateActorResolver(),
+        *ComponentMethodRegistry,
+        WorldAdapter->CreateComponentResolver()
+    );
+    SystemController = std::make_unique<FAutomationSystemController>(
+        *HttpRequestExecutor, *CommandQueue, *SystemCommandRegistry
+    );
+    LogController = std::make_unique<FAutomationLogController>(*HttpRequestExecutor, *CommandQueue);
+    HttpServer = std::make_unique<FAutomationHttpServer>(
+        Config,
+        FAutomationHttpControllers{
+            *WorldController,
+            *DiscoveryController,
+            *InvocationController,
+            *SystemController,
+            *LogController
+        }
+    );
     if (!HttpServer->Start()) {
       M_LOG(Log, "Automation server startup failed; the engine will continue without Automation.");
       Shutdown();
@@ -116,7 +138,12 @@ struct FAutomationSubsystem::FImpl {
     }
 
     HttpServer.reset();
-    ApiController.reset();
+    LogController.reset();
+    SystemController.reset();
+    InvocationController.reset();
+    DiscoveryController.reset();
+    WorldController.reset();
+    HttpRequestExecutor.reset();
     WorldAdapter.reset();
     SystemCommandRegistry.reset();
     ComponentMethodRegistry.reset();
@@ -131,7 +158,12 @@ struct FAutomationSubsystem::FImpl {
   std::unique_ptr<FAutomationComponentMethodRegistry> ComponentMethodRegistry;
   std::unique_ptr<FAutomationSystemCommandRegistry> SystemCommandRegistry;
   std::unique_ptr<FAutomationWorldAdapter> WorldAdapter;
-  std::unique_ptr<FAutomationApiController> ApiController;
+  std::unique_ptr<FAutomationHttpRequestExecutor> HttpRequestExecutor;
+  std::unique_ptr<FAutomationWorldController> WorldController;
+  std::unique_ptr<FAutomationDiscoveryController> DiscoveryController;
+  std::unique_ptr<FAutomationInvocationController> InvocationController;
+  std::unique_ptr<FAutomationSystemController> SystemController;
+  std::unique_ptr<FAutomationLogController> LogController;
   std::unique_ptr<FAutomationHttpServer> HttpServer;
 };
 

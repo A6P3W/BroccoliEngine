@@ -5,13 +5,11 @@
 #include "AutomationTypes.h"
 #include "BroccoliEngineAPI.h"
 
-class FAutomationApiController;
+struct FAutomationHttpControllers;
 
 class BROCCOLI_ENGINE_API FAutomationHttpServer {
  public:
-  FAutomationHttpServer(
-      const FAutomationConfig& InConfig, FAutomationApiController& InApiController
-  );
+  FAutomationHttpServer(const FAutomationConfig& InConfig, FAutomationHttpControllers Controllers);
   ~FAutomationHttpServer();
 
   FAutomationHttpServer(const FAutomationHttpServer&) = delete;
