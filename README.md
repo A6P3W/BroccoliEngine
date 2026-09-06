@@ -54,8 +54,8 @@ copy CMakeUserPresets.json.template CMakeUserPresets.json
 リポジトリルートで実行してください。
 
 ```cmd
-build.bat Debug
-build.bat Editor
+broccoli.bat build Debug
+broccoli.bat build Editor
 run.bat Debug -automation
 ```
 
