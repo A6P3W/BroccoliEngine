@@ -1,166 +1,19 @@
 #pragma once
 
-#include <functional>
 #include <nlohmann/json.hpp>
-#include <optional>
-#include <string>
 #include <string_view>
-#include <vector>
 
-#include "ActorId.h"
-#include "ComponentId.h"
-#include "AutomationCommandQueue.h"
-#include "AutomationMethodRegistry.h"
+#include "Runtime/AutomationCommandQueue.h"
 #include "AutomationComponentMethodRegistry.h"
-#include "ComponentId.h"
+#include "AutomationMethodRegistry.h"
 #include "AutomationSystemCommandRegistry.h"
 #include "AutomationTypes.h"
-#include "BroccoliEngineAPI.h"
-#include "UMath.h"
+#include "Runtime/AutomationRuntimeTypes.h"
+#include "Transport/Http/AutomationHttpTypes.h"
+#include "World/AutomationDiscoveryTypes.h"
+#include "World/AutomationWorldTypes.h"
 
-struct FAutomationHttpResponse {
-  int StatusCode = 500;
-  nlohmann::json Body =
-      MakeAutomationError(EAutomationErrorCode::InternalError, "The automation request failed.");
-};
-
-using FAutomationStateProvider = std::function<nlohmann::json()>;
-
-struct FAutomationActorSnapshot {
-  FActorId ActorId = InvalidActorId;
-  std::string InstanceName;
-  std::string ClassName;
-  FVector2D Location;
-  FRotator Rotation;
-  FScale Scale;
-};
-
-struct FAutomationActorComponentSnapshot {
-  FComponentId ComponentId = InvalidComponentId;
-  std::string Name;
-  std::string ClassName;
-  bool bRegistered = false;
-  bool bPendingDestroy = false;
-  bool bReplicates = false;
-  uint32_t NetworkId = 0;
-};
-
-struct FAutomationActorComponentListSnapshot {
-  FActorId ActorId = InvalidActorId;
-  std::string ClassName;
-  std::vector<FAutomationActorComponentSnapshot> Components;
-};
-
-struct FAutomationActorListSnapshot {
-  std::string SceneName;
-  std::vector<FAutomationActorSnapshot> Actors;
-};
-
-struct FAutomationActorQuery {
-  std::optional<std::string> ClassName;
-  std::optional<std::string> InstanceName;
-};
-
-struct FAutomationActorQueryText {
-  std::optional<std::string> ClassName;
-  std::optional<std::string> InstanceName;
-  bool bHasUnknownParameter = false;
-  bool bHasDuplicateParameter = false;
-};
-
-struct FAutomationActorClassInfo {
-  std::string ClassName;
-  bool bIsGameMode = false;
-};
-
-struct FAutomationLevelInfo {
-  uint32_t SceneId = 0;
-  std::string LevelPath;
-};
-
-enum class EAutomationWorldReadStatus : uint8_t {
-  Success,
-  WorldNotAvailable,
-  ActorNotFound,
-  InvalidState
-};
-
-using FAutomationActorListProvider = std::function<
-    EAutomationWorldReadStatus(const FAutomationActorQuery&, FAutomationActorListSnapshot&)>;
-using FAutomationActorProvider =
-    std::function<EAutomationWorldReadStatus(FActorId, FAutomationActorSnapshot&)>;
-using FAutomationActorComponentListProvider =
-    std::function<EAutomationWorldReadStatus(FActorId, FAutomationActorComponentListSnapshot&)>;
-using FAutomationActorClassListProvider = std::function<std::vector<FAutomationActorClassInfo>()>;
-using FAutomationLevelListProvider = std::function<std::vector<FAutomationLevelInfo>()>;
-using FAutomationActorClassExistsProvider = std::function<bool(std::string_view)>;
-
-enum class EAutomationActorResolveStatus : uint8_t {
-  Success,
-  WorldNotAvailable,
-  ActorNotFound,
-  ActorPendingDestroy,
-  InvalidState
-};
-
-class AActor;
-using FAutomationActorResolver = std::function<EAutomationActorResolveStatus(FActorId, AActor*&)>;
-
-class MActorComponent;
-enum class EAutomationComponentResolveStatus : uint8_t {
-  Success,
-  WorldNotAvailable,
-  ActorNotFound,
-  ActorPendingDestroy,
-  ComponentNotFound,
-  ComponentPendingDestroy,
-  InvalidState
-};
-using FAutomationComponentResolver = std::function<EAutomationComponentResolveStatus(
-    FActorId, FComponentId, MActorComponent*&
-)>;
-
-enum class EAutomationWorldMutationStatus : uint8_t {
-  Success,
-  WorldNotAvailable,
-  ClassNotRegistered,
-  ActorNotFound,
-  ActorPendingDestroy,
-  InvalidState
-};
-
-struct FAutomationSpawnActorRequest {
-  std::string ClassName;
-  FVector2D Location = FVector2D::ZeroVector();
-  FRotator Rotation = FRotator(0.0f);
-  FScale Scale = FScale(1.0f);
-  std::optional<std::string> InstanceName;
-};
-
-struct FAutomationTransformPatch {
-  std::optional<FVector2D> Location;
-  std::optional<FRotator> Rotation;
-  std::optional<FScale> Scale;
-
-  bool HasAnyValue() const;
-};
-
-struct FAutomationLogQueryText {
-  std::optional<std::string> Limit;
-  std::optional<std::string> Level;
-  std::optional<std::string> AfterSequence;
-  bool bHasUnknownParameter = false;
-  bool bHasDuplicateParameter = false;
-};
-
-using FAutomationSpawnActorProvider = std::function<
-    EAutomationWorldMutationStatus(const FAutomationSpawnActorRequest&, FAutomationActorSnapshot&)>;
-using FAutomationDestroyActorProvider = std::function<EAutomationWorldMutationStatus(FActorId)>;
-using FAutomationPatchActorTransformProvider = std::function<EAutomationWorldMutationStatus(
-    FActorId, const FAutomationTransformPatch&, FAutomationActorSnapshot&
-)>;
-
-class BROCCOLI_ENGINE_API FAutomationApiController {
+class FAutomationApiController {
  public:
   FAutomationApiController(
       FAutomationCommandQueue& InCommandQueue,

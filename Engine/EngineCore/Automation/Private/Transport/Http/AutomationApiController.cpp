@@ -16,7 +16,7 @@
 #include "Actor.h"
 #include "ActorComponent.h"
 #include "AutomationComponentMethodRegistry.h"
-#include "AutomationJsonSchemaValidator.h"
+#include "Registration/AutomationJsonSchemaValidator.h"
 #include "Log.h"
 
 namespace {
@@ -183,10 +183,6 @@ std::optional<ELogLevel> ParseLogLevel(std::string_view Text) {
   return std::nullopt;
 }
 }  // namespace
-
-bool FAutomationTransformPatch::HasAnyValue() const {
-  return Location.has_value() || Rotation.has_value() || Scale.has_value();
-}
 
 FAutomationApiController::FAutomationApiController(
     FAutomationCommandQueue& InCommandQueue,

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AutomationApiController.h"
+#include "World/AutomationWorldTypes.h"
 #include "BroccoliEngineAPI.h"
 
 class BROCCOLI_ENGINE_API FAutomationWorldAdapter {
