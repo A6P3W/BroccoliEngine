@@ -123,6 +123,7 @@ def TestBuildRecordsLatestConfiguration(TmpPath: Path, monkeypatch: pytest.Monke
 def TestRunUsesLatestConfigurationAndForwardsArguments(
   TmpPath: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+  WritePluginSettings(TmpPath, [])
   ExecutablePath = TmpPath / "Publish" / "Debug" / "Launcher.exe"
   ExecutablePath.parent.mkdir(parents=True)
   ExecutablePath.write_bytes(b"launcher")
@@ -142,9 +143,36 @@ def TestRunUsesLatestConfigurationAndForwardsArguments(
   assert Commands == [([str(ExecutablePath), "--example", "value"], TmpPath)]
 
 
+def TestRunUsesGeneratedProjectName(TmpPath: Path) -> None:
+  (TmpPath / ".broccoli-project.json").write_text(
+    '{"project_name": "ExampleGame", "plugins": []}\n', encoding="utf-8"
+  )
+
+  assert cli.GetRunExecutable(TmpPath, "Editor") == (
+    TmpPath / "Bin" / "x64" / "Editor" / "ExampleGame-game.exe"
+  )
+  assert cli.GetRunExecutable(TmpPath, "Debug") == TmpPath / "Publish" / "Debug" / "ExampleGame.exe"
+
+
 def TestRunRejectsMissingLatestConfiguration(TmpPath: Path) -> None:
   with pytest.raises(ValueError, match="Latest build configuration does not exist"):
     cli.LoadLatestBuildConfiguration(TmpPath)
+
+
+def TestRunParserForwardsArgumentsAfterLatestSeparator(TmpPath: Path) -> None:
+  (TmpPath / "Intermediate").mkdir()
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
+    "Editor\n", encoding="utf-8"
+  )
+  Parser = cli.CreateParser()
+  Arguments = Parser.parse_args(
+    ["run", "--latest", "--project-dir", str(TmpPath), "--", "--automation"]
+  )
+
+  Configuration, ApplicationArguments = cli.ResolveRunInvocation(Arguments)
+
+  assert Configuration == "Editor"
+  assert ApplicationArguments == ["--automation"]
 
 
 def TestCleanOnlyRemovesTheRequestedConfiguration(

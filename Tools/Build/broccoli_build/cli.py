@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -135,9 +136,22 @@ def LoadLatestBuildConfiguration(ProjectDirectory: Path) -> str:
 
 
 def GetRunExecutable(ProjectDirectory: Path, Configuration: str) -> Path:
+  ProjectName = LoadProjectName(ProjectDirectory)
   if Configuration == "Editor":
-    return ProjectDirectory / "Bin" / "x64" / Configuration / "Launcher-game.exe"
-  return ProjectDirectory / "Publish" / Configuration / "Launcher.exe"
+    return ProjectDirectory / "Bin" / "x64" / Configuration / f"{ProjectName}-game.exe"
+  return ProjectDirectory / "Publish" / Configuration / f"{ProjectName}.exe"
+
+
+def LoadProjectName(ProjectDirectory: Path) -> str:
+  SettingsPath = ProjectDirectory / ".broccoli-project.json"
+  try:
+    Settings = json.loads(SettingsPath.read_text(encoding="utf-8"))
+  except (OSError, json.JSONDecodeError) as Error:
+    raise ValueError(f"Could not read project settings '{SettingsPath}': {Error}") from Error
+  ProjectName = Settings.get("project_name", "Launcher")
+  if not isinstance(ProjectName, str) or not ProjectName.strip():
+    raise ValueError(f"Project setting 'project_name' must be a non-empty string: {SettingsPath}")
+  return ProjectName
 
 
 def Run(ProjectDirectory: Path, Configuration: str, ApplicationArguments: list[str]) -> None:
@@ -146,6 +160,22 @@ def Run(ProjectDirectory: Path, Configuration: str, ApplicationArguments: list[s
     raise ValueError(f"Executable does not exist: {ExecutablePath}")
   print(f"[run] {ExecutablePath}")
   subprocess.Popen([str(ExecutablePath), *ApplicationArguments], cwd=ProjectDirectory)
+
+
+def ResolveRunInvocation(Arguments: argparse.Namespace) -> tuple[str, list[str]]:
+  ApplicationArguments = Arguments.application_arguments
+  if Arguments.latest:
+    if Arguments.configuration is None:
+      return LoadLatestBuildConfiguration(Arguments.project_dir), ApplicationArguments
+    if Arguments.configuration.startswith("-"):
+      return (
+        LoadLatestBuildConfiguration(Arguments.project_dir),
+        [Arguments.configuration, *ApplicationArguments],
+      )
+    raise ValueError("Specify either a configuration or --latest.")
+  if Arguments.configuration is None:
+    raise ValueError("Specify a configuration or --latest.")
+  return ResolveConfiguration(Arguments.configuration), ApplicationArguments
 
 
 def Clean(ProjectDirectory: Path, Configuration: str | None, CleanAll: bool) -> None:
@@ -187,7 +217,7 @@ def CreateParser() -> argparse.ArgumentParser:
   RegenerateParser.add_argument("--project-dir", type=PathArgument, default=Path.cwd())
 
   RunParser = Commands.add_parser("run", help="Run a built project configuration")
-  RunParser.add_argument("configuration", nargs="?", type=ConfigurationArgument)
+  RunParser.add_argument("configuration", nargs="?")
   RunParser.add_argument("--latest", action="store_true")
   RunParser.add_argument("--project-dir", type=PathArgument, default=Path.cwd())
   RunParser.add_argument("application_arguments", nargs=argparse.REMAINDER)
@@ -252,16 +282,11 @@ def Main() -> int:
     elif Arguments.Command == "regenerate":
       Regenerate(Arguments.project_dir)
     elif Arguments.Command == "run":
-      if Arguments.configuration is not None and Arguments.latest:
-        raise ValueError("Specify either a configuration or --latest.")
-      if Arguments.configuration is None and not Arguments.latest:
-        raise ValueError("Specify a configuration or --latest.")
+      Configuration, ApplicationArguments = ResolveRunInvocation(Arguments)
       Run(
         Arguments.project_dir,
-        LoadLatestBuildConfiguration(Arguments.project_dir)
-        if Arguments.latest
-        else Arguments.configuration,
-        Arguments.application_arguments,
+        Configuration,
+        ApplicationArguments,
       )
     elif Arguments.Command == "clean":
       if Arguments.configuration is not None and Arguments.clean_all:
