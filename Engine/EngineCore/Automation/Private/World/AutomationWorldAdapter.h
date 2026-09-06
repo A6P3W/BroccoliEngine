@@ -1,7 +1,7 @@
 #pragma once
 
-#include "World/AutomationWorldTypes.h"
 #include "BroccoliEngineAPI.h"
+#include "World/AutomationWorldTypes.h"
 
 class BROCCOLI_ENGINE_API FAutomationWorldAdapter {
  public:

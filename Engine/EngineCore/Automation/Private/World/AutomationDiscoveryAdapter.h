@@ -1,7 +1,7 @@
 #pragma once
 
-#include "World/AutomationDiscoveryTypes.h"
 #include "BroccoliEngineAPI.h"
+#include "World/AutomationDiscoveryTypes.h"
 
 class BROCCOLI_ENGINE_API FAutomationDiscoveryAdapter {
  public:

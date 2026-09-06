@@ -107,9 +107,8 @@ using FAutomationActorProvider =
 using FAutomationActorComponentListProvider =
     std::function<EAutomationWorldReadStatus(FActorId, FAutomationActorComponentListSnapshot&)>;
 using FAutomationActorResolver = std::function<EAutomationActorResolveStatus(FActorId, AActor*&)>;
-using FAutomationComponentResolver = std::function<EAutomationComponentResolveStatus(
-    FActorId, FComponentId, MActorComponent*&
-)>;
+using FAutomationComponentResolver =
+    std::function<EAutomationComponentResolveStatus(FActorId, FComponentId, MActorComponent*&)>;
 using FAutomationSpawnActorProvider = std::function<
     EAutomationWorldMutationStatus(const FAutomationSpawnActorRequest&, FAutomationActorSnapshot&)>;
 using FAutomationDestroyActorProvider = std::function<EAutomationWorldMutationStatus(FActorId)>;

@@ -1,6 +1,7 @@
 #include "AutomationDiscoveryAdapter.h"
 
 #include <algorithm>
+
 #include "ActorRegistry.h"
 #include "SceneManager.h"
 
