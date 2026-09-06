@@ -106,6 +106,87 @@ def TestRegenerateDoesNotBuild(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -
   assert Commands == [["cmake", "--preset", "windows-x64-local"]]
 
 
+def TestBuildRecordsLatestConfiguration(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+  WritePluginSettings(TmpPath, [])
+  CacheFile = TmpPath / "build" / "windows-x64" / "CMakeCache.txt"
+  CacheFile.parent.mkdir(parents=True)
+  CacheFile.write_text("cache", encoding="utf-8")
+
+  monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
+  monkeypatch.setattr(cli.subprocess, "run", lambda *_, **__: None)
+
+  cli.Build(TmpPath, "Release", False)
+
+  assert cli.LoadLatestBuildConfiguration(TmpPath) == "Release"
+
+
+def TestRunUsesLatestConfigurationAndForwardsArguments(
+  TmpPath: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  ExecutablePath = TmpPath / "Publish" / "Debug" / "Launcher.exe"
+  ExecutablePath.parent.mkdir(parents=True)
+  ExecutablePath.write_bytes(b"launcher")
+  (TmpPath / "Intermediate").mkdir()
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
+    "Debug\n", encoding="utf-8"
+  )
+  Commands: list[tuple[list[str], Path]] = []
+
+  def RecordPopen(Command: list[str], cwd: Path) -> None:
+    Commands.append((Command, cwd))
+
+  monkeypatch.setattr(cli.subprocess, "Popen", RecordPopen)
+
+  cli.Run(TmpPath, cli.LoadLatestBuildConfiguration(TmpPath), ["--example", "value"])
+
+  assert Commands == [([str(ExecutablePath), "--example", "value"], TmpPath)]
+
+
+def TestRunRejectsMissingLatestConfiguration(TmpPath: Path) -> None:
+  with pytest.raises(ValueError, match="Latest build configuration does not exist"):
+    cli.LoadLatestBuildConfiguration(TmpPath)
+
+
+def TestCleanOnlyRemovesTheRequestedConfiguration(
+  TmpPath: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  for Configuration in ("Debug", "Editor"):
+    (TmpPath / "Bin" / "x64" / Configuration).mkdir(parents=True)
+    (TmpPath / "Publish" / Configuration).mkdir(parents=True)
+  CacheFile = TmpPath / "build" / "windows-x64" / "CMakeCache.txt"
+  CacheFile.parent.mkdir(parents=True)
+  CacheFile.write_text("cache", encoding="utf-8")
+  Commands: list[list[str]] = []
+
+  def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
+    Commands.append(Command)
+
+  monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
+  monkeypatch.setattr(cli.subprocess, "run", RecordRun)
+
+  cli.Clean(TmpPath, "Debug", False)
+
+  assert Commands == [["cmake", "--build", "--preset", "debug-local", "--target", "clean"]]
+  assert not (TmpPath / "Bin" / "x64" / "Debug").exists()
+  assert not (TmpPath / "Publish" / "Debug").exists()
+  assert (TmpPath / "Bin" / "x64" / "Editor").is_dir()
+  assert (TmpPath / "Publish" / "Editor").is_dir()
+
+
+def TestCleanAllRemovesOnlyGeneratedDirectories(TmpPath: Path) -> None:
+  for Directory in ("build/windows-x64", "Intermediate", "Bin", "Publish"):
+    (TmpPath / Directory).mkdir(parents=True)
+  SourceFile = TmpPath / "Source" / "main.cpp"
+  SourceFile.parent.mkdir()
+  SourceFile.write_text("source", encoding="utf-8")
+
+  cli.Clean(TmpPath, None, True)
+
+  assert not (TmpPath / "build" / "windows-x64").exists()
+  assert not any((TmpPath / Directory).exists() for Directory in ("Intermediate", "Bin", "Publish"))
+  assert SourceFile.is_file()
+
+
 def TestGeneratePluginsCmakeReflectsConfigurationSettings(TmpPath: Path) -> None:
   WritePluginSettings(
     TmpPath,
