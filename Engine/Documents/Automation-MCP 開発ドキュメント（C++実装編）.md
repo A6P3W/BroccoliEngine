@@ -1,174 +1,142 @@
-# BroccoliEngine Automation & MCP 開発ドキュメント（C++実装編）
+# BroccoliEngine Automation & MCP 開発ガイド（C++実装編）
 
-BroccoliEngineの自動化システムは、C++側で定義したActorやComponentのメソッド、あるいはグローバルなシステムコマンドを登録マクロによって自動化サーバーに公開します。
+BroccoliEngine の Automation は、C++ の Actor / Component メソッドと Engine の
+System Command を localhost 限定 HTTP API へ公開し、BroccoliMCP から操作できるようにします。
+HTTP Server は起動引数 `-automation` が指定された場合だけ有効になります。
 
-## 1. アクターメソッドの登録（Actor Methods）
+## 1. 公開登録 API
 
-アクター（`AActor` の派生クラス）が持つメンバー関数を外部から呼び出せるように公開するには、自動生成/登録システム用マクロを使用します。
+ゲームコードが使用する正式な登録 API は次の3マクロです。
 
-### 1.1 引数・戻り値なしのシンプルな登録
+- `REGISTER_AUTOMATION_METHOD(...)`
+- `AUTOMATION_PARAMS(...)`
+- `AUTOMATION_PARAM(Name, Description)`
 
-最も基本的なケースとして、引数がなく戻り値が `void` のメンバー関数を公開する例です。
+Registry や AutoRegistrar の具体型は Engine 内部実装です。ゲームコードから直接操作せず、
+`AutomationMacros.h` のみを include してください。マクロはメンバー関数の所有型から Actor と
+Component を自動判定します。
 
-#### ヘッダーファイル（`MyPawn.h` 等）
-
-```cpp
-#pragma once
-#include "Actor.h"
-#include "BroccoliEngineAPI.h"
-
-class BROCCOLI_ENGINE_API AMyPawn : public AActor {
- public:
-  DEFINE_ACTOR_CLASS(AMyPawn)
-  AMyPawn();
-
-  // 公開したいメソッド
-  void ResetStatus();
-};
-```
-
-#### ソースファイル（`MyPawn.cpp` 等）
+### 引数なし
 
 ```cpp
-#include "MyPawn.h"
-#include "AutomationMacros.h"
-
-REGISTER_ACTOR(AMyPawn)
-
-AMyPawn::AMyPawn() {
-  // コンストラクタ処理
-}
-
-void AMyPawn::ResetStatus() {
-  // 内部状態のリセット処理
-}
-
-// 自動化メソッドの登録
-REGISTER_AUTOMATION_METHOD(
-    "reset_status",                              // 外部公開名 (スネークケース / 小文字開始推奨)
-    "Resets the pawn's core status to default.", // メソッドの説明
-    EAutomationPermission::WorldMutation,        // 実行権限 (ReadOnly / WorldMutation など)
-    &AMyPawn::ResetStatus                        // メンバー関数ポインタ
-)
-```
-
-### 1.2 引数を持つメソッドの登録
-
-引数を持つメソッドを登録する場合、`AUTOMATION_PARAMS` および `AUTOMATION_PARAM` マクロを用いてメタデータ（名前、説明、検証用の型情報）を指定します。
-
-#### C++メソッドの追加
-
-```cpp
-// AMyPawn クラス内
-void AddEnergy(float Amount, int BaseMultiplier);
-```
-
-#### メソッドの登録
-
-```cpp
-REGISTER_AUTOMATION_METHOD(
-    "add_energy",
-    "Adds energy to the pawn with a multiplier.",
-    EAutomationPermission::WorldMutation,
-    &AMyPawn::AddEnergy,
-    AUTOMATION_PARAMS(
-        AUTOMATION_PARAM("amount", "The base amount of energy to add."),
-        AUTOMATION_PARAM("baseMultiplier", "The multiplier applied to the energy amount.")
-    )
-)
-```
-
-- **引数型の一致**: `AUTOMATION_PARAMS` で指定した引数の順序と型は、対象のメンバー関数のシグネチャと正確に一致している必要があります。
-    
-- **サポートされている型**: `float`, `double`, `bool`, `int`（各種符号あり/なし整数）, `std::string`, `FVector2D` 等が標準でJSON変換サポートされています。
-    
-
-### 1.3 戻り値を持つメソッド
-
-戻り値が存在する場合、自動化システムが自動的にJSON形式にシリアライズしてクライアントに返却します。
-
-#### C++メソッドの追加
-
-```cpp
-// AMyPawn クラス内
-float GetCurrentHealth() const;
-```
-
-#### メソッドの登録
-
-```cpp
-REGISTER_AUTOMATION_METHOD(
-    "get_current_health",
-    "Returns the current health value of the pawn.",
-    EAutomationPermission::ReadOnly,
-    &AMyPawn::GetCurrentHealth
-)
-```
-
-## 2. コンポーネントメソッドの登録（Component Methods）
-
-`MActorComponent` の派生クラス（例: `MForceFieldComponent` や自作コンポーネント）のメソッドもアクターと同様に登録できます。
-
-コンポーネントを定義しているクラスで `REGISTER_AUTOMATION_COMPONENT_METHODS(ClassName)` マクロを指定し、以下のように登録します。
-
-#### コンポーネントクラスでの登録例
-
-```cpp
-// MyComponent.cpp 内
-#include "MyComponent.h"
 #include "AutomationMacros.h"
 
 REGISTER_AUTOMATION_METHOD(
-    "set_active",
-    "Enables or disables the component.",
+    "open_door",
+    "Opens the door when it is unlocked.",
     EAutomationPermission::WorldMutation,
-    &UMyComponent::SetActive,
-    AUTOMATION_PARAMS(AUTOMATION_PARAM("active", "True to enable, false to disable."))
+    &ADoorActor::OpenDoor
 )
 ```
 
-## 3. 高度なカスタマイズ：結果アダプター（Result Adapter）
+### 引数あり
 
-戻り値のオブジェクトをそのまま自動でシリアライズできない場合や、戻り値のフォーマットをC++側で細かく整形したい場合は、結果アダプター（Result Adapter）関数を登録時に指定できます。
+`AUTOMATION_PARAM` の並びはメンバー関数の引数順と一致させます。型と個数は C++20 の
+template 制約によりコンパイル時に検証されます。
 
 ```cpp
-// 任意の戻り値変換用ラムダ
-auto HealthResultAdapter = [](const AMyPawn& Pawn, float OriginalResult) {
-  return nlohmann::json{
-      {"health", OriginalResult},
-      {"isDead", OriginalResult <= 0.0f},
-      {"instance", Pawn.GetInstanceName()}
-  };
-};
-
 REGISTER_AUTOMATION_METHOD(
-    "get_health_detailed",
-    "Returns detailed health information.",
-    EAutomationPermission::ReadOnly,
-    &AMyPawn::GetCurrentHealth,
-    AUTOMATION_PARAMS(), // 引数なし
-    HealthResultAdapter  // 変換用アダプター
+    "set_locked",
+    "Sets the door lock state.",
+    EAutomationPermission::WorldMutation,
+    &ADoorActor::SetLocked,
+    AUTOMATION_PARAMS(AUTOMATION_PARAM("locked", "New lock state."))
 )
 ```
 
-インラインラムダ内で `nlohmann::json{...}` のようにカンマを含む初期化を行う場合は、
-ラムダ全体を `([](...) { ... })` のように丸括弧で囲んでください。
+### Result Adapter
 
-## 4. テスト方法
+標準変換できない戻り値や、HTTP 応答用に整形したい戻り値には6番目の引数として
+Result Adapter を指定します。
 
-### 4.1 実行と自動化サーバーの有効化
-
-自動化HTTPサーバーは、起動オプション `-automation` を付与したときのみ起動します。
-
-```bash
-# エディタまたはバイナリを起動してポート39100を開く
-broccoli.bat run Debug -- -automation
+```cpp
+REGISTER_AUTOMATION_METHOD(
+    "get_door_state",
+    "Returns the current door state.",
+    EAutomationPermission::ReadOnly,
+    &ADoorActor::GetDoorState,
+    AUTOMATION_PARAMS(),
+    ([](const FDoorState& State) {
+      return nlohmann::json{{"is_open", State.bIsOpen}, {"is_locked", State.bIsLocked}};
+    })
+)
 ```
 
-### 4.2 動作確認（ブラウザまたはcurl）
+カンマを含むインラインラムダは、上の例のように全体を丸括弧で囲みます。
 
-以下のURLにアクセスしてJSON応答が返ってくるか確認します。
+## 2. 権限
 
-```http
-GET http://127.0.0.1:39100/api/v1/state
+| 権限 | 用途 |
+|---|---|
+| `ReadOnly` | 状態を変更しない Actor / Component メソッド |
+| `WorldMutation` | World 内の状態を変更する Actor / Component メソッド |
+| `SystemMutation` | Engine の System Command |
+| `Dangerous` | HTTP Automation では許可されない操作 |
+
+Actor / Component endpoint は `ReadOnly` と `WorldMutation` のみを公開します。
+System Command endpoint は `SystemMutation` のみを実行します。
+
+## 3. HTTP API
+
+既定 URL は `http://127.0.0.1:39100/api/v1` です。
+
+| Method | Path | 機能 |
+|---|---|---|
+| GET | `/state` | Scene、FPS、Pause、Actor 数 |
+| GET | `/logs/recent` | 直近ログ |
+| GET | `/actor-classes` | 登録済み Actor class |
+| GET | `/actor-classes/{className}/methods` | Class の Automation method |
+| GET | `/levels` | 登録済み Level |
+| GET/POST | `/world/actors` | Actor 一覧・生成 |
+| GET/DELETE | `/world/actors/{actorId}` | Actor 取得・破棄 |
+| PATCH | `/world/actors/{actorId}/transform` | Transform 更新 |
+| GET | `/world/actors/{actorId}/components` | Component 一覧 |
+| GET | `/world/actors/{actorId}/methods` | Actor method 一覧 |
+| POST | `/world/actors/{actorId}/methods/{methodName}` | Actor method 実行 |
+| GET | `/world/actors/{actorId}/components/{componentId}/methods` | Component method 一覧 |
+| POST | `/world/actors/{actorId}/components/{componentId}/methods/{methodName}` | Component method実行 |
+| GET | `/system/commands` | System Command 一覧 |
+| POST | `/system/commands/{commandName}` | System Command 実行 |
+
+成功応答は `{"success": true, "data": ...}`、失敗応答は
+`{"success": false, "error": {"code": "...", "message": "..."}}` です。
+
+主な Error Code は `INVALID_REQUEST`、`INVALID_JSON`、`INVALID_ARGUMENT`、
+`REQUEST_TOO_LARGE`、`WORLD_NOT_AVAILABLE`、`ACTOR_NOT_FOUND`、
+`CLASS_NOT_REGISTERED`、`METHOD_NOT_REGISTERED`、`COMMAND_NOT_REGISTERED`、
+`PERMISSION_DENIED`、`REQUEST_TIMEOUT`、`ENGINE_SHUTTING_DOWN`、`INTERNAL_ERROR` です。
+
+## 4. 内部構成
+
+- `Runtime`: Subsystem、Command Queue、Pause state、State Provider、Built-in Command
+- `Registration`: Registry、登録検証、AutoRegistrar の callback 管理
+- `World`: World/Discovery Adapter と Transport 非依存 DTO
+- `Transport/Http`: routing、request/response 変換、機能別 Controller
+
+ゲームモジュールで静的生成される登録 Token は、`Public/Detail` の型消去 Bridge を通して
+Engine 内部 Registry へ登録されます。具体的な Registry 型が公開 ABI を横断することはありません。
+
+## 5. ビルドとテスト
+
+```powershell
+broccoli.bat build debug
+broccoli.bat build editor
+broccoli.bat build release
 ```
+
+Debug 版を Automation 有効で起動します。
+
+```powershell
+broccoli.bat run debug -- -automation
+```
+
+別のターミナルから MCP の単体テストと Live integration を実行します。
+
+```powershell
+cd Tools/BroccoliMCP
+uv run --frozen --extra dev pytest
+uv run --frozen python .\tests\live_engine_integration.py
+```
+
+Live integration は State、Discovery、Actor の生成・更新・破棄、Actor/Component method、
+System Command、Pause/Resume、Recent Logs を検証します。

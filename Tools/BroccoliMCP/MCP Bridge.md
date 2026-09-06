@@ -10,6 +10,10 @@ BROCCOLI ENGINEのlocalhost限定Automation APIを、MCP Stdio ResourceとTool�
 `get_registered_actor_classes`、`get_levels`、`get_actor`、`find_actors`、
 `get_actor_components`、`get_class_methods`を提供します。
 
+Engine 側の Actor / Component method は `REGISTER_AUTOMATION_METHOD`、
+`AUTOMATION_PARAMS`、`AUTOMATION_PARAM` の3マクロで登録します。Registry と
+AutoRegistrar の具体型は Engine 内部 API であり、ゲームコードから直接利用しません。
+
 ## 必要環境
 
 - Windows x64
