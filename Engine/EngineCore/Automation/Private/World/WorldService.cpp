@@ -280,6 +280,25 @@ FAutomationActorListProvider FAutomationWorldService::CreateActorListProvider() 
   return GetActorList;
 }
 
+FAutomationWorldStateProvider FAutomationWorldService::CreateWorldStateProvider() {
+  return [] {
+    FAutomationWorldStateSnapshot Snapshot;
+    SceneManager& Manager = SceneManager::GetInstance();
+    World* CurrentWorld = Manager.GetCurrentScene();
+    if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
+      return Snapshot;
+    }
+
+    Snapshot.SceneName = GetCurrentSceneName(Manager);
+    Snapshot.Fps = CurrentWorld->GetCurrentFps();
+    Snapshot.bWorldAvailable = true;
+    if (const FActorManager* ActorManager = CurrentWorld->GetActorManager()) {
+      Snapshot.ActorCount = static_cast<uint32_t>(ActorManager->GetActiveActorCount());
+    }
+    return Snapshot;
+  };
+}
+
 FAutomationActorProvider FAutomationWorldService::CreateActorProvider() { return GetActor; }
 
 FAutomationActorComponentListProvider FAutomationWorldService::CreateActorComponentListProvider() {

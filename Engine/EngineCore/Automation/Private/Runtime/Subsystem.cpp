@@ -38,7 +38,7 @@ struct FAutomationSubsystem::FImpl {
     WorldController = std::make_unique<FAutomationWorldController>(
         *HttpRequestExecutor,
         *CommandQueue,
-        CreateAutomationStateProvider(RuntimeState),
+        CreateAutomationStateProvider(RuntimeState, WorldAdapter->CreateWorldStateProvider()),
         WorldAdapter->CreateActorListProvider(),
         WorldAdapter->CreateActorProvider(),
         WorldAdapter->CreateActorComponentListProvider(),

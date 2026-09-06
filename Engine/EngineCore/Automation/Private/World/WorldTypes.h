@@ -43,6 +43,13 @@ struct FAutomationActorListSnapshot {
   std::vector<FAutomationActorSnapshot> Actors;
 };
 
+struct FAutomationWorldStateSnapshot {
+  std::string SceneName;
+  float Fps = 0.0f;
+  bool bWorldAvailable = false;
+  uint32_t ActorCount = 0;
+};
+
 struct FAutomationActorQuery {
   std::optional<std::string> ClassName;
   std::optional<std::string> InstanceName;
@@ -102,6 +109,7 @@ struct FAutomationTransformPatch {
 
 using FAutomationActorListProvider = std::function<
     EAutomationWorldReadStatus(const FAutomationActorQuery&, FAutomationActorListSnapshot&)>;
+using FAutomationWorldStateProvider = std::function<FAutomationWorldStateSnapshot()>;
 using FAutomationActorProvider =
     std::function<EAutomationWorldReadStatus(FActorId, FAutomationActorSnapshot&)>;
 using FAutomationActorComponentListProvider =
