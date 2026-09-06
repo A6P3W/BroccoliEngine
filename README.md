@@ -103,8 +103,7 @@ MyGame/
 ├── .broccoli-project.json
 ├── CMakeLists.txt
 ├── CMakePresets.json
-├── build.bat
-├── run.bat
+├── broccoli.bat
 ├── BroccoliEngine/
 └── MyGame/
     ├── CMakeLists.txt
@@ -137,10 +136,8 @@ python BroccoliEngine\SetupProject.py --reset-project
 ### 生成したゲームのビルドと実行
 
 ```cmd
-build.bat Debug
-build.bat Editor
-run.bat Debug
-run.bat Editor
+broccoli.bat build
+broccoli.bat run --latest
 ```
 
 Editorでは `/Game/*` を `<ProjectName>/Resources/*` へ解決し、配布版では

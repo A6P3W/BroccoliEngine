@@ -162,7 +162,7 @@ REGISTER_AUTOMATION_METHOD(
 
 ```bash
 # エディタまたはバイナリを起動してポート39100を開く
-run.bat Debug -automation
+broccoli.bat run Debug -- -automation
 ```
 
 ### 4.2 動作確認（ブラウザまたはcurl）
