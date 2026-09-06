@@ -1,4 +1,4 @@
-#include "AutomationJsonSchemaValidator.h"
+#include "SchemaValidator.h"
 
 #include <cmath>
 #include <limits>

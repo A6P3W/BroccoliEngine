@@ -16,8 +16,8 @@
 #include "Actor.h"
 #include "ActorComponent.h"
 #include "Log.h"
-#include "Registration/AutomationComponentMethodRegistry.h"
-#include "Registration/AutomationJsonSchemaValidator.h"
+#include "Registry/ComponentMethodRegistry.h"
+#include "Registry/Schema/SchemaValidator.h"
 
 namespace {
 constexpr std::string_view QueueUnavailableMessage =
@@ -223,7 +223,7 @@ FAutomationWorldController::FAutomationWorldController(
 FAutomationDiscoveryController::FAutomationDiscoveryController(
     FAutomationHttpRequestExecutor& InExecutor,
     FAutomationCommandQueue& InCommandQueue,
-    FAutomationMethodRegistry& InMethodRegistry,
+    FAutomationActorMethodRegistry& InMethodRegistry,
     FAutomationActorClassListProvider InActorClassListProvider,
     FAutomationLevelListProvider InLevelListProvider,
     FAutomationActorClassExistsProvider InActorClassExistsProvider
@@ -238,7 +238,7 @@ FAutomationDiscoveryController::FAutomationDiscoveryController(
 FAutomationInvocationController::FAutomationInvocationController(
     FAutomationHttpRequestExecutor& InExecutor,
     FAutomationCommandQueue& InCommandQueue,
-    FAutomationMethodRegistry& InMethodRegistry,
+    FAutomationActorMethodRegistry& InMethodRegistry,
     FAutomationActorResolver InActorResolver,
     FAutomationComponentMethodRegistry& InComponentMethodRegistry,
     FAutomationComponentResolver InComponentResolver

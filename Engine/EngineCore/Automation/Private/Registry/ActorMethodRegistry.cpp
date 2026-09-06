@@ -1,9 +1,9 @@
-#include "AutomationMethodRegistry.h"
+#include "ActorMethodRegistry.h"
 
 #include <utility>
 
-#include "AutomationClassMethodRegistryCore.h"
-#include "AutomationRegistryDetail.h"
+#include "RegistryCommon.h"
+#include "RegistryCommonDetail.h"
 
 namespace {
 bool IsActorMethodPermissionAllowed(EAutomationPermission Permission) {
@@ -23,7 +23,7 @@ constexpr AutomationRegistryDetail::FAutomationRegistryValidationMessages ActorM
 };
 }  // namespace
 
-bool FAutomationMethodRegistry::RegisterMethod(
+bool FAutomationActorMethodRegistry::RegisterMethod(
     std::string ClassName, FAutomationMethodDescriptor Descriptor, std::string* OutError
 ) {
   return AutomationRegistryDetail::RegisterClassMethod(
@@ -37,13 +37,13 @@ bool FAutomationMethodRegistry::RegisterMethod(
   );
 }
 
-const FAutomationMethodDescriptor* FAutomationMethodRegistry::FindMethod(
+const FAutomationMethodDescriptor* FAutomationActorMethodRegistry::FindMethod(
     std::string_view ClassName, std::string_view MethodName
 ) const {
   return AutomationRegistryDetail::FindClassMethod(MethodsByClass, ClassName, MethodName);
 }
 
-std::vector<FAutomationMethodSnapshot> FAutomationMethodRegistry::GetMethodsForClass(
+std::vector<FAutomationMethodSnapshot> FAutomationActorMethodRegistry::GetMethodsForClass(
     std::string_view ClassName
 ) const {
   return AutomationRegistryDetail::GetClassMethods<FAutomationMethodSnapshot>(
@@ -51,6 +51,6 @@ std::vector<FAutomationMethodSnapshot> FAutomationMethodRegistry::GetMethodsForC
   );
 }
 
-void FAutomationMethodRegistry::Freeze() { Frozen = true; }
+void FAutomationActorMethodRegistry::Freeze() { Frozen = true; }
 
-bool FAutomationMethodRegistry::IsFrozen() const { return Frozen; }
+bool FAutomationActorMethodRegistry::IsFrozen() const { return Frozen; }

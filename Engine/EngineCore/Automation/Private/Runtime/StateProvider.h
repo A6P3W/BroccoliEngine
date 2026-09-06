@@ -1,5 +1,5 @@
 #pragma once
 
-#include "Runtime/AutomationRuntimeTypes.h"
+#include "Runtime/RuntimeState.h"
 
 FAutomationStateProvider CreateAutomationStateProvider(const FAutomationRuntimeState& RuntimeState);

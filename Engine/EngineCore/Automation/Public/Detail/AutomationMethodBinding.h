@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "AutomationTypes.h"
-#include "Detail/AutomationRegistrationBridge.h"
+#include "Detail/AutomationRegistrationContext.h"
 #include "UMath.h"
 
 template <class T, class TEnable = void>

@@ -1,11 +1,11 @@
-#include "AutomationDiscoveryAdapter.h"
+#include "DiscoveryService.h"
 
 #include <algorithm>
 
 #include "ActorRegistry.h"
 #include "SceneManager.h"
 
-FAutomationActorClassListProvider FAutomationDiscoveryAdapter::CreateActorClassListProvider() {
+FAutomationActorClassListProvider FAutomationDiscoveryService::CreateActorClassListProvider() {
   return []() {
     const ActorRegistry& Registry = ActorRegistry::GetInstance();
     const std::vector<std::string>& GameModeClassNames = Registry.GetGameModeClassNames();
@@ -29,7 +29,7 @@ FAutomationActorClassListProvider FAutomationDiscoveryAdapter::CreateActorClassL
   };
 }
 
-FAutomationLevelListProvider FAutomationDiscoveryAdapter::CreateLevelListProvider() {
+FAutomationLevelListProvider FAutomationDiscoveryService::CreateLevelListProvider() {
   return []() {
     std::vector<FAutomationLevelInfo> Result;
     for (const SceneManager::FRegisteredLevelSnapshot& Snapshot :
@@ -40,7 +40,7 @@ FAutomationLevelListProvider FAutomationDiscoveryAdapter::CreateLevelListProvide
   };
 }
 
-FAutomationActorClassExistsProvider FAutomationDiscoveryAdapter::CreateActorClassExistsProvider() {
+FAutomationActorClassExistsProvider FAutomationDiscoveryService::CreateActorClassExistsProvider() {
   return [](std::string_view ClassName) {
     return ActorRegistry::GetInstance().Contains(std::string(ClassName));
   };

@@ -1,8 +1,8 @@
-#include "AutomationSystemCommandRegistry.h"
+#include "SystemCommandRegistry.h"
 
 #include <utility>
 
-#include "AutomationRegistryDetail.h"
+#include "RegistryCommonDetail.h"
 
 namespace {
 bool IsSystemCommandPermissionAllowed(EAutomationPermission Permission) {

@@ -6,17 +6,17 @@
 
 #include "Log.h"
 #include "Registration/AutomationAutoRegistrar.h"
-#include "Registration/AutomationComponentMethodRegistry.h"
-#include "Registration/AutomationMethodRegistry.h"
-#include "Registration/AutomationSystemCommandRegistry.h"
-#include "Runtime/AutomationBuiltInCommands.h"
-#include "Runtime/AutomationCommandQueue.h"
-#include "Runtime/AutomationRuntimeTypes.h"
-#include "Runtime/AutomationStateProvider.h"
+#include "Registry/ComponentMethodRegistry.h"
+#include "Registry/ActorMethodRegistry.h"
+#include "Registry/SystemCommandRegistry.h"
+#include "Runtime/BuiltInCommands.h"
+#include "Runtime/CommandQueue.h"
+#include "Runtime/RuntimeState.h"
+#include "Runtime/StateProvider.h"
 #include "Transport/Http/AutomationHttpControllers.h"
 #include "Transport/Http/AutomationHttpServer.h"
-#include "World/AutomationDiscoveryAdapter.h"
-#include "World/AutomationWorldAdapter.h"
+#include "World/DiscoveryService.h"
+#include "World/WorldService.h"
 
 struct FAutomationSubsystem::FImpl {
   bool Initialize(const FAutomationConfig& Config) {
@@ -32,8 +32,8 @@ struct FAutomationSubsystem::FImpl {
     }
 
     CommandQueue = std::make_unique<FAutomationCommandQueue>();
-    WorldAdapter = std::make_unique<FAutomationWorldAdapter>();
-    FAutomationDiscoveryAdapter DiscoveryAdapter;
+    WorldAdapter = std::make_unique<FAutomationWorldService>();
+    FAutomationDiscoveryService DiscoveryAdapter;
     HttpRequestExecutor = std::make_unique<FAutomationHttpRequestExecutor>(*CommandQueue, Config);
     WorldController = std::make_unique<FAutomationWorldController>(
         *HttpRequestExecutor,
@@ -85,7 +85,7 @@ struct FAutomationSubsystem::FImpl {
   }
 
   bool CreateRegistries() {
-    MethodRegistry = std::make_unique<FAutomationMethodRegistry>();
+    MethodRegistry = std::make_unique<FAutomationActorMethodRegistry>();
     ComponentMethodRegistry = std::make_unique<FAutomationComponentMethodRegistry>();
     try {
       RegisterAllAutomationMethods(*MethodRegistry, *ComponentMethodRegistry);
@@ -150,10 +150,10 @@ struct FAutomationSubsystem::FImpl {
 
   FAutomationRuntimeState RuntimeState;
   std::unique_ptr<FAutomationCommandQueue> CommandQueue;
-  std::unique_ptr<FAutomationMethodRegistry> MethodRegistry;
+  std::unique_ptr<FAutomationActorMethodRegistry> MethodRegistry;
   std::unique_ptr<FAutomationComponentMethodRegistry> ComponentMethodRegistry;
   std::unique_ptr<FAutomationSystemCommandRegistry> SystemCommandRegistry;
-  std::unique_ptr<FAutomationWorldAdapter> WorldAdapter;
+  std::unique_ptr<FAutomationWorldService> WorldAdapter;
   std::unique_ptr<FAutomationHttpRequestExecutor> HttpRequestExecutor;
   std::unique_ptr<FAutomationWorldController> WorldController;
   std::unique_ptr<FAutomationDiscoveryController> DiscoveryController;

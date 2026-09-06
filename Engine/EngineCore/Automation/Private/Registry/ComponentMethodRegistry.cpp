@@ -1,9 +1,9 @@
-#include "AutomationComponentMethodRegistry.h"
+#include "ComponentMethodRegistry.h"
 
 #include <utility>
 
-#include "AutomationClassMethodRegistryCore.h"
-#include "AutomationRegistryDetail.h"
+#include "RegistryCommon.h"
+#include "RegistryCommonDetail.h"
 
 namespace {
 bool IsComponentMethodPermissionAllowed(EAutomationPermission Permission) {

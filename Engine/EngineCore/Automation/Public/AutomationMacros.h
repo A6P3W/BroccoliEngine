@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Detail/AutomationMacroImplementation.h"
+#include "Detail/AutomationMethodBinding.h"
 
 #define BROCCOLI_AUTOMATION_CONCAT_IMPL(Left, Right) Left##Right
 #define BROCCOLI_AUTOMATION_CONCAT(Left, Right) BROCCOLI_AUTOMATION_CONCAT_IMPL(Left, Right)

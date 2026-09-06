@@ -1,12 +1,12 @@
-#include "Detail/AutomationRegistrationBridge.h"
+#include "Detail/AutomationRegistrationContext.h"
 
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
-#include "AutomationComponentMethodRegistry.h"
-#include "AutomationMethodRegistry.h"
+#include "Registry/ActorMethodRegistry.h"
+#include "Registry/ComponentMethodRegistry.h"
 #include "Log.h"
 #include "Registration/AutomationAutoRegistrar.h"
 
@@ -42,7 +42,7 @@ void FAutomationRegistrationContext::RegisterActorMethod(
     EAutomationPermission Permission,
     FAutomationActorHandler Handler
 ) {
-  auto* Registry = static_cast<FAutomationMethodRegistry*>(ActorRegistry);
+  auto* Registry = static_cast<FAutomationActorMethodRegistry*>(ActorRegistry);
   if (!Registry) {
     throw std::runtime_error("Automation actor registry is unavailable.");
   }
@@ -92,7 +92,7 @@ FAutomationRegistrationToken::FAutomationRegistrationToken(
 }  // namespace BroccoliAutomationDetail
 
 void RegisterAllAutomationMethods(
-    FAutomationMethodRegistry& MethodRegistry,
+    FAutomationActorMethodRegistry& MethodRegistry,
     FAutomationComponentMethodRegistry& ComponentMethodRegistry
 ) {
   BroccoliAutomationDetail::FAutomationRegistrationContext Context(

@@ -10,10 +10,10 @@
 
 #include "Actor.h"
 #include "ActorComponent.h"
-#include "AutomationComponentMethodRegistry.h"
-#include "AutomationMethodRegistry.h"
-#include "AutomationSystemCommandRegistry.h"
-#include "Detail/AutomationMacroImplementation.h"
+#include "Registry/ActorMethodRegistry.h"
+#include "Registry/ComponentMethodRegistry.h"
+#include "Registry/SystemCommandRegistry.h"
+#include "Detail/AutomationMethodBinding.h"
 #include "Log.h"
 
 template <class T>
@@ -223,7 +223,7 @@ nlohmann::json InvokeRegisteredMethod(
   }
 }
 inline void RegisterDescriptor(
-    FAutomationMethodRegistry& Registry,
+    FAutomationActorMethodRegistry& Registry,
     std::string ClassName,
     FAutomationMethodDescriptor Descriptor
 ) {
@@ -270,7 +270,7 @@ consteval bool SystemCommandParametersMatch(std::index_sequence<TIndices...>) {
 
 template <class TMethod, class... TParameters>
 void RegisterMethod(
-    FAutomationMethodRegistry& Registry,
+    FAutomationActorMethodRegistry& Registry,
     std::string MethodName,
     std::string Description,
     EAutomationPermission Permission,
@@ -366,7 +366,7 @@ void RegisterComponentMethod(
 
 template <class TMethod, class TResultAdapter, class... TParameters>
 void RegisterMethodWithResultAdapter(
-    FAutomationMethodRegistry& Registry,
+    FAutomationActorMethodRegistry& Registry,
     std::string MethodName,
     std::string Description,
     EAutomationPermission Permission,

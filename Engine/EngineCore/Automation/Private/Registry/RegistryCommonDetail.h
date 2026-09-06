@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "AutomationJsonSchemaValidator.h"
+#include "Schema/SchemaValidator.h"
 #include "Log.h"
 
 namespace AutomationRegistryDetail {

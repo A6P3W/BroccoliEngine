@@ -1,4 +1,4 @@
-#include "AutomationWorldAdapter.h"
+#include "WorldService.h"
 
 #include <algorithm>
 #include <cmath>
@@ -276,30 +276,30 @@ EAutomationComponentResolveStatus ResolveComponent(
 }
 }  // namespace
 
-FAutomationActorListProvider FAutomationWorldAdapter::CreateActorListProvider() {
+FAutomationActorListProvider FAutomationWorldService::CreateActorListProvider() {
   return GetActorList;
 }
 
-FAutomationActorProvider FAutomationWorldAdapter::CreateActorProvider() { return GetActor; }
+FAutomationActorProvider FAutomationWorldService::CreateActorProvider() { return GetActor; }
 
-FAutomationActorComponentListProvider FAutomationWorldAdapter::CreateActorComponentListProvider() {
+FAutomationActorComponentListProvider FAutomationWorldService::CreateActorComponentListProvider() {
   return GetActorComponents;
 }
 
-FAutomationSpawnActorProvider FAutomationWorldAdapter::CreateSpawnActorProvider() {
+FAutomationSpawnActorProvider FAutomationWorldService::CreateSpawnActorProvider() {
   return SpawnActor;
 }
 
-FAutomationDestroyActorProvider FAutomationWorldAdapter::CreateDestroyActorProvider() {
+FAutomationDestroyActorProvider FAutomationWorldService::CreateDestroyActorProvider() {
   return DestroyActor;
 }
 
-FAutomationPatchActorTransformProvider FAutomationWorldAdapter::CreateTransformProvider() {
+FAutomationPatchActorTransformProvider FAutomationWorldService::CreateTransformProvider() {
   return PatchActorTransform;
 }
 
-FAutomationActorResolver FAutomationWorldAdapter::CreateActorResolver() { return ResolveActor; }
+FAutomationActorResolver FAutomationWorldService::CreateActorResolver() { return ResolveActor; }
 
-FAutomationComponentResolver FAutomationWorldAdapter::CreateComponentResolver() {
+FAutomationComponentResolver FAutomationWorldService::CreateComponentResolver() {
   return ResolveComponent;
 }

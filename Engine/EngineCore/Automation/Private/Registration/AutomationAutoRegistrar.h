@@ -1,9 +1,9 @@
 #pragma once
 
 class FAutomationComponentMethodRegistry;
-class FAutomationMethodRegistry;
+class FAutomationActorMethodRegistry;
 
 void RegisterAllAutomationMethods(
-    FAutomationMethodRegistry& MethodRegistry,
+    FAutomationActorMethodRegistry& MethodRegistry,
     FAutomationComponentMethodRegistry& ComponentMethodRegistry
 );

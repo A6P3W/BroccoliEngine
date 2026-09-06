@@ -1,9 +1,9 @@
-#include "AutomationBuiltInCommands.h"
+#include "BuiltInCommands.h"
 
 #include "NetworkTypes.h"
 #include "Registration/AutomationRegistryHelper.h"
-#include "Registration/AutomationSystemCommandRegistry.h"
-#include "Runtime/AutomationRuntimeTypes.h"
+#include "Registry/SystemCommandRegistry.h"
+#include "Runtime/RuntimeState.h"
 #include "SceneManager.h"
 #include "World.h"
 

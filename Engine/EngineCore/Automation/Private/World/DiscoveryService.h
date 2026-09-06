@@ -1,9 +1,9 @@
 #pragma once
 
 #include "BroccoliEngineAPI.h"
-#include "World/AutomationDiscoveryTypes.h"
+#include "World/DiscoveryTypes.h"
 
-class BROCCOLI_ENGINE_API FAutomationDiscoveryAdapter {
+class BROCCOLI_ENGINE_API FAutomationDiscoveryService {
  public:
   FAutomationActorClassListProvider CreateActorClassListProvider();
   FAutomationLevelListProvider CreateLevelListProvider();

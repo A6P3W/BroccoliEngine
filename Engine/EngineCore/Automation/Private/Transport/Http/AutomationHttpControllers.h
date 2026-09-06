@@ -4,14 +4,14 @@
 #include <string_view>
 
 #include "AutomationTypes.h"
-#include "Registration/AutomationComponentMethodRegistry.h"
-#include "Registration/AutomationMethodRegistry.h"
-#include "Registration/AutomationSystemCommandRegistry.h"
-#include "Runtime/AutomationCommandQueue.h"
-#include "Runtime/AutomationRuntimeTypes.h"
+#include "Registry/ComponentMethodRegistry.h"
+#include "Registry/ActorMethodRegistry.h"
+#include "Registry/SystemCommandRegistry.h"
+#include "Runtime/CommandQueue.h"
+#include "Runtime/RuntimeState.h"
 #include "Transport/Http/AutomationHttpTypes.h"
-#include "World/AutomationDiscoveryTypes.h"
-#include "World/AutomationWorldTypes.h"
+#include "World/DiscoveryTypes.h"
+#include "World/WorldTypes.h"
 
 class FAutomationHttpRequestExecutor {
  public:
@@ -80,7 +80,7 @@ class FAutomationDiscoveryController final : public FAutomationHttpControllerBas
   FAutomationDiscoveryController(
       FAutomationHttpRequestExecutor& InExecutor,
       FAutomationCommandQueue& InCommandQueue,
-      FAutomationMethodRegistry& InMethodRegistry,
+      FAutomationActorMethodRegistry& InMethodRegistry,
       FAutomationActorClassListProvider InActorClassListProvider,
       FAutomationLevelListProvider InLevelListProvider,
       FAutomationActorClassExistsProvider InActorClassExistsProvider
@@ -92,7 +92,7 @@ class FAutomationDiscoveryController final : public FAutomationHttpControllerBas
 
  private:
   FAutomationCommandQueue& CommandQueue;
-  FAutomationMethodRegistry* MethodRegistry = nullptr;
+  FAutomationActorMethodRegistry* MethodRegistry = nullptr;
   FAutomationActorClassListProvider ActorClassListProvider;
   FAutomationLevelListProvider LevelListProvider;
   FAutomationActorClassExistsProvider ActorClassExistsProvider;
@@ -103,7 +103,7 @@ class FAutomationInvocationController final : public FAutomationHttpControllerBa
   FAutomationInvocationController(
       FAutomationHttpRequestExecutor& InExecutor,
       FAutomationCommandQueue& InCommandQueue,
-      FAutomationMethodRegistry& InMethodRegistry,
+      FAutomationActorMethodRegistry& InMethodRegistry,
       FAutomationActorResolver InActorResolver,
       FAutomationComponentMethodRegistry& InComponentMethodRegistry,
       FAutomationComponentResolver InComponentResolver
@@ -125,7 +125,7 @@ class FAutomationInvocationController final : public FAutomationHttpControllerBa
 
  private:
   FAutomationCommandQueue& CommandQueue;
-  FAutomationMethodRegistry* MethodRegistry = nullptr;
+  FAutomationActorMethodRegistry* MethodRegistry = nullptr;
   FAutomationActorResolver ActorResolver;
   FAutomationComponentMethodRegistry* ComponentMethodRegistry = nullptr;
   FAutomationComponentResolver ComponentResolver;

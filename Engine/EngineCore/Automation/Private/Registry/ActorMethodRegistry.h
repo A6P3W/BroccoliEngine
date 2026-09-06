@@ -27,7 +27,7 @@ struct FAutomationMethodSnapshot {
   EAutomationPermission Permission = EAutomationPermission::ReadOnly;
 };
 
-class FAutomationMethodRegistry {
+class FAutomationActorMethodRegistry {
  public:
   bool RegisterMethod(
       std::string ClassName, FAutomationMethodDescriptor Descriptor, std::string* OutError = nullptr

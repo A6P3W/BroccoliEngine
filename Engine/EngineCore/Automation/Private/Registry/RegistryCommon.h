@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "AutomationRegistryDetail.h"
+#include "RegistryCommonDetail.h"
 
 namespace AutomationRegistryDetail {
 template <class TMethodsByClass, class TDescriptor, class TPermissionValidator>
