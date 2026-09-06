@@ -32,8 +32,8 @@ REGISTER_AUTOMATION_METHOD(
 ### 引数あり
 
 `AUTOMATION_PARAM` の並びはメンバー関数の引数順と一致させます。metadata は固定長の
-`std::array` として保持され、型と個数は C++20 の template 制約によりコンパイル時に
-検証されます。Schema 構築と実行時引数読み込みは `std::span` の共通 view を使用します。
+`std::array` として保持され、個数は `RegisterMethod` の `static_assert` でコンパイル時に
+検証されます。
 
 ```cpp
 REGISTER_AUTOMATION_METHOD(
@@ -49,10 +49,6 @@ REGISTER_AUTOMATION_METHOD(
 
 標準変換できない戻り値や、HTTP 応答用に整形したい戻り値には6番目の引数として
 Result Adapter を指定します。
-
-登録時には、Actor / Component 所有者、引数の JSON 読み込み、戻り値の JSON 出力、Result
-Adapter の呼び出し形式を Concept で検証します。不整合は実行時登録エラーではなく、該当する
-`REGISTER_AUTOMATION_METHOD` のコンパイル診断として報告されます。
 
 ```cpp
 REGISTER_AUTOMATION_METHOD(
