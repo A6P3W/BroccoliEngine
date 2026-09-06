@@ -164,15 +164,69 @@ def TestRunParserForwardsArgumentsAfterLatestSeparator(TmpPath: Path) -> None:
   (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
     "Editor\n", encoding="utf-8"
   )
-  Parser = cli.CreateParser()
-  Arguments = Parser.parse_args(
+  CliArguments, ApplicationArguments = cli.SplitRunApplicationArguments(
     ["run", "--latest", "--project-dir", str(TmpPath), "--", "--automation"]
   )
+  Arguments = cli.CreateParser().parse_args(CliArguments)
 
-  Configuration, ApplicationArguments = cli.ResolveRunInvocation(Arguments)
+  Configuration = cli.ResolveRunInvocation(Arguments)
 
   assert Configuration == "Editor"
   assert ApplicationArguments == ["--automation"]
+
+
+@pytest.mark.parametrize(
+  ("RawArguments", "ExpectedApplicationArguments"),
+  [
+    (["run", "Debug", "--", "-automation"], ["-automation"]),
+    (["run", "Debug", "--", "level1"], ["level1"]),
+    (["run", "--latest", "--", "--config", "custom"], ["--config", "custom"]),
+  ],
+)
+def TestRunSeparatesApplicationArguments(
+  RawArguments: list[str], ExpectedApplicationArguments: list[str]
+) -> None:
+  CliArguments, ApplicationArguments = cli.SplitRunApplicationArguments(RawArguments)
+
+  assert ApplicationArguments == ExpectedApplicationArguments
+  cli.CreateParser().parse_args(CliArguments)
+
+
+def TestRunRejectsApplicationArgumentsWithoutSeparator() -> None:
+  with pytest.raises(SystemExit):
+    cli.CreateParser().parse_args(["run", "Debug", "-automation"])
+
+
+def TestMainForwardsSeparatedArgumentsWithoutReinterpretingThem(
+  TmpPath: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  (TmpPath / "Intermediate").mkdir()
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
+    "Editor\n", encoding="utf-8"
+  )
+  Calls: list[tuple[Path, str, list[str]]] = []
+
+  def RecordRun(ProjectDirectory: Path, Configuration: str, ApplicationArguments: list[str]) -> None:
+    Calls.append((ProjectDirectory, Configuration, ApplicationArguments))
+
+  monkeypatch.setattr(cli, "Run", RecordRun)
+  monkeypatch.setattr(
+    cli.sys,
+    "argv",
+    [
+      "broccoli_build",
+      "run",
+      "--latest",
+      "--project-dir",
+      str(TmpPath),
+      "--",
+      "--config",
+      "custom",
+    ],
+  )
+
+  assert cli.Main() == 0
+  assert Calls == [(TmpPath.resolve(), "Editor", ["--config", "custom"])]
 
 
 def TestCleanOnlyRemovesTheRequestedConfiguration(

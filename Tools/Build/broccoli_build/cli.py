@@ -162,20 +162,21 @@ def Run(ProjectDirectory: Path, Configuration: str, ApplicationArguments: list[s
   subprocess.Popen([str(ExecutablePath), *ApplicationArguments], cwd=ProjectDirectory)
 
 
-def ResolveRunInvocation(Arguments: argparse.Namespace) -> tuple[str, list[str]]:
-  ApplicationArguments = Arguments.application_arguments
+def SplitRunApplicationArguments(RawArguments: list[str]) -> tuple[list[str], list[str]]:
+  if not RawArguments or RawArguments[0] != "run" or "--" not in RawArguments:
+    return RawArguments, []
+  SeparatorIndex = RawArguments.index("--")
+  return RawArguments[:SeparatorIndex], RawArguments[SeparatorIndex + 1 :]
+
+
+def ResolveRunInvocation(Arguments: argparse.Namespace) -> str:
   if Arguments.latest:
     if Arguments.configuration is None:
-      return LoadLatestBuildConfiguration(Arguments.project_dir), ApplicationArguments
-    if Arguments.configuration.startswith("-"):
-      return (
-        LoadLatestBuildConfiguration(Arguments.project_dir),
-        [Arguments.configuration, *ApplicationArguments],
-      )
+      return LoadLatestBuildConfiguration(Arguments.project_dir)
     raise ValueError("Specify either a configuration or --latest.")
   if Arguments.configuration is None:
     raise ValueError("Specify a configuration or --latest.")
-  return ResolveConfiguration(Arguments.configuration), ApplicationArguments
+  return Arguments.configuration
 
 
 def Clean(ProjectDirectory: Path, Configuration: str | None, CleanAll: bool) -> None:
@@ -217,10 +218,9 @@ def CreateParser() -> argparse.ArgumentParser:
   RegenerateParser.add_argument("--project-dir", type=PathArgument, default=Path.cwd())
 
   RunParser = Commands.add_parser("run", help="Run a built project configuration")
-  RunParser.add_argument("configuration", nargs="?")
+  RunParser.add_argument("configuration", nargs="?", type=ConfigurationArgument)
   RunParser.add_argument("--latest", action="store_true")
   RunParser.add_argument("--project-dir", type=PathArgument, default=Path.cwd())
-  RunParser.add_argument("application_arguments", nargs=argparse.REMAINDER)
 
   CleanParser = Commands.add_parser("clean", help="Remove build output for a configuration")
   CleanParser.add_argument("configuration", nargs="?", type=ConfigurationArgument)
@@ -269,7 +269,8 @@ def CreateParser() -> argparse.ArgumentParser:
 
 
 def Main() -> int:
-  Arguments = CreateParser().parse_args()
+  CliArguments, ApplicationArguments = SplitRunApplicationArguments(sys.argv[1:])
+  Arguments = CreateParser().parse_args(CliArguments)
   try:
     if Arguments.Command == "build":
       if Arguments.configuration is not None and Arguments.config is not None:
@@ -282,7 +283,7 @@ def Main() -> int:
     elif Arguments.Command == "regenerate":
       Regenerate(Arguments.project_dir)
     elif Arguments.Command == "run":
-      Configuration, ApplicationArguments = ResolveRunInvocation(Arguments)
+      Configuration = ResolveRunInvocation(Arguments)
       Run(
         Arguments.project_dir,
         Configuration,
