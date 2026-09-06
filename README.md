@@ -56,8 +56,10 @@ copy CMakeUserPresets.json.template CMakeUserPresets.json
 ```cmd
 broccoli.bat build Debug
 broccoli.bat build Editor
-run.bat Debug -automation
+broccoli.bat run Debug -- -automation
 ```
+
+構成別の生成物を削除するには `broccoli.bat clean Debug` を、すべてのビルド生成物を削除するには `broccoli.bat clean --all` を実行します。
 
 `Launcher` は `Broccoli::Engine` をリンクし、ゲームプロジェクトと同じリソース変換、
 ランタイム配置、およびパッケージング処理を使用します。`-automation` を付けると
