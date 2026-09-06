@@ -1,223 +1,158 @@
 #include "AutomationSubsystem.h"
 
-#include <filesystem>
+#include <exception>
+#include <memory>
+#include <utility>
 
-#include "ActorManager.h"
-#include "Transport/Http/AutomationApiController.h"
 #include "AutomationAutoRegistrar.h"
-#include "Runtime/AutomationCommandQueue.h"
 #include "AutomationComponentMethodRegistry.h"
-#include "World/AutomationDiscoveryAdapter.h"
-#include "Transport/Http/AutomationHttpServer.h"
-#include "AutomationRegistryHelper.h"
+#include "AutomationMethodRegistry.h"
 #include "AutomationSystemCommandRegistry.h"
-#include "World/AutomationWorldAdapter.h"
 #include "Log.h"
-#include "NetworkTypes.h"
-#include "SceneManager.h"
-#include "World.h"
+#include "Runtime/AutomationBuiltInCommands.h"
+#include "Runtime/AutomationCommandQueue.h"
+#include "Runtime/AutomationRuntimeTypes.h"
+#include "Runtime/AutomationStateProvider.h"
+#include "Transport/Http/AutomationApiController.h"
+#include "Transport/Http/AutomationHttpServer.h"
+#include "World/AutomationDiscoveryAdapter.h"
+#include "World/AutomationWorldAdapter.h"
 
-namespace {
-std::string GetCurrentSceneName(const SceneManager& Manager) {
-  const std::string& LevelPath = Manager.GetCurrentLevelPath();
-  return LevelPath.empty() ? std::string() : std::filesystem::path(LevelPath).stem().string();
-}
-}  // namespace
+struct FAutomationSubsystem::FImpl {
+  bool Initialize(const FAutomationConfig& Config) {
+    Shutdown();
+    if (!Config.Enabled) {
+      M_LOG(Log, "Automation disabled.");
+      return true;
+    }
 
-FAutomationSubsystem::FAutomationSubsystem() = default;
+    if (!CreateRegistries()) {
+      Shutdown();
+      return false;
+    }
+
+    CommandQueue = std::make_unique<FAutomationCommandQueue>();
+    WorldAdapter = std::make_unique<FAutomationWorldAdapter>();
+    FAutomationDiscoveryAdapter DiscoveryAdapter;
+    ApiController = std::make_unique<FAutomationApiController>(
+        *CommandQueue,
+        Config,
+        CreateAutomationStateProvider(RuntimeState),
+        WorldAdapter->CreateActorListProvider(),
+        WorldAdapter->CreateActorProvider(),
+        WorldAdapter->CreateActorComponentListProvider(),
+        WorldAdapter->CreateSpawnActorProvider(),
+        WorldAdapter->CreateDestroyActorProvider(),
+        WorldAdapter->CreateTransformProvider(),
+        MethodRegistry.get(),
+        WorldAdapter->CreateActorResolver(),
+        ComponentMethodRegistry.get(),
+        WorldAdapter->CreateComponentResolver(),
+        SystemCommandRegistry.get(),
+        DiscoveryAdapter.CreateActorClassListProvider(),
+        DiscoveryAdapter.CreateLevelListProvider(),
+        DiscoveryAdapter.CreateActorClassExistsProvider()
+    );
+    HttpServer = std::make_unique<FAutomationHttpServer>(Config, *ApiController);
+    if (!HttpServer->Start()) {
+      M_LOG(Log, "Automation server startup failed; the engine will continue without Automation.");
+      Shutdown();
+      return false;
+    }
+    return true;
+  }
+
+  bool CreateRegistries() {
+    MethodRegistry = std::make_unique<FAutomationMethodRegistry>();
+    ComponentMethodRegistry = std::make_unique<FAutomationComponentMethodRegistry>();
+    try {
+      FAutomationAutoRegistrar::GetInstance().RegisterAll(*MethodRegistry);
+      FAutomationAutoRegistrar::GetInstance().RegisterAllComponents(*ComponentMethodRegistry);
+      FAutomationAutoRegistrar::GetInstance().RegisterAllUnified(
+          *MethodRegistry, *ComponentMethodRegistry
+      );
+      MethodRegistry->Freeze();
+      ComponentMethodRegistry->Freeze();
+    } catch (const std::exception& Exception) {
+      M_LOG(Log, "Automation method registration failed: {}", Exception.what());
+      return false;
+    } catch (...) {
+      M_LOG(Log, "Automation method registration failed with an unknown exception.");
+      return false;
+    }
+
+    SystemCommandRegistry = std::make_unique<FAutomationSystemCommandRegistry>();
+    try {
+      RegisterAutomationBuiltInCommands(*SystemCommandRegistry, RuntimeState);
+      SystemCommandRegistry->Freeze();
+    } catch (const std::exception& Exception) {
+      M_LOG(Log, "Automation system command registration failed: {}", Exception.what());
+      return false;
+    } catch (...) {
+      M_LOG(Log, "Automation system command registration failed with an unknown exception.");
+      return false;
+    }
+    return true;
+  }
+
+  void Update() {
+    if (CommandQueue) {
+      CommandQueue->ProcessCommands();
+    }
+  }
+
+  void Shutdown() {
+    if (HttpServer) {
+      HttpServer->StopAcceptingRequests();
+    }
+    if (CommandQueue) {
+      CommandQueue->StopAcceptingCommands();
+      CommandQueue->CancelAll(
+          EAutomationErrorCode::EngineShuttingDown, "The engine is shutting down."
+      );
+    }
+    if (HttpServer) {
+      HttpServer->Stop();
+    }
+
+    HttpServer.reset();
+    ApiController.reset();
+    WorldAdapter.reset();
+    SystemCommandRegistry.reset();
+    ComponentMethodRegistry.reset();
+    MethodRegistry.reset();
+    CommandQueue.reset();
+    RuntimeState.bPaused = false;
+  }
+
+  FAutomationRuntimeState RuntimeState;
+  std::unique_ptr<FAutomationCommandQueue> CommandQueue;
+  std::unique_ptr<FAutomationMethodRegistry> MethodRegistry;
+  std::unique_ptr<FAutomationComponentMethodRegistry> ComponentMethodRegistry;
+  std::unique_ptr<FAutomationSystemCommandRegistry> SystemCommandRegistry;
+  std::unique_ptr<FAutomationWorldAdapter> WorldAdapter;
+  std::unique_ptr<FAutomationApiController> ApiController;
+  std::unique_ptr<FAutomationHttpServer> HttpServer;
+};
+
+FAutomationSubsystem::FAutomationSubsystem() : ImplPtr(std::make_unique<FImpl>()) {}
 
 FAutomationSubsystem::~FAutomationSubsystem() { Shutdown(); }
 
 bool FAutomationSubsystem::Initialize(const FAutomationConfig& Config) {
-  Shutdown();
-  if (!Config.Enabled) {
-    M_LOG(Log, "Automation disabled.");
-    return true;
-  }
-
-  CommandQueue = std::make_unique<FAutomationCommandQueue>();
-  MethodRegistry = std::make_unique<FAutomationMethodRegistry>();
-  ComponentMethodRegistry = std::make_unique<FAutomationComponentMethodRegistry>();
-  try {
-    FAutomationAutoRegistrar::GetInstance().RegisterAll(*MethodRegistry);
-    FAutomationAutoRegistrar::GetInstance().RegisterAllComponents(*ComponentMethodRegistry);
-    FAutomationAutoRegistrar::GetInstance().RegisterAllUnified(
-        *MethodRegistry, *ComponentMethodRegistry
-    );
-    MethodRegistry->Freeze();
-    ComponentMethodRegistry->Freeze();
-  } catch (const std::exception& Exception) {
-    M_LOG(Log, "Automation method registration failed: {}", Exception.what());
-    Shutdown();
-    return false;
-  } catch (...) {
-    M_LOG(Log, "Automation method registration failed with an unknown exception.");
-    Shutdown();
-    return false;
-  }
-
-  SystemCommandRegistry = std::make_unique<FAutomationSystemCommandRegistry>();
-  try {
-    RegisterBuiltInSystemCommands();
-    SystemCommandRegistry->Freeze();
-  } catch (const std::exception& Exception) {
-    M_LOG(Log, "Automation system command registration failed: {}", Exception.what());
-    Shutdown();
-    return false;
-  } catch (...) {
-    M_LOG(Log, "Automation system command registration failed with an unknown exception.");
-    Shutdown();
-    return false;
-  }
-
-  FAutomationStateProvider StateProvider = [this]() {
-    nlohmann::json State = {
-        {"sceneName", ""},
-        {"fps", 0.0f},
-        {"paused", bPaused},
-        {"worldAvailable", false},
-        {"actorCount", 0u}
-    };
-    SceneManager& Manager = SceneManager::GetInstance();
-    World* CurrentWorld = Manager.GetCurrentScene();
-    if (CurrentWorld) {
-      State["sceneName"] = GetCurrentSceneName(Manager);
-      State["fps"] = CurrentWorld->GetCurrentFps();
-      State["worldAvailable"] = true;
-      if (const FActorManager* ActorManager = CurrentWorld->GetActorManager()) {
-        State["actorCount"] = ActorManager->GetActiveActorCount();
-      }
-    }
-    return State;
-  };
-
-  WorldAdapter = std::make_unique<FAutomationWorldAdapter>();
-  FAutomationDiscoveryAdapter DiscoveryAdapter;
-  ApiController = std::make_unique<FAutomationApiController>(
-      *CommandQueue,
-      Config,
-      std::move(StateProvider),
-      WorldAdapter->CreateActorListProvider(),
-      WorldAdapter->CreateActorProvider(),
-      WorldAdapter->CreateActorComponentListProvider(),
-      WorldAdapter->CreateSpawnActorProvider(),
-      WorldAdapter->CreateDestroyActorProvider(),
-      WorldAdapter->CreateTransformProvider(),
-      MethodRegistry.get(),
-      WorldAdapter->CreateActorResolver(),
-      ComponentMethodRegistry.get(),
-      WorldAdapter->CreateComponentResolver(),
-      SystemCommandRegistry.get(),
-      DiscoveryAdapter.CreateActorClassListProvider(),
-      DiscoveryAdapter.CreateLevelListProvider(),
-      DiscoveryAdapter.CreateActorClassExistsProvider()
-  );
-  HttpServer = std::make_unique<FAutomationHttpServer>(Config, *ApiController);
-  if (!HttpServer->Start()) {
-    M_LOG(Log, "Automation server startup failed; the engine will continue without Automation.");
-    Shutdown();
-    return false;
-  }
-  return true;
+  return ImplPtr->Initialize(Config);
 }
 
-void FAutomationSubsystem::RegisterBuiltInSystemCommands() {
-  AutomationHelper::RegisterSystemCommand(
-      *SystemCommandRegistry,
-      "pause_game",
-      "Pause world updates while keeping automation available.",
-      [this]() {
-        const bool Changed = !bPaused;
-        bPaused = true;
-        M_LOG(
-            Log,
-            "Automation system command state changed: command=pause_game changed={} paused=true",
-            Changed
-        );
-        return nlohmann::json{
-            {"commandName", "pause_game"}, {"changed", Changed}, {"paused", true}
-        };
-      }
-  );
-  AutomationHelper::RegisterSystemCommand(
-      *SystemCommandRegistry,
-      "resume_game",
-      "Resume world updates.",
-      [this]() {
-        const bool Changed = bPaused;
-        bPaused = false;
-        M_LOG(
-            Log,
-            "Automation system command state changed: command=resume_game changed={} paused=false",
-            Changed
-        );
-        return nlohmann::json{
-            {"commandName", "resume_game"}, {"changed", Changed}, {"paused", false}
-        };
-      }
-  );
-  AutomationHelper::RegisterSystemCommand(
-      *SystemCommandRegistry,
-      "open_level_by_id",
-      "Queue a registered level to open by scene ID.",
-      [](FNetworkSceneId SceneId) {
-        SceneManager& Manager = SceneManager::GetInstance();
-        World* CurrentWorld = Manager.GetCurrentScene();
-        const bool Queued = CurrentWorld ? CurrentWorld->ServerTravel(SceneId)
-                                         : Manager.OpenLevelById(SceneId, ENetMode::Standalone);
-        return nlohmann::json{
-            {"commandName", "open_level_by_id"}, {"sceneId", SceneId}, {"queued", Queued}
-        };
-      },
-      AutomationParam<FNetworkSceneId>("sceneId", "Registered scene ID.")
-  );
-  AutomationHelper::RegisterSystemCommand(
-      *SystemCommandRegistry,
-      "open_level_by_path",
-      "Queue a level to open by file path.",
-      [](std::string LevelPath) {
-        SceneManager& Manager = SceneManager::GetInstance();
-        World* CurrentWorld = Manager.GetCurrentScene();
-        const bool Queued = CurrentWorld ? CurrentWorld->ServerTravel(LevelPath)
-                                         : Manager.OpenLevelByPath(LevelPath, ENetMode::Standalone);
-        return nlohmann::json{
-            {"commandName", "open_level_by_path"}, {"levelPath", LevelPath}, {"queued", Queued}
-        };
-      },
-      AutomationParam<std::string>("levelPath", "Level file path.")
-  );
-}
-
-void FAutomationSubsystem::Update() {
-  if (CommandQueue) {
-    CommandQueue->ProcessCommands();
-  }
-}
+void FAutomationSubsystem::Update() { ImplPtr->Update(); }
 
 void FAutomationSubsystem::Shutdown() {
-  if (HttpServer) {
-    HttpServer->StopAcceptingRequests();
+  if (ImplPtr) {
+    ImplPtr->Shutdown();
   }
-  if (CommandQueue) {
-    CommandQueue->StopAcceptingCommands();
-    CommandQueue->CancelAll(
-        EAutomationErrorCode::EngineShuttingDown, "The engine is shutting down."
-    );
-  }
-  if (HttpServer) {
-    HttpServer->Stop();
-  }
-
-  HttpServer.reset();
-  ApiController.reset();
-  WorldAdapter.reset();
-  SystemCommandRegistry.reset();
-  ComponentMethodRegistry.reset();
-  MethodRegistry.reset();
-  CommandQueue.reset();
-  bPaused = false;
 }
 
-bool FAutomationSubsystem::IsRunning() const { return HttpServer && HttpServer->IsRunning(); }
+bool FAutomationSubsystem::IsRunning() const {
+  return ImplPtr && ImplPtr->HttpServer && ImplPtr->HttpServer->IsRunning();
+}
 
-bool FAutomationSubsystem::IsPaused() const { return bPaused; }
+bool FAutomationSubsystem::IsPaused() const { return ImplPtr && ImplPtr->RuntimeState.bPaused; }
