@@ -27,3 +27,5 @@
 #define AUTOMATION_PARAMS(...) (BroccoliAutomationDetail::MakeParameterMetadataList(__VA_ARGS__))
 #define AUTOMATION_PARAM(Name, Description) \
   BroccoliAutomationDetail::MakeParameterMetadata(Name, Description)
+#define AUTOMATION_OPTIONAL_PARAM(Name, Description) \
+  BroccoliAutomationDetail::MakeOptionalParameterMetadata(Name, Description)

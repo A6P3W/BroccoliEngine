@@ -32,9 +32,41 @@ bool IsFiniteNumber(const nlohmann::json& Value) {
   return Value.is_number() && std::isfinite(Value.get<double>());
 }
 
-bool IsSupportedType(std::string_view Type) {
+bool IsSupportedTypeName(std::string_view Type) {
   return Type == "object" || Type == "array" || Type == "string" || Type == "number" ||
          Type == "integer" || Type == "boolean" || Type == "null";
+}
+
+bool HasSchemaType(const nlohmann::json& Type, std::string_view ExpectedType) {
+  if (Type.is_string()) {
+    return Type.get<std::string>() == ExpectedType;
+  }
+  if (!Type.is_array()) {
+    return false;
+  }
+  for (const nlohmann::json& TypeName : Type) {
+    if (TypeName.is_string() && TypeName.get<std::string>() == ExpectedType) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool IsSupportedType(const nlohmann::json& Type) {
+  if (Type.is_string()) {
+    return IsSupportedTypeName(Type.get<std::string>());
+  }
+  if (!Type.is_array() || Type.empty()) {
+    return false;
+  }
+  std::unordered_set<std::string> TypeNames;
+  for (const nlohmann::json& TypeName : Type) {
+    if (!TypeName.is_string() || !IsSupportedTypeName(TypeName.get<std::string>()) ||
+        !TypeNames.insert(TypeName.get<std::string>()).second) {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool IsAllowedKeyword(std::string_view Keyword) {
@@ -58,6 +90,18 @@ std::string ArrayPath(std::string_view Parent, size_t Index) {
 
 bool MatchesType(const nlohmann::json& Value, std::string_view Type);
 
+bool MatchesType(const nlohmann::json& Value, const nlohmann::json& Type) {
+  if (Type.is_string()) {
+    return MatchesType(Value, std::string_view(Type.get_ref<const std::string&>()));
+  }
+  for (const nlohmann::json& TypeName : Type) {
+    if (MatchesType(Value, std::string_view(TypeName.get_ref<const std::string&>()))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool ValidateSchemaNode(
     const nlohmann::json& Schema, std::string Path, FAutomationSchemaValidationError& OutError
 ) {
@@ -72,10 +116,10 @@ bool ValidateSchemaNode(
     }
   }
 
-  if (!Schema.contains("type") || !Schema["type"].is_string()) {
-    return Fail(OutError, ChildPath(Path, "type"), "type must be a string.");
+  if (!Schema.contains("type") || (!Schema["type"].is_string() && !Schema["type"].is_array())) {
+    return Fail(OutError, ChildPath(Path, "type"), "type must be a string or array.");
   }
-  const std::string Type = Schema["type"].get<std::string>();
+  const nlohmann::json& Type = Schema["type"];
   if (!IsSupportedType(Type)) {
     return Fail(OutError, ChildPath(Path, "type"), "unsupported schema type.");
   }
@@ -85,20 +129,20 @@ bool ValidateSchemaNode(
 
   const bool HasObjectKeyword = Schema.contains("properties") || Schema.contains("required") ||
                                 Schema.contains("additionalProperties");
-  if (HasObjectKeyword && Type != "object") {
+  if (HasObjectKeyword && !HasSchemaType(Type, "object")) {
     return Fail(OutError, std::move(Path), "object schema keywords require type object.");
   }
   const bool HasArrayKeyword =
       Schema.contains("items") || Schema.contains("minItems") || Schema.contains("maxItems");
-  if (HasArrayKeyword && Type != "array") {
+  if (HasArrayKeyword && !HasSchemaType(Type, "array")) {
     return Fail(OutError, std::move(Path), "array schema keywords require type array.");
   }
   const bool HasStringKeyword = Schema.contains("minLength") || Schema.contains("maxLength");
-  if (HasStringKeyword && Type != "string") {
+  if (HasStringKeyword && !HasSchemaType(Type, "string")) {
     return Fail(OutError, std::move(Path), "string schema keywords require type string.");
   }
   const bool HasNumberKeyword = Schema.contains("minimum") || Schema.contains("maximum");
-  if (HasNumberKeyword && Type != "number" && Type != "integer") {
+  if (HasNumberKeyword && !HasSchemaType(Type, "number") && !HasSchemaType(Type, "integer")) {
     return Fail(
         OutError, std::move(Path), "numeric schema keywords require type number or integer."
     );
@@ -239,9 +283,9 @@ bool ValidateValueNode(
     std::string Path,
     FAutomationSchemaValidationError& OutError
 ) {
-  const std::string Type = Schema["type"].get<std::string>();
+  const nlohmann::json& Type = Schema["type"];
   if (!MatchesType(Value, Type)) {
-    return Fail(OutError, std::move(Path), "expected " + Type + ".");
+    return Fail(OutError, std::move(Path), "value does not match the schema type.");
   }
 
   if (Schema.contains("enum")) {
@@ -257,7 +301,10 @@ bool ValidateValueNode(
     }
   }
 
-  if (Type == "object") {
+  if (Value.is_null()) {
+    return true;
+  }
+  if (HasSchemaType(Type, "object")) {
     if (Schema.contains("required")) {
       for (const nlohmann::json& RequiredNameValue : Schema["required"]) {
         const std::string RequiredName = RequiredNameValue.get<std::string>();
@@ -287,7 +334,7 @@ bool ValidateValueNode(
         return false;
       }
     }
-  } else if (Type == "array") {
+  } else if (HasSchemaType(Type, "array")) {
     const size_t Count = Value.size();
     if (Schema.contains("minItems") && Count < Schema["minItems"].get<size_t>()) {
       return Fail(OutError, std::move(Path), "array has too few items.");
@@ -302,7 +349,7 @@ bool ValidateValueNode(
         }
       }
     }
-  } else if (Type == "string") {
+  } else if (HasSchemaType(Type, "string")) {
     const size_t Length = Value.get_ref<const std::string&>().size();
     if (Schema.contains("minLength") && Length < Schema["minLength"].get<size_t>()) {
       return Fail(OutError, std::move(Path), "string is shorter than minLength.");
@@ -310,7 +357,7 @@ bool ValidateValueNode(
     if (Schema.contains("maxLength") && Length > Schema["maxLength"].get<size_t>()) {
       return Fail(OutError, std::move(Path), "string is longer than maxLength.");
     }
-  } else if (Type == "number" || Type == "integer") {
+  } else if (HasSchemaType(Type, "number") || HasSchemaType(Type, "integer")) {
     const double Number = Value.get<double>();
     if (!std::isfinite(Number)) {
       return Fail(OutError, std::move(Path), "number must be finite.");

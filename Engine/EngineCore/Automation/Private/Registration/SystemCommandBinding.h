@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "Detail/AutomationMethodBinding.h"
+#include "Detail/AutomationJsonConverter.h"
 #include "Log.h"
 #include "Registry/SystemCommandRegistry.h"
 
