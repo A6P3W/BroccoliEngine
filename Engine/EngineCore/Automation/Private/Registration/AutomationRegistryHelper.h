@@ -11,9 +11,9 @@
 #include "Actor.h"
 #include "ActorComponent.h"
 #include "AutomationComponentMethodRegistry.h"
-#include "AutomationMacros.h"
 #include "AutomationMethodRegistry.h"
 #include "AutomationSystemCommandRegistry.h"
+#include "Detail/AutomationMacroImplementation.h"
 #include "Log.h"
 
 template <class T>

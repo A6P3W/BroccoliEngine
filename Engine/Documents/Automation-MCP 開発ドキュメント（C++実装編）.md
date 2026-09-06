@@ -16,6 +16,10 @@ Registry や AutoRegistrar の具体型は Engine 内部実装です。ゲーム
 `AutomationMacros.h` のみを include してください。マクロはメンバー関数の所有型から Actor と
 Component を自動判定します。
 
+`Public/Detail/AutomationMacroImplementation.h` と
+`Public/Detail/AutomationRegistrationBridge.h` は、公開マクロをコンパイルするための内部実装です。
+ゲームコードから直接 include／利用する API ではありません。
+
 ### 引数なし
 
 ```cpp
