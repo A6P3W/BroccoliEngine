@@ -1,7 +1,7 @@
 #include "BuiltInCommands.h"
 
 #include "NetworkTypes.h"
-#include "Registration/AutomationRegistryHelper.h"
+#include "Registration/SystemCommandBinding.h"
 #include "Registry/SystemCommandRegistry.h"
 #include "Runtime/RuntimeState.h"
 #include "SceneManager.h"
