@@ -9,11 +9,9 @@
 
 #include "Actor.h"
 #include "ActorComponent.h"
-#include "AutomationAutoRegistrar.h"
-#include "AutomationComponentMethodRegistry.h"
-#include "AutomationJsonConverter.h"
-#include "AutomationMethodRegistry.h"
+#include "Detail/AutomationJsonConverter.h"
 #include "Detail/AutomationParameterMetadata.h"
+#include "Detail/AutomationRegistrationBridge.h"
 #include "Log.h"
 
 namespace BroccoliAutomationDetail {
@@ -64,7 +62,11 @@ TValue ReadArgument(
 }
 
 template <class TMethod, size_t... TIndices>
-auto ReadArguments(const nlohmann::json& Arguments, const FAutomationParameterMetadataList& Parameters, std::index_sequence<TIndices...>) {
+auto ReadArguments(
+    const nlohmann::json& Arguments,
+    const FAutomationParameterMetadataList& Parameters,
+    std::index_sequence<TIndices...>
+) {
   using TTraits = TMethodTraits<TMethod>;
   const auto& Metadata = Parameters.GetParameters();
   return std::tuple<
@@ -78,13 +80,15 @@ auto ReadArguments(const nlohmann::json& Arguments, const FAutomationParameterMe
 
 template <class TReturn>
 nlohmann::json ConvertReturnValue(TReturn&& Result) {
-  return TAutomationJsonConverter<std::remove_cvref_t<TReturn>>::ToJson(std::forward<TReturn>(Result
-  ));
+  return TAutomationJsonConverter<std::remove_cvref_t<TReturn>>::ToJson(
+      std::forward<TReturn>(Result)
+  );
 }
 
 template <class TMethod, size_t... TIndices>
-nlohmann::json
-MakeInputSchema(const FAutomationParameterMetadataList& Parameters, std::index_sequence<TIndices...>) {
+nlohmann::json MakeInputSchema(
+    const FAutomationParameterMetadataList& Parameters, std::index_sequence<TIndices...>
+) {
   using TTraits = TMethodTraits<TMethod>;
   const auto& Metadata = Parameters.GetParameters();
   nlohmann::json Properties = nlohmann::json::object();
@@ -100,8 +104,7 @@ MakeInputSchema(const FAutomationParameterMetadataList& Parameters, std::index_s
         }
         Required.push_back(Parameter.Name);
       }(),
-      ...
-  );
+      ...);
 
   nlohmann::json Schema = {
       {"type", "object"}, {"properties", std::move(Properties)}, {"additionalProperties", false}
@@ -165,34 +168,9 @@ nlohmann::json InvokeMethod(
   }
 }
 
-inline void RegisterActorDescriptor(
-    FAutomationMethodRegistry& Registry,
-    std::string ClassName,
-    FAutomationMethodDescriptor Descriptor
-) {
-  std::string Error;
-  if (!Registry.RegisterMethod(std::move(ClassName), std::move(Descriptor), &Error)) {
-    M_LOG(Error, "Automation method registration failed: {}", Error);
-    throw std::runtime_error(Error);
-  }
-}
-
-inline void RegisterComponentDescriptor(
-    FAutomationComponentMethodRegistry& Registry,
-    std::string ClassName,
-    FAutomationComponentMethodDescriptor Descriptor
-) {
-  std::string Error;
-  if (!Registry.RegisterMethod(std::move(ClassName), std::move(Descriptor), &Error)) {
-    M_LOG(Error, "Automation component method registration failed: {}", Error);
-    throw std::runtime_error(Error);
-  }
-}
-
 template <class TMethod, class TResultAdapter>
 void RegisterMethod(
-    FAutomationMethodRegistry& ActorRegistry,
-    FAutomationComponentMethodRegistry& ComponentRegistry,
+    FAutomationRegistrationContext& Context,
     std::string Name,
     std::string Description,
     EAutomationPermission Permission,
@@ -223,12 +201,7 @@ void RegisterMethod(
       MakeInputSchema<TMethod>(Parameters, std::make_index_sequence<TTraits::ArgumentCount>{});
 
   if constexpr (std::is_base_of_v<AActor, TOwner>) {
-    FAutomationMethodDescriptor Descriptor;
-    Descriptor.Name = std::move(Name);
-    Descriptor.Description = std::move(Description);
-    Descriptor.Permission = Permission;
-    Descriptor.InputSchema = std::move(InputSchema);
-    Descriptor.Handler =
+    FAutomationActorHandler Handler =
         [Method, Parameters = std::move(Parameters), ResultAdapter = std::move(ResultAdapter)](
             AActor& Actor, const nlohmann::json& Arguments
         ) mutable {
@@ -238,14 +211,16 @@ void RegisterMethod(
           }
           return InvokeMethod(*TypedActor, Method, Arguments, Parameters, ResultAdapter);
         };
-    RegisterActorDescriptor(ActorRegistry, TOwner::StaticClassName(), std::move(Descriptor));
+    Context.RegisterActorMethod(
+        TOwner::StaticClassName(),
+        std::move(Name),
+        std::move(Description),
+        std::move(InputSchema),
+        Permission,
+        std::move(Handler)
+    );
   } else {
-    FAutomationComponentMethodDescriptor Descriptor;
-    Descriptor.Name = std::move(Name);
-    Descriptor.Description = std::move(Description);
-    Descriptor.Permission = Permission;
-    Descriptor.InputSchema = std::move(InputSchema);
-    Descriptor.Handler =
+    FAutomationComponentHandler Handler =
         [Method, Parameters = std::move(Parameters), ResultAdapter = std::move(ResultAdapter)](
             MActorComponent& Component, const nlohmann::json& Arguments
         ) mutable {
@@ -255,24 +230,27 @@ void RegisterMethod(
           }
           return InvokeMethod(*TypedComponent, Method, Arguments, Parameters, ResultAdapter);
         };
-    RegisterComponentDescriptor(
-        ComponentRegistry, TOwner::StaticComponentClassName(), std::move(Descriptor)
+    Context.RegisterComponentMethod(
+        TOwner::StaticComponentClassName(),
+        std::move(Name),
+        std::move(Description),
+        std::move(InputSchema),
+        Permission,
+        std::move(Handler)
     );
   }
 }
 
 template <class TMethod>
 void RegisterMethod(
-    FAutomationMethodRegistry& ActorRegistry,
-    FAutomationComponentMethodRegistry& ComponentRegistry,
+    FAutomationRegistrationContext& Context,
     std::string Name,
     std::string Description,
     EAutomationPermission Permission,
     TMethod Method
 ) {
   RegisterMethod(
-      ActorRegistry,
-      ComponentRegistry,
+      Context,
       std::move(Name),
       std::move(Description),
       Permission,
@@ -284,8 +262,7 @@ void RegisterMethod(
 
 template <class TMethod>
 void RegisterMethod(
-    FAutomationMethodRegistry& ActorRegistry,
-    FAutomationComponentMethodRegistry& ComponentRegistry,
+    FAutomationRegistrationContext& Context,
     std::string Name,
     std::string Description,
     EAutomationPermission Permission,
@@ -293,8 +270,7 @@ void RegisterMethod(
     FAutomationParameterMetadataList Parameters
 ) {
   RegisterMethod(
-      ActorRegistry,
-      ComponentRegistry,
+      Context,
       std::move(Name),
       std::move(Description),
       Permission,

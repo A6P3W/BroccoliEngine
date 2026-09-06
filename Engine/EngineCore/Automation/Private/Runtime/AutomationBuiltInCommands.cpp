@@ -1,8 +1,8 @@
 #include "AutomationBuiltInCommands.h"
 
-#include "AutomationRegistryHelper.h"
-#include "AutomationSystemCommandRegistry.h"
 #include "NetworkTypes.h"
+#include "Registration/AutomationRegistryHelper.h"
+#include "Registration/AutomationSystemCommandRegistry.h"
 #include "Runtime/AutomationRuntimeTypes.h"
 #include "SceneManager.h"
 #include "World.h"

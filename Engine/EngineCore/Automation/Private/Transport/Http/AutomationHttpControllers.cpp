@@ -15,8 +15,8 @@
 
 #include "Actor.h"
 #include "ActorComponent.h"
-#include "AutomationComponentMethodRegistry.h"
 #include "Log.h"
+#include "Registration/AutomationComponentMethodRegistry.h"
 #include "Registration/AutomationJsonSchemaValidator.h"
 
 namespace {

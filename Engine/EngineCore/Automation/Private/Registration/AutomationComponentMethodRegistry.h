@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "AutomationTypes.h"
-#include "BroccoliEngineAPI.h"
 
 class MActorComponent;
 
@@ -29,7 +28,7 @@ struct FAutomationComponentMethodSnapshot {
   EAutomationPermission Permission = EAutomationPermission::ReadOnly;
 };
 
-class BROCCOLI_ENGINE_API FAutomationComponentMethodRegistry {
+class FAutomationComponentMethodRegistry {
  public:
   bool RegisterMethod(
       std::string ClassName,

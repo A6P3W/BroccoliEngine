@@ -3,10 +3,10 @@
 #include <nlohmann/json.hpp>
 #include <string_view>
 
-#include "AutomationComponentMethodRegistry.h"
-#include "AutomationMethodRegistry.h"
-#include "AutomationSystemCommandRegistry.h"
 #include "AutomationTypes.h"
+#include "Registration/AutomationComponentMethodRegistry.h"
+#include "Registration/AutomationMethodRegistry.h"
+#include "Registration/AutomationSystemCommandRegistry.h"
 #include "Runtime/AutomationCommandQueue.h"
 #include "Runtime/AutomationRuntimeTypes.h"
 #include "Transport/Http/AutomationHttpTypes.h"

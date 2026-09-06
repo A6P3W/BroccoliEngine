@@ -4,11 +4,11 @@
 #include <memory>
 #include <utility>
 
-#include "AutomationAutoRegistrar.h"
-#include "AutomationComponentMethodRegistry.h"
-#include "AutomationMethodRegistry.h"
-#include "AutomationSystemCommandRegistry.h"
 #include "Log.h"
+#include "Registration/AutomationAutoRegistrar.h"
+#include "Registration/AutomationComponentMethodRegistry.h"
+#include "Registration/AutomationMethodRegistry.h"
+#include "Registration/AutomationSystemCommandRegistry.h"
 #include "Runtime/AutomationBuiltInCommands.h"
 #include "Runtime/AutomationCommandQueue.h"
 #include "Runtime/AutomationRuntimeTypes.h"
@@ -88,11 +88,7 @@ struct FAutomationSubsystem::FImpl {
     MethodRegistry = std::make_unique<FAutomationMethodRegistry>();
     ComponentMethodRegistry = std::make_unique<FAutomationComponentMethodRegistry>();
     try {
-      FAutomationAutoRegistrar::GetInstance().RegisterAll(*MethodRegistry);
-      FAutomationAutoRegistrar::GetInstance().RegisterAllComponents(*ComponentMethodRegistry);
-      FAutomationAutoRegistrar::GetInstance().RegisterAllUnified(
-          *MethodRegistry, *ComponentMethodRegistry
-      );
+      RegisterAllAutomationMethods(*MethodRegistry, *ComponentMethodRegistry);
       MethodRegistry->Freeze();
       ComponentMethodRegistry->Freeze();
     } catch (const std::exception& Exception) {

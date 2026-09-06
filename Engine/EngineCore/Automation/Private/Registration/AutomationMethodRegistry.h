@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "AutomationTypes.h"
-#include "BroccoliEngineAPI.h"
 
 class AActor;
 
@@ -28,7 +27,7 @@ struct FAutomationMethodSnapshot {
   EAutomationPermission Permission = EAutomationPermission::ReadOnly;
 };
 
-class BROCCOLI_ENGINE_API FAutomationMethodRegistry {
+class FAutomationMethodRegistry {
  public:
   bool RegisterMethod(
       std::string ClassName, FAutomationMethodDescriptor Descriptor, std::string* OutError = nullptr

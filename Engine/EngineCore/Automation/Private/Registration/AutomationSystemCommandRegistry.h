@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "AutomationTypes.h"
-#include "BroccoliEngineAPI.h"
 
 struct FAutomationSystemCommandDescriptor {
   std::string Name;
@@ -27,7 +26,7 @@ struct FAutomationSystemCommandSnapshot {
   EAutomationPermission Permission = EAutomationPermission::SystemMutation;
 };
 
-class BROCCOLI_ENGINE_API FAutomationSystemCommandRegistry {
+class FAutomationSystemCommandRegistry {
  public:
   bool RegisterCommand(
       FAutomationSystemCommandDescriptor Descriptor, std::string* OutError = nullptr
