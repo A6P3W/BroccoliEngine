@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include "RegistryCommonDetail.h"
+#include "RegistryCommon.h"
 
 namespace {
 bool IsSystemCommandPermissionAllowed(EAutomationPermission Permission) {

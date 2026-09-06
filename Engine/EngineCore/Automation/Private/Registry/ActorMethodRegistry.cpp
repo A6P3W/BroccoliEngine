@@ -3,7 +3,6 @@
 #include <utility>
 
 #include "RegistryCommon.h"
-#include "RegistryCommonDetail.h"
 
 namespace {
 bool IsActorMethodPermissionAllowed(EAutomationPermission Permission) {
