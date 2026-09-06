@@ -1,4 +1,5 @@
 /build/
+/Intermediate/
 /Bin/
 /Publish/
 /.vs/

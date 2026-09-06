@@ -513,6 +513,7 @@ Tools/Build/**/__pycache__/
 Tools/Build/**/*.pyc
 # CMake generated project files and build output.
 /build/
+/Intermediate/
 /out/
 /*.vcxproj
 /*.vcxproj.user

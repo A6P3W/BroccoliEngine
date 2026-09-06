@@ -5,8 +5,10 @@
 
 #include "Application.h"
 #include "EOSCoreManager.h"
+#include "ExamplePlugin/ExamplePlugin.h"
 #include "LevelStarter/LevelStarterGameMode.h"
 #include "LevelStarter/LevelStarterWidget.h"
+#include "Log.h"
 #include "PathResolver.h"
 #include "SceneManager.h"
 
@@ -17,6 +19,10 @@ void SetupGame() {
   ImGui::SetCurrentContext(static_cast<ImGuiContext*>(Application::GetImGuiContext()));
   // EOSのオンラインサービスを初期化
   EOSCoreManager::GetInstance().InitializeOnlineServices();
+
+  const int ExamplePluginRandomNumber = ExamplePlugin::GetRandomNumber();
+  M_LOG(Log, "ExamplePlugin random number: {}", ExamplePluginRandomNumber);
+  (void)ExamplePluginRandomNumber;
 
   // ゲーム起動時に最初に読み込むレベル（ステージ）ファイルのパスを設定
   SceneManager::GetInstance().SetStartupLevelPath("Game/LevelStarter.BLevel");

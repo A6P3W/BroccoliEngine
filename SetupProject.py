@@ -334,6 +334,12 @@ def ReconfigureInPlace(
               "origin": OriginUrl,
               "commit": HeadCommit,
             },
+            "plugins": [
+              {
+                "name": "ExamplePlugin",
+                "configurations": ["Debug", "Editor", "Release"],
+              }
+            ],
           },
           ensure_ascii=False,
           indent=2,

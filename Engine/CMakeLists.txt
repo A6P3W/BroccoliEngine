@@ -57,6 +57,7 @@ target_compile_definitions(BroccoliEngine
 target_include_directories(BroccoliEngine
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Plugin/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Automation/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Core/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Systems/Public>
@@ -145,6 +146,19 @@ set_target_properties(BroccoliEngine PROPERTIES
   ARCHIVE_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
   PDB_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
 )
+
+set(BROCCOLI_PLUGIN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Plugins")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/BroccoliPlugin.cmake")
+foreach(PluginName IN LISTS BROCCOLI_PLUGINS)
+  set(PluginBuildFile "${BROCCOLI_PLUGIN_ROOT}/${PluginName}/Build.cmake")
+  if(NOT EXISTS "${PluginBuildFile}")
+    message(FATAL_ERROR "Plugin '${PluginName}' does not contain Build.cmake: ${PluginBuildFile}")
+  endif()
+  include("${PluginBuildFile}")
+  if(NOT TARGET "${PluginName}")
+    message(FATAL_ERROR "Plugin '${PluginName}' Build.cmake did not define its target.")
+  endif()
+endforeach()
 
 if(WIN32)
   add_executable(BroccoliBootstrap WIN32

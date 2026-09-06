@@ -44,6 +44,7 @@ function(broccoli_add_game)
   )
   target_include_directories(${GameName} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
   target_link_libraries(${GameName} PRIVATE Broccoli::Engine)
+  broccoli_link_configured_plugins_to_game(TARGET ${GameName})
   add_dependencies(${GameName} BroccoliBootstrap)
 
   if(MSVC)
@@ -64,6 +65,15 @@ function(broccoli_add_game)
   set(BroccoliBuildToolsDir "${BROCCOLI_ENGINE_ROOT}/Tools/Build")
   set(BroccoliConvertLevelsScript "${BROCCOLI_ENGINE_ROOT}/Tools/ConvertLevels.py")
   set(BroccoliEosBinary "${BROCCOLI_ENGINE_ROOT}/Engine/ThirdParty/EOS/SDK/Bin/EOSSDK-Win64-Shipping.dll")
+  set(BroccoliGameRequiredPluginArguments)
+  foreach(Configuration IN ITEMS Debug Editor Release)
+    string(TOUPPER "${Configuration}" ConfigurationUpper)
+    set(PluginListVariable "BROCCOLI_PLUGINS_${ConfigurationUpper}")
+    foreach(Plugin IN LISTS ${PluginListVariable})
+      list(APPEND BroccoliGameRequiredPluginArguments
+        --required-plugin "$<$<CONFIG:${Configuration}>:${Plugin}>")
+    endforeach()
+  endforeach()
 
   add_custom_command(TARGET ${GameName} PRE_BUILD
     COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BroccoliBuildToolsDir}" --frozen
@@ -88,6 +98,7 @@ function(broccoli_add_game)
             --configuration "$<CONFIG>"
             --output-dir "$<TARGET_FILE_DIR:${GameName}>"
             --game-name "${GameName}"
+            ${BroccoliGameRequiredPluginArguments}
     COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BroccoliBuildToolsDir}" --frozen
             python -m broccoli_build package-runtime
             --configuration "$<CONFIG>"
@@ -100,12 +111,14 @@ function(broccoli_add_game)
             --online-resources-dir "$<TARGET_FILE_DIR:${GameName}>/Resources-EOS"
             --convert-levels-script "${BroccoliConvertLevelsScript}"
             --bootstrap-binary "$<TARGET_FILE:BroccoliBootstrap>"
+            ${BroccoliGameRequiredPluginArguments}
     COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BroccoliBuildToolsDir}" --frozen
             python -m broccoli_build verify-runtime
             --configuration "$<CONFIG>"
             --output-dir "$<TARGET_FILE_DIR:${GameName}>"
             --game-name "${GameName}"
             --publish-dir "${BROCCOLI_OUTPUT_ROOT}/Publish/$<CONFIG>"
+            ${BroccoliGameRequiredPluginArguments}
     VERBATIM
   )
 

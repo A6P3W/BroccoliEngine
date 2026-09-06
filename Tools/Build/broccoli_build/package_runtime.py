@@ -24,6 +24,7 @@ def PackageRuntime(
   OnlineResourcesDirectory: Path,
   ConvertLevelsScript: Path,
   BootstrapBinary: Path,
+  RequiredPlugins: list[str] | None = None,
 ) -> None:
   if Configuration.casefold() == "editor":
     print("Editor configuration: runtime packaging skipped.")
@@ -33,8 +34,15 @@ def PackageRuntime(
   RequireFile(EngineBinary, "BroccoliEngine.dll")
   RequireFile(BootstrapBinary, "BroccoliBootstrap.exe")
   ResourcesDirectory = OutputDirectory / "Resources"
+  PluginsDirectory = OutputDirectory / "Plugins"
+  RequiredPlugins = RequiredPlugins or []
   RequireDirectory(ResourcesDirectory, "Staged resources directory")
   RequireFile(ConvertLevelsScript, "ConvertLevels.py")
+  for PluginName in RequiredPlugins:
+    PluginDirectory = PluginsDirectory / PluginName
+    RequireDirectory(PluginDirectory, f"Required plugin directory '{PluginName}'")
+    RequireFile(PluginDirectory / "plugin.json", f"Required plugin manifest '{PluginName}'")
+    RequireFile(PluginDirectory / f"{PluginName}.dll", f"Required plugin DLL '{PluginName}'")
 
   RemovePath(PublishDirectory)
   BinariesDirectory = PublishDirectory / "Binaries"
@@ -46,6 +54,8 @@ def PackageRuntime(
     CopyFile(EosBinary, BinariesDirectory)
   CopyFile(BootstrapBinary, PublishDirectory)
   (PublishDirectory / BootstrapBinary.name).replace(PublishDirectory / f"{GameName}.exe")
+  if PluginsDirectory.is_dir():
+    CopyDirectory(PluginsDirectory, BinariesDirectory / "Plugins")
   CopyDirectory(ResourcesDirectory, PublishDirectory / "Resources")
   if OnlineResourcesDirectory.is_dir():
     PublishedOnlineResourcesDirectory = PublishDirectory / "Resources-EOS"

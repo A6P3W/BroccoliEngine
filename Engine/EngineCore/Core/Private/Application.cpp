@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <utility>
@@ -43,6 +44,7 @@
 #include "OnlinePlayManager.h"
 #include "PathResolver.h"
 #include "PerformanceOverlay.h"
+#include "PluginHost.h"
 #include "RenderSystem.h"
 #include "ResourceManager.h"
 #include "SceneManager.h"
@@ -160,6 +162,8 @@ Application::~Application() { Shutdown(); }
 void Application::Shutdown() {
   RemoveLiveResizeHook();
 
+  PluginHost::GetInstance().Shutdown();
+
   if (AutomationSubsystem) {
     AutomationSubsystem->Shutdown();
     AutomationSubsystem.reset();
@@ -241,6 +245,12 @@ void Application::QuitGame() { ShouldQuitGame = true; }
 bool Application::Run() {
   PathResolver::InitializeWorkingDirectory();
   MLog::Initialize();
+  const std::filesystem::path ExecutableDirectory = PathResolver::GetExecutableDirectory();
+  if (ExecutableDirectory.empty()) {
+    M_LOG(Error, "Could not determine the executable directory for plugin discovery.");
+  } else {
+    PluginHost::GetInstance().Initialize(ExecutableDirectory / "Plugins");
+  }
   SetProcessDPIAware();
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
@@ -365,6 +375,7 @@ bool Application::Update(float FrameDeltaTime, bool ProcessInput) {
   auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
 #endif
   if (ImGuiInitialized) rlImGuiBeginDelta(FrameDeltaTime);
+  PluginHost::GetInstance().Update(FrameDeltaTime);
 
 #if !defined(_RELEASE)
   PerformanceOverlay.BeginSection(EPerformanceSection::Scene);

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "plugins": [
+    {
+      "name": "ExamplePlugin",
+      "configurations": [
+        "Debug",
+        "Editor",
+        "Release"
+      ]
+    }
+  ]
+}

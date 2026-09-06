@@ -4,8 +4,12 @@ from pathlib import Path
 
 
 def VerifyRuntime(
-  OutputDirectory: Path, GameName: str, PublishDirectory: Path | None = None
+  OutputDirectory: Path,
+  GameName: str,
+  PublishDirectory: Path | None = None,
+  RequiredPlugins: list[str] | None = None,
 ) -> None:
+  RequiredPlugins = RequiredPlugins or []
   RequiredFiles = [
     OutputDirectory / "BroccoliEngine.dll",
   ]
@@ -14,7 +18,13 @@ def VerifyRuntime(
     OutputDirectory / "Resources" / GameName,
   ]
   MissingPaths = [PathValue for PathValue in RequiredFiles if not PathValue.is_file()]
-  MissingPaths.extend(PathValue for PathValue in RequiredDirectories if not PathValue.is_dir())
+  for PluginName in RequiredPlugins:
+    PluginDirectory = OutputDirectory / "Plugins" / PluginName
+    MissingPaths.extend(
+      PathValue
+      for PathValue in (PluginDirectory / "plugin.json", PluginDirectory / f"{PluginName}.dll")
+      if not PathValue.is_file()
+    )
   JsonFiles = sorted(OutputDirectory.glob("Resources/**/*.BLevel.json"))
   JsonFiles.extend(OutputDirectory.glob("Resources-EOS/**/*.BLevel.json"))
 
@@ -22,8 +32,17 @@ def VerifyRuntime(
     PublishBinary = PublishDirectory / "Binaries" / f"{GameName}.exe"
     if not PublishBinary.is_file():
       MissingPaths.append(PublishBinary)
+    for PluginName in RequiredPlugins:
+      PluginDirectory = PublishDirectory / "Binaries" / "Plugins" / PluginName
+      MissingPaths.extend(
+        PathValue
+        for PathValue in (PluginDirectory / "plugin.json", PluginDirectory / f"{PluginName}.dll")
+        if not PathValue.is_file()
+      )
     JsonFiles.extend(PublishDirectory.glob("Resources/**/*.BLevel.json"))
     JsonFiles.extend(PublishDirectory.glob("Resources-EOS/**/*.BLevel.json"))
+
+  MissingPaths.extend(PathValue for PathValue in RequiredDirectories if not PathValue.is_dir())
 
   Messages = []
   if MissingPaths:
