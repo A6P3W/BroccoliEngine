@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+from broccoli_build import cli
 from broccoli_build.package_runtime import PackageRuntime
 from broccoli_build.plugins import GeneratePluginsCmake, RemoveDisabledExamplePluginArtifacts
 from broccoli_build.prepare_output import PrepareOutput
@@ -44,6 +45,65 @@ def WritePluginSettings(TmpPath: Path, Plugins: object) -> None:
     encoding="utf-8",
     newline="\n",
   )
+
+
+def TestBuildParserNormalizesConfigurationNames() -> None:
+  Parser = cli.CreateParser()
+
+  Arguments = Parser.parse_args(["build", "eDiToR"])
+
+  assert Arguments.configuration == "Editor"
+
+
+def TestBuildParserAcceptsConfigOption() -> None:
+  Parser = cli.CreateParser()
+
+  Arguments = Parser.parse_args(["build", "--config", "release"])
+
+  assert Arguments.config == "Release"
+
+
+def TestBuildConfiguresOnlyWhenPluginSettingsChange(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+  WritePluginSettings(TmpPath, [])
+  CacheFile = TmpPath / "build" / "windows-x64" / "CMakeCache.txt"
+  CacheFile.parent.mkdir(parents=True)
+  CacheFile.write_text("cache", encoding="utf-8")
+  Commands: list[tuple[list[str], Path]] = []
+
+  def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
+    Commands.append((Command, cwd))
+
+  monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
+  monkeypatch.setattr(cli.subprocess, "run", RecordRun)
+
+  cli.Build(TmpPath, "Debug", False)
+
+  assert Commands == [
+    (["cmake", "--preset", "windows-x64-local"], TmpPath),
+    (["cmake", "--build", "--preset", "debug-local", "--target", "BroccoliProjectBuild_Debug"], TmpPath),
+  ]
+  Commands.clear()
+
+  cli.Build(TmpPath, "Debug", False)
+
+  assert Commands == [
+    (["cmake", "--build", "--preset", "debug-local", "--target", "BroccoliProjectBuild_Debug"], TmpPath)
+  ]
+
+
+def TestRegenerateDoesNotBuild(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+  WritePluginSettings(TmpPath, [])
+  Commands: list[list[str]] = []
+
+  def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
+    Commands.append(Command)
+
+  monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
+  monkeypatch.setattr(cli.subprocess, "run", RecordRun)
+
+  cli.Regenerate(TmpPath)
+
+  assert Commands == [["cmake", "--preset", "windows-x64-local"]]
 
 
 def TestGeneratePluginsCmakeReflectsConfigurationSettings(TmpPath: Path) -> None:
