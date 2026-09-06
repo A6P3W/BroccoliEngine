@@ -1,9 +1,16 @@
 #pragma once
 
+#include <array>
+#include <concepts>
+#include <functional>
 #include <nlohmann/json.hpp>
 #include <optional>
+#include <span>
+#include <stdexcept>
 #include <string>
+#include <tuple>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "AutomationTypes.h"
@@ -12,6 +19,19 @@
 
 template <class T, class TEnable = void>
 struct TAutomationJsonConverter;
+
+template <class T>
+concept AutomationJsonReadable = requires(const nlohmann::json& Json, T& Value) {
+  { TAutomationJsonConverter<T>::FromJson(Json, Value) } -> std::convertible_to<bool>;
+  { TAutomationJsonConverter<T>::GetSchema() } -> std::convertible_to<nlohmann::json>;
+};
+
+template <class T>
+concept AutomationJsonWritable = requires(const std::remove_cvref_t<T>& Value) {
+  {
+    TAutomationJsonConverter<std::remove_cvref_t<T>>::ToJson(Value)
+  } -> std::convertible_to<nlohmann::json>;
+};
 
 template <>
 struct TAutomationJsonConverter<bool> {
@@ -27,10 +47,9 @@ struct TAutomationJsonConverter<bool> {
   static nlohmann::json GetSchema() { return {{"type", "boolean"}}; }
 };
 
-template <class T>
-struct TAutomationJsonConverter<
-    T,
-    std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>>> {
+template <std::integral T>
+  requires(!std::same_as<T, bool>)
+struct TAutomationJsonConverter<T> {
   static bool FromJson(const nlohmann::json& Json, T& OutValue) {
     try {
       if (!Json.is_number_integer() && !Json.is_number_unsigned()) {
@@ -47,8 +66,8 @@ struct TAutomationJsonConverter<
   static nlohmann::json GetSchema() { return {{"type", "integer"}}; }
 };
 
-template <class T>
-struct TAutomationJsonConverter<T, std::enable_if_t<std::is_floating_point_v<T>>> {
+template <std::floating_point T>
+struct TAutomationJsonConverter<T> {
   static bool FromJson(const nlohmann::json& Json, T& OutValue) {
     try {
       if (!Json.is_number()) {
@@ -80,6 +99,7 @@ struct TAutomationJsonConverter<std::string> {
 };
 
 template <class T>
+  requires AutomationJsonReadable<T> && AutomationJsonWritable<T>
 struct TAutomationJsonConverter<std::vector<T>> {
   static bool FromJson(const nlohmann::json& Json, std::vector<T>& OutValue) {
     if (!Json.is_array()) {
@@ -112,6 +132,7 @@ struct TAutomationJsonConverter<std::vector<T>> {
 };
 
 template <class T>
+  requires AutomationJsonReadable<T> && AutomationJsonWritable<T>
 struct TAutomationJsonConverter<std::optional<T>> {
   static bool FromJson(const nlohmann::json& Json, std::optional<T>& OutValue) {
     if (Json.is_null()) {
@@ -200,26 +221,9 @@ struct TAutomationJsonConverter<nlohmann::json> {
   static nlohmann::json ToJson(const nlohmann::json& Value) { return Value; }
 };
 
-#include <initializer_list>
-#include <string>
-#include <utility>
-#include <vector>
-
 struct FAutomationParameterMetadata {
   std::string Name;
   std::string Description;
-};
-
-class FAutomationParameterMetadataList {
- public:
-  FAutomationParameterMetadataList() = default;
-  FAutomationParameterMetadataList(std::initializer_list<FAutomationParameterMetadata> InParameters)
-      : Parameters(InParameters) {}
-
-  const std::vector<FAutomationParameterMetadata>& GetParameters() const { return Parameters; }
-
- private:
-  std::vector<FAutomationParameterMetadata> Parameters;
 };
 
 namespace BroccoliAutomationDetail {
@@ -230,23 +234,23 @@ inline FAutomationParameterMetadata MakeParameterMetadata(
   return {std::move(Name), std::move(Description)};
 }
 
+template <class... TParameters>
+  requires(std::same_as<std::remove_cvref_t<TParameters>, FAutomationParameterMetadata> && ...)
+constexpr std::array<FAutomationParameterMetadata, sizeof...(TParameters)>
+MakeParameterMetadataList(TParameters&&... Parameters) {
+  return {{std::forward<TParameters>(Parameters)...}};
+}
+
 }  // namespace BroccoliAutomationDetail
 
 #define BROCCOLI_AUTOMATION_PARAM_IMPL(Name, Description) \
   BroccoliAutomationDetail::MakeParameterMetadata(Name, Description)
 
-#define BROCCOLI_AUTOMATION_PARAMS_IMPL(...) (FAutomationParameterMetadataList{__VA_ARGS__})
-
-#include <concepts>
-#include <functional>
-#include <stdexcept>
-#include <tuple>
-#include <type_traits>
-#include <utility>
+#define BROCCOLI_AUTOMATION_PARAMS_IMPL(...) \
+  (BroccoliAutomationDetail::MakeParameterMetadataList(__VA_ARGS__))
 
 #include "Actor.h"
 #include "ActorComponent.h"
-#include "Log.h"
 
 namespace BroccoliAutomationDetail {
 
@@ -280,6 +284,59 @@ template <class TReturn, class TOwner, class... TArguments>
 struct TMethodTraits<TReturn (TOwner::*)(TArguments...) const noexcept>
     : TMethodTraits<TReturn (TOwner::*)(TArguments...) const> {};
 
+template <class T>
+concept AutomationMemberFunction = std::is_member_function_pointer_v<T>;
+
+template <class T>
+concept AutomationOwner = std::derived_from<T, AActor> || std::derived_from<T, MActorComponent>;
+
+template <class TMethod, size_t... TIndices>
+  requires AutomationMemberFunction<TMethod>
+consteval bool AreMethodArgumentsJsonReadable(std::index_sequence<TIndices...>) {
+  using TTraits = TMethodTraits<TMethod>;
+  return (
+      AutomationJsonReadable<
+          TArgumentStorage<std::tuple_element_t<TIndices, typename TTraits::ArgumentTuple>>> &&
+      ...
+  );
+}
+
+template <class TMethod>
+concept AutomationMethodArgumentsJsonReadable =
+    AutomationMemberFunction<TMethod> &&
+    AreMethodArgumentsJsonReadable<TMethod>(
+        std::make_index_sequence<TMethodTraits<TMethod>::ArgumentCount>{}
+    );
+
+template <class TResultAdapter, class TOwner, class TResult>
+concept AutomationResultAdapter =
+    requires(TResultAdapter& Adapter, TOwner& Owner, TResult&& Result) {
+      {
+        std::invoke(Adapter, Owner, std::forward<TResult>(Result))
+      } -> std::convertible_to<nlohmann::json>;
+    } || requires(TResultAdapter& Adapter, const TOwner& Owner, TResult&& Result) {
+      {
+        std::invoke(Adapter, Owner, std::forward<TResult>(Result))
+      } -> std::convertible_to<nlohmann::json>;
+    } || requires(TResultAdapter& Adapter, TResult&& Result) {
+      {
+        std::invoke(Adapter, std::forward<TResult>(Result))
+      } -> std::convertible_to<nlohmann::json>;
+    };
+
+template <class TMethod, class TResultAdapter>
+concept AutomationMethodResultCompatible =
+    AutomationMemberFunction<TMethod> &&
+    ((std::same_as<std::remove_cvref_t<TResultAdapter>, std::nullptr_t> &&
+      (std::is_void_v<typename TMethodTraits<TMethod>::ReturnType> ||
+       AutomationJsonWritable<typename TMethodTraits<TMethod>::ReturnType>)) ||
+     (!std::same_as<std::remove_cvref_t<TResultAdapter>, std::nullptr_t> &&
+      !std::is_void_v<typename TMethodTraits<TMethod>::ReturnType> &&
+      AutomationResultAdapter<
+          TResultAdapter,
+          typename TMethodTraits<TMethod>::OwnerType,
+          typename TMethodTraits<TMethod>::ReturnType>));
+
 template <class TValue>
 TValue ReadArgument(
     const nlohmann::json& Arguments, const FAutomationParameterMetadata& Parameter
@@ -298,16 +355,15 @@ TValue ReadArgument(
 template <class TMethod, size_t... TIndices>
 auto ReadArguments(
     const nlohmann::json& Arguments,
-    const FAutomationParameterMetadataList& Parameters,
+    std::span<const FAutomationParameterMetadata> Parameters,
     std::index_sequence<TIndices...>
 ) {
   using TTraits = TMethodTraits<TMethod>;
-  const auto& Metadata = Parameters.GetParameters();
   return std::tuple<
       TArgumentStorage<std::tuple_element_t<TIndices, typename TTraits::ArgumentTuple>>...>{
       ReadArgument<
           TArgumentStorage<std::tuple_element_t<TIndices, typename TTraits::ArgumentTuple>>>(
-          Arguments, Metadata[TIndices]
+          Arguments, Parameters[TIndices]
       )...
   };
 }
@@ -321,17 +377,16 @@ nlohmann::json ConvertReturnValue(TReturn&& Result) {
 
 template <class TMethod, size_t... TIndices>
 nlohmann::json MakeInputSchema(
-    const FAutomationParameterMetadataList& Parameters, std::index_sequence<TIndices...>
+    std::span<const FAutomationParameterMetadata> Parameters, std::index_sequence<TIndices...>
 ) {
   using TTraits = TMethodTraits<TMethod>;
-  const auto& Metadata = Parameters.GetParameters();
   nlohmann::json Properties = nlohmann::json::object();
   nlohmann::json Required = nlohmann::json::array();
   (
       [&] {
         using TArgument =
             TArgumentStorage<std::tuple_element_t<TIndices, typename TTraits::ArgumentTuple>>;
-        const auto& Parameter = Metadata[TIndices];
+        const auto& Parameter = Parameters[TIndices];
         Properties[Parameter.Name] = TAutomationJsonConverter<TArgument>::GetSchema();
         if (!Parameter.Description.empty()) {
           Properties[Parameter.Name]["description"] = Parameter.Description;
@@ -369,7 +424,7 @@ nlohmann::json InvokeMethod(
     TOwner& Owner,
     TMethod Method,
     const nlohmann::json& Arguments,
-    const FAutomationParameterMetadataList& Parameters,
+    std::span<const FAutomationParameterMetadata> Parameters,
     TResultAdapter& ResultAdapter
 ) {
   using TTraits = TMethodTraits<TMethod>;
@@ -402,37 +457,26 @@ nlohmann::json InvokeMethod(
   }
 }
 
-template <class TMethod, class TResultAdapter>
+template <AutomationMemberFunction TMethod, size_t N, class TResultAdapter>
+  requires AutomationOwner<typename TMethodTraits<TMethod>::OwnerType> &&
+           AutomationMethodArgumentsJsonReadable<TMethod> &&
+           AutomationMethodResultCompatible<TMethod, TResultAdapter> &&
+           (N == TMethodTraits<TMethod>::ArgumentCount)
 void RegisterMethod(
     FAutomationRegistrationContext& Context,
     std::string Name,
     std::string Description,
     EAutomationPermission Permission,
     TMethod Method,
-    FAutomationParameterMetadataList Parameters,
+    std::array<FAutomationParameterMetadata, N> Parameters,
     TResultAdapter ResultAdapter
 ) {
   using TTraits = TMethodTraits<TMethod>;
   using TOwner = typename TTraits::OwnerType;
-  static_assert(
-      std::is_member_function_pointer_v<TMethod>,
-      "Automation methods must be non-static member functions."
+  nlohmann::json InputSchema = MakeInputSchema<TMethod>(
+      std::span<const FAutomationParameterMetadata>(Parameters),
+      std::make_index_sequence<TTraits::ArgumentCount>{}
   );
-  static_assert(
-      std::is_base_of_v<AActor, TOwner> || std::is_base_of_v<MActorComponent, TOwner>,
-      "Automation methods must belong to an AActor or MActorComponent."
-  );
-  static_assert(
-      std::same_as<std::remove_cvref_t<TResultAdapter>, std::nullptr_t> ||
-          !std::is_void_v<typename TTraits::ReturnType>,
-      "Void automation methods cannot use a result adapter."
-  );
-
-  if (Parameters.GetParameters().size() != TTraits::ArgumentCount) {
-    throw std::runtime_error("Automation parameter count does not match method argument count.");
-  }
-  nlohmann::json InputSchema =
-      MakeInputSchema<TMethod>(Parameters, std::make_index_sequence<TTraits::ArgumentCount>{});
 
   if constexpr (std::is_base_of_v<AActor, TOwner>) {
     FAutomationActorHandler Handler =
@@ -443,7 +487,13 @@ void RegisterMethod(
           if (!TypedActor) {
             throw std::runtime_error("Automation actor type mismatch.");
           }
-          return InvokeMethod(*TypedActor, Method, Arguments, Parameters, ResultAdapter);
+          return InvokeMethod(
+              *TypedActor,
+              Method,
+              Arguments,
+              std::span<const FAutomationParameterMetadata>(Parameters),
+              ResultAdapter
+          );
         };
     Context.RegisterActorMethod(
         TOwner::StaticClassName(),
@@ -462,7 +512,13 @@ void RegisterMethod(
           if (!TypedComponent) {
             throw std::runtime_error("Automation component type mismatch.");
           }
-          return InvokeMethod(*TypedComponent, Method, Arguments, Parameters, ResultAdapter);
+          return InvokeMethod(
+              *TypedComponent,
+              Method,
+              Arguments,
+              std::span<const FAutomationParameterMetadata>(Parameters),
+              ResultAdapter
+          );
         };
     Context.RegisterComponentMethod(
         TOwner::StaticComponentClassName(),
@@ -475,7 +531,10 @@ void RegisterMethod(
   }
 }
 
-template <class TMethod>
+template <AutomationMemberFunction TMethod>
+  requires AutomationOwner<typename TMethodTraits<TMethod>::OwnerType> &&
+           AutomationMethodArgumentsJsonReadable<TMethod> &&
+           AutomationMethodResultCompatible<TMethod, std::nullptr_t>
 void RegisterMethod(
     FAutomationRegistrationContext& Context,
     std::string Name,
@@ -489,19 +548,23 @@ void RegisterMethod(
       std::move(Description),
       Permission,
       Method,
-      FAutomationParameterMetadataList{},
+      std::array<FAutomationParameterMetadata, 0>{},
       nullptr
   );
 }
 
-template <class TMethod>
+template <AutomationMemberFunction TMethod, size_t N>
+  requires AutomationOwner<typename TMethodTraits<TMethod>::OwnerType> &&
+           AutomationMethodArgumentsJsonReadable<TMethod> &&
+           AutomationMethodResultCompatible<TMethod, std::nullptr_t> &&
+           (N == TMethodTraits<TMethod>::ArgumentCount)
 void RegisterMethod(
     FAutomationRegistrationContext& Context,
     std::string Name,
     std::string Description,
     EAutomationPermission Permission,
     TMethod Method,
-    FAutomationParameterMetadataList Parameters
+    std::array<FAutomationParameterMetadata, N> Parameters
 ) {
   RegisterMethod(
       Context,
@@ -518,33 +581,6 @@ void RegisterMethod(
 
 #define BROCCOLI_AUTOMATION_CONCAT_IMPL(Left, Right) Left##Right
 #define BROCCOLI_AUTOMATION_CONCAT(Left, Right) BROCCOLI_AUTOMATION_CONCAT_IMPL(Left, Right)
-
-#define BROCCOLI_AUTOMATION_SELECT_METHOD(_1, _2, _3, _4, _5, _6, Selected, ...) Selected
-#define BROCCOLI_AUTOMATION_METHOD_DISPATCH(...) \
-  BROCCOLI_AUTOMATION_METHOD_DISPATCH_IMPL(      \
-      __VA_ARGS__,                               \
-      BROCCOLI_REGISTER_AUTOMATION_METHOD_6,     \
-      BROCCOLI_REGISTER_AUTOMATION_METHOD_5,     \
-      BROCCOLI_REGISTER_AUTOMATION_METHOD_4,     \
-      BROCCOLI_AUTOMATION_DISPATCH_SENTINEL      \
-  )
-
-#define BROCCOLI_AUTOMATION_METHOD_DISPATCH_IMPL(...) BROCCOLI_AUTOMATION_SELECT_METHOD(__VA_ARGS__)
-
-#define BROCCOLI_REGISTER_AUTOMATION_METHOD_4(Name, Description, Permission, Method) \
-  BROCCOLI_REGISTER_AUTOMATION_METHOD_IMPL(__COUNTER__, Name, Description, Permission, Method)
-
-#define BROCCOLI_REGISTER_AUTOMATION_METHOD_5(Name, Description, Permission, Method, Parameters) \
-  BROCCOLI_REGISTER_AUTOMATION_METHOD_IMPL(                                                      \
-      __COUNTER__, Name, Description, Permission, Method, Parameters                             \
-  )
-
-#define BROCCOLI_REGISTER_AUTOMATION_METHOD_6(                                      \
-    Name, Description, Permission, Method, Parameters, ResultAdapter                \
-)                                                                                   \
-  BROCCOLI_REGISTER_AUTOMATION_METHOD_IMPL(                                         \
-      __COUNTER__, Name, Description, Permission, Method, Parameters, ResultAdapter \
-  )
 
 #define BROCCOLI_REGISTER_AUTOMATION_METHOD_IMPL(Counter, ...) \
   BROCCOLI_REGISTER_AUTOMATION_METHOD_IMPL_EXPANDED(Counter, __VA_ARGS__)
@@ -563,7 +599,7 @@ void RegisterMethod(
   }
 
 #define REGISTER_AUTOMATION_METHOD(...) \
-  BROCCOLI_AUTOMATION_METHOD_DISPATCH(__VA_ARGS__)(__VA_ARGS__)
+  BROCCOLI_REGISTER_AUTOMATION_METHOD_IMPL(__COUNTER__, __VA_ARGS__)
 
 #define AUTOMATION_PARAMS(...) BROCCOLI_AUTOMATION_PARAMS_IMPL(__VA_ARGS__)
 #define AUTOMATION_PARAM(Name, Description) BROCCOLI_AUTOMATION_PARAM_IMPL(Name, Description)
