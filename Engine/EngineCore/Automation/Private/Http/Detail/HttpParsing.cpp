@@ -1,4 +1,5 @@
 #include "HttpParsing.h"
+
 #include <algorithm>
 #include <cctype>
 #include <charconv>
@@ -6,7 +7,7 @@
 #include <initializer_list>
 #include <limits>
 namespace AutomationHttpDetail {
-bool IsActorMethodPermissionAllowed(EAutomationPermission Permission) {
+bool IsMethodPermissionAllowed(EAutomationPermission Permission) {
   return Permission == EAutomationPermission::ReadOnly ||
          Permission == EAutomationPermission::WorldMutation;
 }
@@ -19,14 +20,14 @@ bool HasOnlyAllowedFields(
   }
   for (const auto& [FieldName, Value] : Object.items()) {
     (void)Value;
-    bool bAllowed = false;
+    bool Allowed = false;
     for (const std::string_view AllowedField : AllowedFields) {
       if (FieldName == AllowedField) {
-        bAllowed = true;
+        Allowed = true;
         break;
       }
     }
-    if (!bAllowed) {
+    if (!Allowed) {
       return false;
     }
   }
@@ -238,5 +239,4 @@ bool TryParseTransformPatch(
   return true;
 }
 
-
-}
+}  // namespace AutomationHttpDetail

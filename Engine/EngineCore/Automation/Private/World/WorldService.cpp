@@ -302,7 +302,7 @@ FAutomationWorldStateProvider FAutomationWorldService::CreateWorldStateProvider(
 
     Snapshot.SceneName = GetCurrentSceneName(Manager);
     Snapshot.Fps = CurrentWorld->GetCurrentFps();
-    Snapshot.bWorldAvailable = true;
+    Snapshot.WorldAvailable = true;
     if (const FActorManager* ActorManager = CurrentWorld->GetActorManager()) {
       Snapshot.ActorCount = static_cast<uint32_t>(ActorManager->GetActiveActorCount());
     }

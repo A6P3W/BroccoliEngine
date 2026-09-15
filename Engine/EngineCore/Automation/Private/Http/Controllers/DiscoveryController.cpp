@@ -1,4 +1,5 @@
 #include "DiscoveryController.h"
+
 #include "../Detail/HttpErrorMapping.h"
 #include "../Detail/HttpParsing.h"
 #include "../Detail/HttpSerialization.h"
@@ -28,7 +29,7 @@ FAutomationHttpResponse FAutomationDiscoveryController::GetActorClasses() {
     FAutomationCommandTicket Ticket = CommandQueue.Enqueue([Provider = ActorClassListProvider]() {
       nlohmann::json Classes = nlohmann::json::array();
       for (const FAutomationActorClassInfo& Info : Provider()) {
-        Classes.push_back({{"className", Info.ClassName}, {"isGameMode", Info.bIsGameMode}});
+        Classes.push_back({{"className", Info.ClassName}, {"isGameMode", Info.IsGameMode}});
       }
       return MakeAutomationSuccess({{"classes", std::move(Classes)}});
     });
@@ -84,7 +85,7 @@ FAutomationHttpResponse FAutomationDiscoveryController::GetActorClassMethods(
           nlohmann::json Methods = nlohmann::json::array();
           for (const FAutomationMethodSnapshot& Snapshot :
                Registry->GetMethodsForClass(ClassNameText)) {
-            if (!IsActorMethodPermissionAllowed(Snapshot.Permission)) {
+            if (!IsMethodPermissionAllowed(Snapshot.Permission)) {
               continue;
             }
             Methods.push_back(
@@ -103,4 +104,3 @@ FAutomationHttpResponse FAutomationDiscoveryController::GetActorClassMethods(
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
   }
 }
-

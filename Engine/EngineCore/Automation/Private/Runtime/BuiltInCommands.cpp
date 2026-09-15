@@ -15,8 +15,8 @@ void RegisterAutomationBuiltInCommands(
       "pause_game",
       "Pause world updates while keeping automation available.",
       [&RuntimeState]() {
-        const bool Changed = !RuntimeState.bPaused;
-        RuntimeState.bPaused = true;
+        const bool Changed = !RuntimeState.Paused;
+        RuntimeState.Paused = true;
         M_LOG(
             Log,
             "Automation system command state changed: command=pause_game changed={} paused=true",
@@ -29,8 +29,8 @@ void RegisterAutomationBuiltInCommands(
   );
   AutomationHelper::RegisterSystemCommand(
       Registry, "resume_game", "Resume world updates.", [&RuntimeState]() {
-        const bool Changed = RuntimeState.bPaused;
-        RuntimeState.bPaused = false;
+        const bool Changed = RuntimeState.Paused;
+        RuntimeState.Paused = false;
         M_LOG(
             Log,
             "Automation system command state changed: command=resume_game changed={} paused=false",

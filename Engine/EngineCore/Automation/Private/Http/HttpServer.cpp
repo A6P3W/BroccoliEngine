@@ -100,12 +100,12 @@ FAutomationLogQueryText ParseLogQuery(const httplib::Request& Request) {
     } else if (Name == "afterSequence") {
       Target = &Query.AfterSequence;
     } else {
-      Query.bHasUnknownParameter = true;
+      Query.HasUnknownParameter = true;
       continue;
     }
 
     if (*Target) {
-      Query.bHasDuplicateParameter = true;
+      Query.HasDuplicateParameter = true;
     } else {
       *Target = Value;
     }
@@ -122,11 +122,11 @@ FAutomationActorQueryText ParseActorQuery(const httplib::Request& Request) {
     } else if (Name == "instanceName") {
       Target = &Query.InstanceName;
     } else {
-      Query.bHasUnknownParameter = true;
+      Query.HasUnknownParameter = true;
       continue;
     }
     if (*Target) {
-      Query.bHasDuplicateParameter = true;
+      Query.HasDuplicateParameter = true;
     } else {
       *Target = Value;
     }
@@ -519,6 +519,22 @@ struct FAutomationHttpServer::Impl {
     Server.Patch(ActorMethodRoute, MethodNotAllowedHandler);
     Server.Delete(ActorMethodRoute, MethodNotAllowedHandler);
     Server.Options(ActorMethodRoute, MethodNotAllowedHandler);
+
+    const std::string ComponentMethodsRoute =
+        R"(/api/v1/world/actors/([0-9]+)/components/([0-9]+)/methods)";
+    Server.Post(ComponentMethodsRoute, MethodNotAllowedHandler);
+    Server.Put(ComponentMethodsRoute, MethodNotAllowedHandler);
+    Server.Patch(ComponentMethodsRoute, MethodNotAllowedHandler);
+    Server.Delete(ComponentMethodsRoute, MethodNotAllowedHandler);
+    Server.Options(ComponentMethodsRoute, MethodNotAllowedHandler);
+
+    const std::string ComponentMethodRoute =
+        R"(/api/v1/world/actors/([0-9]+)/components/([0-9]+)/methods/([a-z][a-z0-9_]{0,127}))";
+    Server.Get(ComponentMethodRoute, MethodNotAllowedHandler);
+    Server.Put(ComponentMethodRoute, MethodNotAllowedHandler);
+    Server.Patch(ComponentMethodRoute, MethodNotAllowedHandler);
+    Server.Delete(ComponentMethodRoute, MethodNotAllowedHandler);
+    Server.Options(ComponentMethodRoute, MethodNotAllowedHandler);
 
     const std::string SystemCommandRoute = R"(/api/v1/system/commands/([a-z][a-z0-9_]{0,127}))";
     Server.Get(SystemCommandRoute, MethodNotAllowedHandler);

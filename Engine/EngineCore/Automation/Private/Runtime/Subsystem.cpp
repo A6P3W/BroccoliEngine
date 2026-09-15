@@ -1,20 +1,19 @@
-#include "AutomationSubsystem.h"
-
 #include <exception>
 #include <memory>
 #include <utility>
 
+#include "AutomationSubsystem.h"
+#include "Http/Controllers/Controllers.h"
+#include "Http/HttpServer.h"
 #include "Log.h"
 #include "Registration/RegistrationStore.h"
-#include "Registry/ComponentMethodRegistry.h"
 #include "Registry/ActorMethodRegistry.h"
+#include "Registry/ComponentMethodRegistry.h"
 #include "Registry/SystemCommandRegistry.h"
 #include "Runtime/BuiltInCommands.h"
 #include "Runtime/CommandQueue.h"
 #include "Runtime/RuntimeState.h"
 #include "Runtime/StateProvider.h"
-#include "Http/Controllers/Controllers.h"
-#include "Http/HttpServer.h"
 #include "World/DiscoveryService.h"
 #include "World/WorldService.h"
 
@@ -145,7 +144,7 @@ struct FAutomationSubsystem::FImpl {
     ComponentMethodRegistry.reset();
     MethodRegistry.reset();
     CommandQueue.reset();
-    RuntimeState.bPaused = false;
+    RuntimeState.Paused = false;
   }
 
   FAutomationRuntimeState RuntimeState;
@@ -183,4 +182,4 @@ bool FAutomationSubsystem::IsRunning() const {
   return ImplPtr && ImplPtr->HttpServer && ImplPtr->HttpServer->IsRunning();
 }
 
-bool FAutomationSubsystem::IsPaused() const { return ImplPtr && ImplPtr->RuntimeState.bPaused; }
+bool FAutomationSubsystem::IsPaused() const { return ImplPtr && ImplPtr->RuntimeState.Paused; }

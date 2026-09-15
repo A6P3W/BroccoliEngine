@@ -5,7 +5,7 @@
 
 class BROCCOLI_ENGINE_API FAutomationWorldService {
  public:
- FAutomationActorListProvider CreateActorListProvider();
+  FAutomationActorListProvider CreateActorListProvider();
   FAutomationWorldStateProvider CreateWorldStateProvider();
   FAutomationActorProvider CreateActorProvider();
   FAutomationActorComponentListProvider CreateActorComponentListProvider();

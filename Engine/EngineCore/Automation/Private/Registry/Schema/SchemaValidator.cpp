@@ -304,7 +304,7 @@ bool ValidateValueNode(
   if (Value.is_null()) {
     return true;
   }
-  if (HasSchemaType(Type, "object")) {
+  if (Value.is_object()) {
     if (Schema.contains("required")) {
       for (const nlohmann::json& RequiredNameValue : Schema["required"]) {
         const std::string RequiredName = RequiredNameValue.get<std::string>();
@@ -334,7 +334,7 @@ bool ValidateValueNode(
         return false;
       }
     }
-  } else if (HasSchemaType(Type, "array")) {
+  } else if (Value.is_array()) {
     const size_t Count = Value.size();
     if (Schema.contains("minItems") && Count < Schema["minItems"].get<size_t>()) {
       return Fail(OutError, std::move(Path), "array has too few items.");
@@ -349,7 +349,7 @@ bool ValidateValueNode(
         }
       }
     }
-  } else if (HasSchemaType(Type, "string")) {
+  } else if (Value.is_string()) {
     const size_t Length = Value.get_ref<const std::string&>().size();
     if (Schema.contains("minLength") && Length < Schema["minLength"].get<size_t>()) {
       return Fail(OutError, std::move(Path), "string is shorter than minLength.");
@@ -357,7 +357,7 @@ bool ValidateValueNode(
     if (Schema.contains("maxLength") && Length > Schema["maxLength"].get<size_t>()) {
       return Fail(OutError, std::move(Path), "string is longer than maxLength.");
     }
-  } else if (HasSchemaType(Type, "number") || HasSchemaType(Type, "integer")) {
+  } else if (Value.is_number()) {
     const double Number = Value.get<double>();
     if (!std::isfinite(Number)) {
       return Fail(OutError, std::move(Path), "number must be finite.");

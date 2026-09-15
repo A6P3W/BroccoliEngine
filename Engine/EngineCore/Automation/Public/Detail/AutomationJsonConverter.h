@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <concepts>
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -131,7 +132,12 @@ struct TAutomationJsonConverter<std::optional<T>> {
 
   static nlohmann::json GetSchema() {
     nlohmann::json Schema = TAutomationJsonConverter<T>::GetSchema();
-    Schema["type"] = nlohmann::json::array({Schema["type"], "null"});
+    nlohmann::json Types =
+        Schema["type"].is_array() ? Schema["type"] : nlohmann::json::array({Schema["type"]});
+    if (std::find(Types.begin(), Types.end(), "null") == Types.end()) {
+      Types.push_back("null");
+    }
+    Schema["type"] = std::move(Types);
     return Schema;
   }
 };

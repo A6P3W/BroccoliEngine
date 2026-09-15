@@ -8,7 +8,7 @@
 
 struct FAutomationActorClassInfo {
   std::string ClassName;
-  bool bIsGameMode = false;
+  bool IsGameMode = false;
 };
 
 struct FAutomationLevelInfo {

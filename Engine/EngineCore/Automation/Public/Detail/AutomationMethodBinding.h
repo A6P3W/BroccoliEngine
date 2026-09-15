@@ -15,7 +15,7 @@
 struct FAutomationParameterMetadata {
   std::string Name;
   std::string Description;
-  bool bRequired = true;
+  bool Required = true;
 };
 
 namespace BroccoliAutomationDetail {
@@ -161,7 +161,7 @@ nlohmann::json MakeInputSchema(
         if (!Parameter.Description.empty()) {
           Properties[Parameter.Name]["description"] = Parameter.Description;
         }
-        if (Parameter.bRequired) {
+        if (!TIsOptional<TArgument>::value) {
           Required.push_back(Parameter.Name);
         }
       }(),

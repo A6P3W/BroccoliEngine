@@ -26,9 +26,9 @@ struct FAutomationActorComponentSnapshot {
   FComponentId ComponentId = InvalidComponentId;
   std::string Name;
   std::string ClassName;
-  bool bRegistered = false;
-  bool bPendingDestroy = false;
-  bool bReplicates = false;
+  bool Registered = false;
+  bool PendingDestroy = false;
+  bool Replicates = false;
   uint32_t NetworkId = 0;
 };
 
@@ -46,7 +46,7 @@ struct FAutomationActorListSnapshot {
 struct FAutomationWorldStateSnapshot {
   std::string SceneName;
   float Fps = 0.0f;
-  bool bWorldAvailable = false;
+  bool WorldAvailable = false;
   uint32_t ActorCount = 0;
 };
 

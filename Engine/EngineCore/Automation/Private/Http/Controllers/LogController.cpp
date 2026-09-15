@@ -1,4 +1,5 @@
 #include "LogController.h"
+
 #include "../Detail/HttpErrorMapping.h"
 #include "../Detail/HttpParsing.h"
 #include "../Detail/HttpSerialization.h"
@@ -13,7 +14,7 @@ FAutomationLogController::FAutomationLogController(
 FAutomationHttpResponse FAutomationLogController::GetRecentLogs(
     const FAutomationLogQueryText& Query
 ) {
-  if (Query.bHasUnknownParameter) {
+  if (Query.HasUnknownParameter) {
     return {
         400,
         MakeAutomationError(
@@ -21,7 +22,7 @@ FAutomationHttpResponse FAutomationLogController::GetRecentLogs(
         )
     };
   }
-  if (Query.bHasDuplicateParameter) {
+  if (Query.HasDuplicateParameter) {
     return {
         400,
         MakeAutomationError(
@@ -100,4 +101,3 @@ FAutomationHttpResponse FAutomationLogController::GetRecentLogs(
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
   }
 }
-

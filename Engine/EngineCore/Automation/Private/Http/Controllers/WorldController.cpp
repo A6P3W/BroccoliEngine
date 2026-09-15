@@ -1,4 +1,5 @@
 #include "WorldController.h"
+
 #include "../Detail/HttpErrorMapping.h"
 #include "../Detail/HttpParsing.h"
 #include "../Detail/HttpSerialization.h"
@@ -51,7 +52,7 @@ FAutomationHttpResponse FAutomationWorldController::GetState() {
 FAutomationHttpResponse FAutomationWorldController::GetWorldActors(
     const FAutomationActorQueryText& QueryText
 ) {
-  if (QueryText.bHasUnknownParameter) {
+  if (QueryText.HasUnknownParameter) {
     return {
         400,
         MakeAutomationError(
@@ -59,7 +60,7 @@ FAutomationHttpResponse FAutomationWorldController::GetWorldActors(
         )
     };
   }
-  if (QueryText.bHasDuplicateParameter) {
+  if (QueryText.HasDuplicateParameter) {
     return {
         400,
         MakeAutomationError(
@@ -137,9 +138,9 @@ FAutomationHttpResponse FAutomationWorldController::GetWorldActorComponents(
                 {{"componentId", Component.ComponentId},
                  {"name", Component.Name},
                  {"className", Component.ClassName},
-                 {"registered", Component.bRegistered},
-                 {"pendingDestroy", Component.bPendingDestroy},
-                 {"replicates", Component.bReplicates},
+                 {"registered", Component.Registered},
+                 {"pendingDestroy", Component.PendingDestroy},
+                 {"replicates", Component.Replicates},
                  {"networkId", Component.NetworkId}}
             );
           }
@@ -245,4 +246,3 @@ FAutomationHttpResponse FAutomationWorldController::PatchWorldActorTransform(
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
   }
 }
-

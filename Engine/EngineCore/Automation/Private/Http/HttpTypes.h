@@ -15,14 +15,14 @@ struct FAutomationHttpResponse {
 struct FAutomationActorQueryText {
   std::optional<std::string> ClassName;
   std::optional<std::string> InstanceName;
-  bool bHasUnknownParameter = false;
-  bool bHasDuplicateParameter = false;
+  bool HasUnknownParameter = false;
+  bool HasDuplicateParameter = false;
 };
 
 struct FAutomationLogQueryText {
   std::optional<std::string> Limit;
   std::optional<std::string> Level;
   std::optional<std::string> AfterSequence;
-  bool bHasUnknownParameter = false;
-  bool bHasDuplicateParameter = false;
+  bool HasUnknownParameter = false;
+  bool HasDuplicateParameter = false;
 };

@@ -54,7 +54,7 @@ struct TAutomationParameter {
 
   std::string Name;
   std::string Description;
-  bool bRequired = true;
+  bool Required = true;
 };
 
 template <class T>
@@ -78,7 +78,7 @@ template <class T>
 struct TIsOptional<std::optional<T>> : std::true_type {};
 
 template <class TParameter, class TArgument>
-constexpr bool bParameterMatchesArgument =
+constexpr bool ParameterMatchesArgument =
     std::is_same_v<typename TParameter::ValueType, std::remove_cvref_t<TArgument>>;
 
 template <class TParameter>
@@ -98,7 +98,7 @@ nlohmann::json MakeInputSchema(const TParameters&... Parameters) {
   (
       [&] {
         Properties[Parameters.Name] = MakeParameterSchema(Parameters);
-        if (Parameters.bRequired) {
+        if (!TIsOptional<typename std::remove_cvref_t<decltype(Parameters)>::ValueType>::value) {
           Required.push_back(Parameters.Name);
         }
       }(),
@@ -135,10 +135,10 @@ auto ReadArguments(
     const TParametersTuple& Parameters,
     std::index_sequence<TIndices...>
 ) {
-  return std::tuple<std::remove_cvref_t<
-      std::tuple_element_t<TIndices, typename TTraits::ArgumentTuple>>...>{
-      ReadArgument<std::remove_cvref_t<
-          std::tuple_element_t<TIndices, typename TTraits::ArgumentTuple>>>(
+  return std::tuple<
+      std::remove_cvref_t<std::tuple_element_t<TIndices, typename TTraits::ArgumentTuple>>...>{
+      ReadArgument<
+          std::remove_cvref_t<std::tuple_element_t<TIndices, typename TTraits::ArgumentTuple>>>(
           Arguments, std::get<TIndices>(Parameters)
       )...
   };
@@ -158,7 +158,7 @@ template <class TCallable, class TParametersTuple, size_t... TIndices>
 consteval bool SystemCommandParametersMatch(std::index_sequence<TIndices...>) {
   using TTraits = TAutomationSystemCommandTraits<std::remove_cvref_t<TCallable>>;
   return (
-      bParameterMatchesArgument<
+      ParameterMatchesArgument<
           std::tuple_element_t<TIndices, TParametersTuple>,
           std::tuple_element_t<TIndices, typename TTraits::ArgumentTuple>> &&
       ...

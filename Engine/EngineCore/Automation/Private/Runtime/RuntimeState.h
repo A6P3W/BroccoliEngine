@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 
 struct FAutomationRuntimeState {
-  bool bPaused = false;
+  bool Paused = false;
 };
 
 using FAutomationStateProvider = std::function<nlohmann::json()>;

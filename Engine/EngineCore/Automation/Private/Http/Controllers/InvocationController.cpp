@@ -1,4 +1,5 @@
 #include "InvocationController.h"
+
 #include "../Detail/HttpErrorMapping.h"
 #include "../Detail/HttpParsing.h"
 #include "../Detail/HttpSerialization.h"
@@ -52,7 +53,7 @@ FAutomationHttpResponse FAutomationInvocationController::GetWorldActorMethods(
           nlohmann::json Methods = nlohmann::json::array();
           for (const FAutomationMethodSnapshot& Snapshot :
                Registry->GetMethodsForClass(ClassName)) {
-            if (!IsActorMethodPermissionAllowed(Snapshot.Permission)) {
+            if (!IsMethodPermissionAllowed(Snapshot.Permission)) {
               continue;
             }
             Methods.push_back(
@@ -129,7 +130,7 @@ FAutomationHttpResponse FAutomationInvocationController::InvokeWorldActorMethod(
             EAutomationErrorCode::MethodNotRegistered, MethodNotRegisteredMessage
         );
       }
-      if (!IsActorMethodPermissionAllowed(Descriptor->Permission)) {
+      if (!IsMethodPermissionAllowed(Descriptor->Permission)) {
         M_LOG(
             Log,
             "Automation actor method rejected: actorId={} class={} "
@@ -217,6 +218,9 @@ FAutomationHttpResponse FAutomationInvocationController::GetWorldActorComponentM
           nlohmann::json Methods = nlohmann::json::array();
           for (const FAutomationComponentMethodSnapshot& Snapshot :
                Registry->GetMethodsForClass(Component->GetComponentClassName())) {
+            if (!IsMethodPermissionAllowed(Snapshot.Permission)) {
+              continue;
+            }
             Methods.push_back(
                 {{"name", Snapshot.Name},
                  {"description", Snapshot.Description},
@@ -291,6 +295,18 @@ FAutomationHttpResponse FAutomationInvocationController::InvokeWorldActorCompone
             EAutomationErrorCode::MethodNotRegistered,
             "The requested method is not registered for this component class."
         );
+      }
+      if (!IsMethodPermissionAllowed(Descriptor->Permission)) {
+        M_LOG(
+            Log,
+            "Automation component method rejected: actorId={} componentId={} class={} "
+            "method={} code=PERMISSION_DENIED",
+            ActorId,
+            ComponentId,
+            ClassName,
+            MethodNameText
+        );
+        return MakeAutomationError(EAutomationErrorCode::PermissionDenied, PermissionDeniedMessage);
       }
       FAutomationSchemaValidationError ValidationError;
       if (!FAutomationJsonSchemaValidator::ValidateValue(

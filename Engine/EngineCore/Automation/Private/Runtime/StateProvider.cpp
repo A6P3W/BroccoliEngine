@@ -8,8 +8,8 @@ FAutomationStateProvider CreateAutomationStateProvider(
     nlohmann::json State = {
         {"sceneName", WorldState.SceneName},
         {"fps", WorldState.Fps},
-        {"paused", RuntimeState.bPaused},
-        {"worldAvailable", WorldState.bWorldAvailable},
+        {"paused", RuntimeState.Paused},
+        {"worldAvailable", WorldState.WorldAvailable},
         {"actorCount", WorldState.ActorCount}
     };
     return State;
