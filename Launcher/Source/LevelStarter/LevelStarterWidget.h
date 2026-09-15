@@ -1,9 +1,10 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
+
 #include "WidgetBase.h"
 
 class MUIButtonComponent;
-class FAutomationMethodRegistry;
 
 // UI表示機能を持つエンジンのウィジェット基底クラス AWidgetBase を継承したウィジェットアクター
 class ALevelStarterWidget : public AWidgetBase {
@@ -13,7 +14,7 @@ class ALevelStarterWidget : public AWidgetBase {
 
   ALevelStarterWidget();
 
-  static void RegisterAutomationMethods(FAutomationMethodRegistry& Registry);
+  nlohmann::json GetAutomationStatus() const;
 
  protected:
   // 初期化用のライフサイクル関数

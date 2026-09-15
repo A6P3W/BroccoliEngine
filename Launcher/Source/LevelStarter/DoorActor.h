@@ -1,18 +1,10 @@
 #pragma once
 
 #include "Actor.h"
-#include "AutomationJsonConverter.h"
 
 struct FDoorState {
   bool bIsOpen = false;
   bool bIsLocked = false;
-};
-
-template <>
-struct TAutomationJsonConverter<FDoorState> {
-  static nlohmann::json ToJson(const FDoorState& Value) {
-    return {{"is_open", Value.bIsOpen}, {"is_locked", Value.bIsLocked}};
-  }
 };
 
 class ADoorActor : public AActor {

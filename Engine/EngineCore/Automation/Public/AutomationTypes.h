@@ -19,6 +19,8 @@ enum class EAutomationErrorCode : uint8_t {
   ActorNotFound,
   ClassNotRegistered,
   ActorPendingDestroy,
+  ComponentNotFound,
+  ComponentPendingDestroy,
   Conflict,
   MethodNotRegistered,
   PermissionDenied,

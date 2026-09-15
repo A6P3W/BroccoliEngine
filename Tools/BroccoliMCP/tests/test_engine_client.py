@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 
 import httpx
@@ -223,3 +224,59 @@ def test_get_actor_preserves_not_found_error() -> None:
 
   assert ErrorInfo.value.Code == "ACTOR_NOT_FOUND"
   assert ErrorInfo.value.HttpStatus == 404
+
+
+def test_get_component_methods_uses_component_route() -> None:
+  def handler(Request: httpx.Request) -> httpx.Response:
+    assert Request.method == "GET"
+    assert Request.url == "http://127.0.0.1:39100/api/v1/world/actors/42/components/7/methods"
+    return json_response(
+      200,
+      {
+        "success": True,
+        "data": {
+          "actorId": 42,
+          "componentId": 7,
+          "methods": [],
+        },
+      },
+    )
+
+  Client = EngineClient(BridgeConfig(), Transport=httpx.MockTransport(handler))
+  try:
+    Result = Client.get_component_methods(42, 7)
+  finally:
+    Client.close()
+
+  assert Result["actorId"] == 42
+  assert Result["componentId"] == 7
+
+
+def test_invoke_component_method_uses_component_route_and_envelope() -> None:
+  def handler(Request: httpx.Request) -> httpx.Response:
+    assert Request.method == "POST"
+    assert Request.url == (
+      "http://127.0.0.1:39100/api/v1/world/actors/42/components/7/methods/set_active"
+    )
+    assert json.loads(Request.content) == {"arguments": {"active": True}}
+    return json_response(
+      200,
+      {
+        "success": True,
+        "data": {
+          "actorId": 42,
+          "componentId": 7,
+          "methodName": "set_active",
+          "result": {"success": True},
+        },
+      },
+    )
+
+  Client = EngineClient(BridgeConfig(), Transport=httpx.MockTransport(handler))
+  try:
+    Result = Client.invoke_component_method(42, 7, "set_active", {"active": True})
+  finally:
+    Client.close()
+
+  assert Result["methodName"] == "set_active"
+  assert Result["result"] == {"success": True}

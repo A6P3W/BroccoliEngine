@@ -120,6 +120,86 @@ async def run_integration() -> dict[str, object]:
       with EngineClient(BridgeConfig()) as Engine:
         ActorMethods = Engine.get_actor_methods(ActorId).to_dict() if ActorId else None
         SystemCommandList = Engine.get_system_commands().to_dict()
+        SpawnedActorId = None
+        MutationResults: dict[str, object] = {}
+        try:
+          SpawnedActor = Engine.spawn_actor(
+            "ADoorActor",
+            LocationX=12.0,
+            LocationY=34.0,
+            Rotation=15.0,
+            Scale=1.25,
+          )
+          SpawnedActorId = SpawnedActor.ActorId
+          if SpawnedActor.ClassName != "ADoorActor":
+            raise RuntimeError("spawn_actor returned an unexpected actor class.")
+
+          PatchedActor = Engine.set_actor_transform(
+            SpawnedActorId,
+            LocationX=56.0,
+            LocationY=78.0,
+            Rotation=30.0,
+            Scale=1.5,
+          )
+          if PatchedActor.Transform.to_dict() != {
+            "location": {"x": 56.0, "y": 78.0},
+            "rotation": 30.0,
+            "scale": 1.5,
+          }:
+            raise RuntimeError("set_actor_transform returned an unexpected transform.")
+
+          DoorMethods = Engine.get_actor_methods(SpawnedActorId).to_dict()
+          DoorMethodNames = {Method["name"] for Method in DoorMethods["methods"]}
+          if not {"open_door", "close_door", "get_door_state"}.issubset(DoorMethodNames):
+            raise RuntimeError("ADoorActor method discovery is incomplete.")
+          OpenDoorResult = Engine.invoke_actor_method(SpawnedActorId, "open_door").to_dict()
+          DoorStateResult = Engine.invoke_actor_method(SpawnedActorId, "get_door_state").to_dict()
+          if DoorStateResult["result"].get("is_open") is not True:
+            raise RuntimeError("ADoorActor method invocation did not update state.")
+
+          Components = Engine.get_actor_components(SpawnedActorId)
+          DoorComponent = next(
+            (
+              Component
+              for Component in Components.Components
+              if Component.ClassName == "MDoorAutomationTestComponent"
+            ),
+            None,
+          )
+          if DoorComponent is None:
+            raise RuntimeError("ADoorActor automation component was not discovered.")
+          ComponentMethods = Engine.get_component_methods(SpawnedActorId, DoorComponent.ComponentId)
+          ComponentMethodNames = {Method["name"] for Method in ComponentMethods.get("methods", [])}
+          if not {"set_active", "is_active"}.issubset(ComponentMethodNames):
+            raise RuntimeError("Automation component method discovery is incomplete.")
+          SetActiveResult = Engine.invoke_component_method(
+            SpawnedActorId,
+            DoorComponent.ComponentId,
+            "set_active",
+            {"active": True},
+          )
+          ActiveStateResult = Engine.invoke_component_method(
+            SpawnedActorId,
+            DoorComponent.ComponentId,
+            "is_active",
+          )
+          if ActiveStateResult.get("result", {}).get("active") is not True:
+            raise RuntimeError("Automation component invocation did not update state.")
+
+          MutationResults = {
+            "spawnedActor": SpawnedActor.to_dict(),
+            "patchedActor": PatchedActor.to_dict(),
+            "openDoor": OpenDoorResult,
+            "doorState": DoorStateResult,
+            "components": Components.to_dict(),
+            "componentMethods": ComponentMethods,
+            "setActive": SetActiveResult,
+            "activeState": ActiveStateResult,
+          }
+        finally:
+          if SpawnedActorId is not None:
+            DestroyedActor = Engine.destroy_actor(SpawnedActorId)
+            MutationResults["destroyedActor"] = DestroyedActor.to_dict()
       if ActorMethods and [Method["name"] for Method in ActorMethods["methods"]] != ["get_status"]:
         raise RuntimeError("LevelStarter actor method list is invalid.")
       if not {"pause_game", "resume_game", "open_level_by_id", "open_level_by_path"}.issubset(
@@ -248,6 +328,7 @@ async def run_integration() -> dict[str, object]:
     "actorMethod": {"actorId": ActorId, "methodName": "get_status"},
     "actorMethods": ActorMethods,
     "systemCommandList": SystemCommandList,
+    "mutations": MutationResults,
     "systemCommands": {
       "pause": PauseData,
       "repeatedPause": RepeatedPauseData,
