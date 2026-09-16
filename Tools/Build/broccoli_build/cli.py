@@ -93,9 +93,6 @@ def ValidateUserPresets(ProjectDirectory: Path) -> None:
 
 
 def Regenerate(ProjectDirectory: Path, CmakeCommand: str | None = None) -> None:
-  PluginConfigurations = LoadPluginConfigurations(ProjectDirectory)
-  GeneratePluginsCmake(ProjectDirectory, PluginConfigurations)
-  RemoveDisabledExamplePluginArtifacts(ProjectDirectory, PluginConfigurations)
   ValidateUserPresets(ProjectDirectory)
   subprocess.run(
     [CmakeCommand or FindCmakeCommand(), "--preset", CONFIGURE_PRESET],
@@ -105,11 +102,8 @@ def Regenerate(ProjectDirectory: Path, CmakeCommand: str | None = None) -> None:
 
 
 def Build(ProjectDirectory: Path, Configuration: str, Reconfigure: bool) -> None:
-  PluginConfigurations = LoadPluginConfigurations(ProjectDirectory)
-  PluginsChanged = GeneratePluginsCmake(ProjectDirectory, PluginConfigurations)
-  RemoveDisabledExamplePluginArtifacts(ProjectDirectory, PluginConfigurations)
   CmakeCommand = FindCmakeCommand()
-  if Reconfigure or PluginsChanged or not (ProjectDirectory / CMAKE_CACHE_FILE).is_file():
+  if Reconfigure or not (ProjectDirectory / CMAKE_CACHE_FILE).is_file():
     Regenerate(ProjectDirectory, CmakeCommand)
 
   BuildPreset = CONFIGURATION_PRESETS[Configuration.casefold()][1]

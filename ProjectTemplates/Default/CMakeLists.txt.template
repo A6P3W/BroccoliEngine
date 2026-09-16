@@ -12,7 +12,8 @@ set(BROCCOLI_GAME_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/{PROJECT_NAME}")
 set(BROCCOLI_OUTPUT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
 
 include("${BROCCOLI_ENGINE_ROOT}/ProjectDefaults.cmake")
-include("${BROCCOLI_PROJECT_ROOT}/Intermediate/Generated/Plugins.cmake")
+include("${BROCCOLI_ENGINE_ROOT}/Engine/cmake/BroccoliProjectPlugins.cmake")
+broccoli_configure_project_plugins()
 
 add_subdirectory(BroccoliEngine/Engine)
 add_subdirectory({PROJECT_NAME})
