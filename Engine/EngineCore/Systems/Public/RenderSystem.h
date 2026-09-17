@@ -57,6 +57,14 @@ struct RectGraphData {
   int Handle = 0;
   FColor Tint = FColor::White;
 };
+struct CubeRenderData {
+  FTransform3D Transform;
+  FColor Color;
+};
+using RenderCommand3DData = std::variant<CubeRenderData>;
+struct RenderCommand3D {
+  RenderCommand3DData Data;
+};
 
 // Variant でまとめる
 using RenderCommandData =
@@ -74,6 +82,7 @@ struct RenderCommand {
 };
 
 class MCameraComponent;
+class MCamera3DComponent;
 struct FRenderContext;
 class RenderSystemImpl;
 
@@ -133,6 +142,7 @@ class BROCCOLI_ENGINE_API RenderSystem {
       int Alpha = 255,
       const FColor& Tint = FColor::White
   );
+  void SubmitCube(const FTransform3D& Transform, const FColor& Color);
 
   FVector2D WorldToScreen(const FVector2D& worldPosition) const;
   FVector2D ScreenToWorld(const FVector2D& screenPosition) const;
@@ -146,6 +156,8 @@ class BROCCOLI_ENGINE_API RenderSystem {
 
   void SetCameraView(MCameraComponent* m);
   MCameraComponent* GetCamera();
+  void SetCameraView3D(MCamera3DComponent* Camera);
+  MCamera3DComponent* GetCamera3D();
   void SetViewCullingEnabled(bool BEnabled);
   bool IsViewCullingEnabled() const;
   void SetViewCullingMargin(float Margin);
