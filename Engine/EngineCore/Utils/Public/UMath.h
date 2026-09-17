@@ -355,4 +355,11 @@ struct BROCCOLI_ENGINE_API FTransform3D {
         Parent.Scale * Local.Scale
     };
   }
+  static FTransform3D MakeRelative(const FTransform3D& World, const FTransform3D& Parent) {
+    return {
+        Parent.InverseTransformPosition(World.Location),
+        (Parent.Rotation.Inverse() * World.Rotation).Normalize(),
+        World.Scale / Parent.Scale
+    };
+  }
 };

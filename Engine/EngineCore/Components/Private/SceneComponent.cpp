@@ -45,6 +45,10 @@ bool MSceneComponent::AttachToComponent(
   for (auto* Current = Parent; Current != nullptr; Current = Current->GetParentComponent())
     if (Current == this) return false;
   const FTransform3D OldWorld = GetWorldTransform3D();
+  const FTransform3D ParentWorld =
+      Parent != nullptr ? Parent->GetWorldTransform3D() : FTransform3D{};
+  const FTransform3D RelativeToParent =
+      Parent != nullptr ? FTransform3D::MakeRelative(OldWorld, ParentWorld) : OldWorld;
   FTransform3D NewRelative = GetRelativeTransform3D();
   if (Parent != nullptr &&
       (Rules.LocationRule == EAttachmentRule::KeepWorld ||
@@ -52,19 +56,15 @@ bool MSceneComponent::AttachToComponent(
       Parent->GetWorldScale3D().IsNearlyZero())
     return false;
   if (Rules.LocationRule == EAttachmentRule::KeepWorld)
-    NewRelative.Location =
-        Parent ? Parent->GetWorldTransform3D().InverseTransformPosition(OldWorld.Location)
-               : OldWorld.Location;
+    NewRelative.Location = RelativeToParent.Location;
   else if (Rules.LocationRule == EAttachmentRule::SnapToTarget)
     NewRelative.Location = FVector3D::ZeroVector();
   if (Rules.RotationRule == EAttachmentRule::KeepWorld)
-    NewRelative.Rotation =
-        Parent ? (Parent->GetWorldRotation3D().Inverse() * OldWorld.Rotation).Normalize()
-               : OldWorld.Rotation;
+    NewRelative.Rotation = RelativeToParent.Rotation;
   else if (Rules.RotationRule == EAttachmentRule::SnapToTarget)
     NewRelative.Rotation = FQuaternion::Identity();
   if (Rules.ScaleRule == EAttachmentRule::KeepWorld)
-    NewRelative.Scale = Parent ? OldWorld.Scale / Parent->GetWorldScale3D() : OldWorld.Scale;
+    NewRelative.Scale = RelativeToParent.Scale;
   else if (Rules.ScaleRule == EAttachmentRule::SnapToTarget)
     NewRelative.Scale = FScale3D{};
   if (ImplPtr->ParentComponent != Parent) {
