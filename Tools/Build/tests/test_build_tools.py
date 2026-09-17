@@ -63,7 +63,9 @@ def TestBuildParserAcceptsConfigOption() -> None:
   assert Arguments.config == "Release"
 
 
-def TestBuildConfiguresOnlyWhenPluginSettingsChange(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def TestBuildLeavesPluginGenerationToCmakeConfigure(
+  TmpPath: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
   WritePluginSettings(TmpPath, [])
   CacheFile = TmpPath / "build" / "windows-x64" / "CMakeCache.txt"
   CacheFile.parent.mkdir(parents=True)
@@ -75,14 +77,6 @@ def TestBuildConfiguresOnlyWhenPluginSettingsChange(TmpPath: Path, monkeypatch: 
 
   monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
   monkeypatch.setattr(cli.subprocess, "run", RecordRun)
-
-  cli.Build(TmpPath, "Debug", False)
-
-  assert Commands == [
-    (["cmake", "--preset", "windows-x64-local"], TmpPath),
-    (["cmake", "--build", "--preset", "debug-local", "--target", "BroccoliProjectBuild_Debug"], TmpPath),
-  ]
-  Commands.clear()
 
   cli.Build(TmpPath, "Debug", False)
 
@@ -276,10 +270,11 @@ def TestGeneratePluginsCmakeReflectsConfigurationSettings(TmpPath: Path) -> None
   )
 
   assert GeneratePluginsCmake(TmpPath)
+  GeneratedFile = TmpPath / "Intermediate" / "Generated" / "Plugins.cmake"
+  ModifiedTime = GeneratedFile.stat().st_mtime_ns
   assert not GeneratePluginsCmake(TmpPath)
-  assert (TmpPath / "Intermediate" / "Generated" / "Plugins.cmake").read_text(
-    encoding="utf-8"
-  ) == (
+  assert GeneratedFile.stat().st_mtime_ns == ModifiedTime
+  assert GeneratedFile.read_text(encoding="utf-8") == (
     "set(BROCCOLI_PLUGINS\n"
     "  ExamplePlugin\n"
     ")\n\n"
@@ -293,6 +288,26 @@ def TestGeneratePluginsCmakeReflectsConfigurationSettings(TmpPath: Path) -> None
     "  ExamplePlugin\n"
     ")\n"
   )
+
+
+def TestGeneratePluginsCommandRemovesDisabledConfigurationArtifacts(
+  TmpPath: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+  WritePluginSettings(TmpPath, [{"name": "ExamplePlugin", "configurations": ["Editor"]}])
+  for Configuration in ("Debug", "Editor", "Release"):
+    ArtifactDirectory = TmpPath / "Bin" / "x64" / Configuration / "Plugins" / "ExamplePlugin"
+    ArtifactDirectory.mkdir(parents=True)
+
+  monkeypatch.setattr(
+    cli.sys,
+    "argv",
+    ["broccoli_build", "generate-plugins", "--project-dir", str(TmpPath)],
+  )
+
+  assert cli.Main() == 0
+  assert not (TmpPath / "Bin" / "x64" / "Debug" / "Plugins" / "ExamplePlugin").exists()
+  assert (TmpPath / "Bin" / "x64" / "Editor" / "Plugins" / "ExamplePlugin").is_dir()
+  assert not (TmpPath / "Bin" / "x64" / "Release" / "Plugins" / "ExamplePlugin").exists()
 
 
 def TestGeneratePluginsCmakeRemovesOnlyDisabledConfigurationArtifacts(TmpPath: Path) -> None:
