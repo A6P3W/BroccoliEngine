@@ -12,3 +12,5 @@ BroccoliEngineフォルダの./broccoli.bat build
 ゲームフォルダの./broccoli.bat build
 
 c++20環境
+
+運用はCONTRIBUTING.mdに従ってもらいますが、テストにおいて画面操作など開発者が行うべきと判断した場合にはテスト項目を提示すること。
