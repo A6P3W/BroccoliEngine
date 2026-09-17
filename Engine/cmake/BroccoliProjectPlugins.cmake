@@ -12,14 +12,24 @@ function(broccoli_configure_project_plugins)
     message(FATAL_ERROR "Project settings do not exist: ${ProjectSettingsFile}")
   endif()
 
+  set(BroccoliBuildToolsDirectory "${BROCCOLI_ENGINE_ROOT}/Tools/Build")
+  file(GLOB_RECURSE BroccoliBuildToolSources CONFIGURE_DEPENDS
+    LIST_DIRECTORIES false
+    "${BroccoliBuildToolsDirectory}/broccoli_build/*.py"
+  )
+  list(APPEND BroccoliBuildToolSources
+    "${BroccoliBuildToolsDirectory}/pyproject.toml"
+    "${BroccoliBuildToolsDirectory}/uv.lock"
+  )
+
   set_property(
     DIRECTORY APPEND
     PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${ProjectSettingsFile}"
+    ${BroccoliBuildToolSources}
   )
 
   find_program(BROCCOLI_UV_EXECUTABLE NAMES uv REQUIRED)
-  set(BroccoliBuildToolsDirectory "${BROCCOLI_ENGINE_ROOT}/Tools/Build")
   execute_process(
     COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BroccoliBuildToolsDirectory}" --frozen
             python -m broccoli_build generate-plugins --project-dir "${BROCCOLI_PROJECT_ROOT}"
