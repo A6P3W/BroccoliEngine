@@ -4,6 +4,7 @@
 
 class MCamera3DComponent;
 class MCubeComponent;
+class MStaticMeshComponent;
 
 class AThreeDTestActor : public AActor {
  public:
@@ -15,4 +16,6 @@ class AThreeDTestActor : public AActor {
  private:
   MCamera3DComponent* Camera = nullptr;
   MCubeComponent* RotatingCube = nullptr;
+  MStaticMeshComponent* StaticMeshA = nullptr;
+  MStaticMeshComponent* StaticMeshB = nullptr;
 };

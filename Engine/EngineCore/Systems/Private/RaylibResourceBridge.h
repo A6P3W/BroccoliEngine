@@ -3,11 +3,15 @@
 #include <string>
 
 #include "BroccoliRaylib.h"
+#include "UMath.h"
 
 const Texture2D* GetRaylibTexture(int Handle);
 Rectangle GetRaylibTextureSource(int Handle);
 bool IsRaylibRenderTexture(int Handle);
 bool GetRaylibTextureSize(int Handle, int& OutWidth, int& OutHeight);
+
+const Model* GetRaylibModel(int Handle);
+const FTransform3D* GetRaylibModelImportTransform(int Handle);
 
 const Font* GetRaylibFont(int Handle, const std::string& Text = {});
 float GetRaylibFontSize(int Handle);
