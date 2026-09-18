@@ -18,13 +18,20 @@ AStaticMeshActor::~AStaticMeshActor() = default;
 
 void AStaticMeshActor::SetModelPath(const std::string& Path) {
   ModelPath = PathResolver::SanitizeResourcePath(Path);
-  if (StaticMeshComponent == nullptr || ModelPath.empty()) {
+  if (StaticMeshComponent == nullptr) {
+    return;
+  }
+
+  if (ModelPath.empty()) {
+    StaticMeshComponent->SetModel(0);
     return;
   }
 
   const int ModelHandle = ResourceManager::GetInstance().LoadResourceModel(ModelPath);
   if (ResourceManager::GetInstance().IsModelValid(ModelHandle)) {
     StaticMeshComponent->SetModel(ModelHandle);
+  } else {
+    StaticMeshComponent->SetModel(0);
   }
 }
 

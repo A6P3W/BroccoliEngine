@@ -250,10 +250,20 @@ bool LevelSerializer::LoadData(
     M_LOG(Log, "Level data load failed: invalid or corrupted JSON. {}", e.what());
     return false;
   }
-  if (root.contains("meta") && root["meta"].is_object()) {
-    outMeta.GameModeClassName = root["meta"].value("game_mode", "");
+  int FormatVersion = 1;
+  if (root.contains("meta")) {
+    const auto& Meta = root["meta"];
+    if (!Meta.is_object()) {
+      return false;
+    }
+    outMeta.GameModeClassName = Meta.value("game_mode", "");
+    if (Meta.contains("format_version")) {
+      if (!Meta["format_version"].is_number_integer()) {
+        return false;
+      }
+      FormatVersion = Meta["format_version"].get<int>();
+    }
   }
-  const int FormatVersion = root.value("meta", json::object()).value("format_version", 1);
   if (FormatVersion != 1 && FormatVersion != 2) {
     M_LOG(Error, "Level data load failed: unsupported format version {}.", FormatVersion);
     return false;
