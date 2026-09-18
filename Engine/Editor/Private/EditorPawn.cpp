@@ -16,6 +16,10 @@ REGISTER_ACTOR(EditorPawn);
 namespace {
 constexpr float MinEditorFOV = 0.01f;
 constexpr float MaxEditorFOV = 1000.0f;
+constexpr float MinCameraSpeedMultiplier = 0.1f;
+constexpr float MaxCameraSpeedMultiplier = 15.0f;
+constexpr float CameraSpeedMultiplierStep = 0.5f;
+constexpr float ThreeDCameraBaseSpeedMultiplier = 10.0f;
 }  // namespace
 
 EditorPawn::EditorPawn() {
@@ -143,9 +147,12 @@ void EditorPawn::UpdateThreeDCamera(float DeltaTime) {
   }
   if (!ThreeDCameraNavigationActive) return;
 
-  const float Speed = IsKeyDown(KEY_LEFT_SHIFT) ? 20.0f : 8.0f;
+  const float SpeedMultiplier =
+      std::clamp(CameraSpeedMultiplier, MinCameraSpeedMultiplier, MaxCameraSpeedMultiplier);
+  const float Speed = (IsKeyDown(KEY_LEFT_SHIFT) ? 20.0f : 8.0f) * ThreeDCameraBaseSpeedMultiplier *
+                      SpeedMultiplier;
   FVector3D Movement = EditorCamera3D->GetForwardVector() * ThreeDMovementInput.Y;
-  Movement += EditorCamera3D->GetRightVector() * ThreeDMovementInput.X;
+  Movement += EditorCamera3D->GetRightVector() * -ThreeDMovementInput.X;
   Movement.Y += ThreeDVerticalMovementInput;
   if (Movement.SizeSquared() > 0.0f) {
     SetActorLocation3D(GetActorLocation3D() + Movement.Normalize() * Speed * DeltaTime);
@@ -162,7 +169,7 @@ void EditorPawn::UpdateThreeDCamera(float DeltaTime) {
 
   constexpr float CameraLookSensitivity = 0.03f;
   const FQuaternion LocalPitch =
-      FQuaternion::FromRotator({-ViewportDelta.Y * CameraLookSensitivity, 0.0f, 0.0f});
+      FQuaternion::FromRotator({ViewportDelta.Y * CameraLookSensitivity, 0.0f, 0.0f});
   const FQuaternion WorldYaw =
       FQuaternion::FromRotator({0.0f, -ViewportDelta.X * CameraLookSensitivity, 0.0f});
   SetActorRotation3D((WorldYaw * GetActorRotation3D() * LocalPitch).Normalize());
@@ -261,7 +268,9 @@ void EditorPawn::UpdateCameraDrag() {
 
   const float FieldOfView = std::clamp(Camera->GetFOV(), MinEditorFOV, MaxEditorFOV);
   FVector2D WorldDelta = {RenderTargetDelta.X, -RenderTargetDelta.Y};
-  WorldDelta *= 1.0f / FieldOfView;
+  const float SpeedMultiplier =
+      std::clamp(CameraSpeedMultiplier, MinCameraSpeedMultiplier, MaxCameraSpeedMultiplier);
+  WorldDelta *= SpeedMultiplier / FieldOfView;
   WorldDelta = WorldDelta.RotateVector(GetActorRotation());
   AddActorWorldOffset(WorldDelta * -1.0f);
 }
@@ -281,10 +290,21 @@ void EditorPawn::OnMouseMove(const FInputActionValue&) {
 }
 
 void EditorPawn::OnWheel(const FInputActionValue& Value) {
-  if (EditorModePtr != nullptr && EditorModePtr->GetViewportMode() == EEditorViewportMode::ThreeD) {
+  if (EditorModePtr == nullptr) return;
+
+  if (CameraDragActive || ThreeDCameraNavigationActive) {
+    CameraSpeedMultiplier = std::clamp(
+        CameraSpeedMultiplier + Value.Axis1D * CameraSpeedMultiplierStep,
+        MinCameraSpeedMultiplier,
+        MaxCameraSpeedMultiplier
+    );
     return;
   }
-  if (EditorModePtr == nullptr || !EditorModePtr->IsViewportInputAvailable() || Camera == nullptr) {
+
+  if (EditorModePtr->GetViewportMode() == EEditorViewportMode::ThreeD) {
+    return;
+  }
+  if (!EditorModePtr->IsViewportInputAvailable() || Camera == nullptr) {
     return;
   }
 

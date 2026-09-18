@@ -23,6 +23,7 @@ class EditorPawn : public APawn {
   void FocusActor3D(AActor* Actor);
   bool IsThreeDCameraNavigationActive() const;
   void EndThreeDCameraNavigation();
+  float GetCameraSpeedMultiplier() const { return CameraSpeedMultiplier; }
 
  private:
   void BeginPlay() override;
@@ -51,6 +52,7 @@ class EditorPawn : public APawn {
   bool DiscardNextThreeDCameraDelta = false;
   FVector2D ThreeDMovementInput = FVector2D::ZeroVector();
   float ThreeDVerticalMovementInput = 0.0f;
+  float CameraSpeedMultiplier = 1.0f;
   MCamera3DComponent* EditorCamera3D = nullptr;
   MSpriteComponent* GameScreenView;
 };
