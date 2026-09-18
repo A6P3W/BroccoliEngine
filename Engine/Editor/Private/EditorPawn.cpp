@@ -57,6 +57,9 @@ void EditorPawn::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInputC
 }
 
 void EditorPawn::OnUpdate(float DeltaTime) {
+  if (EditorModePtr != nullptr && GameScreenView != nullptr) {
+    GameScreenView->SetVisibility(EditorModePtr->GetViewportMode() == EEditorViewportMode::TwoD);
+  }
   if (CameraDragActive && (!IsWindowFocused() || EditorModePtr == nullptr || Camera == nullptr ||
                            !EditorModePtr->GetViewportState().HasValidImage() ||
                            !IsMouseButtonDown(MOUSE_BUTTON_RIGHT))) {

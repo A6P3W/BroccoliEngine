@@ -10,6 +10,7 @@
 class AActor;
 class EditorUI;
 class EditorSelectPointComponent;
+class MCamera3DComponent;
 
 enum class EEditorState {
   Idle,
@@ -50,6 +51,11 @@ class EditorMode : public AGameModeBase {
   EActorAction GetActorAction() const { return ActorAction; }
   void SetActorAction(EActorAction action) { ActorAction = action; }
 
+  EEditorViewportMode GetViewportMode() const { return ViewportState.Mode; }
+  void SetViewportMode(EEditorViewportMode Mode);
+  void FocusSelectedActor3D();
+  bool CreateStaticMeshActor(const std::string& ModelPath);
+
   FEditorViewportState& GetViewportState() { return ViewportState; }
   const FEditorViewportState& GetViewportState() const { return ViewportState; }
   void SetViewportRenderTexture(void* RenderTexture, int Width, int Height) {
@@ -80,12 +86,14 @@ class EditorMode : public AGameModeBase {
   EditorMode& operator=(EditorMode&&) = delete;
 
   void BeginPlay() override;
+  void UpdateEditorCamera3D(float DeltaTime);
   EEditorState State = EEditorState::Idle;
   std::string SelectedClass;
   std::string SelectedGameModeClass;
   AActor* SelectingActor = nullptr;  // ドラッグ中のゴースト
   AActor* SelectedActor = nullptr;   // 選択中のアクタ
   EditorSelectPointComponent* SelectedPointComponent = nullptr;
+  MCamera3DComponent* EditorCamera3D = nullptr;
   EActorAction ActorAction = EActorAction::Select;
   FEditorViewportState ViewportState;
 
