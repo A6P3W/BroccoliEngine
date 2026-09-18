@@ -3,7 +3,7 @@
 import json
 import logging
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from .config import BridgeConfig
 from .engine_client import EngineClient
@@ -51,258 +51,10 @@ def read_logs_resource(Client: EngineClient) -> str:
     raise BridgeInternalError(Operation="read game://logs/recent") from None
 
 
-def get_system_commands_tool(Client: EngineClient) -> dict[str, object]:
-  """Return registered system command descriptors."""
-
-  try:
-    return Client.get_system_commands().to_dict()
-  except BridgeError:
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while getting system commands")
-    raise BridgeInternalError(Operation="get system commands") from None
-
-
-def get_actor_tool(Client: EngineClient, *, actor_id: int) -> dict[str, object]:
-  """Return the current state of an actor by ID."""
-
-  try:
-    return Client.get_actor(actor_id).to_dict()
-  except (BridgeError, ValueError):
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while getting an actor")
-    raise BridgeInternalError(Operation="get actor") from None
-
-
-def get_component_methods_tool(
-  Client: EngineClient, *, actor_id: int, component_id: int
-) -> dict[str, object]:
-  return dict(Client.get_component_methods(actor_id, component_id))
-
-
-def invoke_component_method_tool(
-  Client: EngineClient,
-  *,
-  actor_id: int,
-  component_id: int,
-  method_name: str,
-  arguments: dict[str, object] | None = None,
-) -> dict[str, object]:
-  return dict(Client.invoke_component_method(actor_id, component_id, method_name, arguments))
-
-
-def get_actor_components_tool(Client: EngineClient, *, actor_id: int) -> dict[str, object]:
-  """Return components held by a world actor."""
-
-  try:
-    return Client.get_actor_components(actor_id).to_dict()
-  except (BridgeError, ValueError):
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while getting actor components")
-    raise BridgeInternalError(Operation="get actor components") from None
-
-
-def find_actors_tool(
-  Client: EngineClient,
-  *,
-  class_name: str | None = None,
-  instance_name: str | None = None,
-) -> dict[str, object]:
-  """Find actors by optional exact class and instance names."""
-
-  try:
-    return Client.find_actors(ClassName=class_name, InstanceName=instance_name).to_dict()
-  except (BridgeError, ValueError):
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while finding actors")
-    raise BridgeInternalError(Operation="find actors") from None
-
-
-def get_registered_actor_classes_tool(Client: EngineClient) -> dict[str, object]:
-  """Return the actor classes registered in the engine."""
-
-  try:
-    return Client.get_registered_actor_classes().to_dict()
-  except BridgeError:
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while getting registered actor classes")
-    raise BridgeInternalError(Operation="get registered actor classes") from None
-
-
-def get_levels_tool(Client: EngineClient) -> dict[str, object]:
-  """Return levels registered in the engine."""
-
-  try:
-    return Client.get_levels().to_dict()
-  except BridgeError:
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while getting registered levels")
-    raise BridgeInternalError(Operation="get registered levels") from None
-
-
-def get_class_methods_tool(Client: EngineClient, *, class_name: str) -> dict[str, object]:
-  """Return the automation methods registered for an actor class."""
-
-  try:
-    return Client.get_class_methods(class_name).to_dict()
-  except (BridgeError, ValueError):
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while getting actor class methods")
-    raise BridgeInternalError(Operation="get actor class methods") from None
-
-
-def spawn_actor_tool(
-  Client: EngineClient,
-  *,
-  class_name: str,
-  location_x: float = 0.0,
-  location_y: float = 0.0,
-  rotation: float = 0.0,
-  scale: float = 1.0,
-  instance_name: str | None = None,
-) -> dict[str, object]:
-  """Spawn a registered actor and return its validated data."""
-
-  try:
-    return Client.spawn_actor(
-      class_name,
-      LocationX=location_x,
-      LocationY=location_y,
-      Rotation=rotation,
-      Scale=scale,
-      InstanceName=instance_name,
-    ).to_dict()
-  except (BridgeError, ValueError):
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while spawning an actor")
-    raise BridgeInternalError(Operation="spawn actor") from None
-
-
-def destroy_actor_tool(Client: EngineClient, *, actor_id: int) -> dict[str, object]:
-  """Request actor destruction and return the pending-destroy result."""
-
-  try:
-    return Client.destroy_actor(actor_id).to_dict()
-  except (BridgeError, ValueError):
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while destroying an actor")
-    raise BridgeInternalError(Operation="destroy actor") from None
-
-
-def set_actor_transform_tool(
-  Client: EngineClient,
-  *,
-  actor_id: int,
-  location_x: float | None = None,
-  location_y: float | None = None,
-  rotation: float | None = None,
-  scale: float | None = None,
-) -> dict[str, object]:
-  """Partially update an actor transform and return its validated data."""
-
-  try:
-    return Client.set_actor_transform(
-      actor_id,
-      LocationX=location_x,
-      LocationY=location_y,
-      Rotation=rotation,
-      Scale=scale,
-    ).to_dict()
-  except (BridgeError, ValueError):
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while setting an actor transform")
-    raise BridgeInternalError(Operation="set actor transform") from None
-
-
-def invoke_actor_method_tool(
-  Client: EngineClient,
-  *,
-  actor_id: int,
-  method_name: str,
-  arguments: dict[str, object] | None = None,
-) -> dict[str, object]:
-  """Invoke a registered method on an actor."""
-
-  try:
-    return Client.invoke_actor_method(
-      actor_id,
-      method_name,
-      Arguments=arguments,
-    ).to_dict()
-  except (BridgeError, ValueError):
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while invoking an actor method")
-    raise BridgeInternalError(Operation="invoke actor method") from None
-
-
-def execute_system_command_tool(
-  Client: EngineClient,
-  *,
-  command_name: str,
-  arguments: dict[str, object] | None = None,
-) -> dict[str, object]:
-  """Execute a registered engine system command."""
-
-  try:
-    return Client.execute_system_command(
-      command_name,
-      Arguments=arguments,
-    ).to_dict()
-  except (BridgeError, ValueError):
-    raise
-  except Exception:
-    LOGGER.exception("Unexpected error while executing a system command")
-    raise BridgeInternalError(Operation="execute system command") from None
-
-
-def open_level_by_id_tool(
-  Client: EngineClient,
-  *,
-  scene_id: int,
-) -> dict[str, object]:
-  """Queue a registered level to open by scene ID."""
-
-  Result = Client.execute_system_command(
-    "open_level_by_id",
-    Arguments={"sceneId": scene_id},
-  )
-  CommandResult = Result.Result
-  if CommandResult.get("queued") is not True:
-    raise ValueError(f"Level ID {scene_id} could not be queued.")
-  return CommandResult
-
-
-def open_level_by_path_tool(
-  Client: EngineClient,
-  *,
-  level_path: str,
-) -> dict[str, object]:
-  """Queue a level to open by file path."""
-
-  Result = Client.execute_system_command(
-    "open_level_by_path",
-    Arguments={"levelPath": level_path},
-  )
-  CommandResult = Result.Result
-  if CommandResult.get("queued") is not True:
-    raise ValueError(f"Level path '{level_path}' could not be queued.")
-  return CommandResult
-
-
-def create_server(Client: EngineClient) -> FastMCP:
+def create_server(Client: EngineClient) -> MCPServer:
   """Create an MCP server backed by a process-owned HTTP client."""
 
-  Mcp = FastMCP("BROCCOLI ENGINE")
+  Mcp = MCPServer("BROCCOLI ENGINE")
 
   @Mcp.resource(
     "game://state",
@@ -358,9 +110,14 @@ def create_server(Client: EngineClient) -> FastMCP:
   )
   def get_system_commands() -> dict[str, object]:
     try:
-      return get_system_commands_tool(Client)
+      return Client.get_system_commands().to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except Exception:
+      LOGGER.exception("Unexpected error while getting system commands")
+      raise ValueError(
+        format_mcp_error(BridgeInternalError(Operation="get system commands"))
+      ) from None
 
   @Mcp.tool(
     name="get_actor",
@@ -368,16 +125,28 @@ def create_server(Client: EngineClient) -> FastMCP:
   )
   def get_actor(actor_id: int) -> dict[str, object]:
     try:
-      return get_actor_tool(Client, actor_id=actor_id)
+      return Client.get_actor(actor_id).to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except ValueError:
+      raise
+    except Exception:
+      LOGGER.exception("Unexpected error while getting an actor")
+      raise ValueError(format_mcp_error(BridgeInternalError(Operation="get actor"))) from None
 
   @Mcp.tool(name="get_actor_components", description="Get components held by a world actor.")
   def get_actor_components(actor_id: int) -> dict[str, object]:
     try:
-      return get_actor_components_tool(Client, actor_id=actor_id)
+      return Client.get_actor_components(actor_id).to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except ValueError:
+      raise
+    except Exception:
+      LOGGER.exception("Unexpected error while getting actor components")
+      raise ValueError(
+        format_mcp_error(BridgeInternalError(Operation="get actor components"))
+      ) from None
 
   @Mcp.tool(
     name="call_component_method",
@@ -390,13 +159,7 @@ def create_server(Client: EngineClient) -> FastMCP:
     arguments: dict[str, object] | None = None,
   ) -> dict[str, object]:
     try:
-      return invoke_component_method_tool(
-        Client,
-        actor_id=actor_id,
-        component_id=component_id,
-        method_name=method,
-        arguments=arguments,
-      )
+      return dict(Client.invoke_component_method(actor_id, component_id, method, arguments))
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
 
@@ -409,9 +172,14 @@ def create_server(Client: EngineClient) -> FastMCP:
     instance_name: str | None = None,
   ) -> dict[str, object]:
     try:
-      return find_actors_tool(Client, class_name=class_name, instance_name=instance_name)
+      return Client.find_actors(ClassName=class_name, InstanceName=instance_name).to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except ValueError:
+      raise
+    except Exception:
+      LOGGER.exception("Unexpected error while finding actors")
+      raise ValueError(format_mcp_error(BridgeInternalError(Operation="find actors"))) from None
 
   @Mcp.tool(
     name="get_registered_actor_classes",
@@ -419,9 +187,14 @@ def create_server(Client: EngineClient) -> FastMCP:
   )
   def get_registered_actor_classes() -> dict[str, object]:
     try:
-      return get_registered_actor_classes_tool(Client)
+      return Client.get_registered_actor_classes().to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except Exception:
+      LOGGER.exception("Unexpected error while getting registered actor classes")
+      raise ValueError(
+        format_mcp_error(BridgeInternalError(Operation="get registered actor classes"))
+      ) from None
 
   @Mcp.tool(
     name="get_levels",
@@ -429,9 +202,14 @@ def create_server(Client: EngineClient) -> FastMCP:
   )
   def get_levels() -> dict[str, object]:
     try:
-      return get_levels_tool(Client)
+      return Client.get_levels().to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except Exception:
+      LOGGER.exception("Unexpected error while getting registered levels")
+      raise ValueError(
+        format_mcp_error(BridgeInternalError(Operation="get registered levels"))
+      ) from None
 
   @Mcp.tool(
     name="get_class_methods",
@@ -439,9 +217,16 @@ def create_server(Client: EngineClient) -> FastMCP:
   )
   def get_class_methods(class_name: str) -> dict[str, object]:
     try:
-      return get_class_methods_tool(Client, class_name=class_name)
+      return Client.get_class_methods(class_name).to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except ValueError:
+      raise
+    except Exception:
+      LOGGER.exception("Unexpected error while getting actor class methods")
+      raise ValueError(
+        format_mcp_error(BridgeInternalError(Operation="get actor class methods"))
+      ) from None
 
   @Mcp.tool(
     name="spawn_actor",
@@ -456,17 +241,21 @@ def create_server(Client: EngineClient) -> FastMCP:
     instance_name: str | None = None,
   ) -> dict[str, object]:
     try:
-      return spawn_actor_tool(
-        Client,
-        class_name=class_name,
-        location_x=location_x,
-        location_y=location_y,
-        rotation=rotation,
-        scale=scale,
-        instance_name=instance_name,
-      )
+      return Client.spawn_actor(
+        class_name,
+        LocationX=location_x,
+        LocationY=location_y,
+        Rotation=rotation,
+        Scale=scale,
+        InstanceName=instance_name,
+      ).to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except ValueError:
+      raise
+    except Exception:
+      LOGGER.exception("Unexpected error while spawning an actor")
+      raise ValueError(format_mcp_error(BridgeInternalError(Operation="spawn actor"))) from None
 
   @Mcp.tool(
     name="destroy_actor",
@@ -474,9 +263,14 @@ def create_server(Client: EngineClient) -> FastMCP:
   )
   def destroy_actor(actor_id: int) -> dict[str, object]:
     try:
-      return destroy_actor_tool(Client, actor_id=actor_id)
+      return Client.destroy_actor(actor_id).to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except ValueError:
+      raise
+    except Exception:
+      LOGGER.exception("Unexpected error while destroying an actor")
+      raise ValueError(format_mcp_error(BridgeInternalError(Operation="destroy actor"))) from None
 
   @Mcp.tool(
     name="set_actor_transform",
@@ -490,16 +284,22 @@ def create_server(Client: EngineClient) -> FastMCP:
     scale: float | None = None,
   ) -> dict[str, object]:
     try:
-      return set_actor_transform_tool(
-        Client,
-        actor_id=actor_id,
-        location_x=location_x,
-        location_y=location_y,
-        rotation=rotation,
-        scale=scale,
-      )
+      return Client.set_actor_transform(
+        actor_id,
+        LocationX=location_x,
+        LocationY=location_y,
+        Rotation=rotation,
+        Scale=scale,
+      ).to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except ValueError:
+      raise
+    except Exception:
+      LOGGER.exception("Unexpected error while setting an actor transform")
+      raise ValueError(
+        format_mcp_error(BridgeInternalError(Operation="set actor transform"))
+      ) from None
 
   @Mcp.tool(
     name="invoke_actor_method",
@@ -511,14 +311,16 @@ def create_server(Client: EngineClient) -> FastMCP:
     arguments: dict[str, object] | None = None,
   ) -> dict[str, object]:
     try:
-      return invoke_actor_method_tool(
-        Client,
-        actor_id=actor_id,
-        method_name=method_name,
-        arguments=arguments,
-      )
+      return Client.invoke_actor_method(actor_id, method_name, Arguments=arguments).to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except ValueError:
+      raise
+    except Exception:
+      LOGGER.exception("Unexpected error while invoking an actor method")
+      raise ValueError(
+        format_mcp_error(BridgeInternalError(Operation="invoke actor method"))
+      ) from None
 
   @Mcp.tool(
     name="execute_system_command",
@@ -529,27 +331,44 @@ def create_server(Client: EngineClient) -> FastMCP:
     arguments: dict[str, object] | None = None,
   ) -> dict[str, object]:
     try:
-      return execute_system_command_tool(
-        Client,
-        command_name=command_name,
-        arguments=arguments,
-      )
+      return Client.execute_system_command(command_name, Arguments=arguments).to_dict()
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
+    except ValueError:
+      raise
+    except Exception:
+      LOGGER.exception("Unexpected error while executing a system command")
+      raise ValueError(
+        format_mcp_error(BridgeInternalError(Operation="execute system command"))
+      ) from None
 
   @Mcp.tool(
     name="open_level_by_id",
     description="Open a registered BROCCOLI ENGINE level by scene ID.",
   )
   def open_level_by_id(scene_id: int) -> dict[str, object]:
-    return open_level_by_id_tool(Client, scene_id=scene_id)
+    Result = Client.execute_system_command(
+      "open_level_by_id",
+      Arguments={"sceneId": scene_id},
+    )
+    CommandResult = Result.Result
+    if CommandResult.get("queued") is not True:
+      raise ValueError(f"Level ID {scene_id} could not be queued.")
+    return CommandResult
 
   @Mcp.tool(
     name="open_level_by_path",
     description="Open a BROCCOLI ENGINE level by file path.",
   )
   def open_level_by_path(level_path: str) -> dict[str, object]:
-    return open_level_by_path_tool(Client, level_path=level_path)
+    Result = Client.execute_system_command(
+      "open_level_by_path",
+      Arguments={"levelPath": level_path},
+    )
+    CommandResult = Result.Result
+    if CommandResult.get("queued") is not True:
+      raise ValueError(f"Level path '{level_path}' could not be queued.")
+    return CommandResult
 
   @Mcp.tool(
     name="get_component_methods",
@@ -557,7 +376,7 @@ def create_server(Client: EngineClient) -> FastMCP:
   )
   def get_component_methods(actor_id: int, component_id: int) -> dict[str, object]:
     try:
-      return get_component_methods_tool(Client, actor_id=actor_id, component_id=component_id)
+      return dict(Client.get_component_methods(actor_id, component_id))
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
 
@@ -572,13 +391,7 @@ def create_server(Client: EngineClient) -> FastMCP:
     arguments: dict[str, object] | None = None,
   ) -> dict[str, object]:
     try:
-      return invoke_component_method_tool(
-        Client,
-        actor_id=actor_id,
-        component_id=component_id,
-        method_name=method_name,
-        arguments=arguments,
-      )
+      return dict(Client.invoke_component_method(actor_id, component_id, method_name, arguments))
     except BridgeError as Error:
       raise ValueError(format_mcp_error(Error)) from None
 
