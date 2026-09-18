@@ -78,21 +78,11 @@ class EngineClient:
     Self.HttpClient.close()
 
   def get_state(Self) -> EngineState:
-    Data = Self._request_json("GET", "state", Operation=STATE_OPERATION)
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.",
-        Operation=STATE_OPERATION,
-      )
+    Data = Self._request_object("GET", "state", Operation=STATE_OPERATION)
     return EngineState.from_mapping(Data, Operation=STATE_OPERATION)
 
   def get_actors(Self) -> ActorList:
-    Data = Self._request_json("GET", "world/actors", Operation=ACTORS_OPERATION)
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.",
-        Operation=ACTORS_OPERATION,
-      )
+    Data = Self._request_object("GET", "world/actors", Operation=ACTORS_OPERATION)
     return ActorList.from_mapping(Data, Operation=ACTORS_OPERATION)
 
   def find_actors(
@@ -110,32 +100,20 @@ class EngineClient:
       Params["className"] = ClassName
     if InstanceName is not None:
       Params["instanceName"] = InstanceName
-    Data = Self._request_json("GET", "world/actors", Operation="find world actors", Params=Params)
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.", Operation="find world actors"
-      )
-    return ActorList.from_mapping(Data, Operation="find world actors")
+    Operation = "find world actors"
+    Data = Self._request_object("GET", "world/actors", Operation=Operation, Params=Params)
+    return ActorList.from_mapping(Data, Operation=Operation)
 
   def get_actor(Self, ActorId: int) -> ActorInfo:
     Self._validate_actor_id(ActorId)
     Operation = f"get world actor {ActorId}"
-    Data = Self._request_json("GET", f"world/actors/{ActorId}", Operation=Operation)
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.",
-        Operation=Operation,
-      )
+    Data = Self._request_object("GET", f"world/actors/{ActorId}", Operation=Operation)
     return ActorInfo.from_mapping(Data, Operation=Operation)
 
   def get_actor_components(Self, ActorId: int) -> ActorComponentList:
     Self._validate_actor_id(ActorId)
     Operation = f"get world actor {ActorId} components"
-    Data = Self._request_json("GET", f"world/actors/{ActorId}/components", Operation=Operation)
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.", Operation=Operation
-      )
+    Data = Self._request_object("GET", f"world/actors/{ActorId}/components", Operation=Operation)
     Result = ActorComponentList.from_mapping(Data, Operation=Operation)
     if Result.ActorId != ActorId:
       raise InvalidEngineResponse(
@@ -145,30 +123,18 @@ class EngineClient:
 
   def get_registered_actor_classes(Self) -> ActorClassList:
     Operation = "get registered actor classes"
-    Data = Self._request_json("GET", "actor-classes", Operation=Operation)
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.", Operation=Operation
-      )
+    Data = Self._request_object("GET", "actor-classes", Operation=Operation)
     return ActorClassList.from_mapping(Data, Operation=Operation)
 
   def get_levels(Self) -> LevelList:
     Operation = "get registered levels"
-    Data = Self._request_json("GET", "levels", Operation=Operation)
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.", Operation=Operation
-      )
+    Data = Self._request_object("GET", "levels", Operation=Operation)
     return LevelList.from_mapping(Data, Operation=Operation)
 
   def get_class_methods(Self, ClassName: str) -> ActorClassMethodList:
     Self._validate_name(ClassName, "ClassName")
     Operation = f"get actor class {ClassName} methods"
-    Data = Self._request_json("GET", f"actor-classes/{ClassName}/methods", Operation=Operation)
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.", Operation=Operation
-      )
+    Data = Self._request_object("GET", f"actor-classes/{ClassName}/methods", Operation=Operation)
     Result = ActorClassMethodList.from_mapping(Data, Operation=Operation)
     if Result.ClassName != ClassName:
       raise InvalidEngineResponse(
@@ -179,16 +145,11 @@ class EngineClient:
   def get_actor_methods(Self, ActorId: int) -> ActorMethodList:
     Self._validate_actor_id(ActorId)
     Operation = f"get world actor {ActorId} methods"
-    Data = Self._request_json(
+    Data = Self._request_object(
       "GET",
       f"world/actors/{ActorId}/methods",
       Operation=Operation,
     )
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.",
-        Operation=Operation,
-      )
     Result = ActorMethodList.from_mapping(Data, Operation=Operation)
     if Result.ActorId != ActorId:
       raise InvalidEngineResponse(
@@ -209,17 +170,12 @@ class EngineClient:
       raise ValueError("Arguments must be an object.")
     Body = {} if Arguments is None else dict(Arguments)
     Operation = f"invoke world actor {ActorId} method {MethodName}"
-    Data = Self._request_json(
+    Data = Self._request_object(
       "POST",
       f"world/actors/{ActorId}/methods/{MethodName}",
       Operation=Operation,
       JsonBody=Body,
     )
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.",
-        Operation=Operation,
-      )
     return ActorMethodResult.from_mapping(
       Data,
       Operation=Operation,
@@ -231,13 +187,9 @@ class EngineClient:
     Self._validate_actor_id(ActorId)
     Self._validate_actor_id(ComponentId)
     Operation = f"get world actor {ActorId} component {ComponentId} methods"
-    Data = Self._request_json(
+    Data = Self._request_object(
       "GET", f"world/actors/{ActorId}/components/{ComponentId}/methods", Operation=Operation
     )
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response data field must be an object.", Operation=Operation
-      )
     return Data
 
   def invoke_component_method(
@@ -253,30 +205,21 @@ class EngineClient:
     if Arguments is not None and not isinstance(Arguments, Mapping):
       raise ValueError("Arguments must be an object.")
     Operation = f"invoke world actor {ActorId} component {ComponentId} method {MethodName}"
-    Data = Self._request_json(
+    Data = Self._request_object(
       "POST",
       f"world/actors/{ActorId}/components/{ComponentId}/methods/{MethodName}",
       Operation=Operation,
       JsonBody={"arguments": {} if Arguments is None else dict(Arguments)},
     )
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response data field must be an object.", Operation=Operation
-      )
     return Data
 
   def get_system_commands(Self) -> SystemCommandList:
     Operation = "get system commands"
-    Data = Self._request_json(
+    Data = Self._request_object(
       "GET",
       "system/commands",
       Operation=Operation,
     )
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.",
-        Operation=Operation,
-      )
     return SystemCommandList.from_mapping(Data, Operation=Operation)
 
   def execute_system_command(
@@ -289,17 +232,12 @@ class EngineClient:
       raise ValueError("Arguments must be an object.")
     Body = {} if Arguments is None else dict(Arguments)
     Operation = f"execute system command {CommandName}"
-    Data = Self._request_json(
+    Data = Self._request_object(
       "POST",
       f"system/commands/{CommandName}",
       Operation=Operation,
       JsonBody=Body,
     )
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.",
-        Operation=Operation,
-      )
     return SystemCommandResult.from_mapping(
       Data,
       Operation=Operation,
@@ -332,28 +270,18 @@ class EngineClient:
     if InstanceName is not None:
       Body["instanceName"] = InstanceName
 
-    Data = Self._request_json(
+    Data = Self._request_object(
       "POST",
       "world/actors",
       Operation=SPAWN_ACTOR_OPERATION,
       JsonBody=Body,
     )
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.",
-        Operation=SPAWN_ACTOR_OPERATION,
-      )
     return ActorInfo.from_mapping(Data, Operation=SPAWN_ACTOR_OPERATION)
 
   def destroy_actor(Self, ActorId: int) -> DestroyActorResult:
     Self._validate_actor_id(ActorId)
     Operation = f"destroy world actor {ActorId}"
-    Data = Self._request_json("DELETE", f"world/actors/{ActorId}", Operation=Operation)
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.",
-        Operation=Operation,
-      )
+    Data = Self._request_object("DELETE", f"world/actors/{ActorId}", Operation=Operation)
     return DestroyActorResult.from_mapping(Data, Operation=Operation)
 
   def set_actor_transform(
@@ -373,17 +301,12 @@ class EngineClient:
       Scale=Scale,
     )
     Operation = f"set world actor {ActorId} transform"
-    Data = Self._request_json(
+    Data = Self._request_object(
       "PATCH",
       f"world/actors/{ActorId}/transform",
       Operation=Operation,
       JsonBody=Patch.to_dict(),
     )
-    if not isinstance(Data, Mapping):
-      raise InvalidEngineResponse(
-        "The successful response 'data' field must be an object.",
-        Operation=Operation,
-      )
     return ActorInfo.from_mapping(Data, Operation=Operation)
 
   def get_recent_logs(
@@ -409,18 +332,36 @@ class EngineClient:
         raise ValueError("AfterSequence must be an unsigned 64-bit integer.")
       Params["afterSequence"] = AfterSequence
 
-    Data = Self._request_json(
+    Data = Self._request_object(
       "GET",
       "logs/recent",
       Operation=RECENT_LOGS_OPERATION,
       Params=Params,
     )
+    return RecentLogs.from_mapping(Data, Operation=RECENT_LOGS_OPERATION)
+
+  def _request_object(
+    Self,
+    Method: str,
+    Path: str,
+    *,
+    Operation: str,
+    JsonBody: Mapping[str, Any] | None = None,
+    Params: Mapping[str, str | int] | None = None,
+  ) -> Mapping[str, Any]:
+    Data = Self._request_json(
+      Method,
+      Path,
+      Operation=Operation,
+      JsonBody=JsonBody,
+      Params=Params,
+    )
     if not isinstance(Data, Mapping):
       raise InvalidEngineResponse(
         "The successful response 'data' field must be an object.",
-        Operation=RECENT_LOGS_OPERATION,
+        Operation=Operation,
       )
-    return RecentLogs.from_mapping(Data, Operation=RECENT_LOGS_OPERATION)
+    return Data
 
   def _request_json(
     Self,

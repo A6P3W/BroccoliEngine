@@ -117,6 +117,7 @@ def test_timeout_becomes_engine_timeout() -> None:
     (json_response(200, []), "root"),
     (json_response(200, {"success": "yes", "data": {}}), "success"),
     (json_response(200, {"success": True}), "data"),
+    (json_response(200, {"success": True, "data": []}), "data' field must be an object"),
   ],
 )
 def test_invalid_envelope_is_rejected(
