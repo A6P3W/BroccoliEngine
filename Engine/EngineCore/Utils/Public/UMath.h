@@ -4,6 +4,7 @@
 #include <cmath>
 #include <compare>
 #include <numbers>
+#include <optional>
 
 #include "BroccoliEngineAPI.h"
 
@@ -273,6 +274,11 @@ struct BROCCOLI_ENGINE_API FQuaternion {
   float W = 1.0f;
 
   static constexpr FQuaternion Identity() { return {}; }
+  bool IsIdentity(float Tolerance = 1e-6f) const {
+    const FQuaternion Unit = Normalize();
+    return std::abs(Unit.X) < Tolerance && std::abs(Unit.Y) < Tolerance &&
+           std::abs(Unit.Z) < Tolerance && std::abs(std::abs(Unit.W) - 1.0f) < Tolerance;
+  }
   FQuaternion Normalize() const {
     const float Length = std::sqrt(X * X + Y * Y + Z * Z + W * W);
     return Length > 1e-6f ? FQuaternion{X / Length, Y / Length, Z / Length, W / Length}
@@ -291,7 +297,9 @@ struct BROCCOLI_ENGINE_API FQuaternion {
     };
   }
   FVector3D RotateVector(const FVector3D& Vector) const {
-    const FQuaternion Rotated = *this * FQuaternion{Vector.X, Vector.Y, Vector.Z, 0.0f} * Inverse();
+    const FQuaternion Unit = Normalize();
+    const FQuaternion Rotated =
+        Unit * FQuaternion{Vector.X, Vector.Y, Vector.Z, 0.0f} * Unit.Inverse();
     return {Rotated.X, Rotated.Y, Rotated.Z};
   }
   static FQuaternion FromRotator(const FRotator3D& Rotator) {
@@ -335,6 +343,9 @@ struct BROCCOLI_ENGINE_API FScale3D {
   bool IsNearlyZero(float Tolerance = 1e-6f) const {
     return std::abs(X) < Tolerance || std::abs(Y) < Tolerance || std::abs(Z) < Tolerance;
   }
+  bool IsUniform(float Tolerance = 1e-6f) const {
+    return std::abs(X - Y) < Tolerance && std::abs(Y - Z) < Tolerance;
+  }
 };
 
 struct BROCCOLI_ENGINE_API FTransform3D {
@@ -348,8 +359,16 @@ struct BROCCOLI_ENGINE_API FTransform3D {
     return Rotation.Inverse().RotateVector(Position - Location) /
            FVector3D{Scale.X, Scale.Y, Scale.Z};
   }
-  static FTransform3D Combine(const FTransform3D& Parent, const FTransform3D& Local) {
-    return {
+  static bool CanCombine(const FTransform3D& Parent, const FTransform3D& Local) {
+    return Parent.Scale.IsUniform() || Local.Rotation.IsIdentity();
+  }
+  static std::optional<FTransform3D> Combine(
+      const FTransform3D& Parent, const FTransform3D& Local
+  ) {
+    if (!CanCombine(Parent, Local)) {
+      return std::nullopt;
+    }
+    return FTransform3D{
         Parent.TransformPosition(Local.Location),
         (Parent.Rotation * Local.Rotation).Normalize(),
         Parent.Scale * Local.Scale

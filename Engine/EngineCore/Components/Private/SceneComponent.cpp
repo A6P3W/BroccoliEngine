@@ -44,23 +44,28 @@ bool MSceneComponent::AttachToComponent(
   if (Parent == this) return false;
   for (auto* Current = Parent; Current != nullptr; Current = Current->GetParentComponent())
     if (Current == this) return false;
-  const FTransform3D OldWorld = GetWorldTransform3D();
-  const FTransform3D ParentWorld =
-      Parent != nullptr ? Parent->GetWorldTransform3D() : FTransform3D{};
-  const FTransform3D RelativeToParent =
-      Parent != nullptr ? FTransform3D::MakeRelative(OldWorld, ParentWorld) : OldWorld;
-  FTransform3D NewRelative = GetRelativeTransform3D();
   if (Parent != nullptr &&
       (Rules.LocationRule == EAttachmentRule::KeepWorld ||
        Rules.ScaleRule == EAttachmentRule::KeepWorld) &&
       Parent->GetWorldScale3D().IsNearlyZero())
     return false;
+  const FTransform3D OldWorld = GetWorldTransform3D();
+  const FTransform3D ParentWorld =
+      Parent != nullptr ? Parent->GetWorldTransform3D() : FTransform3D{};
+  const bool NeedsRelativeTransform =
+      Parent != nullptr && (Rules.LocationRule == EAttachmentRule::KeepWorld ||
+                            Rules.ScaleRule == EAttachmentRule::KeepWorld);
+  const FTransform3D RelativeToParent =
+      NeedsRelativeTransform ? FTransform3D::MakeRelative(OldWorld, ParentWorld) : OldWorld;
+  FTransform3D NewRelative = GetRelativeTransform3D();
   if (Rules.LocationRule == EAttachmentRule::KeepWorld)
     NewRelative.Location = RelativeToParent.Location;
   else if (Rules.LocationRule == EAttachmentRule::SnapToTarget)
     NewRelative.Location = FVector3D::ZeroVector();
   if (Rules.RotationRule == EAttachmentRule::KeepWorld)
-    NewRelative.Rotation = RelativeToParent.Rotation;
+    NewRelative.Rotation = Parent != nullptr
+                               ? (ParentWorld.Rotation.Inverse() * OldWorld.Rotation).Normalize()
+                               : OldWorld.Rotation;
   else if (Rules.RotationRule == EAttachmentRule::SnapToTarget)
     NewRelative.Rotation = FQuaternion::Identity();
   if (Rules.ScaleRule == EAttachmentRule::KeepWorld)
@@ -191,18 +196,27 @@ void MSceneComponent::SetVisibility(bool Visible) {
   for (auto* Child : ImplPtr->ChildComponents) Child->SetVisibility(Visible);
 }
 void MSceneComponent::MakeTransformDirty() {
-  if (ImplPtr->TransformDirty) return;
   ImplPtr->TransformDirty = true;
   ImplPtr->GridDirty = true;
   for (auto* Child : ImplPtr->ChildComponents) Child->MakeTransformDirty();
 }
 void MSceneComponent::UpdateTransform() const {
   if (!ImplPtr->TransformDirty) return;
-  ImplPtr->WorldTransform =
-      ImplPtr->ParentComponent
-          ? FTransform3D::Combine(
-                ImplPtr->ParentComponent->GetWorldTransform3D(), ImplPtr->RelativeTransform
-            )
-          : ImplPtr->RelativeTransform;
+  if (ImplPtr->ParentComponent) {
+    const auto Combined = FTransform3D::Combine(
+        ImplPtr->ParentComponent->GetWorldTransform3D(), ImplPtr->RelativeTransform
+    );
+    if (Combined.has_value()) {
+      ImplPtr->WorldTransform = *Combined;
+    } else {
+      MLog::Log(
+          ELogLevel::Error,
+          "MSceneComponent::UpdateTransform",
+          "Cannot combine non-uniform parent scale with child rotation (produces shear)."
+      );
+    }
+  } else {
+    ImplPtr->WorldTransform = ImplPtr->RelativeTransform;
+  }
   ImplPtr->TransformDirty = false;
 }
