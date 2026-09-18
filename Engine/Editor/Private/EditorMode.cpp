@@ -52,6 +52,9 @@ void EditorMode::SetViewportMode(EEditorViewportMode Mode) {
   if (IsThreeDCameraNavigationActive()) return;
   if (ViewportState.Mode == Mode) return;
 
+  if (bThreeDCameraNavigationActive) EnableCursor();
+  bThreeDCameraNavigationActive = false;
+  bDiscardNextThreeDCameraDelta = false;
   ViewportState.Mode = Mode;
   if (Mode == EEditorViewportMode::ThreeD && EditorCamera3D != nullptr) {
     EditorCamera3D->SetActiveCamera();
@@ -352,15 +355,23 @@ void EditorMode::OnUpdate(float DeltaTime) {
 
 void EditorMode::UpdateEditorCamera3D(float DeltaTime) {
   if (ViewportState.Mode != EEditorViewportMode::ThreeD || EditorCamera3D == nullptr) {
+    if (bThreeDCameraNavigationActive) EnableCursor();
     bThreeDCameraNavigationActive = false;
+    bDiscardNextThreeDCameraDelta = false;
     return;
   }
 
   EditorCamera3D->SetActiveCamera();
   if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && IsViewportInputAvailable()) {
     bThreeDCameraNavigationActive = true;
+    bDiscardNextThreeDCameraDelta = true;
+    DisableCursor();
   }
-  if (!IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) bThreeDCameraNavigationActive = false;
+  if (!IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+    if (bThreeDCameraNavigationActive) EnableCursor();
+    bThreeDCameraNavigationActive = false;
+    bDiscardNextThreeDCameraDelta = false;
+  }
 
   if (IsViewportInputAvailable() && IsKeyPressed(KEY_F)) FocusSelectedActor3D();
   if (!bThreeDCameraNavigationActive) return;
@@ -381,10 +392,18 @@ void EditorMode::UpdateEditorCamera3D(float DeltaTime) {
 
   if (!IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) return;
   const Vector2 MouseDelta = GetMouseDelta();
-  if (MouseDelta.x == 0.0f && MouseDelta.y == 0.0f) return;
+  if (bDiscardNextThreeDCameraDelta) {
+    bDiscardNextThreeDCameraDelta = false;
+    return;
+  }
+  const FVector2D ViewportDelta =
+      ViewportState.ScreenDeltaToRenderTarget({MouseDelta.x, MouseDelta.y});
+  if (ViewportDelta.SizeSquared() <= 0.0001f) return;
   FRotator3D Rotation = EditorCamera3D->GetWorldRotation3D().ToRotator();
-  Rotation.Yaw -= MouseDelta.x * 0.15f;
-  Rotation.Pitch = (std::clamp)(Rotation.Pitch - MouseDelta.y * 0.15f, -89.0f, 89.0f);
+  constexpr float CameraLookSensitivity = 0.03f;
+  Rotation.Yaw -= ViewportDelta.X * CameraLookSensitivity;
+  Rotation.Pitch =
+      (std::clamp)(Rotation.Pitch - ViewportDelta.Y * CameraLookSensitivity, -89.0f, 89.0f);
   EditorCamera3D->SetWorldRotation3D(FQuaternion::FromRotator(Rotation));
 }
 

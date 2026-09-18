@@ -97,6 +97,7 @@ class EditorMode : public AGameModeBase {
   MCamera3DComponent* EditorCamera3D = nullptr;
   EActorAction ActorAction = EActorAction::Select;
   bool bThreeDCameraNavigationActive = false;
+  bool bDiscardNextThreeDCameraDelta = false;
   FEditorViewportState ViewportState;
 
   static std::string PendingLoadPath;
