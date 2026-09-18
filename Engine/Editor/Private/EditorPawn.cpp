@@ -133,6 +133,10 @@ void EditorPawn::UpdateThreeDCamera(float DeltaTime) {
     EndThreeDCameraNavigation();
     return;
   }
+  if (!IsWindowFocused()) {
+    EndThreeDCameraNavigation();
+    return;
+  }
 
   EditorCamera3D->SetActiveCamera();
   if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && EditorModePtr->IsViewportInputAvailable()) {
@@ -248,7 +252,7 @@ void EditorPawn::EndCameraDrag() {
 
 void EditorPawn::OnMouseRightRelease(const FInputActionValue&) {
   if (EditorModePtr != nullptr && EditorModePtr->GetViewportMode() == EEditorViewportMode::ThreeD) {
-    EndCameraDrag();
+    EndThreeDCameraNavigation();
     return;
   }
   EndCameraDrag();
