@@ -12,10 +12,10 @@
 
 #include "ActorComponent.h"
 #include "ActorId.h"
-#include "ComponentId.h"
 #include "ActorRegistry.h"
 #include "BaseObject.h"
 #include "BroccoliEngineAPI.h"
+#include "ComponentId.h"
 #include "NetBuffer.h"
 #include "NetworkManager.h"
 #include "NetworkTypes.h"
@@ -85,6 +85,14 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
 
   FScale GetActorScale() const;
   bool SetActorScale(FScale NewScale);
+
+  FVector3D GetActorLocation3D() const;
+  bool SetActorLocation3D(const FVector3D& NewLocation);
+  FQuaternion GetActorRotation3D() const;
+  bool SetActorRotation3D(const FQuaternion& NewRotation);
+  FScale3D GetActorScale3D() const;
+  bool SetActorScale3D(const FScale3D& NewScale);
+  FTransform3D GetActorTransform3D() const;
 
   void AddActorWorldOffset(const FVector2D& Offset);
   void AddActorLocalOffset(const FVector2D& Offset);

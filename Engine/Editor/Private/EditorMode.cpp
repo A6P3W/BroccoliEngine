@@ -16,6 +16,7 @@
 #include "RenderSystem.h"
 #include "SceneManager.h"
 #include "SpriteActor.h"
+#include "StaticMeshActor.h"
 #include "UMath.h"
 #include "World.h"
 const std::vector<std::string>& EditorMode::GetClassList() const {
@@ -196,13 +197,14 @@ void EditorMode::CopySelectedActor() {
   }
 
   ClipboardData.ClassName = SelectedActor->GetActorClassName();
-  ClipboardData.Location = SelectedActor->GetActorLocation();
-  ClipboardData.Rotation = SelectedActor->GetActorRotation();
-  ClipboardData.Scale = SelectedActor->GetActorScale();
+  ClipboardData.Transform = SelectedActor->GetActorTransform3D();
   ClipboardData.CustomProperties.clear();
 
   if (auto spriteActor = dynamic_cast<ASpriteActor*>(SelectedActor)) {
     ClipboardData.CustomProperties["ImagePath"] = spriteActor->GetImagePath();
+  }
+  if (auto staticMeshActor = dynamic_cast<AStaticMeshActor*>(SelectedActor)) {
+    ClipboardData.CustomProperties["ModelPath"] = staticMeshActor->GetModelPath();
   }
 
   bHasClipboard = true;
@@ -210,8 +212,8 @@ void EditorMode::CopySelectedActor() {
       Log,
       "Copied Actor: {} at ({}, {})",
       ClipboardData.ClassName,
-      ClipboardData.Location.X,
-      ClipboardData.Location.Y
+      ClipboardData.Transform.Location.X,
+      ClipboardData.Transform.Location.Y
   );
 }
 
@@ -227,21 +229,29 @@ void EditorMode::PasteActor() {
     return;
   }
 
-  AActor* NewActor = ActorRegistry::GetInstance().Spawn(
-      GetWorld(), ClipboardData.ClassName, PasteLocation, ClipboardData.Rotation
-  );
+  AActor* NewActor = ActorRegistry::GetInstance().Spawn(GetWorld(), ClipboardData.ClassName);
 
   if (!NewActor) {
     M_LOG(Log, "Paste failed: Could not spawn actor '{}'.", ClipboardData.ClassName);
     return;
   }
 
-  NewActor->SetActorScale(ClipboardData.Scale);
+  ClipboardData.Transform.Location.X = PasteLocation.X;
+  ClipboardData.Transform.Location.Y = PasteLocation.Y;
+  NewActor->SetActorLocation3D(ClipboardData.Transform.Location);
+  NewActor->SetActorRotation3D(ClipboardData.Transform.Rotation);
+  NewActor->SetActorScale3D(ClipboardData.Transform.Scale);
 
   if (auto SpriteActor = dynamic_cast<ASpriteActor*>(NewActor)) {
     auto It = ClipboardData.CustomProperties.find("ImagePath");
     if (It != ClipboardData.CustomProperties.end()) {
       SpriteActor->SetImagePath(It->second);
+    }
+  }
+  if (auto StaticMeshActor = dynamic_cast<AStaticMeshActor*>(NewActor)) {
+    auto It = ClipboardData.CustomProperties.find("ModelPath");
+    if (It != ClipboardData.CustomProperties.end()) {
+      StaticMeshActor->SetModelPath(It->second);
     }
   }
 
