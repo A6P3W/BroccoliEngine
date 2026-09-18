@@ -14,6 +14,7 @@
 #include "PathResolver.h"
 #include "SimpleCrypto.h"
 #include "SpriteActor.h"
+#include "StaticMeshActor.h"
 #include "World.h"
 #include "nlohmann/json.hpp"
 
@@ -23,10 +24,9 @@ namespace {
 std::string GetLowercaseExtension(const std::string& FilePath) {
   std::string Extension = std::filesystem::path(FilePath).extension().string();
   std::transform(
-      Extension.begin(),
-      Extension.end(),
-      Extension.begin(),
-      [](unsigned char Character) { return static_cast<char>(std::tolower(Character)); }
+      Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char Character) {
+        return static_cast<char>(std::tolower(Character));
+      }
   );
   return Extension;
 }
@@ -62,12 +62,14 @@ bool LevelSerializer::Save(
     FActorSaveData data;
     data.ClassName = name;
     data.InstanceName = actor->GetInstanceName();
-    data.Location = actor->GetActorLocation();
-    data.Rotation = actor->GetActorRotation();
-    data.Scale = actor->GetActorScale();
+    data.Transform = actor->GetActorTransform3D();
     if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor)) {
       data.CustomProperties["ImagePath"] =
           PathResolver::SanitizeResourcePath(spriteActor->GetImagePath());
+    }
+    if (auto staticMeshActor = dynamic_cast<AStaticMeshActor*>(actor)) {
+      data.CustomProperties["ModelPath"] =
+          PathResolver::SanitizeResourcePath(staticMeshActor->GetModelPath());
     }
     actors.push_back(data);
   }
@@ -112,7 +114,7 @@ bool LevelSerializer::Load(
   }
 
   for (const auto& data : actors) {
-    AActor* actor = registry.Spawn(world, data.ClassName, data.Location, data.Rotation);
+    AActor* actor = registry.Spawn(world, data.ClassName);
     if (!actor) {
       M_LOG(Log, "Spawn failed: {} (not registered?)", data.ClassName);
       continue;
@@ -127,11 +129,19 @@ bool LevelSerializer::Load(
       world->GetActorManager()->AssignInstanceName(*actor, data.InstanceName);
     }
 
-    actor->SetActorScale(data.Scale);
+    actor->SetActorLocation3D(data.Transform.Location);
+    actor->SetActorRotation3D(data.Transform.Rotation);
+    actor->SetActorScale3D(data.Transform.Scale);
     if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor)) {
       auto it = data.CustomProperties.find("ImagePath");
       if (it != data.CustomProperties.end()) {
         spriteActor->SetImagePath(it->second);
+      }
+    }
+    if (auto staticMeshActor = dynamic_cast<AStaticMeshActor*>(actor)) {
+      auto it = data.CustomProperties.find("ModelPath");
+      if (it != data.CustomProperties.end()) {
+        staticMeshActor->SetModelPath(it->second);
       }
     }
     spawnedActors.push_back(actor);
@@ -153,6 +163,7 @@ bool LevelSerializer::SaveData(
 ) {
   json root;
   root["meta"] = json::object();
+  root["meta"]["format_version"] = 2;
   root["meta"]["game_mode"] = meta.GameModeClassName;
   json arr = json::array();
   for (const auto& d : actors) {
@@ -160,9 +171,17 @@ bool LevelSerializer::SaveData(
     obj["class"] = d.ClassName;
     obj["instance_name"] = d.InstanceName;
     obj["transform"] = {
-        {"location", {{"x", d.Location.X}, {"y", d.Location.Y}}},
-        {"rotation", d.Rotation.Rotation},
-        {"scale", d.Scale.Scale}
+        {"location",
+         {{"x", d.Transform.Location.X},
+          {"y", d.Transform.Location.Y},
+          {"z", d.Transform.Location.Z}}},
+        {"rotation",
+         {{"x", d.Transform.Rotation.X},
+          {"y", d.Transform.Rotation.Y},
+          {"z", d.Transform.Rotation.Z},
+          {"w", d.Transform.Rotation.W}}},
+        {"scale",
+         {{"x", d.Transform.Scale.X}, {"y", d.Transform.Scale.Y}, {"z", d.Transform.Scale.Z}}}
     };
     if (!d.CustomProperties.empty()) {
       obj["properties"] = d.CustomProperties;
@@ -234,6 +253,11 @@ bool LevelSerializer::LoadData(
   if (root.contains("meta") && root["meta"].is_object()) {
     outMeta.GameModeClassName = root["meta"].value("game_mode", "");
   }
+  const int FormatVersion = root.value("meta", json::object()).value("format_version", 1);
+  if (FormatVersion != 1 && FormatVersion != 2) {
+    M_LOG(Error, "Level data load failed: unsupported format version {}.", FormatVersion);
+    return false;
+  }
   if (!root.contains("actors") || !root["actors"].is_array()) return false;
   for (const auto& obj : root["actors"]) {
     FActorSaveData data;
@@ -242,11 +266,27 @@ bool LevelSerializer::LoadData(
     if (obj.contains("transform")) {
       const auto& t = obj["transform"];
       if (t.contains("location")) {
-        data.Location.X = t["location"].value("x", 0.0f);
-        data.Location.Y = t["location"].value("y", 0.0f);
+        data.Transform.Location.X = t["location"].value("x", 0.0f);
+        data.Transform.Location.Y = t["location"].value("y", 0.0f);
+        data.Transform.Location.Z = t["location"].value("z", 0.0f);
       }
-      data.Rotation = FRotator(t.value("rotation", 0.0f));
-      data.Scale = FScale(t.value("scale", 1.0f));
+      if (FormatVersion == 2 && t.contains("rotation") && t["rotation"].is_object()) {
+        data.Transform.Rotation = {
+            t["rotation"].value("x", 0.0f),
+            t["rotation"].value("y", 0.0f),
+            t["rotation"].value("z", 0.0f),
+            t["rotation"].value("w", 1.0f)
+        };
+        data.Transform.Rotation = data.Transform.Rotation.Normalize();
+        if (t.contains("scale") && t["scale"].is_object()) {
+          data.Transform.Scale = {
+              t["scale"].value("x", 1.0f), t["scale"].value("y", 1.0f), t["scale"].value("z", 1.0f)
+          };
+        }
+      } else {
+        data.Transform.Rotation = FQuaternion::FromRotator({0.0f, t.value("rotation", 0.0f), 0.0f});
+        data.Transform.Scale = FScale3D(t.value("scale", 1.0f));
+      }
     }
     if (obj.contains("properties")) {
       for (auto& [key, val] : obj["properties"].items()) {

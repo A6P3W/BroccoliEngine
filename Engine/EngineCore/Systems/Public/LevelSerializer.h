@@ -1,9 +1,9 @@
 #pragma once
-#include "BroccoliEngineAPI.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "BroccoliEngineAPI.h"
 #include "UMath.h"
 
 struct FLevelMetaData {
@@ -14,9 +14,7 @@ struct FLevelMetaData {
 struct FActorSaveData {
   std::string ClassName;
   std::string InstanceName;
-  FVector2D Location;
-  FRotator Rotation = FRotator(0);
-  FScale Scale = FScale(1.0f);
+  FTransform3D Transform;
 
   // アクタ固有のプロパティ保存用
   std::unordered_map<std::string, std::string> CustomProperties;
