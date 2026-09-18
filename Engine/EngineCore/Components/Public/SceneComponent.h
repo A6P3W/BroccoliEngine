@@ -70,6 +70,21 @@ class BROCCOLI_ENGINE_API MSceneComponent : public MActorComponent {
   bool SetWorldScale(FScale NewScale);
   FScale GetWorldScale() const;
 
+  bool SetWorldLocation3D(const FVector3D& NewWorldLocation);
+  bool SetRelativeLocation3D(const FVector3D& NewRelativeLocation);
+  FVector3D GetWorldLocation3D() const;
+  FVector3D GetRelativeLocation3D() const;
+  bool SetWorldRotation3D(const FQuaternion& NewRotation);
+  bool SetRelativeRotation3D(const FQuaternion& NewRotation);
+  FQuaternion GetWorldRotation3D() const;
+  FQuaternion GetRelativeRotation3D() const;
+  bool SetWorldScale3D(const FScale3D& NewScale);
+  bool SetRelativeScale3D(const FScale3D& NewScale);
+  FScale3D GetWorldScale3D() const;
+  FScale3D GetRelativeScale3D() const;
+  FTransform3D GetWorldTransform3D() const;
+  FTransform3D GetRelativeTransform3D() const;
+
   virtual void SetVisibility(bool bNewVisibility);
   bool IsVisible() const;
 

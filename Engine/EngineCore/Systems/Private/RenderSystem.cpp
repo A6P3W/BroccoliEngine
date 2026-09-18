@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include "BroccoliRaylib.h"
+#include "Camera3DComponent.h"
 #include "CameraComponent.h"
 #include "EngineDefine.h"
 #include "Log.h"
@@ -340,7 +341,9 @@ struct FVisibilityVisitor {
 class RenderSystemImpl {
  public:
   std::vector<RenderCommand> CommandBuffer;
+  std::vector<RenderCommand3D> CommandBuffer3D;
   MCameraComponent* MainCamera = nullptr;
+  MCamera3DComponent* MainCamera3D = nullptr;
   FVector2D RenderTargetSize = {
       static_cast<float>(VirtualWidth), static_cast<float>(VirtualHeight)
   };
@@ -436,6 +439,10 @@ void RenderSystem::SubmitRectGraph(
   Impl->CommandBuffer.push_back(
       {{Priority, Alpha, Space}, RectGraphData{Dest, SrcLoc, SrcSize, Handle, Tint}}
   );
+}
+
+void RenderSystem::SubmitCube(const FTransform3D& Transform, const FColor& Color) {
+  Impl->CommandBuffer3D.push_back({CubeRenderData{Transform, Color}});
 }
 
 FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
@@ -706,9 +713,48 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
 void RenderSystem::Draw() {
   UpdateDrawStatistics();
 
-  if (Impl->CommandBuffer.empty()) {
+  if (Impl->CommandBuffer.empty() && Impl->CommandBuffer3D.empty()) {
     return;
   }
+
+  if (!Impl->CommandBuffer3D.empty() && Impl->MainCamera3D != nullptr) {
+    const FVector3D Position = Impl->MainCamera3D->GetWorldLocation3D();
+    const FVector3D Forward = Impl->MainCamera3D->GetForwardVector();
+    const FVector3D Up = Impl->MainCamera3D->GetUpVector();
+    Camera3D Camera = {
+        {Position.X, Position.Y, Position.Z},
+        {Position.X + Forward.X, Position.Y + Forward.Y, Position.Z + Forward.Z},
+        {Up.X, Up.Y, Up.Z},
+        Impl->MainCamera3D->GetFOV(),
+        Impl->MainCamera3D->GetProjection() == ECameraProjection3D::Perspective
+            ? CAMERA_PERSPECTIVE
+            : CAMERA_ORTHOGRAPHIC
+    };
+    BeginMode3D(Camera);
+    for (const RenderCommand3D& Command : Impl->CommandBuffer3D) {
+      const auto& Cube = std::get<CubeRenderData>(Command.Data);
+      const FQuaternion Rotation = Cube.Transform.Rotation.Normalize();
+      const float Angle = 2.0f * std::acos((std::clamp)(Rotation.W, -1.0f, 1.0f));
+      const float SinHalfAngle = std::sqrt((std::max)(0.0f, 1.0f - Rotation.W * Rotation.W));
+      rlPushMatrix();
+      rlTranslatef(Cube.Transform.Location.X, Cube.Transform.Location.Y, Cube.Transform.Location.Z);
+      if (SinHalfAngle > 1e-6f)
+        rlRotatef(
+            Angle * RAD2DEG,
+            Rotation.X / SinHalfAngle,
+            Rotation.Y / SinHalfAngle,
+            Rotation.Z / SinHalfAngle
+        );
+      rlScalef(Cube.Transform.Scale.X, Cube.Transform.Scale.Y, Cube.Transform.Scale.Z);
+      DrawCube({0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, ToRaylibColor(Cube.Color));
+      DrawCubeWires({0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, BLACK);
+      rlPopMatrix();
+    }
+    EndMode3D();
+  }
+  Impl->CommandBuffer3D.clear();
+
+  if (Impl->CommandBuffer.empty()) return;
 
   const FRenderContext Context = BuildRenderContext();
   CullCommands(Context);
@@ -725,6 +771,8 @@ void RenderSystem::Draw() {
 
 void RenderSystem::SetCameraView(MCameraComponent* m) { Impl->MainCamera = m; }
 MCameraComponent* RenderSystem::GetCamera() { return Impl->MainCamera; }
+void RenderSystem::SetCameraView3D(MCamera3DComponent* Camera) { Impl->MainCamera3D = Camera; }
+MCamera3DComponent* RenderSystem::GetCamera3D() { return Impl->MainCamera3D; }
 
 void RenderSystem::SetViewCullingEnabled(bool BEnabled) { Impl->BViewCullingEnabled = BEnabled; }
 
