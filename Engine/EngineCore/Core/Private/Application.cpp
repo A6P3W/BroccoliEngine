@@ -184,7 +184,7 @@ void Application::Shutdown() {
   }
 
   if (RaylibInitialized) {
-    ResourceManager::GetInstance().ReleaseResourceGraph();
+    ResourceManager::GetInstance().ReleaseAllResources();
   }
 
   if (AudioInitialized) {

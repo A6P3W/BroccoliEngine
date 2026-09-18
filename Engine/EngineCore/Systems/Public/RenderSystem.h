@@ -61,7 +61,12 @@ struct CubeRenderData {
   FTransform3D Transform;
   FColor Color;
 };
-using RenderCommand3DData = std::variant<CubeRenderData>;
+struct StaticMeshRenderData {
+  FTransform3D Transform;
+  int ModelHandle = 0;
+  FColor Tint = FColor::White;
+};
+using RenderCommand3DData = std::variant<CubeRenderData, StaticMeshRenderData>;
 struct RenderCommand3D {
   RenderCommand3DData Data;
 };
@@ -143,6 +148,9 @@ class BROCCOLI_ENGINE_API RenderSystem {
       const FColor& Tint = FColor::White
   );
   void SubmitCube(const FTransform3D& Transform, const FColor& Color);
+  void SubmitStaticMesh(
+      const FTransform3D& Transform, int ModelHandle, const FColor& Tint = FColor::White
+  );
 
   FVector2D WorldToScreen(const FVector2D& worldPosition) const;
   FVector2D ScreenToWorld(const FVector2D& screenPosition) const;

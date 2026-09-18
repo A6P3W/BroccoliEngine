@@ -69,8 +69,48 @@ struct FFontResource {
   bool OwnsFont = false;
 };
 
+struct FModelResource {
+  Model ModelData{};
+  FTransform3D ImportTransform;
+  std::string Path;
+};
+
 class FRaylibResourceStore {
  public:
+  int LoadModelResource(const std::string& Path) {
+    const auto Cached = ModelPathMap.find(Path);
+    if (Cached != ModelPathMap.end()) return Cached->second;
+
+    const std::string Extension = ToLowerExtension(FileUtils::Utf8ToPath(Path));
+    if (Extension != ".glb" && Extension != ".gltf") {
+      M_LOG(Log, "Model load rejected for unsupported extension: {}", Path);
+      return InvalidResourceHandle;
+    }
+
+    Model ModelData = LoadModel(Path.c_str());
+    if (!IsModelValid(ModelData)) {
+      M_LOG(Log, "Model load failed: {}", Path);
+      return InvalidResourceHandle;
+    }
+
+    const int Handle = NextHandle++;
+    Models.emplace(
+        Handle,
+        FModelResource{
+            ModelData,
+            {{}, FQuaternion::FromRotator({90.0f, 0.0f, 0.0f}), {}},
+            Path,
+        }
+    );
+    ModelPathMap.emplace(Path, Handle);
+    return Handle;
+  }
+
+  const FModelResource* FindModel(int Handle) const {
+    const auto It = Models.find(Handle);
+    return It == Models.end() ? nullptr : &It->second;
+  }
+
   int LoadTextureResource(const std::string& Path) {
     const auto Cached = TexturePathMap.find(Path);
     if (Cached != TexturePathMap.end()) return Cached->second;
@@ -231,6 +271,12 @@ class FRaylibResourceStore {
     }
     Textures.clear();
     TexturePathMap.clear();
+
+    for (auto& [Handle, Resource] : Models) {
+      UnloadModel(Resource.ModelData);
+    }
+    Models.clear();
+    ModelPathMap.clear();
   }
 
  private:
@@ -285,6 +331,8 @@ class FRaylibResourceStore {
   std::unordered_map<std::string, int> TexturePathMap;
   std::unordered_map<int, FFontResource> Fonts;
   std::unordered_map<std::string, int> FontKeyMap;
+  std::unordered_map<int, FModelResource> Models;
+  std::unordered_map<std::string, int> ModelPathMap;
 };
 
 FRaylibResourceStore& GetResourceStore() {
@@ -332,6 +380,15 @@ int ResourceManager::LoadResourceGraph(const std::string& Path) {
   return Handle;
 }
 
+int ResourceManager::LoadResourceModel(const std::string& Path) {
+  const std::string ResolvedPath = PathResolver::Resolve(Path);
+  return GetResourceStore().LoadModelResource(ResolvedPath);
+}
+
+bool ResourceManager::IsModelValid(int Handle) const {
+  return GetResourceStore().FindModel(Handle) != nullptr;
+}
+
 int ResourceManager::NormalizeFontWeight(int Weight) {
   if (Weight >= MinFontWeight && Weight <= MaxFontWeight && Weight % FontWeightStep == 0) {
     return Weight;
@@ -353,7 +410,9 @@ int ResourceManager::GetFontPixelSize(int FontHandle) const {
   return static_cast<int>(GetRaylibFontSize(FontHandle));
 }
 
-void ResourceManager::ReleaseResourceGraph() {
+void ResourceManager::ReleaseResourceGraph() { ReleaseAllResources(); }
+
+void ResourceManager::ReleaseAllResources() {
   GetResourceStore().ReleaseAll();
   ImplPtr->DefaultGraph = InvalidResourceHandle;
 }
@@ -382,6 +441,16 @@ bool GetRaylibTextureSize(int Handle, int& OutWidth, int& OutHeight) {
   OutWidth = Resource->Texture.width;
   OutHeight = Resource->Texture.height;
   return OutWidth > 0 && OutHeight > 0;
+}
+
+const Model* GetRaylibModel(int Handle) {
+  const FModelResource* Resource = GetResourceStore().FindModel(Handle);
+  return Resource == nullptr ? nullptr : &Resource->ModelData;
+}
+
+const FTransform3D* GetRaylibModelImportTransform(int Handle) {
+  const FModelResource* Resource = GetResourceStore().FindModel(Handle);
+  return Resource == nullptr ? nullptr : &Resource->ImportTransform;
 }
 
 const Font* GetRaylibFont(int Handle, const std::string& Text) {

@@ -19,12 +19,15 @@ class BROCCOLI_ENGINE_API ResourceManager {
   static ResourceManager& GetInstance();
 
   int LoadResourceGraph(const std::string& Path);
+  int LoadResourceModel(const std::string& Path);
+  bool IsModelValid(int Handle) const;
   static int NormalizeFontWeight(int Weight);
 
   int GetFont(int Size, int Weight = DefaultFontWeight);
   int GetTextWidth(const std::string& Text, int FontHandle);
   int GetFontPixelSize(int FontHandle) const;
   void ReleaseResourceGraph();
+  void ReleaseAllResources();
 
  private:
   struct Impl;

@@ -40,6 +40,43 @@ Color MakeTextureTint(const FColor& Tint, int Alpha, bool IsRenderTexture) {
   return {Tint.R, Tint.G, Tint.B, static_cast<unsigned char>(EffectiveAlpha)};
 }
 
+void ApplyRaylibTransform(const FTransform3D& Transform) {
+  const FQuaternion Rotation = Transform.Rotation.Normalize();
+  const float Angle = 2.0f * std::acos((std::clamp)(Rotation.W, -1.0f, 1.0f));
+  const float SinHalfAngle = std::sqrt((std::max)(0.0f, 1.0f - Rotation.W * Rotation.W));
+  rlTranslatef(Transform.Location.X, Transform.Location.Y, Transform.Location.Z);
+  if (SinHalfAngle > 1e-6f) {
+    rlRotatef(
+        Angle * RAD2DEG,
+        Rotation.X / SinHalfAngle,
+        Rotation.Y / SinHalfAngle,
+        Rotation.Z / SinHalfAngle
+    );
+  }
+  rlScalef(Transform.Scale.X, Transform.Scale.Y, Transform.Scale.Z);
+}
+
+void DrawCubeCommand(const CubeRenderData& Data) {
+  rlPushMatrix();
+  ApplyRaylibTransform(Data.Transform);
+  DrawCube({0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, ToRaylibColor(Data.Color));
+  DrawCubeWires({0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, BLACK);
+  rlPopMatrix();
+}
+
+void DrawStaticMeshCommand(const StaticMeshRenderData& Data) {
+  const Model* ModelData = GetRaylibModel(Data.ModelHandle);
+  const FTransform3D* ImportTransform = GetRaylibModelImportTransform(Data.ModelHandle);
+  if (ModelData == nullptr || ImportTransform == nullptr) return;
+
+  FTransform3D DrawTransform = Data.Transform;
+  DrawTransform.Rotation = (Data.Transform.Rotation * ImportTransform->Rotation).Normalize();
+  rlPushMatrix();
+  ApplyRaylibTransform(DrawTransform);
+  DrawModel(*ModelData, {0.0f, 0.0f, 0.0f}, 1.0f, ToRaylibColor(Data.Tint));
+  rlPopMatrix();
+}
+
 FScreenBounds MakeScreenBounds(float X1, float Y1, float X2, float Y2) {
   return {(std::min)(X1, X2), (std::min)(Y1, Y2), (std::max)(X1, X2), (std::max)(Y1, Y2)};
 }
@@ -445,6 +482,12 @@ void RenderSystem::SubmitCube(const FTransform3D& Transform, const FColor& Color
   Impl->CommandBuffer3D.push_back({CubeRenderData{Transform, Color}});
 }
 
+void RenderSystem::SubmitStaticMesh(
+    const FTransform3D& Transform, int ModelHandle, const FColor& Tint
+) {
+  Impl->CommandBuffer3D.push_back({StaticMeshRenderData{Transform, ModelHandle, Tint}});
+}
+
 FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
   FVector2D camPos = FVector2D::ZeroVector();
   float camRot = 0.0f;
@@ -732,23 +775,17 @@ void RenderSystem::Draw() {
     };
     BeginMode3D(Camera);
     for (const RenderCommand3D& Command : Impl->CommandBuffer3D) {
-      const auto& Cube = std::get<CubeRenderData>(Command.Data);
-      const FQuaternion Rotation = Cube.Transform.Rotation.Normalize();
-      const float Angle = 2.0f * std::acos((std::clamp)(Rotation.W, -1.0f, 1.0f));
-      const float SinHalfAngle = std::sqrt((std::max)(0.0f, 1.0f - Rotation.W * Rotation.W));
-      rlPushMatrix();
-      rlTranslatef(Cube.Transform.Location.X, Cube.Transform.Location.Y, Cube.Transform.Location.Z);
-      if (SinHalfAngle > 1e-6f)
-        rlRotatef(
-            Angle * RAD2DEG,
-            Rotation.X / SinHalfAngle,
-            Rotation.Y / SinHalfAngle,
-            Rotation.Z / SinHalfAngle
-        );
-      rlScalef(Cube.Transform.Scale.X, Cube.Transform.Scale.Y, Cube.Transform.Scale.Z);
-      DrawCube({0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, ToRaylibColor(Cube.Color));
-      DrawCubeWires({0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, BLACK);
-      rlPopMatrix();
+      std::visit(
+          [](const auto& Data) {
+            using T = std::decay_t<decltype(Data)>;
+            if constexpr (std::is_same_v<T, CubeRenderData>) {
+              DrawCubeCommand(Data);
+            } else if constexpr (std::is_same_v<T, StaticMeshRenderData>) {
+              DrawStaticMeshCommand(Data);
+            }
+          },
+          Command.Data
+      );
     }
     EndMode3D();
   }
