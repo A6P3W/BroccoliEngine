@@ -49,12 +49,20 @@ void EditorMode::SetSelectedActor(AActor* actor) {
 }
 
 void EditorMode::SetViewportMode(EEditorViewportMode Mode) {
+  if (IsThreeDCameraNavigationActive()) return;
   if (ViewportState.Mode == Mode) return;
 
   ViewportState.Mode = Mode;
   if (Mode == EEditorViewportMode::ThreeD && EditorCamera3D != nullptr) {
     EditorCamera3D->SetActiveCamera();
+  } else {
+    RenderSystem::GetInstance().SetCameraView3D(nullptr);
   }
+}
+
+bool EditorMode::IsThreeDCameraNavigationActive() const {
+  return bThreeDCameraNavigationActive || (ViewportState.Mode == EEditorViewportMode::ThreeD &&
+                                           IsMouseButtonDown(MOUSE_BUTTON_RIGHT));
 }
 
 void EditorMode::FocusSelectedActor3D() {
@@ -343,12 +351,19 @@ void EditorMode::OnUpdate(float DeltaTime) {
 }
 
 void EditorMode::UpdateEditorCamera3D(float DeltaTime) {
-  if (ViewportState.Mode != EEditorViewportMode::ThreeD || EditorCamera3D == nullptr) return;
+  if (ViewportState.Mode != EEditorViewportMode::ThreeD || EditorCamera3D == nullptr) {
+    bThreeDCameraNavigationActive = false;
+    return;
+  }
 
   EditorCamera3D->SetActiveCamera();
-  if (!IsViewportInputAvailable()) return;
+  if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && IsViewportInputAvailable()) {
+    bThreeDCameraNavigationActive = true;
+  }
+  if (!IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) bThreeDCameraNavigationActive = false;
 
-  if (IsKeyPressed(KEY_F)) FocusSelectedActor3D();
+  if (IsViewportInputAvailable() && IsKeyPressed(KEY_F)) FocusSelectedActor3D();
+  if (!bThreeDCameraNavigationActive) return;
 
   const float Speed = IsKeyDown(KEY_LEFT_SHIFT) ? 20.0f : 8.0f;
   FVector3D Movement = FVector3D::ZeroVector();

@@ -77,6 +77,11 @@ void DrawStaticMeshCommand(const StaticMeshRenderData& Data) {
   rlPopMatrix();
 }
 
+void DrawGridCommand(const GridRenderData& Data) {
+  if (Data.Slices <= 0 || Data.Spacing <= 0.0f) return;
+  DrawGrid(Data.Slices, Data.Spacing);
+}
+
 FScreenBounds MakeScreenBounds(float X1, float Y1, float X2, float Y2) {
   return {(std::min)(X1, X2), (std::min)(Y1, Y2), (std::max)(X1, X2), (std::max)(Y1, Y2)};
 }
@@ -488,6 +493,10 @@ void RenderSystem::SubmitStaticMesh(
   Impl->CommandBuffer3D.push_back({StaticMeshRenderData{Transform, ModelHandle, Tint}});
 }
 
+void RenderSystem::SubmitGrid3D(int Slices, float Spacing) {
+  Impl->CommandBuffer3D.push_back({GridRenderData{Slices, Spacing}});
+}
+
 FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
   FVector2D camPos = FVector2D::ZeroVector();
   float camRot = 0.0f;
@@ -782,6 +791,8 @@ void RenderSystem::Draw() {
               DrawCubeCommand(Data);
             } else if constexpr (std::is_same_v<T, StaticMeshRenderData>) {
               DrawStaticMeshCommand(Data);
+            } else if constexpr (std::is_same_v<T, GridRenderData>) {
+              DrawGridCommand(Data);
             }
           },
           Command.Data

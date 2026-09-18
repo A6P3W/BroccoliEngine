@@ -20,6 +20,11 @@ void AGridLine::BeginPlay() {
 void AGridLine::OnUpdate(float DeltaTime) { SimpleDraw(CollisionCellSize, FColor{255, 255, 255}); }
 
 void AGridLine::SimpleDraw(float CellSize, FColor Color) {
+  if (RenderSystem::GetInstance().GetCamera3D() != nullptr) {
+    RenderSystem::GetInstance().SubmitGrid3D(100, CellSize);
+    return;
+  }
+
   auto Cam = RenderSystem::GetInstance().GetCamera();
   if (!Cam) return;
 

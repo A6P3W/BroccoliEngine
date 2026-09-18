@@ -61,6 +61,7 @@ void EditorPawn::OnUpdate(float DeltaTime) {
     GameScreenView->SetVisibility(EditorModePtr->GetViewportMode() == EEditorViewportMode::TwoD);
   }
   if (CameraDragActive && (!IsWindowFocused() || EditorModePtr == nullptr || Camera == nullptr ||
+                           EditorModePtr->GetViewportMode() == EEditorViewportMode::ThreeD ||
                            !EditorModePtr->GetViewportState().HasValidImage() ||
                            !IsMouseButtonDown(MOUSE_BUTTON_RIGHT))) {
     EndCameraDrag();
@@ -74,6 +75,9 @@ void EditorPawn::OnMove(const FInputActionValue& Value) {
   if (!CameraDragActive) return;
 }
 void EditorPawn::OnMouseLeftPress(const FInputActionValue&) {
+  if (EditorModePtr != nullptr && EditorModePtr->GetViewportMode() == EEditorViewportMode::ThreeD) {
+    return;
+  }
   if (EditorModePtr == nullptr || !EditorModePtr->IsViewportInputAvailable()) return;
 
   FVector2D MouseRenderTargetPosition;
@@ -85,6 +89,9 @@ void EditorPawn::OnMouseLeftPress(const FInputActionValue&) {
 }
 
 void EditorPawn::OnMouseLeftRelease(const FInputActionValue&) {
+  if (EditorModePtr != nullptr && EditorModePtr->GetViewportMode() == EEditorViewportMode::ThreeD) {
+    return;
+  }
   if (EditorModePtr == nullptr || EditorModePtr->GetState() != EEditorState::Dragging) return;
 
   FVector2D MouseRenderTargetPosition;
@@ -97,7 +104,12 @@ void EditorPawn::OnMouseLeftRelease(const FInputActionValue&) {
   }
 }
 
-void EditorPawn::OnMouseRightPress(const FInputActionValue&) { BeginCameraDrag(); }
+void EditorPawn::OnMouseRightPress(const FInputActionValue&) {
+  if (EditorModePtr != nullptr && EditorModePtr->GetViewportMode() == EEditorViewportMode::ThreeD) {
+    return;
+  }
+  BeginCameraDrag();
+}
 
 void EditorPawn::BeginCameraDrag() {
   if (CameraDragActive || EditorModePtr == nullptr || Camera == nullptr ||
@@ -119,7 +131,13 @@ void EditorPawn::EndCameraDrag() {
   EnableCursor();
 }
 
-void EditorPawn::OnMouseRightRelease(const FInputActionValue&) { EndCameraDrag(); }
+void EditorPawn::OnMouseRightRelease(const FInputActionValue&) {
+  if (EditorModePtr != nullptr && EditorModePtr->GetViewportMode() == EEditorViewportMode::ThreeD) {
+    EndCameraDrag();
+    return;
+  }
+  EndCameraDrag();
+}
 
 void EditorPawn::UpdateCameraDrag() {
   if (!CameraDragActive || EditorModePtr == nullptr || Camera == nullptr) return;
@@ -140,6 +158,9 @@ void EditorPawn::UpdateCameraDrag() {
 }
 
 void EditorPawn::OnMouseMove(const FInputActionValue&) {
+  if (EditorModePtr != nullptr && EditorModePtr->GetViewportMode() == EEditorViewportMode::ThreeD) {
+    return;
+  }
   if (EditorModePtr == nullptr || CameraDragActive) return;
 
   const Vector2 MouseDelta = GetMouseDelta();
@@ -151,6 +172,9 @@ void EditorPawn::OnMouseMove(const FInputActionValue&) {
 }
 
 void EditorPawn::OnWheel(const FInputActionValue& Value) {
+  if (EditorModePtr != nullptr && EditorModePtr->GetViewportMode() == EEditorViewportMode::ThreeD) {
+    return;
+  }
   if (EditorModePtr == nullptr || !EditorModePtr->IsViewportInputAvailable() || Camera == nullptr) {
     return;
   }

@@ -53,6 +53,7 @@ class EditorMode : public AGameModeBase {
 
   EEditorViewportMode GetViewportMode() const { return ViewportState.Mode; }
   void SetViewportMode(EEditorViewportMode Mode);
+  bool IsThreeDCameraNavigationActive() const;
   void FocusSelectedActor3D();
   bool CreateStaticMeshActor(const std::string& ModelPath);
 
@@ -95,6 +96,7 @@ class EditorMode : public AGameModeBase {
   EditorSelectPointComponent* SelectedPointComponent = nullptr;
   MCamera3DComponent* EditorCamera3D = nullptr;
   EActorAction ActorAction = EActorAction::Select;
+  bool bThreeDCameraNavigationActive = false;
   FEditorViewportState ViewportState;
 
   static std::string PendingLoadPath;

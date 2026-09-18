@@ -79,21 +79,25 @@ void EditorController::SetupInputMappings() {
 }
 
 void EditorController::OnSelectModePressed() {
+  if (EditorModePtr == nullptr || EditorModePtr->IsThreeDCameraNavigationActive()) return;
   EditorModePtr->SetActorAction(EActorAction::Select);
   M_LOG(Log, "EditorMode: Select");
 }
 
 void EditorController::OnMoveModePressed() {
+  if (EditorModePtr == nullptr || EditorModePtr->IsThreeDCameraNavigationActive()) return;
   EditorModePtr->SetActorAction(EActorAction::Move);
   M_LOG(Log, "EditorMode: Move");
 }
 
 void EditorController::OnRotateModePressed() {
+  if (EditorModePtr == nullptr || EditorModePtr->IsThreeDCameraNavigationActive()) return;
   EditorModePtr->SetActorAction(EActorAction::Rotate);
   M_LOG(Log, "EditorMode: Rotate");
 }
 
 void EditorController::OnScaleModePressed() {
+  if (EditorModePtr == nullptr || EditorModePtr->IsThreeDCameraNavigationActive()) return;
   EditorModePtr->SetActorAction(EActorAction::Scale);
   M_LOG(Log, "EditorMode: Scale");
 }
