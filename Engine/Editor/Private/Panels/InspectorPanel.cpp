@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include <cmath>
 #include <cstdio>
 #include <string>
 
@@ -11,7 +12,31 @@
 #include "FileDialog.h"
 #include "PathResolver.h"
 #include "SpriteActor.h"
+#include "StaticMeshActor.h"
 #include "UMath.h"
+
+namespace {
+bool IsSameRotation(const FQuaternion& Left, const FQuaternion& Right) {
+  const FQuaternion NormalizedLeft = Left.Normalize();
+  const FQuaternion NormalizedRight = Right.Normalize();
+  const float Dot = NormalizedLeft.X * NormalizedRight.X + NormalizedLeft.Y * NormalizedRight.Y +
+                    NormalizedLeft.Z * NormalizedRight.Z + NormalizedLeft.W * NormalizedRight.W;
+  return std::abs(Dot) > 0.999999f;
+}
+}  // namespace
+
+void InspectorPanel::SynchronizeRotation(AActor* Actor) {
+  const FQuaternion ActorRotation = Actor->GetActorRotation3D();
+  if (RotationActor == Actor && bHasCachedRotation &&
+      IsSameRotation(ActorRotation, LastAppliedRotation)) {
+    return;
+  }
+
+  RotationActor = Actor;
+  CachedRotation = ActorRotation.ToRotator();
+  LastAppliedRotation = ActorRotation;
+  bHasCachedRotation = true;
+}
 
 void InspectorPanel::DrawContents(EditorContext& Context) {
   EditorMode* Mode = Context.Mode;
@@ -25,22 +50,64 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
   ImGui::Separator();
 
   if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
-    const FVector2D Location = SelectedActor->GetActorLocation();
-    float LocationValues[2] = {Location.X, Location.Y};
-    if (ImGui::DragFloat2("Location", LocationValues, 1.0f)) {
-      SelectedActor->SetActorLocation(FVector2D{LocationValues[0], LocationValues[1]});
-    }
+    if (Context.Viewport->Mode == EEditorViewportMode::ThreeD) {
+      const FVector3D Location = SelectedActor->GetActorLocation3D();
+      float LocationValues[3] = {Location.X, Location.Y, Location.Z};
+      if (ImGui::DragFloat3("Location", LocationValues, 0.1f)) {
+        SelectedActor->SetActorLocation3D(
+            {LocationValues[0], LocationValues[1], LocationValues[2]}
+        );
+      }
 
-    const FRotator Rotation = SelectedActor->GetActorRotation();
-    float RotationValue = Rotation.Rotation;
-    if (ImGui::DragFloat("Rotation", &RotationValue, 1.0f)) {
-      SelectedActor->SetActorRotation(FRotator(RotationValue));
-    }
+      SynchronizeRotation(SelectedActor);
+      float RotationValues[3] = {CachedRotation.Pitch, CachedRotation.Yaw, CachedRotation.Roll};
+      if (ImGui::DragFloat3("Rotation", RotationValues, 1.0f)) {
+        CachedRotation = {RotationValues[0], RotationValues[1], RotationValues[2]};
+        LastAppliedRotation = FQuaternion::FromRotator(CachedRotation);
+        SelectedActor->SetActorRotation3D(LastAppliedRotation);
+      }
 
-    const FScale Scale = SelectedActor->GetActorScale();
-    float ScaleValue = Scale.Scale;
-    if (ImGui::DragFloat("Scale", &ScaleValue, 0.01f)) {
-      SelectedActor->SetActorScale(FScale(ScaleValue));
+      const FScale3D Scale = SelectedActor->GetActorScale3D();
+      float ScaleValues[3] = {Scale.X, Scale.Y, Scale.Z};
+      if (ImGui::DragFloat3("Scale", ScaleValues, 0.01f)) {
+        SelectedActor->SetActorScale3D({ScaleValues[0], ScaleValues[1], ScaleValues[2]});
+      }
+    } else {
+      const FVector2D Location = SelectedActor->GetActorLocation();
+      float LocationValues[2] = {Location.X, Location.Y};
+      if (ImGui::DragFloat2("Location", LocationValues, 1.0f)) {
+        SelectedActor->SetActorLocation(FVector2D{LocationValues[0], LocationValues[1]});
+      }
+
+      const FRotator Rotation = SelectedActor->GetActorRotation();
+      float RotationValue = Rotation.Rotation;
+      if (ImGui::DragFloat("Rotation", &RotationValue, 1.0f)) {
+        SelectedActor->SetActorRotation(FRotator(RotationValue));
+      }
+
+      const FScale Scale = SelectedActor->GetActorScale();
+      float ScaleValue = Scale.Scale;
+      if (ImGui::DragFloat("Scale", &ScaleValue, 0.01f)) {
+        SelectedActor->SetActorScale(FScale(ScaleValue));
+      }
+    }
+  }
+
+  if (auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(SelectedActor)) {
+    ImGui::Separator();
+    if (ImGui::CollapsingHeader("Static Mesh", ImGuiTreeNodeFlags_DefaultOpen)) {
+      char PathBuffer[512] = {};
+      std::snprintf(PathBuffer, sizeof(PathBuffer), "%s", StaticMeshActor->GetModelPath().c_str());
+      if (ImGui::InputText("Model Path", PathBuffer, sizeof(PathBuffer))) {
+        StaticMeshActor->SetModelPath(PathBuffer);
+      }
+      if (ImGui::Button("Select Model...")) {
+        const std::string FilePath = FileDialog::OpenFile(
+            "3D Model Files (*.glb;*.gltf)\0*.glb;*.gltf\0All Files (*.*)\0*.*\0",
+            PathResolver::GetGameResourceDir()
+        );
+        if (!FilePath.empty()) StaticMeshActor->SetModelPath(FilePath);
+      }
     }
   }
 

@@ -2,6 +2,11 @@
 
 #include "UMath.h"
 
+enum class EEditorViewportMode {
+  TwoD,
+  ThreeD,
+};
+
 struct FEditorViewportState {
   void* RenderTexture = nullptr;
   FVector2D RequestedRenderSize = FVector2D::ZeroVector();
@@ -10,6 +15,7 @@ struct FEditorViewportState {
   FVector2D ImageSize = FVector2D::ZeroVector();
   bool Hovered = false;
   bool Focused = false;
+  EEditorViewportMode Mode = EEditorViewportMode::TwoD;
 
   void ResetFrameState() {
     ImagePosition = FVector2D::ZeroVector();

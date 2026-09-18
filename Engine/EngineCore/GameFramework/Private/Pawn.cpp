@@ -44,6 +44,6 @@ void APawn::OnInteractPressed() { M_LOG(Log, "FFFF"); }
 void APawn::OnMove(const FInputActionValue& Value) {
   auto MovementComponents = GetComponents<MNetMovementComponent>();
   if (!MovementComponents.empty() && MovementComponents.front()) {
-    MovementComponents.front()->AddWorldForce(Value.Axis2D * -16.0f);
+    MovementComponents.front()->AddWorldForce(Value.Axis2D * 16.0f);
   }
 }

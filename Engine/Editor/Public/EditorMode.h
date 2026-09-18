@@ -9,6 +9,7 @@
 
 class AActor;
 class EditorUI;
+class EditorPawn;
 class EditorSelectPointComponent;
 
 enum class EEditorState {
@@ -50,6 +51,12 @@ class EditorMode : public AGameModeBase {
   EActorAction GetActorAction() const { return ActorAction; }
   void SetActorAction(EActorAction action) { ActorAction = action; }
 
+  EEditorViewportMode GetViewportMode() const { return ViewportState.Mode; }
+  void SetViewportMode(EEditorViewportMode Mode);
+  bool IsThreeDCameraNavigationActive() const;
+  void SetEditorPawn(EditorPawn* Pawn) { EditorPawnPtr = Pawn; }
+  EditorPawn* GetEditorPawn() const { return EditorPawnPtr; }
+
   FEditorViewportState& GetViewportState() { return ViewportState; }
   const FEditorViewportState& GetViewportState() const { return ViewportState; }
   void SetViewportRenderTexture(void* RenderTexture, int Width, int Height) {
@@ -86,6 +93,7 @@ class EditorMode : public AGameModeBase {
   AActor* SelectingActor = nullptr;  // ドラッグ中のゴースト
   AActor* SelectedActor = nullptr;   // 選択中のアクタ
   EditorSelectPointComponent* SelectedPointComponent = nullptr;
+  EditorPawn* EditorPawnPtr = nullptr;
   EActorAction ActorAction = EActorAction::Select;
   FEditorViewportState ViewportState;
 

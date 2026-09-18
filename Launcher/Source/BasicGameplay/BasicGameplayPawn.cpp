@@ -73,6 +73,6 @@ void ABasicGameplayPawn::SetupPlayerInputComponent(MEnhancedInputComponent* Play
 void ABasicGameplayPawn::Move(const FInputActionValue& Value) {
   if (Movement) {
     // 移動コンポーネントに対して、入力値（2D移動ベクトル）に基づいた力を加える
-    Movement->AddWorldForce(Value.Axis2D * -2.0f);
+    Movement->AddWorldForce(Value.Axis2D * 2.0f);
   }
 }

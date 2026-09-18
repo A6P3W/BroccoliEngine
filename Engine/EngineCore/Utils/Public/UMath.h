@@ -262,6 +262,7 @@ struct BROCCOLI_ENGINE_API FVector3D {
 };
 
 struct BROCCOLI_ENGINE_API FRotator3D {
+  // BroccoliEngine uses a Y-up coordinate system: Pitch=X, Yaw=Y, Roll=Z.
   float Pitch = 0.0f;
   float Yaw = 0.0f;
   float Roll = 0.0f;
@@ -307,8 +308,8 @@ struct BROCCOLI_ENGINE_API FQuaternion {
     const float YawRadians = UMath::DegToRad(Rotator.Yaw) * 0.5f;
     const float RollRadians = UMath::DegToRad(Rotator.Roll) * 0.5f;
     const FQuaternion Pitch{std::sin(PitchRadians), 0.0f, 0.0f, std::cos(PitchRadians)};
-    const FQuaternion Yaw{0.0f, 0.0f, std::sin(YawRadians), std::cos(YawRadians)};
-    const FQuaternion Roll{0.0f, std::sin(RollRadians), 0.0f, std::cos(RollRadians)};
+    const FQuaternion Yaw{0.0f, std::sin(YawRadians), 0.0f, std::cos(YawRadians)};
+    const FQuaternion Roll{0.0f, 0.0f, std::sin(RollRadians), std::cos(RollRadians)};
     return (Yaw * Pitch * Roll).Normalize();
   }
   FRotator3D ToRotator() const {
@@ -316,12 +317,12 @@ struct BROCCOLI_ENGINE_API FQuaternion {
     const float SinPitch = 2.0f * (Unit.W * Unit.X - Unit.Y * Unit.Z);
     const float Pitch = std::asin((std::clamp)(SinPitch, -1.0f, 1.0f));
     const float Yaw = std::atan2(
-        2.0f * (Unit.W * Unit.Z + Unit.X * Unit.Y),
-        1.0f - 2.0f * (Unit.X * Unit.X + Unit.Z * Unit.Z)
+        2.0f * (Unit.W * Unit.Y + Unit.X * Unit.Z),
+        1.0f - 2.0f * (Unit.X * Unit.X + Unit.Y * Unit.Y)
     );
     const float Roll = std::atan2(
-        2.0f * (Unit.W * Unit.Y + Unit.Z * Unit.X),
-        1.0f - 2.0f * (Unit.X * Unit.X + Unit.Y * Unit.Y)
+        2.0f * (Unit.W * Unit.Z + Unit.X * Unit.Y),
+        1.0f - 2.0f * (Unit.X * Unit.X + Unit.Z * Unit.Z)
     );
     return {UMath::RadToDeg(Pitch), UMath::RadToDeg(Yaw), UMath::RadToDeg(Roll)};
   }

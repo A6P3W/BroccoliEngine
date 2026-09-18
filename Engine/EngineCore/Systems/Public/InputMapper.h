@@ -36,6 +36,7 @@ struct EditorInputAction {
   static constexpr auto Copy = "EditorCopy";
   static constexpr auto Paste = "EditorPaste";
   static constexpr auto Cut = "EditorCut";
+  static constexpr auto MoveVertical = "EditorMoveVertical";
 };
 struct UIAction {
   static constexpr auto Move = "UI_Move";

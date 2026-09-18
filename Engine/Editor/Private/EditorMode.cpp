@@ -17,7 +17,6 @@
 #include "SceneManager.h"
 #include "SpriteActor.h"
 #include "StaticMeshActor.h"
-#include "UMath.h"
 #include "World.h"
 const std::vector<std::string>& EditorMode::GetClassList() const {
   return ActorRegistry::GetInstance().GetClassNames();
@@ -45,6 +44,23 @@ void EditorMode::SetSelectedActor(AActor* actor) {
       SelectedPointComponent->Selected(true);
     }
   }
+}
+
+void EditorMode::SetViewportMode(EEditorViewportMode Mode) {
+  if (IsThreeDCameraNavigationActive()) return;
+  if (ViewportState.Mode == Mode) return;
+
+  if (EditorPawnPtr != nullptr) EditorPawnPtr->EndThreeDCameraNavigation();
+  ViewportState.Mode = Mode;
+  if (Mode == EEditorViewportMode::ThreeD && EditorPawnPtr != nullptr) {
+    EditorPawnPtr->SetEditorCamera3DActive();
+  } else {
+    RenderSystem::GetInstance().SetCameraView3D(nullptr);
+  }
+}
+
+bool EditorMode::IsThreeDCameraNavigationActive() const {
+  return EditorPawnPtr != nullptr && EditorPawnPtr->IsThreeDCameraNavigationActive();
 }
 
 void EditorMode::OnMousePress(const FVector2D& worldPos) {
@@ -285,6 +301,7 @@ void EditorMode::DeleteSelectedActor() {
 }
 
 void EditorMode::OnUpdate(float DeltaTime) {
+  (void)DeltaTime;
   static EditorUI ui;
   ui.UpdateAndDraw(this);
 }

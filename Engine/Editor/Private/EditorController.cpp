@@ -68,6 +68,8 @@ void EditorController::SetupInputMappings() {
     Mapper->AddMapping(EditorInputAction::MoveMode, kb, EKey::W);
     Mapper->AddMapping(EditorInputAction::RotateMode, kb, EKey::E);
     Mapper->AddMapping(EditorInputAction::ScaleMode, kb, EKey::R);
+    Mapper->AddMapping(EditorInputAction::MoveVertical, kb, EKey::E, "", 1.0f);
+    Mapper->AddMapping(EditorInputAction::MoveVertical, kb, EKey::Q, "", -1.0f);
 
     Mapper->AddMapping(EditorInputAction::ModifierCtrl, kb, EKey::LeftControl);
     Mapper->AddMapping(EditorInputAction::Copy, kb, EKey::C, EditorInputAction::ModifierCtrl);
@@ -79,21 +81,25 @@ void EditorController::SetupInputMappings() {
 }
 
 void EditorController::OnSelectModePressed() {
+  if (EditorModePtr == nullptr || EditorModePtr->IsThreeDCameraNavigationActive()) return;
   EditorModePtr->SetActorAction(EActorAction::Select);
   M_LOG(Log, "EditorMode: Select");
 }
 
 void EditorController::OnMoveModePressed() {
+  if (EditorModePtr == nullptr || EditorModePtr->IsThreeDCameraNavigationActive()) return;
   EditorModePtr->SetActorAction(EActorAction::Move);
   M_LOG(Log, "EditorMode: Move");
 }
 
 void EditorController::OnRotateModePressed() {
+  if (EditorModePtr == nullptr || EditorModePtr->IsThreeDCameraNavigationActive()) return;
   EditorModePtr->SetActorAction(EActorAction::Rotate);
   M_LOG(Log, "EditorMode: Rotate");
 }
 
 void EditorController::OnScaleModePressed() {
+  if (EditorModePtr == nullptr || EditorModePtr->IsThreeDCameraNavigationActive()) return;
   EditorModePtr->SetActorAction(EActorAction::Scale);
   M_LOG(Log, "EditorMode: Scale");
 }

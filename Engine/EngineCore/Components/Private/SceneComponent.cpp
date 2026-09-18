@@ -174,16 +174,16 @@ FVector2D MSceneComponent::GetRelativeLocation() const {
 }
 bool MSceneComponent::SetWorldRotation(FRotator Rotation) {
   const auto Euler = GetWorldRotation3D().ToRotator();
-  return SetWorldRotation3D(FQuaternion::FromRotator({Euler.Pitch, Rotation.Rotation, Euler.Roll}));
+  return SetWorldRotation3D(FQuaternion::FromRotator({Euler.Pitch, Euler.Yaw, Rotation.Rotation}));
 }
 bool MSceneComponent::AddWorldRotation(FRotator Rotation) {
   return SetWorldRotation(FRotator(GetWorldRotation().Rotation + Rotation.Rotation));
 }
 FRotator MSceneComponent::GetWorldRotation() const {
-  return FRotator(GetWorldRotation3D().ToRotator().Yaw);
+  return FRotator(GetWorldRotation3D().ToRotator().Roll);
 }
 FRotator MSceneComponent::GetRelativeRotation() const {
-  return FRotator(GetRelativeRotation3D().ToRotator().Yaw);
+  return FRotator(GetRelativeRotation3D().ToRotator().Roll);
 }
 bool MSceneComponent::SetRelativeScale(FScale Scale) {
   return SetRelativeScale3D(FScale3D(Scale.Scale));
