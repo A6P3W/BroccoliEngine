@@ -292,6 +292,26 @@ bool AActor::SetActorScale(FScale NewScale) {
   return true;
 }
 
+FVector3D AActor::GetActorLocation3D() const { return RootComponent->GetWorldLocation3D(); }
+
+bool AActor::SetActorLocation3D(const FVector3D& NewLocation) {
+  return RootComponent->SetWorldLocation3D(NewLocation);
+}
+
+FQuaternion AActor::GetActorRotation3D() const { return RootComponent->GetWorldRotation3D(); }
+
+bool AActor::SetActorRotation3D(const FQuaternion& NewRotation) {
+  return RootComponent->SetWorldRotation3D(NewRotation);
+}
+
+FScale3D AActor::GetActorScale3D() const { return RootComponent->GetWorldScale3D(); }
+
+bool AActor::SetActorScale3D(const FScale3D& NewScale) {
+  return RootComponent->SetWorldScale3D(NewScale);
+}
+
+FTransform3D AActor::GetActorTransform3D() const { return RootComponent->GetWorldTransform3D(); }
+
 bool AActor::SerializeNetworkState(FNetBuffer& OutBuffer) {
   SerializeActorNetworkState(OutBuffer);
   return SerializeReplicatedComponentStates(OutBuffer);
