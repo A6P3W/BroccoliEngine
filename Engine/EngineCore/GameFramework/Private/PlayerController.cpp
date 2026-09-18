@@ -102,8 +102,8 @@ void APlayerController::SetupInputMappings() {
 
   if (kb) {
     // ゲーム移動
-    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveX, kb, EKey::A, "", 1.0f);
-    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveX, kb, EKey::D, "", -1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveX, kb, EKey::A, "", -1.0f);
+    ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveX, kb, EKey::D, "", 1.0f);
     ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveY, kb, EKey::W, "", 1.0f);
     ImplPtr->InputMapperPtr->AddMapping(InputActionLower::MoveY, kb, EKey::S, "", -1.0f);
 
@@ -139,7 +139,7 @@ void APlayerController::SetupInputMappings() {
   if (pad) {
     // ゲーム移動
     ImplPtr->InputMapperPtr->AddAxisMapping(
-        InputActionLower::MoveX, pad, static_cast<int>(AxisID::LeftX), -1.0f
+        InputActionLower::MoveX, pad, static_cast<int>(AxisID::LeftX), 1.0f
     );
     ImplPtr->InputMapperPtr->AddAxisMapping(
         InputActionLower::MoveY, pad, static_cast<int>(AxisID::LeftY), 1.0f

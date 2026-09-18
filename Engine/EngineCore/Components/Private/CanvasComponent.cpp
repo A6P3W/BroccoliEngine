@@ -140,6 +140,6 @@ FVector2D MCanvasComponent::WorldToCanvasLocal(const FVector2D& WorldPosition) c
   const float DifferenceX = WorldPosition.X - CanvasWorldPosition.X;
   const float DifferenceY = WorldPosition.Y - CanvasWorldPosition.Y;
   const float LocalX = (DifferenceX * Cosine + DifferenceY * Sine) / CanvasWorldScale.Scale;
-  const float LocalY = (-DifferenceX * Sine + DifferenceY * Cosine) / CanvasWorldScale.Scale;
+  const float LocalY = -(-DifferenceX * Sine + DifferenceY * Cosine) / CanvasWorldScale.Scale;
   return {LocalX + Width * 0.5f, LocalY + Height * 0.5f};
 }

@@ -2,13 +2,17 @@
 
 #include <imgui.h>
 
+#include "ActorRegistry.h"
 #include "BroccoliRaylib.h"
+#include "Camera3DComponent.h"
 #include "EditorContext.h"
 #include "EditorMode.h"
+#include "EditorPawn.h"
 #include "EditorViewportState.h"
 #include "FileDialog.h"
 #include "PathResolver.h"
 #include "RenderSystem.h"
+#include "StaticMeshActor.h"
 
 void ViewportPanel::DrawContents(EditorContext& Context) {
   FEditorViewportState* Viewport = Context.Viewport;
@@ -36,7 +40,7 @@ void ViewportPanel::DrawContents(EditorContext& Context) {
             "3D Model Files (*.glb;*.gltf)\0*.glb;*.gltf\0All Files (*.*)\0*.*\0",
             PathResolver::GetGameResourceDir()
         );
-        Context.Mode->CreateStaticMeshActor(FilePath);
+        CreateStaticMeshActor(Context, FilePath);
       }
       ImGui::SameLine();
       ImGui::TextDisabled("RMB Look | WASD Move | Q/E Vertical | F Focus");
@@ -73,4 +77,26 @@ void ViewportPanel::DrawContents(EditorContext& Context) {
   ImGui::GetWindowDrawList()->AddRect(
       SafeAreaMinimum, SafeAreaMaximum, IM_COL32(255, 196, 0, 200), 0.0f, 0, 1.0f
   );
+}
+
+void ViewportPanel::CreateStaticMeshActor(
+    EditorContext& Context, const std::string& ModelPath
+) const {
+  if (ModelPath.empty()) return;
+
+  AActor* Actor = ActorRegistry::GetInstance().Spawn(
+      Context.Mode->GetWorld(), AStaticMeshActor::StaticClassName()
+  );
+  auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(Actor);
+  if (StaticMeshActor == nullptr) return;
+
+  EditorPawn* EditorPawn = Context.Mode->GetEditorPawn();
+  if (EditorPawn != nullptr && EditorPawn->GetEditorCamera3D() != nullptr) {
+    StaticMeshActor->SetActorLocation3D(
+        EditorPawn->GetActorLocation3D() +
+        EditorPawn->GetEditorCamera3D()->GetForwardVector() * 5.0f
+    );
+  }
+  StaticMeshActor->SetModelPath(ModelPath);
+  Context.Mode->SetSelectedActor(StaticMeshActor);
 }

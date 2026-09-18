@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "IEditorPanel.h"
 
 class ViewportPanel final : public IEditorPanel {
@@ -9,4 +11,7 @@ class ViewportPanel final : public IEditorPanel {
 
  protected:
   void DrawContents(EditorContext& Context) override;
+
+ private:
+  void CreateStaticMeshActor(EditorContext& Context, const std::string& ModelPath) const;
 };

@@ -6,7 +6,6 @@
 #include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "BroccoliRaylib.h"
-#include "Camera3DComponent.h"
 #include "EditorController.h"
 #include "EditorPawn.h"
 #include "EditorSelectPointComponent.h"
@@ -18,7 +17,6 @@
 #include "SceneManager.h"
 #include "SpriteActor.h"
 #include "StaticMeshActor.h"
-#include "UMath.h"
 #include "World.h"
 const std::vector<std::string>& EditorMode::GetClassList() const {
   return ActorRegistry::GetInstance().GetClassNames();
@@ -52,56 +50,17 @@ void EditorMode::SetViewportMode(EEditorViewportMode Mode) {
   if (IsThreeDCameraNavigationActive()) return;
   if (ViewportState.Mode == Mode) return;
 
-  if (bThreeDCameraNavigationActive) EnableCursor();
-  bThreeDCameraNavigationActive = false;
-  bDiscardNextThreeDCameraDelta = false;
+  if (EditorPawnPtr != nullptr) EditorPawnPtr->EndThreeDCameraNavigation();
   ViewportState.Mode = Mode;
-  if (Mode == EEditorViewportMode::ThreeD && EditorCamera3D != nullptr) {
-    EditorCamera3D->SetActiveCamera();
+  if (Mode == EEditorViewportMode::ThreeD && EditorPawnPtr != nullptr) {
+    EditorPawnPtr->SetEditorCamera3DActive();
   } else {
     RenderSystem::GetInstance().SetCameraView3D(nullptr);
   }
 }
 
 bool EditorMode::IsThreeDCameraNavigationActive() const {
-  return bThreeDCameraNavigationActive || (ViewportState.Mode == EEditorViewportMode::ThreeD &&
-                                           IsMouseButtonDown(MOUSE_BUTTON_RIGHT));
-}
-
-void EditorMode::FocusSelectedActor3D() {
-  if (EditorCamera3D == nullptr || SelectedActor == nullptr || SelectedActor->IsPendingDestroy()) {
-    return;
-  }
-
-  const FVector3D Target = SelectedActor->GetActorLocation3D();
-  const FVector3D Direction = FVector3D{0.0f, -1.0f, 0.45f}.Normalize();
-  EditorCamera3D->SetWorldLocation3D(Target - Direction * 10.0f);
-
-  const FVector3D Forward = (Target - EditorCamera3D->GetWorldLocation3D()).Normalize();
-  const FRotator3D Rotation{
-      UMath::RadToDeg(std::asin((std::clamp)(Forward.Z, -1.0f, 1.0f))),
-      UMath::RadToDeg(std::atan2(-Forward.X, Forward.Y)),
-      0.0f,
-  };
-  EditorCamera3D->SetWorldRotation3D(FQuaternion::FromRotator(Rotation));
-}
-
-bool EditorMode::CreateStaticMeshActor(const std::string& ModelPath) {
-  if (ModelPath.empty()) return false;
-
-  AActor* Actor =
-      ActorRegistry::GetInstance().Spawn(GetWorld(), AStaticMeshActor::StaticClassName());
-  auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(Actor);
-  if (StaticMeshActor == nullptr) return false;
-
-  if (EditorCamera3D != nullptr) {
-    StaticMeshActor->SetActorLocation3D(
-        EditorCamera3D->GetWorldLocation3D() + EditorCamera3D->GetForwardVector() * 5.0f
-    );
-  }
-  StaticMeshActor->SetModelPath(ModelPath);
-  SetSelectedActor(StaticMeshActor);
-  return true;
+  return EditorPawnPtr != nullptr && EditorPawnPtr->IsThreeDCameraNavigationActive();
 }
 
 void EditorMode::OnMousePress(const FVector2D& worldPos) {
@@ -245,12 +204,6 @@ EditorMode::EditorMode() {
   bEditorActor = true;
   SetDefaultPawnClass(EditorPawn::StaticClassName());
   SetDefaultPlayerControllerClass(EditorController::StaticClassName());
-  EditorCamera3D = NewObject<MCamera3DComponent>(this);
-  if (EditorCamera3D != nullptr) {
-    EditorCamera3D->SetWorldLocation3D({0.0f, -8.0f, 5.0f});
-    EditorCamera3D->SetWorldRotation3D(FQuaternion::FromRotator({25.0f, 0.0f, 0.0f}));
-    EditorCamera3D->RegisterComponent();
-  }
 }
 
 void EditorMode::CopySelectedActor() {
@@ -348,63 +301,9 @@ void EditorMode::DeleteSelectedActor() {
 }
 
 void EditorMode::OnUpdate(float DeltaTime) {
-  UpdateEditorCamera3D(DeltaTime);
+  (void)DeltaTime;
   static EditorUI ui;
   ui.UpdateAndDraw(this);
-}
-
-void EditorMode::UpdateEditorCamera3D(float DeltaTime) {
-  if (ViewportState.Mode != EEditorViewportMode::ThreeD || EditorCamera3D == nullptr) {
-    if (bThreeDCameraNavigationActive) EnableCursor();
-    bThreeDCameraNavigationActive = false;
-    bDiscardNextThreeDCameraDelta = false;
-    return;
-  }
-
-  EditorCamera3D->SetActiveCamera();
-  if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && IsViewportInputAvailable()) {
-    bThreeDCameraNavigationActive = true;
-    bDiscardNextThreeDCameraDelta = true;
-    DisableCursor();
-  }
-  if (!IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-    if (bThreeDCameraNavigationActive) EnableCursor();
-    bThreeDCameraNavigationActive = false;
-    bDiscardNextThreeDCameraDelta = false;
-  }
-
-  if (IsViewportInputAvailable() && IsKeyPressed(KEY_F)) FocusSelectedActor3D();
-  if (!bThreeDCameraNavigationActive) return;
-
-  const float Speed = IsKeyDown(KEY_LEFT_SHIFT) ? 20.0f : 8.0f;
-  FVector3D Movement = FVector3D::ZeroVector();
-  if (IsKeyDown(KEY_W)) Movement += EditorCamera3D->GetForwardVector();
-  if (IsKeyDown(KEY_S)) Movement += EditorCamera3D->GetForwardVector() * -1.0f;
-  if (IsKeyDown(KEY_D)) Movement += EditorCamera3D->GetRightVector();
-  if (IsKeyDown(KEY_A)) Movement += EditorCamera3D->GetRightVector() * -1.0f;
-  if (IsKeyDown(KEY_E)) Movement.Z += 1.0f;
-  if (IsKeyDown(KEY_Q)) Movement.Z -= 1.0f;
-  if (Movement.SizeSquared() > 0.0f) {
-    EditorCamera3D->SetWorldLocation3D(
-        EditorCamera3D->GetWorldLocation3D() + Movement.Normalize() * Speed * DeltaTime
-    );
-  }
-
-  if (!IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) return;
-  const Vector2 MouseDelta = GetMouseDelta();
-  if (bDiscardNextThreeDCameraDelta) {
-    bDiscardNextThreeDCameraDelta = false;
-    return;
-  }
-  const FVector2D ViewportDelta =
-      ViewportState.ScreenDeltaToRenderTarget({MouseDelta.x, MouseDelta.y});
-  if (ViewportDelta.SizeSquared() <= 0.0001f) return;
-  FRotator3D Rotation = EditorCamera3D->GetWorldRotation3D().ToRotator();
-  constexpr float CameraLookSensitivity = 0.03f;
-  Rotation.Yaw -= ViewportDelta.X * CameraLookSensitivity;
-  Rotation.Pitch =
-      (std::clamp)(Rotation.Pitch - ViewportDelta.Y * CameraLookSensitivity, -89.0f, 89.0f);
-  EditorCamera3D->SetWorldRotation3D(FQuaternion::FromRotator(Rotation));
 }
 
 void EditorMode::BeginPlay() {

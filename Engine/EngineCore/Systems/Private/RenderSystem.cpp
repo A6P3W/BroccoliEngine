@@ -79,7 +79,24 @@ void DrawStaticMeshCommand(const StaticMeshRenderData& Data) {
 
 void DrawGridCommand(const GridRenderData& Data) {
   if (Data.Slices <= 0 || Data.Spacing <= 0.0f) return;
-  DrawGrid(Data.Slices, Data.Spacing);
+
+  const int HalfSliceCount = Data.Slices / 2;
+  const float HalfExtent = static_cast<float>(HalfSliceCount) * Data.Spacing;
+  rlBegin(RL_LINES);
+  for (int SliceIndex = -HalfSliceCount; SliceIndex <= HalfSliceCount; ++SliceIndex) {
+    const float Position = static_cast<float>(SliceIndex) * Data.Spacing;
+
+    const Color XAxisColor = SliceIndex == 0 ? RED : LIGHTGRAY;
+    rlColor4ub(XAxisColor.r, XAxisColor.g, XAxisColor.b, XAxisColor.a);
+    rlVertex3f(-HalfExtent, 0.0f, Position);
+    rlVertex3f(HalfExtent, 0.0f, Position);
+
+    const Color ZAxisColor = SliceIndex == 0 ? BLUE : LIGHTGRAY;
+    rlColor4ub(ZAxisColor.r, ZAxisColor.g, ZAxisColor.b, ZAxisColor.a);
+    rlVertex3f(Position, 0.0f, -HalfExtent);
+    rlVertex3f(Position, 0.0f, HalfExtent);
+  }
+  rlEnd();
 }
 
 FScreenBounds MakeScreenBounds(float X1, float Y1, float X2, float Y2) {
@@ -150,7 +167,7 @@ struct FRenderContext {
     const float LocalY = Position.Y - CameraPosition.Y;
     return {
         (LocalX * CameraCos - LocalY * CameraSin) * CameraFOV + CenterX,
-        (LocalX * CameraSin + LocalY * CameraCos) * CameraFOV + CenterY
+        -(LocalX * CameraSin + LocalY * CameraCos) * CameraFOV + CenterY
     };
   }
 
@@ -514,7 +531,7 @@ FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
   const float cosT = std::cos(rad), sinT = std::sin(rad);
   return {
       (localX * cosT - localY * sinT) * camFOV + centerX,
-      (localX * sinT + localY * cosT) * camFOV + centerY
+      -(localX * sinT + localY * cosT) * camFOV + centerY
   };
 }
 
@@ -531,7 +548,7 @@ FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPos) const {
   const float centerY = Impl->RenderTargetSize.Y * 0.5f;
   const float safeFOV = (std::abs(camFOV) < 1e-6f) ? 1e-6f : camFOV;
   const float localX = (screenPos.X - centerX) / safeFOV;
-  const float localY = (screenPos.Y - centerY) / safeFOV;
+  const float localY = -(screenPos.Y - centerY) / safeFOV;
   const float rad = UMath::DegToRad(camRot);
   const float cosT = std::cos(rad), sinT = std::sin(rad);
   return {(localX * cosT - localY * sinT) + camPos.X, (localX * sinT + localY * cosT) + camPos.Y};
@@ -672,8 +689,13 @@ void RenderSystem::DrawCommand(const RenderCommand& Command, const FRenderContex
           const Vector2 V3{Parameters.V3.X, Parameters.V3.Y};
           const Vector2 V4{Parameters.V4.X, Parameters.V4.Y};
           if (Data.Fill) {
-            DrawTriangle(V1, V4, V3, DrawColor);
-            DrawTriangle(V1, V3, V2, DrawColor);
+            if (Command.common.space == RenderSpace::World) {
+              DrawTriangle(V1, V3, V4, DrawColor);
+              DrawTriangle(V1, V2, V3, DrawColor);
+            } else {
+              DrawTriangle(V1, V4, V3, DrawColor);
+              DrawTriangle(V1, V3, V2, DrawColor);
+            }
           } else {
             const float Thickness = Context.GetStrokeThickness(Command.common.space);
             DrawLineEx(V1, V2, Thickness, DrawColor);

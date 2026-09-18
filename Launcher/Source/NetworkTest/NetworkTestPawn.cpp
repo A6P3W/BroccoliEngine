@@ -128,7 +128,7 @@ void ANetworkTestPawn::OnMove(const FInputActionValue& Value) {
   }
 
   // 同期移動コンポーネントに対して、ワールド座標系で入力に応じた推進力を加える関数。
-  Movement->AddWorldForce(Value.Axis2D * -1.0f);
+  Movement->AddWorldForce(Value.Axis2D);
 }
 
 void ANetworkTestPawn::OnInteract(const FInputActionValue& Value) {

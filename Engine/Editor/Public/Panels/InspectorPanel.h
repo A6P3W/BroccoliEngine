@@ -1,6 +1,9 @@
 #pragma once
 
 #include "IEditorPanel.h"
+#include "UMath.h"
+
+class AActor;
 
 class InspectorPanel final : public IEditorPanel {
  public:
@@ -9,4 +12,12 @@ class InspectorPanel final : public IEditorPanel {
 
  protected:
   void DrawContents(EditorContext& Context) override;
+
+ private:
+  void SynchronizeRotation(AActor* Actor);
+
+  AActor* RotationActor = nullptr;
+  FQuaternion LastAppliedRotation = FQuaternion::Identity();
+  FRotator3D CachedRotation;
+  bool bHasCachedRotation = false;
 };

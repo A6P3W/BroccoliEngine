@@ -17,16 +17,20 @@ void AGridLine::BeginPlay() {
   CollisionCellSize = GetWorld()->GetCollisionSystem()->GetCollisionCellSize();
 }
 
-void AGridLine::OnUpdate(float DeltaTime) { SimpleDraw(CollisionCellSize, FColor{255, 255, 255}); }
-
-void AGridLine::SimpleDraw(float CellSize, FColor Color) {
+void AGridLine::OnUpdate(float DeltaTime) {
   if (RenderSystem::GetInstance().GetCamera3D() != nullptr) {
-    RenderSystem::GetInstance().SubmitGrid3D(100, CellSize);
-    return;
+    Draw3DGrid();
+  } else {
+    Draw2DGrid();
   }
+}
 
+void AGridLine::Draw2DGrid() {
   auto Cam = RenderSystem::GetInstance().GetCamera();
   if (!Cam) return;
+
+  float CellSize = CollisionCellSize;
+  FColor Color{255, 255, 255};
 
   FVector2D CamPos = Cam->GetWorldLocation();
   float Fov = Cam->GetFOV();
@@ -70,3 +74,5 @@ void AGridLine::SimpleDraw(float CellSize, FColor Color) {
       {StartX, 0}, {EndX, 0}, FColor{255, 100, 100, 220}, RenderSpace::World, 999
   );
 }
+
+void AGridLine::Draw3DGrid() { RenderSystem::GetInstance().SubmitGrid3D(100, CollisionCellSize); }

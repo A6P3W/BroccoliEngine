@@ -9,8 +9,8 @@
 
 class AActor;
 class EditorUI;
+class EditorPawn;
 class EditorSelectPointComponent;
-class MCamera3DComponent;
 
 enum class EEditorState {
   Idle,
@@ -54,8 +54,8 @@ class EditorMode : public AGameModeBase {
   EEditorViewportMode GetViewportMode() const { return ViewportState.Mode; }
   void SetViewportMode(EEditorViewportMode Mode);
   bool IsThreeDCameraNavigationActive() const;
-  void FocusSelectedActor3D();
-  bool CreateStaticMeshActor(const std::string& ModelPath);
+  void SetEditorPawn(EditorPawn* Pawn) { EditorPawnPtr = Pawn; }
+  EditorPawn* GetEditorPawn() const { return EditorPawnPtr; }
 
   FEditorViewportState& GetViewportState() { return ViewportState; }
   const FEditorViewportState& GetViewportState() const { return ViewportState; }
@@ -87,17 +87,14 @@ class EditorMode : public AGameModeBase {
   EditorMode& operator=(EditorMode&&) = delete;
 
   void BeginPlay() override;
-  void UpdateEditorCamera3D(float DeltaTime);
   EEditorState State = EEditorState::Idle;
   std::string SelectedClass;
   std::string SelectedGameModeClass;
   AActor* SelectingActor = nullptr;  // ドラッグ中のゴースト
   AActor* SelectedActor = nullptr;   // 選択中のアクタ
   EditorSelectPointComponent* SelectedPointComponent = nullptr;
-  MCamera3DComponent* EditorCamera3D = nullptr;
+  EditorPawn* EditorPawnPtr = nullptr;
   EActorAction ActorAction = EActorAction::Select;
-  bool bThreeDCameraNavigationActive = false;
-  bool bDiscardNextThreeDCameraDelta = false;
   FEditorViewportState ViewportState;
 
   static std::string PendingLoadPath;

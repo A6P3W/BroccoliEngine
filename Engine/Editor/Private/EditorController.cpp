@@ -68,6 +68,8 @@ void EditorController::SetupInputMappings() {
     Mapper->AddMapping(EditorInputAction::MoveMode, kb, EKey::W);
     Mapper->AddMapping(EditorInputAction::RotateMode, kb, EKey::E);
     Mapper->AddMapping(EditorInputAction::ScaleMode, kb, EKey::R);
+    Mapper->AddMapping(EditorInputAction::MoveVertical, kb, EKey::E, "", 1.0f);
+    Mapper->AddMapping(EditorInputAction::MoveVertical, kb, EKey::Q, "", -1.0f);
 
     Mapper->AddMapping(EditorInputAction::ModifierCtrl, kb, EKey::LeftControl);
     Mapper->AddMapping(EditorInputAction::Copy, kb, EKey::C, EditorInputAction::ModifierCtrl);

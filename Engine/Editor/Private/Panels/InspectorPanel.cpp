@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include <cmath>
 #include <cstdio>
 #include <string>
 
@@ -13,6 +14,29 @@
 #include "SpriteActor.h"
 #include "StaticMeshActor.h"
 #include "UMath.h"
+
+namespace {
+bool IsSameRotation(const FQuaternion& Left, const FQuaternion& Right) {
+  const FQuaternion NormalizedLeft = Left.Normalize();
+  const FQuaternion NormalizedRight = Right.Normalize();
+  const float Dot = NormalizedLeft.X * NormalizedRight.X + NormalizedLeft.Y * NormalizedRight.Y +
+                    NormalizedLeft.Z * NormalizedRight.Z + NormalizedLeft.W * NormalizedRight.W;
+  return std::abs(Dot) > 0.999999f;
+}
+}  // namespace
+
+void InspectorPanel::SynchronizeRotation(AActor* Actor) {
+  const FQuaternion ActorRotation = Actor->GetActorRotation3D();
+  if (RotationActor == Actor && bHasCachedRotation &&
+      IsSameRotation(ActorRotation, LastAppliedRotation)) {
+    return;
+  }
+
+  RotationActor = Actor;
+  CachedRotation = ActorRotation.ToRotator();
+  LastAppliedRotation = ActorRotation;
+  bHasCachedRotation = true;
+}
 
 void InspectorPanel::DrawContents(EditorContext& Context) {
   EditorMode* Mode = Context.Mode;
@@ -35,12 +59,12 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
         );
       }
 
-      const FRotator3D Rotation = SelectedActor->GetActorRotation3D().ToRotator();
-      float RotationValues[3] = {Rotation.Pitch, Rotation.Yaw, Rotation.Roll};
+      SynchronizeRotation(SelectedActor);
+      float RotationValues[3] = {CachedRotation.Pitch, CachedRotation.Yaw, CachedRotation.Roll};
       if (ImGui::DragFloat3("Rotation", RotationValues, 1.0f)) {
-        SelectedActor->SetActorRotation3D(
-            FQuaternion::FromRotator({RotationValues[0], RotationValues[1], RotationValues[2]})
-        );
+        CachedRotation = {RotationValues[0], RotationValues[1], RotationValues[2]};
+        LastAppliedRotation = FQuaternion::FromRotator(CachedRotation);
+        SelectedActor->SetActorRotation3D(LastAppliedRotation);
       }
 
       const FScale3D Scale = SelectedActor->GetActorScale3D();
