@@ -17,7 +17,6 @@ struct FAutomationComponentMethodDescriptor {
   nlohmann::json InputSchema = {
       {"type", "object"}, {"properties", nlohmann::json::object()}, {"additionalProperties", false}
   };
-  EAutomationPermission Permission = EAutomationPermission::ReadOnly;
   std::function<nlohmann::json(MActorComponent&, const nlohmann::json&)> Handler;
 };
 
@@ -25,7 +24,6 @@ struct FAutomationComponentMethodSnapshot {
   std::string Name;
   std::string Description;
   nlohmann::json InputSchema;
-  EAutomationPermission Permission = EAutomationPermission::ReadOnly;
 };
 
 class FAutomationComponentMethodRegistry {

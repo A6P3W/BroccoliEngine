@@ -40,12 +40,28 @@ wheels = [
 ]
 
 [[package]]
+name = "broccoli-control"
+version = "0.1.0"
+source = { editable = "../Control" }
+dependencies = [
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = "==0.28.1" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = "==8.4.2" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.16.0" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "broccoli-mcp"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
-    { name = "httpx" },
+    { name = "broccoli-control" },
     { name = "mcp" },
 ]
 
@@ -58,7 +74,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "anyio", specifier = "==4.10.0" },
-    { name = "httpx", specifier = "==0.28.1" },
+    { name = "broccoli-control", editable = "../Control" },
     { name = "mcp", specifier = "==2.2.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "==8.4.2" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.16.0" },

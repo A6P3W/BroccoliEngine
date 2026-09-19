@@ -6,8 +6,8 @@
 #include <utility>
 #include <vector>
 
-#include "Schema/SchemaValidator.h"
 #include "Log.h"
+#include "Schema/SchemaValidator.h"
 
 namespace AutomationRegistryDetail {
 struct FAutomationRegistryValidationMessages {
@@ -16,7 +16,6 @@ struct FAutomationRegistryValidationMessages {
   std::string_view InvalidClassName;
   std::string_view InvalidOperationName;
   std::string_view EmptyDescription;
-  std::string_view InvalidPermission;
   std::string_view EmptyHandler;
   std::string_view Duplicate;
 };
@@ -36,10 +35,9 @@ inline bool IsValidClassName(std::string_view ClassName) {
   return !ClassName.empty() && ClassName.size() <= 128;
 }
 
-template <class TDescriptor, class TPermissionValidator>
+template <class TDescriptor>
 bool ValidateCallableDescriptor(
     const TDescriptor& Descriptor,
-    TPermissionValidator PermissionValidator,
     const FAutomationRegistryValidationMessages& Messages,
     std::string* OutError
 ) {
@@ -51,11 +49,6 @@ bool ValidateCallableDescriptor(
   if (Descriptor.Description.empty()) {
     return RejectRegistration(
         std::string(Messages.EmptyDescription), OutError, Messages.RegistryName
-    );
-  }
-  if (!PermissionValidator(Descriptor.Permission)) {
-    return RejectRegistration(
-        std::string(Messages.InvalidPermission), OutError, Messages.RegistryName
     );
   }
   if (!Descriptor.Handler) {
@@ -75,7 +68,7 @@ bool ValidateCallableDescriptor(
 
 template <class TSnapshot, class TDescriptor>
 TSnapshot MakeSnapshot(const TDescriptor& Descriptor) {
-  return {Descriptor.Name, Descriptor.Description, Descriptor.InputSchema, Descriptor.Permission};
+  return {Descriptor.Name, Descriptor.Description, Descriptor.InputSchema};
 }
 
 template <class TSnapshot>
@@ -92,13 +85,12 @@ void SortSnapshotsByName(std::vector<TSnapshot>& Snapshots) {
 #include <vector>
 
 namespace AutomationRegistryDetail {
-template <class TMethodsByClass, class TDescriptor, class TPermissionValidator>
+template <class TMethodsByClass, class TDescriptor>
 bool RegisterClassMethod(
     bool Frozen,
     TMethodsByClass& MethodsByClass,
     std::string ClassName,
     TDescriptor Descriptor,
-    TPermissionValidator PermissionValidator,
     const FAutomationRegistryValidationMessages& Messages,
     std::string* OutError
 ) {
@@ -110,7 +102,7 @@ bool RegisterClassMethod(
         std::string(Messages.InvalidClassName), OutError, Messages.RegistryName
     );
   }
-  if (!ValidateCallableDescriptor(Descriptor, PermissionValidator, Messages, OutError)) {
+  if (!ValidateCallableDescriptor(Descriptor, Messages, OutError)) {
     return false;
   }
 

@@ -1,4 +1,5 @@
 #include "SystemController.h"
+
 #include "../Detail/HttpErrorMapping.h"
 #include "../Detail/HttpParsing.h"
 #include "../Detail/HttpSerialization.h"
@@ -25,14 +26,10 @@ FAutomationHttpResponse FAutomationSystemController::GetSystemCommands() {
     FAutomationCommandTicket Ticket = CommandQueue.Enqueue([Registry = SystemCommandRegistry]() {
       nlohmann::json Commands = nlohmann::json::array();
       for (const FAutomationSystemCommandSnapshot& Snapshot : Registry->GetCommands()) {
-        if (Snapshot.Permission != EAutomationPermission::SystemMutation) {
-          continue;
-        }
         Commands.push_back(
             {{"name", Snapshot.Name},
              {"description", Snapshot.Description},
-             {"inputSchema", Snapshot.InputSchema},
-             {"permission", ToAutomationPermissionString(Snapshot.Permission)}}
+             {"inputSchema", Snapshot.InputSchema}}
         );
       }
       return MakeAutomationSuccess({{"commands", std::move(Commands)}});
@@ -82,18 +79,6 @@ FAutomationHttpResponse FAutomationSystemController::ExecuteSystemCommand(
                 EAutomationErrorCode::CommandNotRegistered, CommandNotRegisteredMessage
             );
           }
-          if (Descriptor->Permission != EAutomationPermission::SystemMutation) {
-            M_LOG(
-                Log,
-                "Automation system command rejected: command={} "
-                "code=PERMISSION_DENIED",
-                CommandNameText
-            );
-            return MakeAutomationError(
-                EAutomationErrorCode::PermissionDenied, CommandPermissionDeniedMessage
-            );
-          }
-
           FAutomationSchemaValidationError ValidationError;
           if (!FAutomationJsonSchemaValidator::ValidateValue(
                   Descriptor->InputSchema, Arguments, ValidationError

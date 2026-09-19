@@ -3,55 +3,60 @@
 import json
 import logging
 
+from broccoli_control.client import ControlClient
+from broccoli_control.config import ControlConfig
+from broccoli_control.errors import ControlError, ControlInternalError
 from mcp.server import MCPServer
-
-from .config import BridgeConfig
-from .engine_client import EngineClient
-from .errors import BridgeError, BridgeInternalError, format_mcp_error
 
 LOGGER = logging.getLogger(__name__)
 
 
-def read_state_resource(Client: EngineClient) -> str:
+def format_mcp_error(Error: ControlError) -> str:
+  """Convert shared errors to the MCP adapter's safe response text."""
+
+  return str(Error)
+
+
+def read_state_resource(Client: ControlClient) -> str:
   """Read and serialize the current engine state for MCP."""
 
   try:
     State = Client.get_state()
     return json.dumps(State.to_dict(), ensure_ascii=False, separators=(",", ":"))
-  except BridgeError:
+  except ControlError:
     raise
   except Exception:
     LOGGER.exception("Unexpected error while reading game://state")
-    raise BridgeInternalError(Operation="read game://state") from None
+    raise ControlInternalError(Operation="read game://state") from None
 
 
-def read_actors_resource(Client: EngineClient) -> str:
+def read_actors_resource(Client: ControlClient) -> str:
   """Read and serialize actors in the current engine world for MCP."""
 
   try:
     Actors = Client.get_actors()
     return json.dumps(Actors.to_dict(), ensure_ascii=False, separators=(",", ":"))
-  except BridgeError:
+  except ControlError:
     raise
   except Exception:
     LOGGER.exception("Unexpected error while reading game://world/actors")
-    raise BridgeInternalError(Operation="read game://world/actors") from None
+    raise ControlInternalError(Operation="read game://world/actors") from None
 
 
-def read_logs_resource(Client: EngineClient) -> str:
+def read_logs_resource(Client: ControlClient) -> str:
   """Read and serialize recent in-memory engine logs for MCP."""
 
   try:
     Logs = Client.get_recent_logs(Limit=100)
     return json.dumps(Logs.to_dict(), ensure_ascii=False, separators=(",", ":"))
-  except BridgeError:
+  except ControlError:
     raise
   except Exception:
     LOGGER.exception("Unexpected error while reading game://logs/recent")
-    raise BridgeInternalError(Operation="read game://logs/recent") from None
+    raise ControlInternalError(Operation="read game://logs/recent") from None
 
 
-def create_server(Client: EngineClient) -> MCPServer:
+def create_server(Client: ControlClient) -> MCPServer:
   """Create an MCP server backed by a process-owned HTTP client."""
 
   Mcp = MCPServer("BROCCOLI ENGINE")
@@ -66,7 +71,7 @@ def create_server(Client: EngineClient) -> MCPServer:
     LOGGER.info("Reading resource game://state")
     try:
       Result = read_state_resource(Client)
-    except BridgeError as Error:
+    except ControlError as Error:
       LOGGER.warning("Resource game://state failed: %s", Error.Code)
       raise ValueError(format_mcp_error(Error)) from None
     LOGGER.info("Resource game://state completed")
@@ -82,7 +87,7 @@ def create_server(Client: EngineClient) -> MCPServer:
     LOGGER.info("Reading resource game://world/actors")
     try:
       Result = read_actors_resource(Client)
-    except BridgeError as Error:
+    except ControlError as Error:
       LOGGER.warning("Resource game://world/actors failed: %s", Error.Code)
       raise ValueError(format_mcp_error(Error)) from None
     LOGGER.info("Resource game://world/actors completed")
@@ -98,7 +103,7 @@ def create_server(Client: EngineClient) -> MCPServer:
     LOGGER.info("Reading resource game://logs/recent")
     try:
       Result = read_logs_resource(Client)
-    except BridgeError as Error:
+    except ControlError as Error:
       LOGGER.warning("Resource game://logs/recent failed: %s", Error.Code)
       raise ValueError(format_mcp_error(Error)) from None
     LOGGER.info("Resource game://logs/recent completed")
@@ -111,12 +116,12 @@ def create_server(Client: EngineClient) -> MCPServer:
   def get_system_commands() -> dict[str, object]:
     try:
       return Client.get_system_commands().to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except Exception:
       LOGGER.exception("Unexpected error while getting system commands")
       raise ValueError(
-        format_mcp_error(BridgeInternalError(Operation="get system commands"))
+        format_mcp_error(ControlInternalError(Operation="get system commands"))
       ) from None
 
   @Mcp.tool(
@@ -126,26 +131,26 @@ def create_server(Client: EngineClient) -> MCPServer:
   def get_actor(actor_id: int) -> dict[str, object]:
     try:
       return Client.get_actor(actor_id).to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except ValueError:
       raise
     except Exception:
       LOGGER.exception("Unexpected error while getting an actor")
-      raise ValueError(format_mcp_error(BridgeInternalError(Operation="get actor"))) from None
+      raise ValueError(format_mcp_error(ControlInternalError(Operation="get actor"))) from None
 
   @Mcp.tool(name="get_actor_components", description="Get components held by a world actor.")
   def get_actor_components(actor_id: int) -> dict[str, object]:
     try:
       return Client.get_actor_components(actor_id).to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except ValueError:
       raise
     except Exception:
       LOGGER.exception("Unexpected error while getting actor components")
       raise ValueError(
-        format_mcp_error(BridgeInternalError(Operation="get actor components"))
+        format_mcp_error(ControlInternalError(Operation="get actor components"))
       ) from None
 
   @Mcp.tool(
@@ -160,7 +165,7 @@ def create_server(Client: EngineClient) -> MCPServer:
   ) -> dict[str, object]:
     try:
       return dict(Client.invoke_component_method(actor_id, component_id, method, arguments))
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
 
   @Mcp.tool(
@@ -173,13 +178,13 @@ def create_server(Client: EngineClient) -> MCPServer:
   ) -> dict[str, object]:
     try:
       return Client.find_actors(ClassName=class_name, InstanceName=instance_name).to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except ValueError:
       raise
     except Exception:
       LOGGER.exception("Unexpected error while finding actors")
-      raise ValueError(format_mcp_error(BridgeInternalError(Operation="find actors"))) from None
+      raise ValueError(format_mcp_error(ControlInternalError(Operation="find actors"))) from None
 
   @Mcp.tool(
     name="get_registered_actor_classes",
@@ -188,12 +193,12 @@ def create_server(Client: EngineClient) -> MCPServer:
   def get_registered_actor_classes() -> dict[str, object]:
     try:
       return Client.get_registered_actor_classes().to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except Exception:
       LOGGER.exception("Unexpected error while getting registered actor classes")
       raise ValueError(
-        format_mcp_error(BridgeInternalError(Operation="get registered actor classes"))
+        format_mcp_error(ControlInternalError(Operation="get registered actor classes"))
       ) from None
 
   @Mcp.tool(
@@ -203,12 +208,12 @@ def create_server(Client: EngineClient) -> MCPServer:
   def get_levels() -> dict[str, object]:
     try:
       return Client.get_levels().to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except Exception:
       LOGGER.exception("Unexpected error while getting registered levels")
       raise ValueError(
-        format_mcp_error(BridgeInternalError(Operation="get registered levels"))
+        format_mcp_error(ControlInternalError(Operation="get registered levels"))
       ) from None
 
   @Mcp.tool(
@@ -218,14 +223,14 @@ def create_server(Client: EngineClient) -> MCPServer:
   def get_class_methods(class_name: str) -> dict[str, object]:
     try:
       return Client.get_class_methods(class_name).to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except ValueError:
       raise
     except Exception:
       LOGGER.exception("Unexpected error while getting actor class methods")
       raise ValueError(
-        format_mcp_error(BridgeInternalError(Operation="get actor class methods"))
+        format_mcp_error(ControlInternalError(Operation="get actor class methods"))
       ) from None
 
   @Mcp.tool(
@@ -249,13 +254,13 @@ def create_server(Client: EngineClient) -> MCPServer:
         Scale=scale,
         InstanceName=instance_name,
       ).to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except ValueError:
       raise
     except Exception:
       LOGGER.exception("Unexpected error while spawning an actor")
-      raise ValueError(format_mcp_error(BridgeInternalError(Operation="spawn actor"))) from None
+      raise ValueError(format_mcp_error(ControlInternalError(Operation="spawn actor"))) from None
 
   @Mcp.tool(
     name="destroy_actor",
@@ -264,13 +269,13 @@ def create_server(Client: EngineClient) -> MCPServer:
   def destroy_actor(actor_id: int) -> dict[str, object]:
     try:
       return Client.destroy_actor(actor_id).to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except ValueError:
       raise
     except Exception:
       LOGGER.exception("Unexpected error while destroying an actor")
-      raise ValueError(format_mcp_error(BridgeInternalError(Operation="destroy actor"))) from None
+      raise ValueError(format_mcp_error(ControlInternalError(Operation="destroy actor"))) from None
 
   @Mcp.tool(
     name="set_actor_transform",
@@ -291,14 +296,14 @@ def create_server(Client: EngineClient) -> MCPServer:
         Rotation=rotation,
         Scale=scale,
       ).to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except ValueError:
       raise
     except Exception:
       LOGGER.exception("Unexpected error while setting an actor transform")
       raise ValueError(
-        format_mcp_error(BridgeInternalError(Operation="set actor transform"))
+        format_mcp_error(ControlInternalError(Operation="set actor transform"))
       ) from None
 
   @Mcp.tool(
@@ -312,14 +317,14 @@ def create_server(Client: EngineClient) -> MCPServer:
   ) -> dict[str, object]:
     try:
       return Client.invoke_actor_method(actor_id, method_name, Arguments=arguments).to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except ValueError:
       raise
     except Exception:
       LOGGER.exception("Unexpected error while invoking an actor method")
       raise ValueError(
-        format_mcp_error(BridgeInternalError(Operation="invoke actor method"))
+        format_mcp_error(ControlInternalError(Operation="invoke actor method"))
       ) from None
 
   @Mcp.tool(
@@ -332,14 +337,14 @@ def create_server(Client: EngineClient) -> MCPServer:
   ) -> dict[str, object]:
     try:
       return Client.execute_system_command(command_name, Arguments=arguments).to_dict()
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
     except ValueError:
       raise
     except Exception:
       LOGGER.exception("Unexpected error while executing a system command")
       raise ValueError(
-        format_mcp_error(BridgeInternalError(Operation="execute system command"))
+        format_mcp_error(ControlInternalError(Operation="execute system command"))
       ) from None
 
   @Mcp.tool(
@@ -377,7 +382,7 @@ def create_server(Client: EngineClient) -> MCPServer:
   def get_component_methods(actor_id: int, component_id: int) -> dict[str, object]:
     try:
       return dict(Client.get_component_methods(actor_id, component_id))
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
 
   @Mcp.tool(
@@ -392,16 +397,16 @@ def create_server(Client: EngineClient) -> MCPServer:
   ) -> dict[str, object]:
     try:
       return dict(Client.invoke_component_method(actor_id, component_id, method_name, arguments))
-    except BridgeError as Error:
+    except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None
 
   return Mcp
 
 
-def run_server(Config: BridgeConfig) -> None:
+def run_server(Config: ControlConfig) -> None:
   """Run stdio and close the process-owned HTTP client on exit."""
 
-  Client = EngineClient(Config)
+  Client = ControlClient(Config)
   LOGGER.info("BROCCOLI ENGINE MCP Bridge started")
   try:
     create_server(Client).run(transport="stdio")

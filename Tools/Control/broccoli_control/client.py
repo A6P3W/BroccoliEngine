@@ -9,9 +9,9 @@ from typing import Any
 
 import httpx
 
-from .config import BridgeConfig
+from .config import ControlConfig
 from .errors import (
-  BridgeInternalError,
+  ControlInternalError,
   EngineApiError,
   EngineTimeout,
   EngineUnavailable,
@@ -44,12 +44,12 @@ SPAWN_ACTOR_OPERATION = "spawn world actor"
 RECENT_LOGS_OPERATION = "get recent engine logs"
 
 
-class EngineClient:
+class ControlClient:
   """Reusable client with a fixed localhost base URL."""
 
   def __init__(
     Self,
-    Config: BridgeConfig,
+    Config: ControlConfig,
     *,
     Transport: httpx.BaseTransport | None = None,
   ) -> None:
@@ -68,7 +68,7 @@ class EngineClient:
       trust_env=False,
     )
 
-  def __enter__(Self) -> EngineClient:
+  def __enter__(Self) -> ControlClient:
     return Self
 
   def __exit__(Self, ExceptionType: object, Exception: object, Traceback: object) -> None:
@@ -398,7 +398,7 @@ class EngineClient:
       ) from None
     except httpx.HTTPError:
       LOGGER.exception("%s failed in the HTTP client", Operation)
-      raise BridgeInternalError(Operation=Operation) from None
+      raise ControlInternalError(Operation=Operation) from None
 
     if ContentType.split(";", 1)[0].strip().lower() != "application/json":
       raise InvalidEngineResponse(

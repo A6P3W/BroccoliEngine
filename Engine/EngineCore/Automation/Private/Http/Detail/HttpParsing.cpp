@@ -7,11 +7,6 @@
 #include <initializer_list>
 #include <limits>
 namespace AutomationHttpDetail {
-bool IsMethodPermissionAllowed(EAutomationPermission Permission) {
-  return Permission == EAutomationPermission::ReadOnly ||
-         Permission == EAutomationPermission::WorldMutation;
-}
-
 bool HasOnlyAllowedFields(
     const nlohmann::json& Object, std::initializer_list<std::string_view> AllowedFields
 ) {

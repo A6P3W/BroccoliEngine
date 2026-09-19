@@ -5,14 +5,14 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+from math import isclose
 from pathlib import Path
 
+from broccoli_control.client import ControlClient
+from broccoli_control.config import ControlConfig
 from mcp.client import Client
 from mcp.client.stdio import StdioServerParameters
 from mcp.types import TextResourceContents
-
-from broccoli_mcp.config import BridgeConfig
-from broccoli_mcp.engine_client import EngineClient
 
 
 async def run_integration() -> dict[str, object]:
@@ -110,7 +110,7 @@ async def run_integration() -> dict[str, object]:
       Actor for Actor in Actors["actors"] if Actor["className"] == "ALevelStarterWidget"
     ]
     ActorId = LevelStarterActors[0]["actorId"] if LevelStarterActors else None
-    with EngineClient(BridgeConfig()) as Engine:
+    with ControlClient(ControlConfig()) as Engine:
       ActorMethods = Engine.get_actor_methods(ActorId).to_dict() if ActorId else None
       SystemCommandList = Engine.get_system_commands().to_dict()
       SpawnedActorId = None
@@ -134,11 +134,13 @@ async def run_integration() -> dict[str, object]:
           Rotation=30.0,
           Scale=1.5,
         )
-        if PatchedActor.Transform.to_dict() != {
-          "location": {"x": 56.0, "y": 78.0},
-          "rotation": 30.0,
-          "scale": 1.5,
-        }:
+        PatchedTransform = PatchedActor.Transform
+        if (
+          PatchedTransform.LocationX != 56.0
+          or PatchedTransform.LocationY != 78.0
+          or not isclose(PatchedTransform.Rotation, 30.0, rel_tol=0.0, abs_tol=0.0001)
+          or PatchedTransform.Scale != 1.5
+        ):
           raise RuntimeError("set_actor_transform returned an unexpected transform.")
 
         DoorMethods = Engine.get_actor_methods(SpawnedActorId).to_dict()

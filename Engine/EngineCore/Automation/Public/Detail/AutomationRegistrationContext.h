@@ -24,7 +24,6 @@ class BROCCOLI_ENGINE_API FAutomationRegistrationContext {
       std::string Name,
       std::string Description,
       nlohmann::json InputSchema,
-      EAutomationPermission Permission,
       FAutomationActorHandler Handler
   );
   void RegisterComponentMethod(
@@ -32,7 +31,6 @@ class BROCCOLI_ENGINE_API FAutomationRegistrationContext {
       std::string Name,
       std::string Description,
       nlohmann::json InputSchema,
-      EAutomationPermission Permission,
       FAutomationComponentHandler Handler
   );
 

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from broccoli_mcp.errors import (
-  BridgeInternalError,
+from broccoli_control.errors import (
+  ControlInternalError,
   EngineApiError,
   EngineUnavailable,
-  format_mcp_error,
 )
 
 
@@ -16,7 +15,7 @@ def test_engine_api_error_keeps_engine_details() -> None:
     HttpStatus=504,
   )
 
-  Text = format_mcp_error(Error)
+  Text = str(Error)
 
   assert "REQUEST_TIMEOUT" in Text
   assert "The main thread timed out." in Text
@@ -26,17 +25,17 @@ def test_engine_api_error_keeps_engine_details() -> None:
 def test_unavailable_error_explains_how_to_start_engine() -> None:
   Error = EngineUnavailable("127.0.0.1", 39100, Operation="get engine state")
 
-  Text = format_mcp_error(Error)
+  Text = str(Error)
 
   assert "BROCCOLI ENGINE" in Text
-  assert "-automation" in Text
+  assert "--control" in Text
   assert "127.0.0.1:39100" in Text
 
 
 def test_internal_error_does_not_expose_exception_details() -> None:
-  Error = BridgeInternalError(Operation="read game://state")
+  Error = ControlInternalError(Operation="read game://state")
 
-  Text = format_mcp_error(Error)
+  Text = str(Error)
 
-  assert "BRIDGE_INTERNAL_ERROR" in Text
+  assert "CONTROL_INTERNAL_ERROR" in Text
   assert "Traceback" not in Text

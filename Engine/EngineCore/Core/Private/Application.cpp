@@ -204,7 +204,7 @@ void Application::Shutdown() {
 void Application::InitializeAutomation() {
   AutomationSubsystem = std::make_unique<FAutomationSubsystem>();
   FAutomationConfig Config;
-  Config.Enabled = HasCommandLineArgument(L"-automation");
+  Config.Enabled = HasCommandLineArgument(L"--control");
   if (!AutomationSubsystem->Initialize(Config)) AutomationSubsystem.reset();
 }
 

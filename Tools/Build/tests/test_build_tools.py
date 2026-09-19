@@ -159,20 +159,20 @@ def TestRunParserForwardsArgumentsAfterLatestSeparator(TmpPath: Path) -> None:
     "Editor\n", encoding="utf-8"
   )
   CliArguments, ApplicationArguments = cli.SplitRunApplicationArguments(
-    ["run", "--latest", "--project-dir", str(TmpPath), "--", "--automation"]
+    ["run", "--latest", "--project-dir", str(TmpPath), "--", "--control"]
   )
   Arguments = cli.CreateParser().parse_args(CliArguments)
 
   Configuration = cli.ResolveRunInvocation(Arguments)
 
   assert Configuration == "Editor"
-  assert ApplicationArguments == ["--automation"]
+  assert ApplicationArguments == ["--control"]
 
 
 @pytest.mark.parametrize(
   ("RawArguments", "ExpectedApplicationArguments"),
   [
-    (["run", "Debug", "--", "-automation"], ["-automation"]),
+    (["run", "Debug", "--", "--control"], ["--control"]),
     (["run", "Debug", "--", "level1"], ["level1"]),
     (["run", "--latest", "--", "--config", "custom"], ["--config", "custom"]),
   ],
@@ -186,9 +186,20 @@ def TestRunSeparatesApplicationArguments(
   cli.CreateParser().parse_args(CliArguments)
 
 
-def TestRunRejectsApplicationArgumentsWithoutSeparator() -> None:
-  with pytest.raises(SystemExit):
-    cli.CreateParser().parse_args(["run", "Debug", "-automation"])
+def TestRunParserAcceptsControlOption() -> None:
+  Arguments = cli.CreateParser().parse_args(["run", "Debug", "--control"])
+
+  assert Arguments.control
+
+
+def TestIncludeControlArgumentAddsItOnlyOnce() -> None:
+  assert cli.IncludeControlArgument(["--level", "Test"], True) == [
+    "--level",
+    "Test",
+    "--control",
+  ]
+  assert cli.IncludeControlArgument(["--control"], True) == ["--control"]
+  assert cli.IncludeControlArgument(["--level", "Test"], False) == ["--level", "Test"]
 
 
 def TestMainForwardsSeparatedArgumentsWithoutReinterpretingThem(
@@ -221,6 +232,23 @@ def TestMainForwardsSeparatedArgumentsWithoutReinterpretingThem(
 
   assert cli.Main() == 0
   assert Calls == [(TmpPath.resolve(), "Editor", ["--config", "custom"])]
+
+
+def TestMainAddsControlArgumentOnlyOnce(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+  Calls: list[list[str]] = []
+
+  def RecordRun(_ProjectDirectory: Path, _Configuration: str, ApplicationArguments: list[str]) -> None:
+    Calls.append(ApplicationArguments)
+
+  monkeypatch.setattr(cli, "Run", RecordRun)
+  monkeypatch.setattr(
+    cli.sys,
+    "argv",
+    ["broccoli_build", "run", "Debug", "--control", "--", "--control", "--level", "Test"],
+  )
+
+  assert cli.Main() == 0
+  assert Calls == [["--control", "--level", "Test"]]
 
 
 def TestCleanOnlyRemovesTheRequestedConfiguration(

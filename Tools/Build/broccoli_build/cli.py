@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 from .common import RemovePath
+from .control import Run as RunControl
 from .package_runtime import PackageRuntime
 from .plugins import (
   GeneratePluginsCmake,
@@ -85,7 +86,9 @@ def FindCmakeCommand() -> str:
 
 def ValidateUserPresets(ProjectDirectory: Path) -> None:
   PresetsPath = ProjectDirectory / "CMakeUserPresets.json"
-  if PresetsPath.is_file() and "{YOUR_VCPKG_ROOT_DIRECTORY}" in PresetsPath.read_text(encoding="utf-8"):
+  if PresetsPath.is_file() and "{YOUR_VCPKG_ROOT_DIRECTORY}" in PresetsPath.read_text(
+    encoding="utf-8"
+  ):
     raise RuntimeError(
       "CMakeUserPresets.json still contains {YOUR_VCPKG_ROOT_DIRECTORY}. "
       "Please update VCPKG_ROOT in CMakeUserPresets.json to point to your vcpkg installation."
@@ -108,7 +111,14 @@ def Build(ProjectDirectory: Path, Configuration: str, Reconfigure: bool) -> None
 
   BuildPreset = CONFIGURATION_PRESETS[Configuration.casefold()][1]
   subprocess.run(
-    [CmakeCommand, "--build", "--preset", BuildPreset, "--target", f"BroccoliProjectBuild_{Configuration}"],
+    [
+      CmakeCommand,
+      "--build",
+      "--preset",
+      BuildPreset,
+      "--target",
+      f"BroccoliProjectBuild_{Configuration}",
+    ],
     cwd=ProjectDirectory,
     check=True,
   )
@@ -163,6 +173,14 @@ def SplitRunApplicationArguments(RawArguments: list[str]) -> tuple[list[str], li
   return RawArguments[:SeparatorIndex], RawArguments[SeparatorIndex + 1 :]
 
 
+def IncludeControlArgument(ApplicationArguments: list[str], Control: bool) -> list[str]:
+  """Add the Engine control option once when requested by the run command."""
+
+  if Control and "--control" not in ApplicationArguments:
+    return [*ApplicationArguments, "--control"]
+  return ApplicationArguments
+
+
 def ResolveRunInvocation(Arguments: argparse.Namespace) -> str:
   if Arguments.latest:
     if Arguments.configuration is None:
@@ -202,6 +220,10 @@ def CreateParser() -> argparse.ArgumentParser:
   Parser = argparse.ArgumentParser(description="BroccoliEngine build and packaging tools")
   Commands = Parser.add_subparsers(dest="Command", required=True)
 
+  ControlParser = Commands.add_parser("control", help="Control a running BROCCOLI ENGINE instance")
+  ControlParser.add_argument("--pid", type=int, help="PID of the target BROCCOLI ENGINE instance")
+  ControlParser.add_argument("arguments", nargs=argparse.REMAINDER)
+
   BuildParser = Commands.add_parser("build", help="Build a project configuration")
   BuildParser.add_argument("configuration", nargs="?", type=ConfigurationArgument)
   BuildParser.add_argument("--config", "-c", dest="config", type=ConfigurationArgument)
@@ -213,6 +235,7 @@ def CreateParser() -> argparse.ArgumentParser:
 
   RunParser = Commands.add_parser("run", help="Run a built project configuration")
   RunParser.add_argument("configuration", nargs="?", type=ConfigurationArgument)
+  RunParser.add_argument("--control", action="store_true")
   RunParser.add_argument("--latest", action="store_true")
   RunParser.add_argument("--project-dir", type=PathArgument, default=Path.cwd())
 
@@ -266,9 +289,16 @@ def Main() -> int:
   CliArguments, ApplicationArguments = SplitRunApplicationArguments(sys.argv[1:])
   Arguments = CreateParser().parse_args(CliArguments)
   try:
+    if Arguments.Command == "control":
+      ControlArguments = Arguments.arguments
+      if Arguments.pid is not None:
+        ControlArguments = ["--pid", str(Arguments.pid), *ControlArguments]
+      return RunControl(ControlArguments, Path.cwd())
     if Arguments.Command == "build":
       if Arguments.configuration is not None and Arguments.config is not None:
-        raise ValueError("Specify the configuration either as a positional argument or with --config/-c.")
+        raise ValueError(
+          "Specify the configuration either as a positional argument or with --config/-c."
+        )
       Build(
         Arguments.project_dir,
         Arguments.config or Arguments.configuration or "Debug",
@@ -281,7 +311,7 @@ def Main() -> int:
       Run(
         Arguments.project_dir,
         Configuration,
-        ApplicationArguments,
+        IncludeControlArgument(ApplicationArguments, Arguments.control),
       )
     elif Arguments.Command == "clean":
       if Arguments.configuration is not None and Arguments.clean_all:

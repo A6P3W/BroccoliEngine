@@ -192,7 +192,6 @@ void RegisterSystemCommand(
   FAutomationSystemCommandDescriptor Descriptor;
   Descriptor.Name = std::move(CommandName);
   Descriptor.Description = std::move(Description);
-  Descriptor.Permission = EAutomationPermission::SystemMutation;
   Descriptor.InputSchema = std::apply(
       [](const auto&... Values) { return Detail::MakeInputSchema(Values...); }, ParameterDefinitions
   );
@@ -254,7 +253,6 @@ void RegisterSystemCommandWithResultAdapter(
   FAutomationSystemCommandDescriptor Descriptor;
   Descriptor.Name = std::move(CommandName);
   Descriptor.Description = std::move(Description);
-  Descriptor.Permission = EAutomationPermission::SystemMutation;
   Descriptor.InputSchema = std::apply(
       [](const auto&... Values) { return Detail::MakeInputSchema(Values...); }, ParameterDefinitions
   );

@@ -15,7 +15,6 @@
 struct FAutomationParameterMetadata {
   std::string Name;
   std::string Description;
-  bool Required = true;
 };
 
 namespace BroccoliAutomationDetail {
@@ -23,13 +22,7 @@ namespace BroccoliAutomationDetail {
 inline FAutomationParameterMetadata MakeParameterMetadata(
     std::string Name, std::string Description
 ) {
-  return {std::move(Name), std::move(Description), true};
-}
-
-inline FAutomationParameterMetadata MakeOptionalParameterMetadata(
-    std::string Name, std::string Description
-) {
-  return {std::move(Name), std::move(Description), false};
+  return {std::move(Name), std::move(Description)};
 }
 
 template <class... TParameters>
@@ -99,19 +92,17 @@ template <class TValue>
 TValue ReadArgument(
     const nlohmann::json& Arguments, const FAutomationParameterMetadata& Parameter
 ) {
-  static_assert(
-      AutomationJsonReadable<TValue>, "Automation argument type must support JSON input."
-  );
+  static_assert(AutomationJsonReadable<TValue>, "Control argument type must support JSON input.");
   TValue Value{};
   const auto Iterator = Arguments.find(Parameter.Name);
   if (Iterator == Arguments.end()) {
     if constexpr (TIsOptional<TValue>::value) {
       return std::nullopt;
     }
-    throw std::runtime_error("Missing automation argument: " + Parameter.Name);
+    throw std::runtime_error("Missing control argument: " + Parameter.Name);
   }
   if (!TAutomationJsonConverter<TValue>::FromJson(*Iterator, Value)) {
-    throw std::runtime_error("Invalid automation argument: " + Parameter.Name);
+    throw std::runtime_error("Invalid control argument: " + Parameter.Name);
   }
   return Value;
 }
@@ -154,7 +145,7 @@ nlohmann::json MakeInputSchema(
         using TArgument =
             TArgumentStorage<std::tuple_element_t<TIndices, typename TTraits::ArgumentTuple>>;
         static_assert(
-            AutomationJsonReadable<TArgument>, "Automation argument type must support JSON input."
+            AutomationJsonReadable<TArgument>, "Control argument type must support JSON input."
         );
         const auto& Parameter = Parameters[TIndices];
         Properties[Parameter.Name] = TAutomationJsonConverter<TArgument>::GetSchema();
@@ -234,29 +225,27 @@ void RegisterMethod(
     FAutomationRegistrationContext& Context,
     std::string Name,
     std::string Description,
-    EAutomationPermission Permission,
     TMethod Method,
     std::array<FAutomationParameterMetadata, N> Parameters = {},
     TResultAdapter ResultAdapter = nullptr
 ) {
   static_assert(
       std::is_member_function_pointer_v<TMethod>,
-      "Automation methods must be non-static member functions."
+      "Control methods must be non-static member functions."
   );
   using TTraits = TMethodTraits<TMethod>;
   using TOwner = typename TTraits::OwnerType;
   static_assert(
       std::derived_from<TOwner, AActor> || std::derived_from<TOwner, MActorComponent>,
-      "Automation methods must belong to an AActor or MActorComponent."
+      "Control methods must belong to an AActor or MActorComponent."
   );
   static_assert(
-      N == TTraits::ArgumentCount,
-      "Automation parameter count does not match method argument count."
+      N == TTraits::ArgumentCount, "Control parameter count does not match method argument count."
   );
   static_assert(
       std::same_as<std::remove_cvref_t<TResultAdapter>, std::nullptr_t> ||
           !std::is_void_v<typename TTraits::ReturnType>,
-      "Void automation methods cannot use a result adapter."
+      "Void control methods cannot use a result adapter."
   );
 
   nlohmann::json InputSchema =
@@ -269,7 +258,7 @@ void RegisterMethod(
         ) mutable {
           auto* TypedActor = dynamic_cast<TOwner*>(&Actor);
           if (!TypedActor) {
-            throw std::runtime_error("Automation actor type mismatch.");
+            throw std::runtime_error("Control actor type mismatch.");
           }
           return InvokeMethod(*TypedActor, Method, Arguments, Parameters, ResultAdapter);
         };
@@ -278,7 +267,6 @@ void RegisterMethod(
         std::move(Name),
         std::move(Description),
         std::move(InputSchema),
-        Permission,
         std::move(Handler)
     );
   } else {
@@ -288,7 +276,7 @@ void RegisterMethod(
         ) mutable {
           auto* TypedComponent = dynamic_cast<TOwner*>(&Component);
           if (!TypedComponent) {
-            throw std::runtime_error("Automation component type mismatch.");
+            throw std::runtime_error("Control component type mismatch.");
           }
           return InvokeMethod(*TypedComponent, Method, Arguments, Parameters, ResultAdapter);
         };
@@ -297,7 +285,6 @@ void RegisterMethod(
         std::move(Name),
         std::move(Description),
         std::move(InputSchema),
-        Permission,
         std::move(Handler)
     );
   }

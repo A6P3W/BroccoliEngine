@@ -1,37 +1,23 @@
 #include "DoorActor.h"
 
-#include "AutomationMacros.h"
+#include "ControlMacros.h"
 #include "DoorAutomationTestComponent.h"
 
 REGISTER_ACTOR(ADoorActor)
-REGISTER_AUTOMATION_METHOD(
-    "open_door",
-    "Opens the door when it is unlocked.",
-    EAutomationPermission::WorldMutation,
-    &ADoorActor::OpenDoor
-)
-REGISTER_AUTOMATION_METHOD(
-    "close_door", "Closes the door.", EAutomationPermission::WorldMutation, &ADoorActor::CloseDoor
-)
-REGISTER_AUTOMATION_METHOD(
+CONTROL_METHOD("open_door", "Opens the door when it is unlocked.", &ADoorActor::OpenDoor)
+CONTROL_METHOD("close_door", "Closes the door.", &ADoorActor::CloseDoor)
+CONTROL_METHOD(
     "set_locked",
     "Sets the door lock state.",
-    EAutomationPermission::WorldMutation,
     &ADoorActor::SetLocked,
-    AUTOMATION_PARAMS(AUTOMATION_PARAM("locked", "New lock state."))
+    CONTROL_PARAMETERS(CONTROL_PARAMETER("locked", "New lock state."))
 )
-REGISTER_AUTOMATION_METHOD(
-    "is_open",
-    "Returns whether the door is open.",
-    EAutomationPermission::ReadOnly,
-    &ADoorActor::IsOpen
-)
-REGISTER_AUTOMATION_METHOD(
+CONTROL_METHOD("is_open", "Returns whether the door is open.", &ADoorActor::IsOpen)
+CONTROL_METHOD(
     "get_door_state",
     "Returns the current door state.",
-    EAutomationPermission::ReadOnly,
     &ADoorActor::GetDoorState,
-    AUTOMATION_PARAMS(),
+    CONTROL_PARAMETERS(),
     ([](const FDoorState& State) {
       return nlohmann::json{{"is_open", State.bIsOpen}, {"is_locked", State.bIsLocked}};
     })

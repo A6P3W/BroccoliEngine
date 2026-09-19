@@ -1,20 +1,18 @@
 #include "DoorAutomationTestComponent.h"
 
-#include "AutomationMacros.h"
+#include "ControlMacros.h"
 
-REGISTER_AUTOMATION_METHOD(
+CONTROL_METHOD(
     "set_active",
     "Sets the DoorActor automation test component active state.",
-    EAutomationPermission::WorldMutation,
     &MDoorAutomationTestComponent::SetActive,
-    AUTOMATION_PARAMS(AUTOMATION_PARAM("active", "New active state."))
+    CONTROL_PARAMETERS(CONTROL_PARAMETER("active", "New active state."))
 )
-REGISTER_AUTOMATION_METHOD(
+CONTROL_METHOD(
     "is_active",
     "Returns the DoorActor automation test component active state.",
-    EAutomationPermission::ReadOnly,
     &MDoorAutomationTestComponent::IsActive,
-    AUTOMATION_PARAMS(),
+    CONTROL_PARAMETERS(),
     ([](const bool Active) { return nlohmann::json{{"active", Active}}; })
 )
 

@@ -12,6 +12,7 @@
 #include "Registry/SystemCommandRegistry.h"
 #include "Runtime/BuiltInCommands.h"
 #include "Runtime/CommandQueue.h"
+#include "Runtime/ControlRegistration.h"
 #include "Runtime/RuntimeState.h"
 #include "Runtime/StateProvider.h"
 #include "World/DiscoveryService.h"
@@ -80,6 +81,15 @@ struct FAutomationSubsystem::FImpl {
       Shutdown();
       return false;
     }
+    ControlRegistration = std::make_unique<FAutomationControlRegistration>();
+    if (!ControlRegistration->Create(HttpServer->GetPort())) {
+      M_LOG(
+          Log,
+          "Automation control registration failed; the engine will continue without Automation."
+      );
+      Shutdown();
+      return false;
+    }
     return true;
   }
 
@@ -122,6 +132,9 @@ struct FAutomationSubsystem::FImpl {
     if (HttpServer) {
       HttpServer->StopAcceptingRequests();
     }
+    if (ControlRegistration) {
+      ControlRegistration->Remove();
+    }
     if (CommandQueue) {
       CommandQueue->StopAcceptingCommands();
       CommandQueue->CancelAll(
@@ -133,6 +146,7 @@ struct FAutomationSubsystem::FImpl {
     }
 
     HttpServer.reset();
+    ControlRegistration.reset();
     LogController.reset();
     SystemController.reset();
     InvocationController.reset();
@@ -160,6 +174,7 @@ struct FAutomationSubsystem::FImpl {
   std::unique_ptr<FAutomationSystemController> SystemController;
   std::unique_ptr<FAutomationLogController> LogController;
   std::unique_ptr<FAutomationHttpServer> HttpServer;
+  std::unique_ptr<FAutomationControlRegistration> ControlRegistration;
 };
 
 FAutomationSubsystem::FAutomationSubsystem() : ImplPtr(std::make_unique<FImpl>()) {}

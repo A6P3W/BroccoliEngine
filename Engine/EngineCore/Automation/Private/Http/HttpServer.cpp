@@ -1,9 +1,14 @@
 #include "HttpServer.h"
 
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+
 #include <httplib.h>
 
 #include <atomic>
 #include <exception>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -143,6 +148,18 @@ struct FAutomationHttpServer::Impl {
 
   void RegisterRoutes() {
     Server.set_payload_max_length(Config.MaxRequestBodyBytes);
+#ifdef _WIN32
+    Server.set_socket_options([](socket_t Socket) {
+      const int EnableExclusiveAddressUse = 1;
+      setsockopt(
+          Socket,
+          SOL_SOCKET,
+          SO_EXCLUSIVEADDRUSE,
+          reinterpret_cast<const char*>(&EnableExclusiveAddressUse),
+          sizeof(EnableExclusiveAddressUse)
+      );
+    });
+#endif
 
     Server.Get(
         "/api/v1/state", [this](const httplib::Request& Request, httplib::Response& Response) {
@@ -581,6 +598,12 @@ struct FAutomationHttpServer::Impl {
     );
   }
 
+  void RecreateServer() {
+    std::destroy_at(std::addressof(Server));
+    std::construct_at(std::addressof(Server));
+    RegisterRoutes();
+  }
+
   FAutomationConfig Config;
   FAutomationHttpControllers Controllers;
   httplib::Server Server;
@@ -588,6 +611,7 @@ struct FAutomationHttpServer::Impl {
   mutable std::mutex LifecycleMutex;
   std::atomic_bool bRunning = false;
   std::atomic_bool bStopRequested = false;
+  std::atomic_uint16_t Port = 0;
 };
 
 FAutomationHttpServer::FAutomationHttpServer(
@@ -619,12 +643,23 @@ bool FAutomationHttpServer::Start() {
   M_LOG(
       Log, "Automation server starting on {}:{}", ImplPtr->Config.BindAddress, ImplPtr->Config.Port
   );
-  const int BoundPort =
-      ImplPtr->Server.bind_to_port(ImplPtr->Config.BindAddress, ImplPtr->Config.Port);
-  if (BoundPort < 0) {
+  uint16_t BoundPort = 0;
+  bool bBound = false;
+  for (uint32_t CandidatePort = ImplPtr->Config.Port; CandidatePort <= UINT16_MAX;
+       ++CandidatePort) {
+    if (ImplPtr->Server.bind_to_port(
+            ImplPtr->Config.BindAddress, static_cast<int>(CandidatePort)
+        )) {
+      BoundPort = static_cast<uint16_t>(CandidatePort);
+      bBound = true;
+      break;
+    }
+    ImplPtr->RecreateServer();
+  }
+  if (!bBound) {
     M_LOG(
         Log,
-        "Automation server failed to bind to {}:{}",
+        "Automation server failed to bind to {} starting at port {}.",
         ImplPtr->Config.BindAddress,
         ImplPtr->Config.Port
     );
@@ -633,6 +668,7 @@ bool FAutomationHttpServer::Start() {
 
   ImplPtr->bStopRequested.store(false);
   ImplPtr->bRunning.store(true);
+  ImplPtr->Port.store(static_cast<uint16_t>(BoundPort));
   try {
     ImplPtr->ServerThread = std::thread([this]() {
       const bool ListenSucceeded = ImplPtr->Server.listen_after_bind();
@@ -643,11 +679,13 @@ bool FAutomationHttpServer::Start() {
     });
   } catch (const std::exception& Exception) {
     ImplPtr->bRunning.store(false);
+    ImplPtr->Port.store(0);
     ImplPtr->Server.stop();
     M_LOG(Log, "Automation server thread creation failed: {}", Exception.what());
     return false;
   } catch (...) {
     ImplPtr->bRunning.store(false);
+    ImplPtr->Port.store(0);
     ImplPtr->Server.stop();
     M_LOG(Log, "Automation server thread creation failed.");
     return false;
@@ -680,6 +718,9 @@ void FAutomationHttpServer::Stop() {
     M_LOG(Log, "Automation server stopped.");
   }
   ImplPtr->bRunning.store(false);
+  ImplPtr->Port.store(0);
 }
 
 bool FAutomationHttpServer::IsRunning() const { return ImplPtr && ImplPtr->bRunning.load(); }
+
+uint16_t FAutomationHttpServer::GetPort() const { return ImplPtr ? ImplPtr->Port.load() : 0; }

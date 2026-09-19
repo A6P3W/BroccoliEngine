@@ -4,8 +4,14 @@ import math
 
 import pytest
 
-from broccoli_mcp.errors import InvalidEngineResponse
-from broccoli_mcp.models import ActorInfo, ActorList, ActorMethodInfo, RecentLogs, SystemCommandInfo
+from broccoli_control.errors import InvalidEngineResponse
+from broccoli_control.models import (
+  ActorInfo,
+  ActorList,
+  ActorMethodInfo,
+  RecentLogs,
+  SystemCommandInfo,
+)
 
 ACTOR_DATA = {
   "actorId": 42,
@@ -83,7 +89,6 @@ def test_automation_descriptors_reject_invalid_values() -> None:
         "name": "BadName",
         "description": "Test.",
         "inputSchema": {},
-        "permission": "ReadOnly",
       },
       Operation="test actor method",
     )
@@ -94,7 +99,6 @@ def test_automation_descriptors_reject_invalid_values() -> None:
         "name": "pause_game",
         "description": "",
         "inputSchema": {},
-        "permission": "SystemMutation",
       },
       Operation="test system command",
     )

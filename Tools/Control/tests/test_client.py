@@ -6,9 +6,9 @@ from collections.abc import Callable
 import httpx
 import pytest
 
-from broccoli_mcp.config import BridgeConfig
-from broccoli_mcp.engine_client import EngineClient
-from broccoli_mcp.errors import (
+from broccoli_control.client import ControlClient
+from broccoli_control.config import ControlConfig
+from broccoli_control.errors import (
   EngineApiError,
   EngineTimeout,
   EngineUnavailable,
@@ -35,7 +35,7 @@ ACTOR_DATA = {
 
 
 def run_request(Handler: Callable[[httpx.Request], httpx.Response]):
-  Client = EngineClient(BridgeConfig(), Transport=httpx.MockTransport(Handler))
+  Client = ControlClient(ControlConfig(), Transport=httpx.MockTransport(Handler))
   try:
     return Client.get_state()
   finally:
@@ -146,8 +146,8 @@ def test_missing_state_field_is_rejected() -> None:
 
 
 def test_oversized_response_is_rejected() -> None:
-  Config = BridgeConfig(MaxResponseBytes=8)
-  Client = EngineClient(
+  Config = ControlConfig(MaxResponseBytes=8)
+  Client = ControlClient(
     Config,
     Transport=httpx.MockTransport(
       lambda Request: json_response(
@@ -178,7 +178,7 @@ def test_get_actors_uses_world_actors_url() -> None:
       },
     )
 
-  Client = EngineClient(BridgeConfig(), Transport=httpx.MockTransport(handler))
+  Client = ControlClient(ControlConfig(), Transport=httpx.MockTransport(handler))
   try:
     Actors = Client.get_actors()
   finally:
@@ -193,7 +193,7 @@ def test_get_actor_uses_actor_id_url() -> None:
     assert Request.url == "http://127.0.0.1:39100/api/v1/world/actors/42"
     return json_response(200, {"success": True, "data": ACTOR_DATA})
 
-  Client = EngineClient(BridgeConfig(), Transport=httpx.MockTransport(handler))
+  Client = ControlClient(ControlConfig(), Transport=httpx.MockTransport(handler))
   try:
     Actor = Client.get_actor(42)
   finally:
@@ -216,7 +216,7 @@ def test_get_actor_preserves_not_found_error() -> None:
       },
     )
 
-  Client = EngineClient(BridgeConfig(), Transport=httpx.MockTransport(handler))
+  Client = ControlClient(ControlConfig(), Transport=httpx.MockTransport(handler))
   try:
     with pytest.raises(EngineApiError) as ErrorInfo:
       Client.get_actor(42)
@@ -243,7 +243,7 @@ def test_get_component_methods_uses_component_route() -> None:
       },
     )
 
-  Client = EngineClient(BridgeConfig(), Transport=httpx.MockTransport(handler))
+  Client = ControlClient(ControlConfig(), Transport=httpx.MockTransport(handler))
   try:
     Result = Client.get_component_methods(42, 7)
   finally:
@@ -273,7 +273,7 @@ def test_invoke_component_method_uses_component_route_and_envelope() -> None:
       },
     )
 
-  Client = EngineClient(BridgeConfig(), Transport=httpx.MockTransport(handler))
+  Client = ControlClient(ControlConfig(), Transport=httpx.MockTransport(handler))
   try:
     Result = Client.invoke_component_method(42, 7, "set_active", {"active": True})
   finally:

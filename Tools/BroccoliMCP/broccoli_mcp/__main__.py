@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 import sys
 
-from .config import load_config
-from .errors import BridgeConfigurationError
+from broccoli_control.config import load_config
+from broccoli_control.errors import ControlConfigurationError
+
 from .logging_config import configure_logging
 from .server import run_server
 
@@ -14,7 +15,7 @@ from .server import run_server
 def main() -> int:
   try:
     Config = load_config()
-  except BridgeConfigurationError as Error:
+  except ControlConfigurationError as Error:
     configure_logging("ERROR")
     logging.getLogger(__name__).error("%s", Error)
     return 2
