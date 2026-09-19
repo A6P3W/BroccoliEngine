@@ -7,7 +7,7 @@
 #include "Camera3DComponent.h"
 #include "EditorContext.h"
 #include "EditorMode.h"
-#include "EditorPawn.h"
+#include "EditorPawn3D.h"
 #include "EditorViewportState.h"
 #include "FileDialog.h"
 #include "PathResolver.h"
@@ -90,7 +90,7 @@ void ViewportPanel::CreateStaticMeshActor(
   auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(Actor);
   if (StaticMeshActor == nullptr) return;
 
-  EditorPawn* EditorPawn = Context.Mode->GetEditorPawn();
+  EditorPawn3D* EditorPawn = Context.Mode->GetEditorPawn3D();
   if (EditorPawn != nullptr && EditorPawn->GetEditorCamera3D() != nullptr) {
     StaticMeshActor->SetActorLocation3D(
         EditorPawn->GetActorLocation3D() +

@@ -12,7 +12,9 @@
 
 class AActor;
 class EditorUI;
-class EditorPawn;
+class EditorController;
+class EditorPawn2D;
+class EditorPawn3D;
 
 enum class EEditorState {
   Idle,
@@ -55,8 +57,8 @@ class EditorMode : public AGameModeBase {
   EEditorViewportMode GetViewportMode() const { return ViewportState.Mode; }
   void SetViewportMode(EEditorViewportMode Mode);
   bool IsThreeDCameraNavigationActive() const;
-  void SetEditorPawn(EditorPawn* Pawn) { EditorPawnPtr = Pawn; }
-  EditorPawn* GetEditorPawn() const { return EditorPawnPtr; }
+  EditorPawn3D* GetEditorPawn3D() const { return EditorPawn3DPtr; }
+  void OnMousePress3D();
 
   FEditorViewportState& GetViewportState() { return ViewportState; }
   const FEditorViewportState& GetViewportState() const { return ViewportState; }
@@ -91,11 +93,16 @@ class EditorMode : public AGameModeBase {
   EditorMode& operator=(EditorMode&&) = delete;
 
   void BeginPlay() override;
+  void OnPlayerSpawned(
+      APlayerController* Controller, APawn* Pawn, FNetworkConnectionId ConnectionId
+  ) override;
   EEditorState State = EEditorState::Idle;
   std::string SelectedClass;
   std::string SelectedGameModeClass;
   AActor* SelectingActor = nullptr;  // ドラッグ中のゴースト
-  EditorPawn* EditorPawnPtr = nullptr;
+  EditorController* EditorControllerPtr = nullptr;
+  EditorPawn2D* EditorPawn2DPtr = nullptr;
+  EditorPawn3D* EditorPawn3DPtr = nullptr;
   EActorAction ActorAction = EActorAction::Select;
   FEditorViewportState ViewportState;
   EditorSelection Selection;
