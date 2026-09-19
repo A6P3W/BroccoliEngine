@@ -25,6 +25,7 @@
 #include <string>
 #include <utility>
 
+#include "Systems/Private/Jolt/JoltRuntime.h"
 #include "AutomationSubsystem.h"
 #include "BroccoliRaylib.h"
 #include "DebugOverlay.h"
@@ -37,7 +38,6 @@
 #include "GamePadDevice.h"
 #include "HttpManager.h"
 #include "InputManager.h"
-#include "Jolt/JoltRuntime.h"
 #include "KeyboardDevice.h"
 #include "Log.h"
 #include "MouseDevice.h"
