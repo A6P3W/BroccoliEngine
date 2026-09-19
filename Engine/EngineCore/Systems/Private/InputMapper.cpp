@@ -123,7 +123,11 @@ float InputMapper::GetAxisValue(const std::string& ActionName) const {
   const auto ButtonIt = ImplPtr->ButtonBindings.find(ActionName);
   if (ButtonIt != ImplPtr->ButtonBindings.end()) {
     for (const auto& Binding : ButtonIt->second) {
-      if (Binding.Device->GetPressing(Binding.Code)) Result += Binding.Scale;
+      bool ModifierMet = true;
+      if (!Binding.ModifierAction.empty()) {
+        ModifierMet = GetPressing(Binding.ModifierAction);
+      }
+      if (ModifierMet && Binding.Device->GetPressing(Binding.Code)) Result += Binding.Scale;
     }
   }
   return Result;
@@ -196,7 +200,11 @@ EInputDeviceType InputMapper::GetAxisValueDevice(const std::string& ActionName) 
   const auto ButtonIt = ImplPtr->ButtonBindings.find(ActionName);
   if (ButtonIt != ImplPtr->ButtonBindings.end()) {
     for (const auto& Binding : ButtonIt->second) {
-      if (Binding.Device->GetPressing(Binding.Code) && Binding.Scale != 0.0f) {
+      bool ModifierMet = true;
+      if (!Binding.ModifierAction.empty()) {
+        ModifierMet = GetPressing(Binding.ModifierAction);
+      }
+      if (ModifierMet && Binding.Device->GetPressing(Binding.Code) && Binding.Scale != 0.0f) {
         return Binding.Device->GetDeviceType();
       }
     }
