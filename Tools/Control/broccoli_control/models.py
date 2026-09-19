@@ -39,8 +39,6 @@ class EngineState:
       "paused": bool,
       "worldAvailable": bool,
       "actorCount": int,
-      "physics3DAvailable": bool,
-      "physics3DBodyCount": int,
     }
     for FieldName, ExpectedType in RequiredFields.items():
       if FieldName not in Data:
@@ -68,9 +66,26 @@ class EngineState:
         "State field 'fps' has an invalid type.",
         Operation=Operation,
       )
-    if Data["actorCount"] < 0 or Data["physics3DBodyCount"] < 0:
+    if Data["actorCount"] < 0:
       raise InvalidEngineResponse(
         "State field 'actorCount' must not be negative.",
+        Operation=Operation,
+      )
+
+    Physics3DAvailable = Data.get("physics3DAvailable", False)
+    Physics3DBodyCount = Data.get("physics3DBodyCount", 0)
+    if not isinstance(Physics3DAvailable, bool):
+      raise InvalidEngineResponse(
+        "State field 'physics3DAvailable' has an invalid type.",
+        Operation=Operation,
+      )
+    if (
+      isinstance(Physics3DBodyCount, bool)
+      or not isinstance(Physics3DBodyCount, int)
+      or Physics3DBodyCount < 0
+    ):
+      raise InvalidEngineResponse(
+        "State field 'physics3DBodyCount' must be a non-negative integer.",
         Operation=Operation,
       )
 
@@ -80,8 +95,8 @@ class EngineState:
       Paused=Data["paused"],
       WorldAvailable=Data["worldAvailable"],
       ActorCount=Data["actorCount"],
-      Physics3DAvailable=Data["physics3DAvailable"],
-      Physics3DBodyCount=Data["physics3DBodyCount"],
+      Physics3DAvailable=Physics3DAvailable,
+      Physics3DBodyCount=Physics3DBodyCount,
     )
 
   def to_dict(Self) -> dict[str, Any]:
