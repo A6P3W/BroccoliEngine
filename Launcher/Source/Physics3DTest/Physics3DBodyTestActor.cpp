@@ -18,33 +18,37 @@ void ConfigureBody(AActor& Actor, ERigidBody3DType Type) {
 }  // namespace
 
 APhysics3DStaticFloorActor::APhysics3DStaticFloorActor() {
-  SetActorLocation3D({0.0f, -1.0f, 0.0f});
   ConfigureBody(*this, ERigidBody3DType::Static);
   MBoxCollisionComponent3D* Collider = NewObject<MBoxCollisionComponent3D>(this);
   Collider->SetHalfExtent({5.0f, 0.5f, 5.0f});
   Collider->RegisterComponent();
 }
 
+void APhysics3DStaticFloorActor::BeginPlay() { SetActorLocation3D({0.0f, -1.0f, 0.0f}); }
+
 APhysics3DDynamicBoxActor::APhysics3DDynamicBoxActor() {
-  SetActorLocation3D({-2.0f, 5.0f, 0.0f});
   ConfigureBody(*this, ERigidBody3DType::Dynamic);
   MBoxCollisionComponent3D* Collider = NewObject<MBoxCollisionComponent3D>(this);
   Collider->SetHalfExtent({0.5f, 0.5f, 0.5f});
   Collider->RegisterComponent();
 }
 
+void APhysics3DDynamicBoxActor::BeginPlay() { SetActorLocation3D({-2.0f, 5.0f, 0.0f}); }
+
 APhysics3DDynamicSphereActor::APhysics3DDynamicSphereActor() {
-  SetActorLocation3D({2.0f, 5.0f, 0.0f});
   ConfigureBody(*this, ERigidBody3DType::Dynamic);
   MSphereCollisionComponent3D* Collider = NewObject<MSphereCollisionComponent3D>(this);
   Collider->SetRadius(0.5f);
   Collider->RegisterComponent();
 }
 
+void APhysics3DDynamicSphereActor::BeginPlay() { SetActorLocation3D({2.0f, 5.0f, 0.0f}); }
+
 APhysics3DKinematicActor::APhysics3DKinematicActor() {
-  SetActorLocation3D({0.0f, 2.0f, 3.0f});
   ConfigureBody(*this, ERigidBody3DType::Kinematic);
   MBoxCollisionComponent3D* Collider = NewObject<MBoxCollisionComponent3D>(this);
   Collider->SetHalfExtent({0.5f, 0.5f, 0.5f});
   Collider->RegisterComponent();
 }
+
+void APhysics3DKinematicActor::BeginPlay() { SetActorLocation3D({0.0f, 2.0f, 3.0f}); }
