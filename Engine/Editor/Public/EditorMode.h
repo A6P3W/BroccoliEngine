@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 
+#include "EditorClipboard.h"
 #include "EditorSelection.h"
 #include "EditorTransformTool.h"
 #include "EditorViewportState.h"
@@ -76,6 +77,9 @@ class EditorMode : public AGameModeBase {
   void CutSelectedActor();
   void DeleteSelectedActor();
 
+  const EditorClipboard& GetClipboard() const { return Clipboard; }
+  EditorClipboard& GetClipboard() { return Clipboard; }
+
  public:
   EditorMode();
   void OnUpdate(float DeltaTime) override;
@@ -96,14 +100,11 @@ class EditorMode : public AGameModeBase {
   FEditorViewportState ViewportState;
   EditorSelection Selection;
   EditorTransformTool TransformTool;
+  EditorClipboard Clipboard;
 
   static std::string PendingLoadPath;
 
   std::string CurrentLevelPath;
 
   bool TryGetMouseWorldPosition(FVector2D& OutPosition, bool RequireInside = true) const;
-
-  // --- クリップボード ---
-  FActorSaveData ClipboardData;
-  bool bHasClipboard = false;
 };

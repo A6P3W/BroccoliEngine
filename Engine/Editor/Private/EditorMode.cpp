@@ -154,34 +154,11 @@ EditorMode::EditorMode() {
 
 void EditorMode::CopySelectedActor() {
   AActor* SelectedActor = GetSelectedActor();
-  if (!SelectedActor || SelectedActor->IsPendingDestroy()) {
-    M_LOG(Log, "Copy failed: No actor selected.");
-    return;
-  }
-
-  ClipboardData.ClassName = SelectedActor->GetActorClassName();
-  ClipboardData.Transform = SelectedActor->GetActorTransform3D();
-  ClipboardData.CustomProperties.clear();
-
-  if (auto spriteActor = dynamic_cast<ASpriteActor*>(SelectedActor)) {
-    ClipboardData.CustomProperties["ImagePath"] = spriteActor->GetImagePath();
-  }
-  if (auto staticMeshActor = dynamic_cast<AStaticMeshActor*>(SelectedActor)) {
-    ClipboardData.CustomProperties["ModelPath"] = staticMeshActor->GetModelPath();
-  }
-
-  bHasClipboard = true;
-  M_LOG(
-      Log,
-      "Copied Actor: {} at ({}, {})",
-      ClipboardData.ClassName,
-      ClipboardData.Transform.Location.X,
-      ClipboardData.Transform.Location.Y
-  );
+  Clipboard.Copy(SelectedActor);
 }
 
 void EditorMode::PasteActor() {
-  if (!bHasClipboard) {
+  if (!Clipboard.HasData()) {
     M_LOG(Log, "Paste failed: Clipboard is empty.");
     return;
   }
@@ -192,55 +169,29 @@ void EditorMode::PasteActor() {
     return;
   }
 
-  AActor* NewActor = ActorRegistry::GetInstance().Spawn(GetWorld(), ClipboardData.ClassName);
-
-  if (!NewActor) {
-    M_LOG(Log, "Paste failed: Could not spawn actor '{}'.", ClipboardData.ClassName);
-    return;
+  AActor* NewActor = Clipboard.Paste(GetWorld(), PasteLocation);
+  if (NewActor != nullptr) {
+    SetSelectedActor(NewActor);
   }
-
-  ClipboardData.Transform.Location.X = PasteLocation.X;
-  ClipboardData.Transform.Location.Y = PasteLocation.Y;
-  NewActor->SetActorLocation3D(ClipboardData.Transform.Location);
-  NewActor->SetActorRotation3D(ClipboardData.Transform.Rotation);
-  NewActor->SetActorScale3D(ClipboardData.Transform.Scale);
-
-  if (auto SpriteActor = dynamic_cast<ASpriteActor*>(NewActor)) {
-    auto It = ClipboardData.CustomProperties.find("ImagePath");
-    if (It != ClipboardData.CustomProperties.end()) {
-      SpriteActor->SetImagePath(It->second);
-    }
-  }
-  if (auto StaticMeshActor = dynamic_cast<AStaticMeshActor*>(NewActor)) {
-    auto It = ClipboardData.CustomProperties.find("ModelPath");
-    if (It != ClipboardData.CustomProperties.end()) {
-      StaticMeshActor->SetModelPath(It->second);
-    }
-  }
-
-  SetSelectedActor(NewActor);
-
-  M_LOG(
-      Log, "Pasted Actor: {} at ({}, {})", ClipboardData.ClassName, PasteLocation.X, PasteLocation.Y
-  );
 }
 
 void EditorMode::CutSelectedActor() {
   AActor* SelectedActor = GetSelectedActor();
-  if (!SelectedActor || SelectedActor->IsPendingDestroy()) {
+  if (SelectedActor == nullptr || SelectedActor->IsPendingDestroy()) {
     M_LOG(Log, "Cut failed: No actor selected.");
     return;
   }
 
-  CopySelectedActor();
-  DeleteSelectedActor();
-
-  M_LOG(Log, "Cut completed.");
+  if (Clipboard.Copy(SelectedActor)) {
+    SelectedActor->Destroy();
+    SetSelectedActor(nullptr);
+    M_LOG(Log, "Cut completed.");
+  }
 }
 
 void EditorMode::DeleteSelectedActor() {
   AActor* SelectedActor = GetSelectedActor();
-  if (!SelectedActor || SelectedActor->IsPendingDestroy()) {
+  if (SelectedActor == nullptr || SelectedActor->IsPendingDestroy()) {
     M_LOG(Log, "Delete failed: No actor selected.");
     return;
   }
