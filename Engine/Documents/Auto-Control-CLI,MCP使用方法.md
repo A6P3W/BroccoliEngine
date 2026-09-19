@@ -41,3 +41,9 @@ broccoli.bat control actors
 ```powershell
 broccoli.bat control --pid 12340 state
 ```
+
+詳細は以下を使用。
+
+```powershell
+broccoli.bat control --help
+```

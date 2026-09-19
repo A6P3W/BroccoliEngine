@@ -27,9 +27,9 @@ ACTOR_DATA = {
   "instanceName": "AForceFieldActor_1",
   "className": "AForceFieldActor",
   "transform": {
-    "location": {"x": 100.0, "y": 200.0},
-    "rotation": 45.0,
-    "scale": 1.0,
+    "location": {"x": 100.0, "y": 200.0, "z": 0.0},
+    "rotation": {"pitch": 0.0, "yaw": 0.0, "roll": 45.0},
+    "scale": {"x": 1.0, "y": 1.0, "z": 1.0},
   },
 }
 

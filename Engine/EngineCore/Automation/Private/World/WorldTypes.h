@@ -17,12 +17,9 @@ struct FAutomationActorSnapshot {
   FActorId ActorId = InvalidActorId;
   std::string InstanceName;
   std::string ClassName;
-  FVector2D Location;
-  FRotator Rotation;
-  FScale Scale;
-  FVector3D Location3D;
-  FQuaternion Rotation3D;
-  FScale3D Scale3D;
+  FVector3D Location;
+  FRotator3D Rotation;
+  FScale3D Scale;
 };
 
 struct FAutomationActorComponentSnapshot {
@@ -96,19 +93,43 @@ enum class EAutomationWorldMutationStatus : uint8_t {
 
 struct FAutomationSpawnActorRequest {
   std::string ClassName;
-  FVector2D Location = FVector2D::ZeroVector();
-  FRotator Rotation = FRotator(0.0f);
-  FScale Scale = FScale(1.0f);
+  FVector3D Location = FVector3D::ZeroVector();
+  FRotator3D Rotation = FRotator3D{};
+  FScale3D Scale = FScale3D{1.0f, 1.0f, 1.0f};
   std::optional<std::string> InstanceName;
 };
 
+struct FOptionalVector3D {
+  std::optional<float> X;
+  std::optional<float> Y;
+  std::optional<float> Z;
+
+  bool HasAnyValue() const { return X.has_value() || Y.has_value() || Z.has_value(); }
+};
+
+struct FOptionalRotator3D {
+  std::optional<float> Pitch;
+  std::optional<float> Yaw;
+  std::optional<float> Roll;
+
+  bool HasAnyValue() const { return Pitch.has_value() || Yaw.has_value() || Roll.has_value(); }
+};
+
+struct FOptionalScale3D {
+  std::optional<float> X;
+  std::optional<float> Y;
+  std::optional<float> Z;
+
+  bool HasAnyValue() const { return X.has_value() || Y.has_value() || Z.has_value(); }
+};
+
 struct FAutomationTransformPatch {
-  std::optional<FVector2D> Location;
-  std::optional<FRotator> Rotation;
-  std::optional<FScale> Scale;
+  FOptionalVector3D Location;
+  FOptionalRotator3D Rotation;
+  FOptionalScale3D Scale;
 
   bool HasAnyValue() const {
-    return Location.has_value() || Rotation.has_value() || Scale.has_value();
+    return Location.HasAnyValue() || Rotation.HasAnyValue() || Scale.HasAnyValue();
   }
 };
 

@@ -1,6 +1,7 @@
 #include "Physics3DBodyTestActor.h"
 
 #include "BoxCollisionComponent3D.h"
+#include "CubeComponent.h"
 #include "RigidBody3DComponent.h"
 #include "SphereCollisionComponent3D.h"
 
@@ -22,6 +23,11 @@ APhysics3DStaticFloorActor::APhysics3DStaticFloorActor() {
   MBoxCollisionComponent3D* Collider = NewObject<MBoxCollisionComponent3D>(this);
   Collider->SetHalfExtent({5.0f, 0.5f, 5.0f});
   Collider->RegisterComponent();
+
+  MCubeComponent* Visual = NewObject<MCubeComponent>(this);
+  Visual->SetRelativeScale3D({10.0f, 1.0f, 10.0f});
+  Visual->SetColor({130, 130, 130, 255});
+  Visual->RegisterComponent();
 }
 
 void APhysics3DStaticFloorActor::BeginPlay() { SetActorLocation3D({0.0f, -1.0f, 0.0f}); }
@@ -31,6 +37,11 @@ APhysics3DDynamicBoxActor::APhysics3DDynamicBoxActor() {
   MBoxCollisionComponent3D* Collider = NewObject<MBoxCollisionComponent3D>(this);
   Collider->SetHalfExtent({0.5f, 0.5f, 0.5f});
   Collider->RegisterComponent();
+
+  MCubeComponent* Visual = NewObject<MCubeComponent>(this);
+  Visual->SetRelativeScale3D({1.0f, 1.0f, 1.0f});
+  Visual->SetColor({230, 80, 80, 255});
+  Visual->RegisterComponent();
 }
 
 void APhysics3DDynamicBoxActor::BeginPlay() { SetActorLocation3D({-2.0f, 5.0f, 0.0f}); }
@@ -40,6 +51,11 @@ APhysics3DDynamicSphereActor::APhysics3DDynamicSphereActor() {
   MSphereCollisionComponent3D* Collider = NewObject<MSphereCollisionComponent3D>(this);
   Collider->SetRadius(0.5f);
   Collider->RegisterComponent();
+
+  MCubeComponent* Visual = NewObject<MCubeComponent>(this);
+  Visual->SetRelativeScale3D({1.0f, 1.0f, 1.0f});
+  Visual->SetColor({80, 160, 240, 255});
+  Visual->RegisterComponent();
 }
 
 void APhysics3DDynamicSphereActor::BeginPlay() { SetActorLocation3D({2.0f, 5.0f, 0.0f}); }
@@ -49,6 +65,11 @@ APhysics3DKinematicActor::APhysics3DKinematicActor() {
   MBoxCollisionComponent3D* Collider = NewObject<MBoxCollisionComponent3D>(this);
   Collider->SetHalfExtent({0.5f, 0.5f, 0.5f});
   Collider->RegisterComponent();
+
+  MCubeComponent* Visual = NewObject<MCubeComponent>(this);
+  Visual->SetRelativeScale3D({1.0f, 1.0f, 1.0f});
+  Visual->SetColor({80, 220, 120, 255});
+  Visual->RegisterComponent();
 }
 
 void APhysics3DKinematicActor::BeginPlay() { SetActorLocation3D({0.0f, 2.0f, 3.0f}); }

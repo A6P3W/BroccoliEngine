@@ -18,12 +18,9 @@ ACTOR_DATA = {
   "instanceName": "AForceFieldActor_1",
   "className": "AForceFieldActor",
   "transform": {
-    "location": {"x": 100.0, "y": 200.0},
-    "rotation": 45.0,
-    "scale": 1.0,
-    "location3D": {"x": 1.0, "y": 2.0, "z": 3.0},
-    "rotation3D": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0},
-    "scale3D": {"x": 1.0, "y": 1.0, "z": 1.0},
+    "location": {"x": 100.0, "y": 200.0, "z": 0.0},
+    "rotation": {"pitch": 0.0, "yaw": 0.0, "roll": 45.0},
+    "scale": {"x": 1.0, "y": 1.0, "z": 1.0},
   },
 }
 LOG_DATA = {
@@ -65,7 +62,13 @@ def test_actor_model_rejects_invalid_actor_id(ActorId: object) -> None:
 
 @pytest.mark.parametrize("Value", [math.nan, math.inf, -math.inf])
 def test_actor_model_rejects_non_finite_transform(Value: float) -> None:
-  Data = {**ACTOR_DATA, "transform": {**ACTOR_DATA["transform"], "scale": Value}}
+  Data = {
+    **ACTOR_DATA,
+    "transform": {
+      **ACTOR_DATA["transform"],
+      "scale": {"x": Value, "y": 1.0, "z": 1.0},
+    },
+  }
 
   with pytest.raises(InvalidEngineResponse, match="finite"):
     ActorInfo.from_mapping(Data, Operation="test actor")

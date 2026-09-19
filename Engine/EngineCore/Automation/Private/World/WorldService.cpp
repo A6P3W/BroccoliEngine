@@ -26,21 +26,15 @@ EAutomationWorldReadStatus MakeActorSnapshot(
   Snapshot.ActorId = Actor.GetActorId();
   Snapshot.InstanceName = Actor.GetInstanceName();
   Snapshot.ClassName = Actor.GetActorClassName();
-  Snapshot.Location = Actor.GetActorLocation();
-  Snapshot.Rotation = Actor.GetActorRotation();
-  Snapshot.Scale = Actor.GetActorScale();
-  Snapshot.Location3D = Actor.GetActorLocation3D();
-  Snapshot.Rotation3D = Actor.GetActorRotation3D();
-  Snapshot.Scale3D = Actor.GetActorScale3D();
+  Snapshot.Location = Actor.GetActorLocation3D();
+  Snapshot.Rotation = Actor.GetActorRotation3D().ToRotator();
+  Snapshot.Scale = Actor.GetActorScale3D();
   if (Snapshot.ActorId == InvalidActorId || Snapshot.InstanceName.empty() ||
       Snapshot.ClassName.empty() || !std::isfinite(Snapshot.Location.X) ||
-      !std::isfinite(Snapshot.Location.Y) || !std::isfinite(Snapshot.Rotation.Rotation) ||
-      !std::isfinite(Snapshot.Scale.Scale) || !std::isfinite(Snapshot.Location3D.X) ||
-      !std::isfinite(Snapshot.Location3D.Y) || !std::isfinite(Snapshot.Location3D.Z) ||
-      !std::isfinite(Snapshot.Rotation3D.X) || !std::isfinite(Snapshot.Rotation3D.Y) ||
-      !std::isfinite(Snapshot.Rotation3D.Z) || !std::isfinite(Snapshot.Rotation3D.W) ||
-      !std::isfinite(Snapshot.Scale3D.X) || !std::isfinite(Snapshot.Scale3D.Y) ||
-      !std::isfinite(Snapshot.Scale3D.Z)) {
+      !std::isfinite(Snapshot.Location.Y) || !std::isfinite(Snapshot.Location.Z) ||
+      !std::isfinite(Snapshot.Rotation.Pitch) || !std::isfinite(Snapshot.Rotation.Yaw) ||
+      !std::isfinite(Snapshot.Rotation.Roll) || !std::isfinite(Snapshot.Scale.X) ||
+      !std::isfinite(Snapshot.Scale.Y) || !std::isfinite(Snapshot.Scale.Z)) {
     return EAutomationWorldReadStatus::InvalidState;
   }
 
@@ -165,15 +159,21 @@ EAutomationWorldMutationStatus SpawnActor(
     return EAutomationWorldMutationStatus::ClassNotRegistered;
   }
 
-  AActor* Actor =
-      Registry.Spawn(CurrentWorld, Request.ClassName, Request.Location, Request.Rotation);
+  AActor* Actor = Registry.Spawn(
+      CurrentWorld,
+      Request.ClassName,
+      {Request.Location.X, Request.Location.Y},
+      FRotator(Request.Rotation.Roll)
+  );
   if (!Actor || Actor->GetWorld() != CurrentWorld || Actor->HasBegunPlay()) {
     if (Actor) {
       Actor->Destroy();
     }
     return EAutomationWorldMutationStatus::InvalidState;
   }
-  if (!Actor->SetActorScale(Request.Scale) ||
+  if (!Actor->SetActorLocation3D(Request.Location) ||
+      !Actor->SetActorRotation3D(FQuaternion::FromRotator(Request.Rotation)) ||
+      !Actor->SetActorScale3D(Request.Scale) ||
       (Request.InstanceName && !ActorManager->AssignInstanceName(*Actor, *Request.InstanceName))) {
     Actor->Destroy();
     return EAutomationWorldMutationStatus::InvalidState;
@@ -229,11 +229,37 @@ EAutomationWorldMutationStatus PatchActorTransform(
   if (Actor->IsPendingDestroy()) {
     return EAutomationWorldMutationStatus::ActorPendingDestroy;
   }
-  if ((Patch.Location && !Actor->SetActorLocation(*Patch.Location)) ||
-      (Patch.Rotation && !Actor->SetActorRotation(*Patch.Rotation)) ||
-      (Patch.Scale && !Actor->SetActorScale(*Patch.Scale))) {
-    return EAutomationWorldMutationStatus::InvalidState;
+
+  if (Patch.Location.HasAnyValue()) {
+    FVector3D NewLocation = Actor->GetActorLocation3D();
+    if (Patch.Location.X) NewLocation.X = *Patch.Location.X;
+    if (Patch.Location.Y) NewLocation.Y = *Patch.Location.Y;
+    if (Patch.Location.Z) NewLocation.Z = *Patch.Location.Z;
+    if (!Actor->SetActorLocation3D(NewLocation)) {
+      return EAutomationWorldMutationStatus::InvalidState;
+    }
   }
+
+  if (Patch.Rotation.HasAnyValue()) {
+    FRotator3D NewRotation = Actor->GetActorRotation3D().ToRotator();
+    if (Patch.Rotation.Pitch) NewRotation.Pitch = *Patch.Rotation.Pitch;
+    if (Patch.Rotation.Yaw) NewRotation.Yaw = *Patch.Rotation.Yaw;
+    if (Patch.Rotation.Roll) NewRotation.Roll = *Patch.Rotation.Roll;
+    if (!Actor->SetActorRotation3D(FQuaternion::FromRotator(NewRotation))) {
+      return EAutomationWorldMutationStatus::InvalidState;
+    }
+  }
+
+  if (Patch.Scale.HasAnyValue()) {
+    FScale3D NewScale = Actor->GetActorScale3D();
+    if (Patch.Scale.X) NewScale.X = *Patch.Scale.X;
+    if (Patch.Scale.Y) NewScale.Y = *Patch.Scale.Y;
+    if (Patch.Scale.Z) NewScale.Z = *Patch.Scale.Z;
+    if (!Actor->SetActorScale3D(NewScale)) {
+      return EAutomationWorldMutationStatus::InvalidState;
+    }
+  }
+
   return MakeActorSnapshot(*Actor, *CurrentWorld, OutSnapshot) ==
                  EAutomationWorldReadStatus::Success
              ? EAutomationWorldMutationStatus::Success
