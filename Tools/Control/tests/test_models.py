@@ -21,6 +21,9 @@ ACTOR_DATA = {
     "location": {"x": 100.0, "y": 200.0},
     "rotation": 45.0,
     "scale": 1.0,
+    "location3D": {"x": 1.0, "y": 2.0, "z": 3.0},
+    "rotation3D": {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0},
+    "scale3D": {"x": 1.0, "y": 1.0, "z": 1.0},
   },
 }
 LOG_DATA = {

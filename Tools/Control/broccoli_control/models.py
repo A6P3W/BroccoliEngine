@@ -165,6 +165,16 @@ class ActorTransform:
   LocationY: float
   Rotation: float
   Scale: float
+  Location3DX: float
+  Location3DY: float
+  Location3DZ: float
+  Rotation3DX: float
+  Rotation3DY: float
+  Rotation3DZ: float
+  Rotation3DW: float
+  Scale3DX: float
+  Scale3DY: float
+  Scale3DZ: float
 
   @classmethod
   def from_mapping(
@@ -174,11 +184,24 @@ class ActorTransform:
     Operation: str,
   ) -> ActorTransform:
     Location = _required_mapping(Data, "location", Operation=Operation)
+    Location3D = _required_mapping(Data, "location3D", Operation=Operation)
+    Rotation3D = _required_mapping(Data, "rotation3D", Operation=Operation)
+    Scale3D = _required_mapping(Data, "scale3D", Operation=Operation)
     return Class(
       LocationX=_finite_number(Location, "x", Operation=Operation),
       LocationY=_finite_number(Location, "y", Operation=Operation),
       Rotation=_finite_number(Data, "rotation", Operation=Operation),
       Scale=_finite_number(Data, "scale", Operation=Operation),
+      Location3DX=_finite_number(Location3D, "x", Operation=Operation),
+      Location3DY=_finite_number(Location3D, "y", Operation=Operation),
+      Location3DZ=_finite_number(Location3D, "z", Operation=Operation),
+      Rotation3DX=_finite_number(Rotation3D, "x", Operation=Operation),
+      Rotation3DY=_finite_number(Rotation3D, "y", Operation=Operation),
+      Rotation3DZ=_finite_number(Rotation3D, "z", Operation=Operation),
+      Rotation3DW=_finite_number(Rotation3D, "w", Operation=Operation),
+      Scale3DX=_finite_number(Scale3D, "x", Operation=Operation),
+      Scale3DY=_finite_number(Scale3D, "y", Operation=Operation),
+      Scale3DZ=_finite_number(Scale3D, "z", Operation=Operation),
     )
 
   def to_dict(Self) -> dict[str, Any]:
@@ -186,6 +209,14 @@ class ActorTransform:
       "location": {"x": Self.LocationX, "y": Self.LocationY},
       "rotation": Self.Rotation,
       "scale": Self.Scale,
+      "location3D": {"x": Self.Location3DX, "y": Self.Location3DY, "z": Self.Location3DZ},
+      "rotation3D": {
+        "x": Self.Rotation3DX,
+        "y": Self.Rotation3DY,
+        "z": Self.Rotation3DZ,
+        "w": Self.Rotation3DW,
+      },
+      "scale3D": {"x": Self.Scale3DX, "y": Self.Scale3DY, "z": Self.Scale3DZ},
     }
 
 
