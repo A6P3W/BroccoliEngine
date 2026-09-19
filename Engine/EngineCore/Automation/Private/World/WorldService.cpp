@@ -29,10 +29,18 @@ EAutomationWorldReadStatus MakeActorSnapshot(
   Snapshot.Location = Actor.GetActorLocation();
   Snapshot.Rotation = Actor.GetActorRotation();
   Snapshot.Scale = Actor.GetActorScale();
+  Snapshot.Location3D = Actor.GetActorLocation3D();
+  Snapshot.Rotation3D = Actor.GetActorRotation3D();
+  Snapshot.Scale3D = Actor.GetActorScale3D();
   if (Snapshot.ActorId == InvalidActorId || Snapshot.InstanceName.empty() ||
       Snapshot.ClassName.empty() || !std::isfinite(Snapshot.Location.X) ||
       !std::isfinite(Snapshot.Location.Y) || !std::isfinite(Snapshot.Rotation.Rotation) ||
-      !std::isfinite(Snapshot.Scale.Scale)) {
+      !std::isfinite(Snapshot.Scale.Scale) || !std::isfinite(Snapshot.Location3D.X) ||
+      !std::isfinite(Snapshot.Location3D.Y) || !std::isfinite(Snapshot.Location3D.Z) ||
+      !std::isfinite(Snapshot.Rotation3D.X) || !std::isfinite(Snapshot.Rotation3D.Y) ||
+      !std::isfinite(Snapshot.Rotation3D.Z) || !std::isfinite(Snapshot.Rotation3D.W) ||
+      !std::isfinite(Snapshot.Scale3D.X) || !std::isfinite(Snapshot.Scale3D.Y) ||
+      !std::isfinite(Snapshot.Scale3D.Z)) {
     return EAutomationWorldReadStatus::InvalidState;
   }
 

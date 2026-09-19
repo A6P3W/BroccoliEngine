@@ -3,6 +3,25 @@
 #include <cstdint>
 
 #include "BroccoliEngineAPI.h"
+#include "UMath.h"
+
+class AActor;
+class MRigidBody3DComponent;
+class MCollisionComponent3D;
+
+enum class EPhysicsBody3DType : uint8_t { Static, Kinematic, Dynamic };
+enum class EPhysicsShape3DType : uint8_t { Box, Sphere };
+
+struct FPhysicsBody3DDesc {
+  EPhysicsBody3DType Type = EPhysicsBody3DType::Static;
+  EPhysicsShape3DType ShapeType = EPhysicsShape3DType::Box;
+  FVector3D ShapeDimensions{0.5f, 0.5f, 0.5f};
+  FVector3D Location;
+  FQuaternion Rotation;
+  float Mass = 1.0f;
+  uint16_t CollisionLayer = 0;
+  uint16_t CollisionMask = 0xffff;
+};
 
 class BROCCOLI_ENGINE_API FPhysicsSystem3D {
  public:
@@ -13,6 +32,13 @@ class BROCCOLI_ENGINE_API FPhysicsSystem3D {
 
   void Step(float DeltaTime);
   void SetFixedTimeStep(float NewFixedTimeStep);
+  void RefreshActorBody(AActor* Actor);
+  void UnregisterActorBody(AActor* Actor);
+  void SetActorTransform(AActor* Actor, const FVector3D& Location, const FQuaternion& Rotation);
+  FVector3D GetLinearVelocity(const MRigidBody3DComponent* Component) const;
+  void SetLinearVelocity(MRigidBody3DComponent* Component, const FVector3D& Velocity);
+  void AddForce(MRigidBody3DComponent* Component, const FVector3D& Force);
+  void AddImpulse(MRigidBody3DComponent* Component, const FVector3D& Impulse);
 
   bool IsInitialized() const;
   uint32_t GetBodyCount() const;

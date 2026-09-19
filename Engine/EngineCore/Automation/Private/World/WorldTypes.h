@@ -20,6 +20,9 @@ struct FAutomationActorSnapshot {
   FVector2D Location;
   FRotator Rotation;
   FScale Scale;
+  FVector3D Location3D;
+  FQuaternion Rotation3D;
+  FScale3D Scale3D;
 };
 
 struct FAutomationActorComponentSnapshot {

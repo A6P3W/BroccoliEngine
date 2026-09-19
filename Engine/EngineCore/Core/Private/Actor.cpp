@@ -8,6 +8,7 @@
 
 #include "ActorComponent.h"
 #include "EngineDefine.h"
+#include "PhysicsSystem3D.h"
 #include "ReplicationSystem.h"
 #include "SceneComponent.h"
 #include "TimerManager.h"
@@ -295,13 +296,29 @@ bool AActor::SetActorScale(FScale NewScale) {
 FVector3D AActor::GetActorLocation3D() const { return RootComponent->GetWorldLocation3D(); }
 
 bool AActor::SetActorLocation3D(const FVector3D& NewLocation) {
-  return RootComponent->SetWorldLocation3D(NewLocation);
+  if (!RootComponent->SetWorldLocation3D(NewLocation)) {
+    return false;
+  }
+  if (ImplPtr->OwnerWorld && ImplPtr->OwnerWorld->GetPhysicsSystem3D()) {
+    ImplPtr->OwnerWorld->GetPhysicsSystem3D()->SetActorTransform(
+        this, NewLocation, RootComponent->GetWorldRotation3D()
+    );
+  }
+  return true;
 }
 
 FQuaternion AActor::GetActorRotation3D() const { return RootComponent->GetWorldRotation3D(); }
 
 bool AActor::SetActorRotation3D(const FQuaternion& NewRotation) {
-  return RootComponent->SetWorldRotation3D(NewRotation);
+  if (!RootComponent->SetWorldRotation3D(NewRotation)) {
+    return false;
+  }
+  if (ImplPtr->OwnerWorld && ImplPtr->OwnerWorld->GetPhysicsSystem3D()) {
+    ImplPtr->OwnerWorld->GetPhysicsSystem3D()->SetActorTransform(
+        this, RootComponent->GetWorldLocation3D(), NewRotation
+    );
+  }
+  return true;
 }
 
 FScale3D AActor::GetActorScale3D() const { return RootComponent->GetWorldScale3D(); }
