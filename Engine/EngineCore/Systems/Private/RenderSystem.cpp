@@ -86,15 +86,37 @@ void DrawGridCommand(const GridRenderData& Data) {
   for (int SliceIndex = -HalfSliceCount; SliceIndex <= HalfSliceCount; ++SliceIndex) {
     const float Position = static_cast<float>(SliceIndex) * Data.Spacing;
 
-    const Color XAxisColor = SliceIndex == 0 ? RED : LIGHTGRAY;
-    rlColor4ub(XAxisColor.r, XAxisColor.g, XAxisColor.b, XAxisColor.a);
-    rlVertex3f(-HalfExtent, 0.0f, Position);
-    rlVertex3f(HalfExtent, 0.0f, Position);
+    if (Data.Plane == EGridPlane::XZ) {
+      const Color XAxisColor = SliceIndex == 0 ? RED : LIGHTGRAY;
+      rlColor4ub(XAxisColor.r, XAxisColor.g, XAxisColor.b, XAxisColor.a);
+      rlVertex3f(-HalfExtent, 0.0f, Position);
+      rlVertex3f(HalfExtent, 0.0f, Position);
 
-    const Color ZAxisColor = SliceIndex == 0 ? BLUE : LIGHTGRAY;
-    rlColor4ub(ZAxisColor.r, ZAxisColor.g, ZAxisColor.b, ZAxisColor.a);
-    rlVertex3f(Position, 0.0f, -HalfExtent);
-    rlVertex3f(Position, 0.0f, HalfExtent);
+      const Color ZAxisColor = SliceIndex == 0 ? BLUE : LIGHTGRAY;
+      rlColor4ub(ZAxisColor.r, ZAxisColor.g, ZAxisColor.b, ZAxisColor.a);
+      rlVertex3f(Position, 0.0f, -HalfExtent);
+      rlVertex3f(Position, 0.0f, HalfExtent);
+    } else if (Data.Plane == EGridPlane::XY) {
+      const Color XAxisColor = SliceIndex == 0 ? RED : LIGHTGRAY;
+      rlColor4ub(XAxisColor.r, XAxisColor.g, XAxisColor.b, XAxisColor.a);
+      rlVertex3f(-HalfExtent, Position, 0.0f);
+      rlVertex3f(HalfExtent, Position, 0.0f);
+
+      const Color YAxisColor = SliceIndex == 0 ? GREEN : LIGHTGRAY;
+      rlColor4ub(YAxisColor.r, YAxisColor.g, YAxisColor.b, YAxisColor.a);
+      rlVertex3f(Position, -HalfExtent, 0.0f);
+      rlVertex3f(Position, HalfExtent, 0.0f);
+    } else if (Data.Plane == EGridPlane::YZ) {
+      const Color YAxisColor = SliceIndex == 0 ? GREEN : LIGHTGRAY;
+      rlColor4ub(YAxisColor.r, YAxisColor.g, YAxisColor.b, YAxisColor.a);
+      rlVertex3f(0.0f, -HalfExtent, Position);
+      rlVertex3f(0.0f, HalfExtent, Position);
+
+      const Color ZAxisColor = SliceIndex == 0 ? BLUE : LIGHTGRAY;
+      rlColor4ub(ZAxisColor.r, ZAxisColor.g, ZAxisColor.b, ZAxisColor.a);
+      rlVertex3f(0.0f, Position, -HalfExtent);
+      rlVertex3f(0.0f, Position, HalfExtent);
+    }
   }
   rlEnd();
 }
@@ -510,8 +532,8 @@ void RenderSystem::SubmitStaticMesh(
   Impl->CommandBuffer3D.push_back({StaticMeshRenderData{Transform, ModelHandle, Tint}});
 }
 
-void RenderSystem::SubmitGrid3D(int Slices, float Spacing) {
-  Impl->CommandBuffer3D.push_back({GridRenderData{Slices, Spacing}});
+void RenderSystem::SubmitGrid3D(int Slices, float Spacing, EGridPlane Plane) {
+  Impl->CommandBuffer3D.push_back({GridRenderData{Slices, Spacing, Plane}});
 }
 
 FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {

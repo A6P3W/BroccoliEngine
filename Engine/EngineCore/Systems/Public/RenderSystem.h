@@ -66,9 +66,12 @@ struct StaticMeshRenderData {
   int ModelHandle = 0;
   FColor Tint = FColor::White;
 };
+enum class EGridPlane { XZ, XY, YZ };
+
 struct GridRenderData {
   int Slices = 20;
   float Spacing = 1.0f;
+  EGridPlane Plane = EGridPlane::XZ;
 };
 using RenderCommand3DData = std::variant<CubeRenderData, StaticMeshRenderData, GridRenderData>;
 struct RenderCommand3D {
@@ -155,7 +158,7 @@ class BROCCOLI_ENGINE_API RenderSystem {
   void SubmitStaticMesh(
       const FTransform3D& Transform, int ModelHandle, const FColor& Tint = FColor::White
   );
-  void SubmitGrid3D(int Slices, float Spacing);
+  void SubmitGrid3D(int Slices, float Spacing, EGridPlane Plane = EGridPlane::XZ);
 
   FVector2D WorldToScreen(const FVector2D& worldPosition) const;
   FVector2D ScreenToWorld(const FVector2D& screenPosition) const;
