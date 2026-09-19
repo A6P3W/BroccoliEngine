@@ -2,12 +2,9 @@
 
 #include <imgui.h>
 
-#include "ActorRegistry.h"
 #include "BroccoliRaylib.h"
-#include "Camera3DComponent.h"
 #include "EditorContext.h"
 #include "EditorMode.h"
-#include "EditorPawn3D.h"
 #include "EditorViewportState.h"
 #include "FileDialog.h"
 #include "PathResolver.h"
@@ -33,6 +30,13 @@ void ViewportPanel::DrawContents(EditorContext& Context) {
     ImGui::SameLine();
     if (ImGui::RadioButton("3D", IsThreeDMode))
       Context.Mode->SetViewportMode(EEditorViewportMode::ThreeD);
+    ImGui::SameLine();
+    const bool CanPlace = Context.Mode != nullptr && !Context.Mode->GetSelectedClass().empty();
+    ImGui::BeginDisabled(!CanPlace);
+    if (ImGui::Button("Place")) {
+      Context.Mode->PlaceSelectedClassAtViewportCenter();
+    }
+    ImGui::EndDisabled();
     if (IsThreeDMode) {
       ImGui::SameLine();
       if (ImGui::Button("Add Static Mesh...")) {
@@ -40,7 +44,14 @@ void ViewportPanel::DrawContents(EditorContext& Context) {
             "3D Model Files (*.glb;*.gltf)\0*.glb;*.gltf\0All Files (*.*)\0*.*\0",
             PathResolver::GetGameResourceDir()
         );
-        CreateStaticMeshActor(Context, FilePath);
+        if (!FilePath.empty()) {
+          AActor* Actor =
+              Context.Mode->PlaceActorAtViewportCenter(AStaticMeshActor::StaticClassName());
+          auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(Actor);
+          if (StaticMeshActor != nullptr) {
+            StaticMeshActor->SetModelPath(FilePath);
+          }
+        }
       }
       ImGui::SameLine();
       ImGui::TextDisabled("RMB Look | WASD Move | Q/E Vertical | F Focus");
@@ -77,26 +88,4 @@ void ViewportPanel::DrawContents(EditorContext& Context) {
   ImGui::GetWindowDrawList()->AddRect(
       SafeAreaMinimum, SafeAreaMaximum, IM_COL32(255, 196, 0, 200), 0.0f, 0, 1.0f
   );
-}
-
-void ViewportPanel::CreateStaticMeshActor(
-    EditorContext& Context, const std::string& ModelPath
-) const {
-  if (ModelPath.empty()) return;
-
-  AActor* Actor = ActorRegistry::GetInstance().Spawn(
-      Context.Mode->GetWorld(), AStaticMeshActor::StaticClassName()
-  );
-  auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(Actor);
-  if (StaticMeshActor == nullptr) return;
-
-  EditorPawn3D* EditorPawn = Context.Mode->GetEditorPawn3D();
-  if (EditorPawn != nullptr && EditorPawn->GetEditorCamera3D() != nullptr) {
-    StaticMeshActor->SetActorLocation3D(
-        EditorPawn->GetActorLocation3D() +
-        EditorPawn->GetEditorCamera3D()->GetForwardVector() * 5.0f
-    );
-  }
-  StaticMeshActor->SetModelPath(ModelPath);
-  Context.Mode->SetSelectedActor(StaticMeshActor);
 }

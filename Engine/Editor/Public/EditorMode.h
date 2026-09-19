@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "EditorClipboard.h"
+#include "EditorPlacementTool.h"
 #include "EditorSelection.h"
 #include "EditorTransformTool.h"
 #include "EditorViewportState.h"
@@ -59,6 +60,8 @@ class EditorMode : public AGameModeBase {
   bool IsThreeDCameraNavigationActive() const;
   EditorPawn3D* GetEditorPawn3D() const { return EditorPawn3DPtr; }
   void OnMousePress3D();
+  AActor* PlaceSelectedClassAtViewportCenter();
+  AActor* PlaceActorAtViewportCenter(const std::string& ClassName);
 
   FEditorViewportState& GetViewportState() { return ViewportState; }
   const FEditorViewportState& GetViewportState() const { return ViewportState; }
@@ -106,6 +109,7 @@ class EditorMode : public AGameModeBase {
   EActorAction ActorAction = EActorAction::Select;
   FEditorViewportState ViewportState;
   EditorSelection Selection;
+  EditorPlacementTool PlacementTool;
   EditorTransformTool TransformTool;
   EditorClipboard Clipboard;
 
