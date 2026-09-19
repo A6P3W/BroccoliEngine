@@ -3,12 +3,10 @@
 #include <PlayerController.h>
 
 #include "Actor.h"
-#include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "BroccoliRaylib.h"
 #include "EditorController.h"
 #include "EditorPawn.h"
-#include "EditorSelectPointComponent.h"
 #include "EditorUI.h"
 #include "FileDialog.h"
 #include "Log.h"
@@ -24,26 +22,6 @@ const std::vector<std::string>& EditorMode::GetClassList() const {
 
 const std::vector<std::string>& EditorMode::GetGameModeClassList() const {
   return ActorRegistry::GetInstance().GetGameModeClassNames();
-}
-
-void EditorMode::SetSelectedActor(AActor* actor) {
-  if (SelectedPointComponent != nullptr) {
-    try {
-      SelectedPointComponent->Selected(false);
-    } catch (...) {
-    }
-  }
-
-  SelectedActor = actor;
-  SelectedPointComponent = nullptr;
-
-  if (SelectedActor) {
-    auto components = SelectedActor->GetComponents<EditorSelectPointComponent>();
-    if (!components.empty()) {
-      SelectedPointComponent = components[0];
-      SelectedPointComponent->Selected(true);
-    }
-  }
 }
 
 void EditorMode::SetViewportMode(EEditorViewportMode Mode) {
@@ -64,29 +42,16 @@ bool EditorMode::IsThreeDCameraNavigationActive() const {
 }
 
 void EditorMode::OnMousePress(const FVector2D& worldPos) {
-  const auto& actors = GetWorld()->GetActorManager()->GetAllActors();
-  AActor* hitActor = nullptr;
-
-  for (auto& actor : actors) {
-    FVector2D actorPos = actor->GetActorLocation();
-    float distanceSq = FVector2D({actorPos.X - worldPos.X, actorPos.Y - worldPos.Y}).SizeSquared();
-    const float selectionRadiusSq = 15.0f * 15.0f;
-    if (distanceSq <= selectionRadiusSq) {
-      hitActor = actor.get();
-      SetSelectedActor(hitActor);
-      if (SelectedPointComponent != nullptr) {
-        SelectedPointComponent->Selected(false);
-      }
-      SelectingActor = hitActor;
-      SelectedPointComponent = hitActor->GetComponents<EditorSelectPointComponent>()[0];
-      SelectedPointComponent->Selected(true);
-      M_LOG(Log, "Hit Actor: {}", hitActor->GetActorClassName());
-      M_LOG(Log, "Current Actor Action: {}", (int)GetActorAction());
-      State = EEditorState::Dragging;
-      return;
-    }
+  if (AActor* HitActor = Selection.HitTest2D(GetWorld(), worldPos)) {
+    Selection.Select(HitActor);
+    SelectingActor = HitActor;
+    TransformTool.Begin(SelectingActor, GetActorAction());
+    M_LOG(Log, "Hit Actor: {}", HitActor->GetActorClassName());
+    M_LOG(Log, "Current Actor Action: {}", static_cast<int>(GetActorAction()));
+    State = EEditorState::Dragging;
+    return;
   }
-  SetSelectedActor(nullptr);
+  Selection.Clear();
 
   if (SelectedClass.empty()) return;
   if (State == EEditorState::Dragging) return;
@@ -94,48 +59,29 @@ void EditorMode::OnMousePress(const FVector2D& worldPos) {
   // プレビュー用アクタをスポーン
   SelectingActor = ActorRegistry::GetInstance().Spawn(GetWorld(), SelectedClass, worldPos);
   if (!SelectingActor) return;
-  if (SelectedPointComponent != nullptr) {
-    SelectedPointComponent->Selected(false);
-  }
-  SelectedPointComponent = SelectingActor->GetComponents<EditorSelectPointComponent>()[0];
-  SelectedPointComponent->Selected(true);
-
-  SetSelectedActor(SelectingActor);
+  Selection.Select(SelectingActor);
+  TransformTool.Begin(SelectingActor, GetActorAction());
 
   State = EEditorState::Dragging;
 }
 
 void EditorMode::OnMouseMove(const FVector2D& Delta) {
   if (State != EEditorState::Dragging) return;
-  if (!SelectingActor) return;
+  if (!TransformTool.IsActive()) return;
 
-  switch (GetActorAction()) {
-    case EActorAction::Select:
-      break;
-    case EActorAction::Move: {
-      FVector2D MouseWorldPosition;
-      if (TryGetMouseWorldPosition(MouseWorldPosition, false)) {
-        SelectingActor->SetActorLocation(MouseWorldPosition);
-      }
-      break;
-    }
-    case EActorAction::Rotate:
-      SelectingActor->AddActorRotation(FRotator(Delta.X * 0.25f));
-      break;
-    case EActorAction::Scale:
-      FScale NewScale = SelectingActor->GetActorScale() * (1 + Delta.X * 0.001f);
-      SelectingActor->SetActorScale(NewScale);
-      break;
+  FVector2D MouseWorldPosition;
+  if (!TryGetMouseWorldPosition(MouseWorldPosition, false) &&
+      GetActorAction() == EActorAction::Move) {
+    return;
   }
+  TransformTool.Update(Delta, MouseWorldPosition);
 }
 
 void EditorMode::OnMouseRelease(const FVector2D& worldPos) {
   if (State != EEditorState::Dragging) return;
 
-  if (!SelectingActor) return;
-
   SelectingActor = nullptr;
-
+  TransformTool.End();
   State = EEditorState::Idle;
 }
 
@@ -207,34 +153,12 @@ EditorMode::EditorMode() {
 }
 
 void EditorMode::CopySelectedActor() {
-  if (!SelectedActor || SelectedActor->IsPendingDestroy()) {
-    M_LOG(Log, "Copy failed: No actor selected.");
-    return;
-  }
-
-  ClipboardData.ClassName = SelectedActor->GetActorClassName();
-  ClipboardData.Transform = SelectedActor->GetActorTransform3D();
-  ClipboardData.CustomProperties.clear();
-
-  if (auto spriteActor = dynamic_cast<ASpriteActor*>(SelectedActor)) {
-    ClipboardData.CustomProperties["ImagePath"] = spriteActor->GetImagePath();
-  }
-  if (auto staticMeshActor = dynamic_cast<AStaticMeshActor*>(SelectedActor)) {
-    ClipboardData.CustomProperties["ModelPath"] = staticMeshActor->GetModelPath();
-  }
-
-  bHasClipboard = true;
-  M_LOG(
-      Log,
-      "Copied Actor: {} at ({}, {})",
-      ClipboardData.ClassName,
-      ClipboardData.Transform.Location.X,
-      ClipboardData.Transform.Location.Y
-  );
+  AActor* SelectedActor = GetSelectedActor();
+  Clipboard.Copy(SelectedActor);
 }
 
 void EditorMode::PasteActor() {
-  if (!bHasClipboard) {
+  if (!Clipboard.HasData()) {
     M_LOG(Log, "Paste failed: Clipboard is empty.");
     return;
   }
@@ -245,53 +169,29 @@ void EditorMode::PasteActor() {
     return;
   }
 
-  AActor* NewActor = ActorRegistry::GetInstance().Spawn(GetWorld(), ClipboardData.ClassName);
-
-  if (!NewActor) {
-    M_LOG(Log, "Paste failed: Could not spawn actor '{}'.", ClipboardData.ClassName);
-    return;
+  AActor* NewActor = Clipboard.Paste(GetWorld(), PasteLocation);
+  if (NewActor != nullptr) {
+    SetSelectedActor(NewActor);
   }
-
-  ClipboardData.Transform.Location.X = PasteLocation.X;
-  ClipboardData.Transform.Location.Y = PasteLocation.Y;
-  NewActor->SetActorLocation3D(ClipboardData.Transform.Location);
-  NewActor->SetActorRotation3D(ClipboardData.Transform.Rotation);
-  NewActor->SetActorScale3D(ClipboardData.Transform.Scale);
-
-  if (auto SpriteActor = dynamic_cast<ASpriteActor*>(NewActor)) {
-    auto It = ClipboardData.CustomProperties.find("ImagePath");
-    if (It != ClipboardData.CustomProperties.end()) {
-      SpriteActor->SetImagePath(It->second);
-    }
-  }
-  if (auto StaticMeshActor = dynamic_cast<AStaticMeshActor*>(NewActor)) {
-    auto It = ClipboardData.CustomProperties.find("ModelPath");
-    if (It != ClipboardData.CustomProperties.end()) {
-      StaticMeshActor->SetModelPath(It->second);
-    }
-  }
-
-  SetSelectedActor(NewActor);
-
-  M_LOG(
-      Log, "Pasted Actor: {} at ({}, {})", ClipboardData.ClassName, PasteLocation.X, PasteLocation.Y
-  );
 }
 
 void EditorMode::CutSelectedActor() {
-  if (!SelectedActor || SelectedActor->IsPendingDestroy()) {
+  AActor* SelectedActor = GetSelectedActor();
+  if (SelectedActor == nullptr || SelectedActor->IsPendingDestroy()) {
     M_LOG(Log, "Cut failed: No actor selected.");
     return;
   }
 
-  CopySelectedActor();
-  DeleteSelectedActor();
-
-  M_LOG(Log, "Cut completed.");
+  if (Clipboard.Copy(SelectedActor)) {
+    SelectedActor->Destroy();
+    SetSelectedActor(nullptr);
+    M_LOG(Log, "Cut completed.");
+  }
 }
 
 void EditorMode::DeleteSelectedActor() {
-  if (!SelectedActor || SelectedActor->IsPendingDestroy()) {
+  AActor* SelectedActor = GetSelectedActor();
+  if (SelectedActor == nullptr || SelectedActor->IsPendingDestroy()) {
     M_LOG(Log, "Delete failed: No actor selected.");
     return;
   }
