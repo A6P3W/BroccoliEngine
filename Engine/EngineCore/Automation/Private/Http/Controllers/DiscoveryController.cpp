@@ -85,14 +85,10 @@ FAutomationHttpResponse FAutomationDiscoveryController::GetActorClassMethods(
           nlohmann::json Methods = nlohmann::json::array();
           for (const FAutomationMethodSnapshot& Snapshot :
                Registry->GetMethodsForClass(ClassNameText)) {
-            if (!IsMethodPermissionAllowed(Snapshot.Permission)) {
-              continue;
-            }
             Methods.push_back(
                 {{"name", Snapshot.Name},
                  {"description", Snapshot.Description},
-                 {"inputSchema", Snapshot.InputSchema},
-                 {"permission", ToAutomationPermissionString(Snapshot.Permission)}}
+                 {"inputSchema", Snapshot.InputSchema}}
             );
           }
           return MakeAutomationSuccess(

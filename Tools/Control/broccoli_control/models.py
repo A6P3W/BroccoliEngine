@@ -427,7 +427,6 @@ class ActorMethodInfo:
   Name: str
   Description: str
   InputSchema: dict[str, object]
-  Permission: str
 
   @classmethod
   def from_mapping(
@@ -439,7 +438,6 @@ class ActorMethodInfo:
     Name = Data.get("name")
     Description = Data.get("description")
     InputSchema = Data.get("inputSchema")
-    Permission = Data.get("permission")
     if not isinstance(Name, str) or not AUTOMATION_NAME_PATTERN.fullmatch(Name):
       raise InvalidEngineResponse(
         "Actor method field 'name' is invalid.",
@@ -455,19 +453,13 @@ class ActorMethodInfo:
         "Actor method field 'inputSchema' must be an object.",
         Operation=Operation,
       )
-    if Permission not in {"ReadOnly", "WorldMutation"}:
-      raise InvalidEngineResponse(
-        "Actor method field 'permission' is invalid.",
-        Operation=Operation,
-      )
-    return Class(Name, Description, dict(InputSchema), Permission)
+    return Class(Name, Description, dict(InputSchema))
 
   def to_dict(Self) -> dict[str, Any]:
     return {
       "name": Self.Name,
       "description": Self.Description,
       "inputSchema": Self.InputSchema,
-      "permission": Self.Permission,
     }
 
 
@@ -636,7 +628,6 @@ class SystemCommandInfo:
   Name: str
   Description: str
   InputSchema: dict[str, object]
-  Permission: str
 
   @classmethod
   def from_mapping(
@@ -648,7 +639,6 @@ class SystemCommandInfo:
     Name = Data.get("name")
     Description = Data.get("description")
     InputSchema = Data.get("inputSchema")
-    Permission = Data.get("permission")
     if not isinstance(Name, str) or not AUTOMATION_NAME_PATTERN.fullmatch(Name):
       raise InvalidEngineResponse(
         "System command field 'name' is invalid.",
@@ -664,19 +654,13 @@ class SystemCommandInfo:
         "System command field 'inputSchema' must be an object.",
         Operation=Operation,
       )
-    if Permission != "SystemMutation":
-      raise InvalidEngineResponse(
-        "System command field 'permission' is invalid.",
-        Operation=Operation,
-      )
-    return Class(Name, Description, dict(InputSchema), Permission)
+    return Class(Name, Description, dict(InputSchema))
 
   def to_dict(Self) -> dict[str, Any]:
     return {
       "name": Self.Name,
       "description": Self.Description,
       "inputSchema": Self.InputSchema,
-      "permission": Self.Permission,
     }
 
 

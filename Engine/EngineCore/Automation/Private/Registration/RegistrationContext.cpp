@@ -1,12 +1,11 @@
-#include "Detail/AutomationRegistrationContext.h"
-
 #include <stdexcept>
 #include <utility>
 
-#include "Registry/ActorMethodRegistry.h"
-#include "Registry/ComponentMethodRegistry.h"
+#include "Detail/AutomationRegistrationContext.h"
 #include "Log.h"
 #include "Registration/RegistrationStore.h"
+#include "Registry/ActorMethodRegistry.h"
+#include "Registry/ComponentMethodRegistry.h"
 
 namespace BroccoliAutomationDetail {
 FAutomationRegistrationContext::FAutomationRegistrationContext(
@@ -19,7 +18,6 @@ void FAutomationRegistrationContext::RegisterActorMethod(
     std::string Name,
     std::string Description,
     nlohmann::json InputSchema,
-    EAutomationPermission Permission,
     FAutomationActorHandler Handler
 ) {
   auto* Registry = static_cast<FAutomationActorMethodRegistry*>(ActorRegistry);
@@ -30,7 +28,6 @@ void FAutomationRegistrationContext::RegisterActorMethod(
   Descriptor.Name = std::move(Name);
   Descriptor.Description = std::move(Description);
   Descriptor.InputSchema = std::move(InputSchema);
-  Descriptor.Permission = Permission;
   Descriptor.Handler = std::move(Handler);
   std::string Error;
   if (!Registry->RegisterMethod(std::move(ClassName), std::move(Descriptor), &Error)) {
@@ -44,7 +41,6 @@ void FAutomationRegistrationContext::RegisterComponentMethod(
     std::string Name,
     std::string Description,
     nlohmann::json InputSchema,
-    EAutomationPermission Permission,
     FAutomationComponentHandler Handler
 ) {
   auto* Registry = static_cast<FAutomationComponentMethodRegistry*>(ComponentRegistry);
@@ -55,7 +51,6 @@ void FAutomationRegistrationContext::RegisterComponentMethod(
   Descriptor.Name = std::move(Name);
   Descriptor.Description = std::move(Description);
   Descriptor.InputSchema = std::move(InputSchema);
-  Descriptor.Permission = Permission;
   Descriptor.Handler = std::move(Handler);
   std::string Error;
   if (!Registry->RegisterMethod(std::move(ClassName), std::move(Descriptor), &Error)) {

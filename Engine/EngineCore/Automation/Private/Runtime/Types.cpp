@@ -1,7 +1,7 @@
-#include "AutomationTypes.h"
-
 #include <string>
 #include <utility>
+
+#include "AutomationTypes.h"
 
 std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode) {
   switch (ErrorCode) {
@@ -31,8 +31,6 @@ std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode) {
       return "CONFLICT";
     case EAutomationErrorCode::MethodNotRegistered:
       return "METHOD_NOT_REGISTERED";
-    case EAutomationErrorCode::PermissionDenied:
-      return "PERMISSION_DENIED";
     case EAutomationErrorCode::CommandNotRegistered:
       return "COMMAND_NOT_REGISTERED";
     case EAutomationErrorCode::RequestTimeout:
@@ -44,20 +42,6 @@ std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode) {
   }
 
   return "INTERNAL_ERROR";
-}
-
-std::string_view ToAutomationPermissionString(EAutomationPermission Permission) {
-  switch (Permission) {
-    case EAutomationPermission::ReadOnly:
-      return "ReadOnly";
-    case EAutomationPermission::WorldMutation:
-      return "WorldMutation";
-    case EAutomationPermission::SystemMutation:
-      return "SystemMutation";
-    case EAutomationPermission::Dangerous:
-      return "Dangerous";
-  }
-  return "Dangerous";
 }
 
 bool IsValidAutomationOperationName(std::string_view Name) {

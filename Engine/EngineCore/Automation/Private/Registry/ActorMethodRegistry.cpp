@@ -5,18 +5,12 @@
 #include "RegistryCommon.h"
 
 namespace {
-bool IsActorMethodPermissionAllowed(EAutomationPermission Permission) {
-  return Permission == EAutomationPermission::ReadOnly ||
-         Permission == EAutomationPermission::WorldMutation;
-}
-
 constexpr AutomationRegistryDetail::FAutomationRegistryValidationMessages ActorMethodMessages{
     "actor method",
     "The method registry is frozen.",
     "ClassName must contain between 1 and 128 UTF-8 bytes.",
     "MethodName must match ^[a-z][a-z0-9_]{0,127}$.",
     "Description must not be empty.",
-    "Actor methods require ReadOnly or WorldMutation permission.",
     "Handler must not be empty.",
     "The method is already registered for this actor class."
 };
@@ -30,7 +24,6 @@ bool FAutomationActorMethodRegistry::RegisterMethod(
       MethodsByClass,
       std::move(ClassName),
       std::move(Descriptor),
-      IsActorMethodPermissionAllowed,
       ActorMethodMessages,
       OutError
   );

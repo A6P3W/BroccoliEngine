@@ -5,17 +5,12 @@
 #include "RegistryCommon.h"
 
 namespace {
-bool IsSystemCommandPermissionAllowed(EAutomationPermission Permission) {
-  return Permission == EAutomationPermission::SystemMutation;
-}
-
 constexpr AutomationRegistryDetail::FAutomationRegistryValidationMessages SystemCommandMessages{
     "system command",
     "The system command registry is frozen.",
     "",
     "CommandName must match ^[a-z][a-z0-9_]{0,127}$.",
     "Description must not be empty.",
-    "System commands require SystemMutation permission.",
     "Handler must not be empty.",
     "The system command is already registered."
 };
@@ -30,7 +25,7 @@ bool FAutomationSystemCommandRegistry::RegisterCommand(
     );
   }
   if (!AutomationRegistryDetail::ValidateCallableDescriptor(
-          Descriptor, IsSystemCommandPermissionAllowed, SystemCommandMessages, OutError
+          Descriptor, SystemCommandMessages, OutError
       )) {
     return false;
   }

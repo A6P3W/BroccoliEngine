@@ -17,14 +17,12 @@ struct FAutomationMethodDescriptor {
   nlohmann::json InputSchema = {
       {"type", "object"}, {"properties", nlohmann::json::object()}, {"additionalProperties", false}
   };
-  EAutomationPermission Permission = EAutomationPermission::ReadOnly;
   std::function<nlohmann::json(AActor&, const nlohmann::json&)> Handler;
 };
 struct FAutomationMethodSnapshot {
   std::string Name;
   std::string Description;
   nlohmann::json InputSchema;
-  EAutomationPermission Permission = EAutomationPermission::ReadOnly;
 };
 
 class FAutomationActorMethodRegistry {

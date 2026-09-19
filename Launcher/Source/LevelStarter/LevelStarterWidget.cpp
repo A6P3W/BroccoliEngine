@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "AutomationMacros.h"
+#include "ControlMacros.h"
 #include "FileDialog.h"
 #include "SceneManager.h"
 #include "UIBoxButton.h"
@@ -12,10 +12,9 @@
 
 // このアクタークラスを ActorRegistry に一般アクターとして自動登録するマクロ
 REGISTER_ACTOR(ALevelStarterWidget)
-REGISTER_AUTOMATION_METHOD(
+CONTROL_METHOD(
     "get_status",
     "Return the LevelStarter widget status for automation verification.",
-    EAutomationPermission::ReadOnly,
     &ALevelStarterWidget::GetAutomationStatus
 )
 

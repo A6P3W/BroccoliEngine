@@ -53,14 +53,10 @@ FAutomationHttpResponse FAutomationInvocationController::GetWorldActorMethods(
           nlohmann::json Methods = nlohmann::json::array();
           for (const FAutomationMethodSnapshot& Snapshot :
                Registry->GetMethodsForClass(ClassName)) {
-            if (!IsMethodPermissionAllowed(Snapshot.Permission)) {
-              continue;
-            }
             Methods.push_back(
                 {{"name", Snapshot.Name},
                  {"description", Snapshot.Description},
-                 {"inputSchema", Snapshot.InputSchema},
-                 {"permission", ToAutomationPermissionString(Snapshot.Permission)}}
+                 {"inputSchema", Snapshot.InputSchema}}
             );
           }
           return MakeAutomationSuccess(
@@ -99,89 +95,77 @@ FAutomationHttpResponse FAutomationInvocationController::InvokeWorldActorMethod(
       return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
     }
 
-    FAutomationCommandTicket Ticket = CommandQueue.Enqueue([Registry = MethodRegistry,
-                                                            Resolver = ActorResolver,
-                                                            ActorId,
-                                                            MethodNameText =
-                                                                std::string(MethodName),
-                                                            Arguments = Body]() {
-      AActor* Actor = nullptr;
-      const EAutomationActorResolveStatus ResolveStatus = Resolver(ActorId, Actor);
-      if (ResolveStatus != EAutomationActorResolveStatus::Success) {
-        return MakeActorResolveError(ResolveStatus);
-      }
-      if (!Actor) {
-        return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
-      }
+    FAutomationCommandTicket Ticket =
+        CommandQueue.Enqueue([Registry = MethodRegistry,
+                              Resolver = ActorResolver,
+                              ActorId,
+                              MethodNameText = std::string(MethodName),
+                              Arguments = Body]() {
+          AActor* Actor = nullptr;
+          const EAutomationActorResolveStatus ResolveStatus = Resolver(ActorId, Actor);
+          if (ResolveStatus != EAutomationActorResolveStatus::Success) {
+            return MakeActorResolveError(ResolveStatus);
+          }
+          if (!Actor) {
+            return MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage);
+          }
 
-      const std::string ClassName = Actor->GetActorClassName();
-      const FAutomationMethodDescriptor* Descriptor =
-          Registry->FindMethod(ClassName, MethodNameText);
-      if (!Descriptor) {
-        M_LOG(
-            Log,
-            "Automation actor method rejected: actorId={} class={} "
-            "method={} code=METHOD_NOT_REGISTERED",
-            ActorId,
-            ClassName,
-            MethodNameText
-        );
-        return MakeAutomationError(
-            EAutomationErrorCode::MethodNotRegistered, MethodNotRegisteredMessage
-        );
-      }
-      if (!IsMethodPermissionAllowed(Descriptor->Permission)) {
-        M_LOG(
-            Log,
-            "Automation actor method rejected: actorId={} class={} "
-            "method={} code=PERMISSION_DENIED",
-            ActorId,
-            ClassName,
-            MethodNameText
-        );
-        return MakeAutomationError(EAutomationErrorCode::PermissionDenied, PermissionDeniedMessage);
-      }
+          const std::string ClassName = Actor->GetActorClassName();
+          const FAutomationMethodDescriptor* Descriptor =
+              Registry->FindMethod(ClassName, MethodNameText);
+          if (!Descriptor) {
+            M_LOG(
+                Log,
+                "Automation actor method rejected: actorId={} class={} "
+                "method={} code=METHOD_NOT_REGISTERED",
+                ActorId,
+                ClassName,
+                MethodNameText
+            );
+            return MakeAutomationError(
+                EAutomationErrorCode::MethodNotRegistered, MethodNotRegisteredMessage
+            );
+          }
+          FAutomationSchemaValidationError ValidationError;
+          if (!FAutomationJsonSchemaValidator::ValidateValue(
+                  Descriptor->InputSchema, Arguments, ValidationError
+              )) {
+            M_LOG(
+                Log,
+                "Automation actor method rejected: actorId={} class={} "
+                "method={} code=INVALID_ARGUMENT",
+                ActorId,
+                ClassName,
+                MethodNameText
+            );
+            return MakeAutomationError(
+                EAutomationErrorCode::InvalidArgument,
+                ValidationError.JsonPath + ": " + ValidationError.Message
+            );
+          }
 
-      FAutomationSchemaValidationError ValidationError;
-      if (!FAutomationJsonSchemaValidator::ValidateValue(
-              Descriptor->InputSchema, Arguments, ValidationError
-          )) {
-        M_LOG(
-            Log,
-            "Automation actor method rejected: actorId={} class={} "
-            "method={} code=INVALID_ARGUMENT",
-            ActorId,
-            ClassName,
-            MethodNameText
-        );
-        return MakeAutomationError(
-            EAutomationErrorCode::InvalidArgument,
-            ValidationError.JsonPath + ": " + ValidationError.Message
-        );
-      }
-
-      M_LOG(
-          Log,
-          "Automation actor method starting: actorId={} class={} method={}",
-          ActorId,
-          ClassName,
-          MethodNameText
-      );
-      nlohmann::json Result = Descriptor->Handler(*Actor, Arguments);
-      M_LOG(
-          Log,
-          "Automation actor method completed: actorId={} class={} method={}",
-          ActorId,
-          ClassName,
-          MethodNameText
-      );
-      return MakeAutomationSuccess(
-          {{"actorId", ActorId},
-           {"className", ClassName},
-           {"methodName", MethodNameText},
-           {"result", std::move(Result)}}
-      );
-    });
+          M_LOG(
+              Log,
+              "Automation actor method starting: actorId={} class={} method={}",
+              ActorId,
+              ClassName,
+              MethodNameText
+          );
+          nlohmann::json Result = Descriptor->Handler(*Actor, Arguments);
+          M_LOG(
+              Log,
+              "Automation actor method completed: actorId={} class={} method={}",
+              ActorId,
+              ClassName,
+              MethodNameText
+          );
+          return MakeAutomationSuccess(
+              {{"actorId", ActorId},
+               {"className", ClassName},
+               {"methodName", MethodNameText},
+               {"result", std::move(Result)}}
+          );
+        });
     return WaitForResult(std::move(Ticket));
   } catch (...) {
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
@@ -218,14 +202,10 @@ FAutomationHttpResponse FAutomationInvocationController::GetWorldActorComponentM
           nlohmann::json Methods = nlohmann::json::array();
           for (const FAutomationComponentMethodSnapshot& Snapshot :
                Registry->GetMethodsForClass(Component->GetComponentClassName())) {
-            if (!IsMethodPermissionAllowed(Snapshot.Permission)) {
-              continue;
-            }
             Methods.push_back(
                 {{"name", Snapshot.Name},
                  {"description", Snapshot.Description},
-                 {"inputSchema", Snapshot.InputSchema},
-                 {"permission", ToAutomationPermissionString(Snapshot.Permission)}}
+                 {"inputSchema", Snapshot.InputSchema}}
             );
           }
           return MakeAutomationSuccess(
@@ -275,56 +255,45 @@ FAutomationHttpResponse FAutomationInvocationController::InvokeWorldActorCompone
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
   }
   try {
-    FAutomationCommandTicket Ticket = CommandQueue.Enqueue([Registry = ComponentMethodRegistry,
-                                                            Resolver = ComponentResolver,
-                                                            ActorId,
-                                                            ComponentId,
-                                                            MethodNameText =
-                                                                std::string(MethodName),
-                                                            Arguments = Body["arguments"]]() {
-      MActorComponent* Component = nullptr;
-      const EAutomationComponentResolveStatus Status = Resolver(ActorId, ComponentId, Component);
-      if (Status != EAutomationComponentResolveStatus::Success) {
-        return MakeComponentResolveError(Status);
-      }
-      const std::string ClassName = Component->GetComponentClassName();
-      const FAutomationComponentMethodDescriptor* Descriptor =
-          Registry->FindMethod(ClassName, MethodNameText);
-      if (!Descriptor) {
-        return MakeAutomationError(
-            EAutomationErrorCode::MethodNotRegistered,
-            "The requested method is not registered for this component class."
-        );
-      }
-      if (!IsMethodPermissionAllowed(Descriptor->Permission)) {
-        M_LOG(
-            Log,
-            "Automation component method rejected: actorId={} componentId={} class={} "
-            "method={} code=PERMISSION_DENIED",
-            ActorId,
-            ComponentId,
-            ClassName,
-            MethodNameText
-        );
-        return MakeAutomationError(EAutomationErrorCode::PermissionDenied, PermissionDeniedMessage);
-      }
-      FAutomationSchemaValidationError ValidationError;
-      if (!FAutomationJsonSchemaValidator::ValidateValue(
-              Descriptor->InputSchema, Arguments, ValidationError
-          )) {
-        return MakeAutomationError(
-            EAutomationErrorCode::InvalidArgument,
-            ValidationError.JsonPath + ": " + ValidationError.Message
-        );
-      }
-      return MakeAutomationSuccess(
-          {{"actorId", ActorId},
-           {"componentId", ComponentId},
-           {"className", ClassName},
-           {"methodName", MethodNameText},
-           {"result", Descriptor->Handler(*Component, Arguments)}}
-      );
-    });
+    FAutomationCommandTicket Ticket =
+        CommandQueue.Enqueue([Registry = ComponentMethodRegistry,
+                              Resolver = ComponentResolver,
+                              ActorId,
+                              ComponentId,
+                              MethodNameText = std::string(MethodName),
+                              Arguments = Body["arguments"]]() {
+          MActorComponent* Component = nullptr;
+          const EAutomationComponentResolveStatus Status =
+              Resolver(ActorId, ComponentId, Component);
+          if (Status != EAutomationComponentResolveStatus::Success) {
+            return MakeComponentResolveError(Status);
+          }
+          const std::string ClassName = Component->GetComponentClassName();
+          const FAutomationComponentMethodDescriptor* Descriptor =
+              Registry->FindMethod(ClassName, MethodNameText);
+          if (!Descriptor) {
+            return MakeAutomationError(
+                EAutomationErrorCode::MethodNotRegistered,
+                "The requested method is not registered for this component class."
+            );
+          }
+          FAutomationSchemaValidationError ValidationError;
+          if (!FAutomationJsonSchemaValidator::ValidateValue(
+                  Descriptor->InputSchema, Arguments, ValidationError
+              )) {
+            return MakeAutomationError(
+                EAutomationErrorCode::InvalidArgument,
+                ValidationError.JsonPath + ": " + ValidationError.Message
+            );
+          }
+          return MakeAutomationSuccess(
+              {{"actorId", ActorId},
+               {"componentId", ComponentId},
+               {"className", ClassName},
+               {"methodName", MethodNameText},
+               {"result", Descriptor->Handler(*Component, Arguments)}}
+          );
+        });
     return WaitForResult(std::move(Ticket));
   } catch (...) {
     return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};

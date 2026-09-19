@@ -8,7 +8,6 @@
 #include "Log.h"
 #include "World/WorldTypes.h"
 namespace AutomationHttpDetail {
-bool IsMethodPermissionAllowed(EAutomationPermission);
 bool HasOnlyAllowedFields(const nlohmann::json&, std::initializer_list<std::string_view>);
 bool TryReadFiniteFloat(const nlohmann::json&, std::string_view, float&, std::string&);
 bool TryParseUnsigned(std::string_view, uint64_t&);

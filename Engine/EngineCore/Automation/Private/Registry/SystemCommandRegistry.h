@@ -15,7 +15,6 @@ struct FAutomationSystemCommandDescriptor {
   nlohmann::json InputSchema = {
       {"type", "object"}, {"properties", nlohmann::json::object()}, {"additionalProperties", false}
   };
-  EAutomationPermission Permission = EAutomationPermission::SystemMutation;
   std::function<nlohmann::json(const nlohmann::json&)> Handler;
 };
 
@@ -23,7 +22,6 @@ struct FAutomationSystemCommandSnapshot {
   std::string Name;
   std::string Description;
   nlohmann::json InputSchema;
-  EAutomationPermission Permission = EAutomationPermission::SystemMutation;
 };
 
 class FAutomationSystemCommandRegistry {

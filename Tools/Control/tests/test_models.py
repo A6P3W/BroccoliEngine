@@ -89,7 +89,6 @@ def test_automation_descriptors_reject_invalid_values() -> None:
         "name": "BadName",
         "description": "Test.",
         "inputSchema": {},
-        "permission": "ReadOnly",
       },
       Operation="test actor method",
     )
@@ -100,7 +99,6 @@ def test_automation_descriptors_reject_invalid_values() -> None:
         "name": "pause_game",
         "description": "",
         "inputSchema": {},
-        "permission": "SystemMutation",
       },
       Operation="test system command",
     )
