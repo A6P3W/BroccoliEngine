@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 
+#include "EditorSelection.h"
+#include "EditorTransformTool.h"
 #include "EditorViewportState.h"
 #include "GameModeBase.h"
 #include "LevelSerializer.h"
@@ -10,13 +12,11 @@
 class AActor;
 class EditorUI;
 class EditorPawn;
-class EditorSelectPointComponent;
 
 enum class EEditorState {
   Idle,
   Dragging,
 };
-enum class EActorAction { Select, Move, Rotate, Scale };
 
 class EditorMode : public AGameModeBase {
  public:
@@ -31,8 +31,8 @@ class EditorMode : public AGameModeBase {
   const std::string& GetSelectedGameModeClass() const { return SelectedGameModeClass; }
 
   // --- アクタ選択 (インスペクタ・アウトライナ用) ---
-  void SetSelectedActor(AActor* actor);
-  AActor* GetSelectedActor() const { return SelectedActor; }
+  void SetSelectedActor(AActor* Actor) { Selection.Select(Actor); }
+  AActor* GetSelectedActor() const { return Selection.GetSelectedActor(); }
 
   // --- マウス入力（EditorPawnから呼ぶ） ---
   void OnMousePress(const FVector2D& worldPos);    // ドラッグ開始
@@ -91,11 +91,11 @@ class EditorMode : public AGameModeBase {
   std::string SelectedClass;
   std::string SelectedGameModeClass;
   AActor* SelectingActor = nullptr;  // ドラッグ中のゴースト
-  AActor* SelectedActor = nullptr;   // 選択中のアクタ
-  EditorSelectPointComponent* SelectedPointComponent = nullptr;
   EditorPawn* EditorPawnPtr = nullptr;
   EActorAction ActorAction = EActorAction::Select;
   FEditorViewportState ViewportState;
+  EditorSelection Selection;
+  EditorTransformTool TransformTool;
 
   static std::string PendingLoadPath;
 
