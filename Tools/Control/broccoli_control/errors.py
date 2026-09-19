@@ -1,9 +1,9 @@
-"""Bridge-specific error types and safe user-facing error conversion."""
+"""Shared control error types for the Automation API."""
 
 from __future__ import annotations
 
 
-class BridgeError(Exception):
+class ControlError(Exception):
   """Base class for errors that may safely be reported to an MCP client."""
 
   def __init__(
@@ -25,7 +25,7 @@ class BridgeError(Exception):
     return f"{Self.Operation} failed [{Self.Code}]: {Self.Message}{RetryHint}"
 
 
-class EngineUnavailable(BridgeError):
+class EngineUnavailable(ControlError):
   """The engine Automation Server cannot be reached."""
 
   def __init__(Self, Host: str, Port: int, *, Operation: str) -> None:
@@ -40,7 +40,7 @@ class EngineUnavailable(BridgeError):
     )
 
 
-class EngineTimeout(BridgeError):
+class EngineTimeout(ControlError):
   """The engine did not respond before the configured timeout."""
 
   def __init__(Self, *, Operation: str) -> None:
@@ -52,7 +52,7 @@ class EngineTimeout(BridgeError):
     )
 
 
-class EngineApiError(BridgeError):
+class EngineApiError(ControlError):
   """The engine returned a valid failure response."""
 
   def __init__(
@@ -67,7 +67,7 @@ class EngineApiError(BridgeError):
     Self.HttpStatus = HttpStatus
 
 
-class InvalidEngineResponse(BridgeError):
+class InvalidEngineResponse(ControlError):
   """The engine response does not satisfy the Automation API contract."""
 
   def __init__(Self, Message: str, *, Operation: str) -> None:
@@ -79,31 +79,25 @@ class InvalidEngineResponse(BridgeError):
     )
 
 
-class BridgeConfigurationError(BridgeError):
+class ControlConfigurationError(ControlError):
   """Bridge configuration is invalid."""
 
   def __init__(Self, Message: str) -> None:
     super().__init__(
-      "BRIDGE_CONFIGURATION_ERROR",
+      "CONTROL_CONFIGURATION_ERROR",
       Message,
-      Operation="bridge configuration",
+      Operation="control configuration",
       Retryable=False,
     )
 
 
-class BridgeInternalError(BridgeError):
+class ControlInternalError(ControlError):
   """An unexpected bridge failure represented without internal details."""
 
   def __init__(Self, *, Operation: str) -> None:
     super().__init__(
-      "BRIDGE_INTERNAL_ERROR",
-      "The bridge encountered an unexpected internal error.",
+      "CONTROL_INTERNAL_ERROR",
+      "The control client encountered an unexpected internal error.",
       Operation=Operation,
       Retryable=False,
     )
-
-
-def format_mcp_error(Error: BridgeError) -> str:
-  """Return the bounded, safe error text exposed through MCP."""
-
-  return str(Error)

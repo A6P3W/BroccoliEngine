@@ -4,8 +4,14 @@ import math
 
 import pytest
 
-from broccoli_mcp.errors import InvalidEngineResponse
-from broccoli_mcp.models import ActorInfo, ActorList, ActorMethodInfo, RecentLogs, SystemCommandInfo
+from broccoli_control.errors import InvalidEngineResponse
+from broccoli_control.models import (
+  ActorInfo,
+  ActorList,
+  ActorMethodInfo,
+  RecentLogs,
+  SystemCommandInfo,
+)
 
 ACTOR_DATA = {
   "actorId": 42,

@@ -3,28 +3,17 @@ requires = ["hatchling==1.27.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "broccoli-mcp"
+name = "broccoli-control"
 version = "0.1.0"
-description = "MCP stdio bridge for the BROCCOLI ENGINE Automation API"
-readme = "MCP Bridge.md"
+description = "Shared control client for the BROCCOLI ENGINE Automation API"
 requires-python = ">=3.11,<3.15"
-dependencies = [
-  "anyio==4.10.0",
-  "broccoli-control",
-  "mcp==2.2.0",
-]
-
-[tool.uv.sources]
-broccoli-control = { path = "../Control", editable = true }
+dependencies = ["httpx==0.28.1"]
 
 [project.optional-dependencies]
-dev = [
-  "pytest==8.4.2",
-  "ruff>=0.16.0",
-]
+dev = ["pytest==8.4.2", "ruff>=0.16.0"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["broccoli_mcp"]
+packages = ["broccoli_control"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"
@@ -33,7 +22,7 @@ testpaths = ["tests"]
 [tool.ruff]
 indent-width = 2
 line-length = 100
-required-version =">=0.16.0"
+required-version = ">=0.16.0"
 target-version = "py311"
 
 [tool.ruff.format]

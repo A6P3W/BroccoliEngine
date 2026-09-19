@@ -3,7 +3,10 @@ name = "broccoli-build-tools"
 version = "0.1.0"
 description = "BroccoliEngine Build and Packaging Tools"
 requires-python = ">=3.11,<3.15"
-dependencies = []
+dependencies = ["broccoli-control"]
+
+[tool.uv.sources]
+broccoli-control = { path = "../Control", editable = true }
 
 [dependency-groups]
 dev = [

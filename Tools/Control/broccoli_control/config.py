@@ -1,4 +1,4 @@
-"""Configuration loading and validation for the bridge."""
+"""Configuration loading and validation for the shared control client."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from .errors import BridgeConfigurationError
+from .errors import ControlConfigurationError
 
 ENGINE_HOST = "127.0.0.1"
 DEFAULT_PORT = 39100
@@ -20,7 +20,7 @@ VALID_LOG_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 
 
 @dataclass(frozen=True, slots=True)
-class BridgeConfig:
+class ControlConfig:
   """Validated runtime settings."""
 
   Host: str = ENGINE_HOST
@@ -32,16 +32,16 @@ class BridgeConfig:
 
   def __post_init__(Self) -> None:
     if Self.Host != ENGINE_HOST:
-      raise BridgeConfigurationError("Host must be 127.0.0.1.")
+      raise ControlConfigurationError("Host must be 127.0.0.1.")
     if isinstance(Self.Port, bool) or not 1 <= Self.Port <= 65535:
-      raise BridgeConfigurationError("Port must be between 1 and 65535.")
+      raise ControlConfigurationError("Port must be between 1 and 65535.")
     _validate_timeout(Self.ConnectTimeoutSeconds, "Connect timeout")
     _validate_timeout(Self.ReadTimeoutSeconds, "Read timeout")
     if isinstance(Self.MaxResponseBytes, bool) or Self.MaxResponseBytes <= 0:
-      raise BridgeConfigurationError("Maximum response size must be positive.")
+      raise ControlConfigurationError("Maximum response size must be positive.")
     NormalizedLevel = Self.LogLevel.upper()
     if NormalizedLevel not in VALID_LOG_LEVELS:
-      raise BridgeConfigurationError(
+      raise ControlConfigurationError(
         f"Log level must be one of: {', '.join(sorted(VALID_LOG_LEVELS))}."
       )
     object.__setattr__(Self, "LogLevel", NormalizedLevel)
@@ -53,7 +53,7 @@ class BridgeConfig:
 
 def _validate_timeout(Value: float, Name: str) -> None:
   if isinstance(Value, bool) or not math.isfinite(Value) or Value <= 0:
-    raise BridgeConfigurationError(f"{Name} must be a positive finite number.")
+    raise ControlConfigurationError(f"{Name} must be a positive finite number.")
 
 
 def _environment_value(Environment: Mapping[str, str], Name: str, Default: object) -> str:
@@ -63,26 +63,26 @@ def _environment_value(Environment: Mapping[str, str], Name: str, Default: objec
 def load_config(
   Arguments: Sequence[str] | None = None,
   Environment: Mapping[str, str] | None = None,
-) -> BridgeConfig:
+) -> ControlConfig:
   """Load command-line values over environment values over defaults."""
 
   ActiveEnvironment = os.environ if Environment is None else Environment
-  Parser = argparse.ArgumentParser(description="BROCCOLI ENGINE MCP stdio bridge")
+  Parser = argparse.ArgumentParser(description="BROCCOLI ENGINE control client")
   Parser.add_argument(
     "--host",
-    default=_environment_value(ActiveEnvironment, "BROCCOLI_MCP_HOST", ENGINE_HOST),
+    default=_environment_value(ActiveEnvironment, "BROCCOLI_CONTROL_HOST", ENGINE_HOST),
   )
   Parser.add_argument(
     "--port",
     type=int,
-    default=_environment_value(ActiveEnvironment, "BROCCOLI_MCP_PORT", DEFAULT_PORT),
+    default=_environment_value(ActiveEnvironment, "BROCCOLI_CONTROL_PORT", DEFAULT_PORT),
   )
   Parser.add_argument(
     "--connect-timeout",
     type=float,
     default=_environment_value(
       ActiveEnvironment,
-      "BROCCOLI_MCP_CONNECT_TIMEOUT",
+      "BROCCOLI_CONTROL_CONNECT_TIMEOUT",
       DEFAULT_CONNECT_TIMEOUT_SECONDS,
     ),
   )
@@ -91,7 +91,7 @@ def load_config(
     type=float,
     default=_environment_value(
       ActiveEnvironment,
-      "BROCCOLI_MCP_READ_TIMEOUT",
+      "BROCCOLI_CONTROL_READ_TIMEOUT",
       DEFAULT_READ_TIMEOUT_SECONDS,
     ),
   )
@@ -99,13 +99,13 @@ def load_config(
     "--log-level",
     default=_environment_value(
       ActiveEnvironment,
-      "BROCCOLI_MCP_LOG_LEVEL",
+      "BROCCOLI_CONTROL_LOG_LEVEL",
       DEFAULT_LOG_LEVEL,
     ),
   )
   try:
     Parsed = Parser.parse_args(Arguments)
-    return BridgeConfig(
+    return ControlConfig(
       Host=Parsed.host,
       Port=Parsed.port,
       ConnectTimeoutSeconds=Parsed.connect_timeout,
@@ -113,6 +113,6 @@ def load_config(
       LogLevel=Parsed.log_level,
     )
   except (TypeError, ValueError) as Error:
-    if isinstance(Error, BridgeConfigurationError):
+    if isinstance(Error, ControlConfigurationError):
       raise
-    raise BridgeConfigurationError("Configuration contains an invalid value.") from None
+    raise ControlConfigurationError("Configuration contains an invalid value.") from None

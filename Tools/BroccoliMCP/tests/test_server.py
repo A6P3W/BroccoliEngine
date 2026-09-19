@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 
 import anyio
+from broccoli_control.models import ActorInfo, ActorTransform, EngineState
 from mcp.client import Client
 
-from broccoli_mcp.models import ActorInfo, ActorTransform, EngineState
 from broccoli_mcp.server import create_server
 
 
