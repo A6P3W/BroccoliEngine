@@ -73,6 +73,7 @@ target_include_directories(BroccoliEngine
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/EOS/SDK/Include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Automation/Private
+    ${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Systems/Private
     ${CMAKE_CURRENT_SOURCE_DIR}/../PrivateConfig
 )
 

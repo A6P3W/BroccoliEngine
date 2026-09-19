@@ -7,6 +7,7 @@
 #include "DebugOverlay.h"
 #include "Pawn.h"
 #include "PerformanceOverlay.h"
+#include "PhysicsSystem3D.h"
 #include "PlayerController.h"
 #include "ReplicationSystem.h"
 #include "SceneManager.h"
@@ -17,6 +18,7 @@ struct World::Impl {
   std::unique_ptr<FSoundManager> SoundManager;
   std::unique_ptr<FTimerManager> TimerManager;
   std::unique_ptr<FReplicationSystem> ReplicationSystem;
+  std::unique_ptr<FPhysicsSystem3D> PhysicsSystem3D;
   std::unique_ptr<FActorManager> ActorManager;
   AGameModeBase* GameMode = nullptr;
   bool Simulating = true;
@@ -33,6 +35,7 @@ World::World() : ImplPtr(new Impl()) {
   ImplPtr->CollisionSystem = std::make_unique<FCollisionSystem>();
   ImplPtr->SoundManager = std::make_unique<FSoundManager>();
   ImplPtr->TimerManager = std::make_unique<FTimerManager>();
+  ImplPtr->PhysicsSystem3D = std::make_unique<FPhysicsSystem3D>();
   ImplPtr->ActorManager->SetWorld(this);
   ImplPtr->ReplicationSystem = std::make_unique<FReplicationSystem>(this);
 }
@@ -48,6 +51,7 @@ FCollisionSystem* World::GetCollisionSystem() { return ImplPtr->CollisionSystem.
 FSoundManager* World::GetSoundManager() { return ImplPtr->SoundManager.get(); }
 FTimerManager* World::GetTimerManager() { return ImplPtr->TimerManager.get(); }
 FReplicationSystem* World::GetReplicationSystem() { return ImplPtr->ReplicationSystem.get(); }
+FPhysicsSystem3D* World::GetPhysicsSystem3D() { return ImplPtr->PhysicsSystem3D.get(); }
 AGameModeBase* World::GetGameMode() const { return ImplPtr->GameMode; }
 void World::SetSimulating(bool bRunning) { ImplPtr->Simulating = bRunning; }
 bool World::IsSimulating() const { return ImplPtr->Simulating; }
@@ -108,6 +112,9 @@ void World::Update(float DeltaTime) {
 #if !defined(_RELEASE)
       PerformanceOverlay.EndSection(EPerformanceSection::WorldCollision);
 #endif
+    }
+    if (ImplPtr->PhysicsSystem3D) {
+      ImplPtr->PhysicsSystem3D->Step(DeltaTime);
     }
   }
 }

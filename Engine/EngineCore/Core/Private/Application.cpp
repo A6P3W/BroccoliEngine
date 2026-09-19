@@ -37,6 +37,7 @@
 #include "GamePadDevice.h"
 #include "HttpManager.h"
 #include "InputManager.h"
+#include "Jolt/JoltRuntime.h"
 #include "KeyboardDevice.h"
 #include "Log.h"
 #include "MouseDevice.h"
@@ -299,6 +300,11 @@ bool Application::Run() {
   }
 
   ResourceManager::GetInstance();
+  if (!FJoltRuntime::Initialize()) {
+    M_LOG(Error, "Jolt runtime initialization failed.");
+    Shutdown();
+    return false;
+  }
   if (IsEditor) {
     SceneManager::GetInstance().OpenGameMode<EditorMode>();
   } else {
@@ -358,6 +364,7 @@ bool Application::Run() {
   }
   EOSTitleStorageManager::GetInstance().Shutdown();
   SceneManager::GetInstance().Shutdown();
+  FJoltRuntime::Shutdown();
   OnlinePlayManager::GetInstance().Shutdown();
   NetworkManager::GetInstance().Stop();
   EOSLobbyManager::GetInstance().Shutdown();
