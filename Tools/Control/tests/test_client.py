@@ -21,6 +21,8 @@ STATE_DATA = {
   "paused": False,
   "worldAvailable": True,
   "actorCount": 12,
+  "physics3DAvailable": True,
+  "physics3DBodyCount": 0,
 }
 ACTOR_DATA = {
   "actorId": 42,
@@ -61,6 +63,8 @@ def test_state_response_is_converted_and_unknown_fields_are_ignored() -> None:
   assert State.SceneName == "LevelStarter"
   assert State.Fps == 59.5
   assert State.ActorCount == 12
+  assert State.Physics3DAvailable is True
+  assert State.Physics3DBodyCount == 0
   assert "future" not in State.to_dict()
 
 

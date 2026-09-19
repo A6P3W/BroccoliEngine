@@ -6,6 +6,7 @@
 
 #include "ActorManager.h"
 #include "ActorRegistry.h"
+#include "PhysicsSystem3D.h"
 #include "SceneManager.h"
 
 namespace {
@@ -305,6 +306,10 @@ FAutomationWorldStateProvider FAutomationWorldService::CreateWorldStateProvider(
     Snapshot.WorldAvailable = true;
     if (const FActorManager* ActorManager = CurrentWorld->GetActorManager()) {
       Snapshot.ActorCount = static_cast<uint32_t>(ActorManager->GetActiveActorCount());
+    }
+    if (const FPhysicsSystem3D* PhysicsSystem = CurrentWorld->GetPhysicsSystem3D()) {
+      Snapshot.Physics3DAvailable = PhysicsSystem->IsInitialized();
+      Snapshot.Physics3DBodyCount = PhysicsSystem->GetBodyCount();
     }
     return Snapshot;
   };

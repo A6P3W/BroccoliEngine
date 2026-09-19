@@ -9,6 +9,7 @@ from broccoli_control.models import (
   ActorInfo,
   ActorList,
   ActorMethodInfo,
+  EngineState,
   RecentLogs,
   SystemCommandInfo,
 )
@@ -41,6 +42,30 @@ LOG_DATA = {
   "historyLost": False,
   "hasMore": False,
 }
+
+PHYSICS_STATE_DATA = {
+  "sceneName": "Physics3DFoundation",
+  "fps": 60.0,
+  "paused": False,
+  "worldAvailable": True,
+  "actorCount": 0,
+  "physics3DAvailable": True,
+  "physics3DBodyCount": 0,
+}
+
+
+def test_engine_state_validates_physics_3d_fields() -> None:
+  State = EngineState.from_mapping(PHYSICS_STATE_DATA, Operation="test state")
+
+  assert State.Physics3DAvailable is True
+  assert State.Physics3DBodyCount == 0
+  assert State.to_dict() == PHYSICS_STATE_DATA
+
+  with pytest.raises(InvalidEngineResponse, match="physics3DBodyCount"):
+    EngineState.from_mapping(
+      {Key: Value for Key, Value in PHYSICS_STATE_DATA.items() if Key != "physics3DBodyCount"},
+      Operation="test state",
+    )
 
 
 def test_actor_models_accept_valid_data_and_ignore_unknown_fields() -> None:
