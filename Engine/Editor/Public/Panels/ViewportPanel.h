@@ -11,7 +11,4 @@ class ViewportPanel final : public IEditorPanel {
 
  protected:
   void DrawContents(EditorContext& Context) override;
-
- private:
-  void CreateStaticMeshActor(EditorContext& Context, const std::string& ModelPath) const;
 };

@@ -5,6 +5,7 @@
 #include "Actor.h"
 #include "ActorRegistry.h"
 #include "BroccoliRaylib.h"
+#include "Camera3DComponent.h"
 #include "EditorController.h"
 #include "EditorPawn2D.h"
 #include "EditorPawn3D.h"
@@ -48,6 +49,47 @@ bool EditorMode::IsThreeDCameraNavigationActive() const {
 
 void EditorMode::OnMousePress3D() {}
 
+AActor* EditorMode::PlaceSelectedClassAtViewportCenter() {
+  if (SelectedClass.empty()) {
+    return nullptr;
+  }
+
+  return PlaceActorAtViewportCenter(SelectedClass);
+}
+
+AActor* EditorMode::PlaceActorAtViewportCenter(const std::string& ClassName) {
+  if (ClassName.empty()) {
+    return nullptr;
+  }
+
+  AActor* Actor = nullptr;
+  if (ViewportState.Mode == EEditorViewportMode::TwoD) {
+    if (ViewportState.RenderTargetSize.X <= 0.0f || ViewportState.RenderTargetSize.Y <= 0.0f) {
+      return nullptr;
+    }
+
+    const FVector2D ViewportCenter = {
+        ViewportState.RenderTargetSize.X * 0.5f,
+        ViewportState.RenderTargetSize.Y * 0.5f,
+    };
+    const FVector2D Position = RenderSystem::GetInstance().ScreenToWorld(ViewportCenter);
+    Actor = PlacementTool.Place2D(GetWorld(), ClassName, Position);
+  } else {
+    if (EditorPawn3DPtr == nullptr || EditorPawn3DPtr->GetEditorCamera3D() == nullptr) {
+      return nullptr;
+    }
+
+    const FVector3D Position = EditorPawn3DPtr->GetActorLocation3D() +
+                               EditorPawn3DPtr->GetEditorCamera3D()->GetForwardVector() * 5.0f;
+    Actor = PlacementTool.Place3D(GetWorld(), ClassName, Position);
+  }
+
+  if (Actor != nullptr) {
+    Selection.Select(Actor);
+  }
+  return Actor;
+}
+
 void EditorMode::OnMousePress(const FVector2D& worldPos) {
   if (AActor* HitActor = Selection.HitTest2D(GetWorld(), worldPos)) {
     Selection.Select(HitActor);
@@ -59,17 +101,6 @@ void EditorMode::OnMousePress(const FVector2D& worldPos) {
     return;
   }
   Selection.Clear();
-
-  if (SelectedClass.empty()) return;
-  if (State == EEditorState::Dragging) return;
-
-  // プレビュー用アクタをスポーン
-  SelectingActor = ActorRegistry::GetInstance().Spawn(GetWorld(), SelectedClass, worldPos);
-  if (!SelectingActor) return;
-  Selection.Select(SelectingActor);
-  TransformTool.Begin(SelectingActor, GetActorAction());
-
-  State = EEditorState::Dragging;
 }
 
 void EditorMode::OnMouseMove(const FVector2D& Delta) {
