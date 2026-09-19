@@ -19,6 +19,7 @@ class BROCCOLI_ENGINE_API FAutomationHttpServer {
   void StopAcceptingRequests();
   void Stop();
   bool IsRunning() const;
+  uint16_t GetPort() const;
 
  private:
   struct Impl;

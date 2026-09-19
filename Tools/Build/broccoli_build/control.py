@@ -3,13 +3,139 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
+import os
 import sys
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any
 
-from broccoli_control import ControlClient, load_config
+from broccoli_control import ControlClient, ControlConfig, load_config
 from broccoli_control.errors import ControlError
+
+
+@dataclass(frozen=True, slots=True)
+class ControlRegistration:
+  """A validated control endpoint registered by a running engine process."""
+
+  ProcessId: int
+  Port: int
+
+
+def _GetProcessExecutablePath(ProcessId: int) -> Path | None:
+  """Return a process executable path without requiring administrator privileges."""
+
+  if os.name != "nt":
+    return None
+  ProcessQueryLimitedInformation = 0x1000
+  ProcessHandle = ctypes.windll.kernel32.OpenProcess(  # type: ignore[attr-defined]
+    ProcessQueryLimitedInformation, False, ProcessId
+  )
+  if not ProcessHandle:
+    return None
+  try:
+    Buffer = ctypes.create_unicode_buffer(32768)
+    Size = ctypes.c_uint32(len(Buffer))
+    if not ctypes.windll.kernel32.QueryFullProcessImageNameW(  # type: ignore[attr-defined]
+      ProcessHandle, 0, Buffer, ctypes.byref(Size)
+    ):
+      return None
+    return Path(Buffer.value)
+  finally:
+    ctypes.windll.kernel32.CloseHandle(ProcessHandle)  # type: ignore[attr-defined]
+
+
+def _PathsMatch(First: Path, Second: Path) -> bool:
+  return os.path.normcase(os.path.abspath(First)) == os.path.normcase(os.path.abspath(Second))
+
+
+def _ReadRegistration(RegistrationPath: Path, TargetExecutable: Path) -> ControlRegistration | None:
+  try:
+    ProcessId = int(RegistrationPath.stem)
+    Data = json.loads(RegistrationPath.read_text(encoding="utf-8"))
+  except (OSError, ValueError, json.JSONDecodeError):
+    return None
+  if not isinstance(Data, dict):
+    return None
+  RegisteredProcessId = Data.get("pid")
+  Port = Data.get("port")
+  if (
+    isinstance(RegisteredProcessId, bool)
+    or not isinstance(RegisteredProcessId, int)
+    or RegisteredProcessId != ProcessId
+    or isinstance(Port, bool)
+    or not isinstance(Port, int)
+    or not 1 <= Port <= 65535
+  ):
+    return None
+  ExecutablePath = _GetProcessExecutablePath(ProcessId)
+  if ExecutablePath is None or not _PathsMatch(ExecutablePath, TargetExecutable):
+    return None
+  return ControlRegistration(ProcessId, Port)
+
+
+def ResolveTargetExecutable(ProjectDirectory: Path) -> Path:
+  """Resolve the executable produced by the most recent build of this project."""
+
+  ConfigurationPath = ProjectDirectory / "Intermediate" / "LastBuildConfiguration.txt"
+  try:
+    Configuration = ConfigurationPath.read_text(encoding="utf-8").strip()
+  except OSError as Error:
+    raise ValueError(f"Latest build configuration does not exist: {ConfigurationPath}") from Error
+  if Configuration not in {"Debug", "Editor", "Release"}:
+    raise ValueError(f"Unsupported latest build configuration: {Configuration}")
+
+  SettingsPath = ProjectDirectory / ".broccoli-project.json"
+  try:
+    Settings = json.loads(SettingsPath.read_text(encoding="utf-8"))
+  except (OSError, json.JSONDecodeError) as Error:
+    raise ValueError(f"Could not read project settings '{SettingsPath}': {Error}") from Error
+  ProjectName = Settings.get("project_name", "Launcher")
+  if not isinstance(ProjectName, str) or not ProjectName.strip():
+    raise ValueError(f"Project setting 'project_name' must be a non-empty string: {SettingsPath}")
+  if Configuration == "Editor":
+    return ProjectDirectory / "Bin" / "x64" / Configuration / f"{ProjectName}-game.exe"
+  return ProjectDirectory / "Publish" / Configuration / "Binaries" / f"{ProjectName}.exe"
+
+
+def ResolveRegistration(TargetExecutable: Path, ProcessId: int | None) -> ControlRegistration:
+  """Find exactly one live registration belonging to the selected executable."""
+
+  ControlDirectory = TargetExecutable.parent / "control"
+  if ProcessId is not None:
+    Registration = _ReadRegistration(ControlDirectory / f"{ProcessId}.json", TargetExecutable)
+    if Registration is None:
+      raise ValueError(f"No running BROCCOLI ENGINE instance exists for PID {ProcessId}.")
+    return Registration
+
+  if not ControlDirectory.is_dir():
+    raise ValueError(f"No running BROCCOLI ENGINE instance was found for: {TargetExecutable}")
+  Registrations = [
+    Registration
+    for RegistrationPath in ControlDirectory.glob("*.json")
+    if (Registration := _ReadRegistration(RegistrationPath, TargetExecutable)) is not None
+  ]
+  if not Registrations:
+    raise ValueError(f"No running BROCCOLI ENGINE instance was found for: {TargetExecutable}")
+  if len(Registrations) == 1:
+    return Registrations[0]
+
+  ProcessIds = "\n".join(f"PID {Registration.ProcessId}" for Registration in Registrations)
+  raise ValueError(
+    "Multiple BROCCOLI ENGINE instances are running.\n\n"
+    f"{ProcessIds}\n\n"
+    "Specify the target PID:\n"
+    f"  broccoli.bat control --pid {Registrations[0].ProcessId} state"
+  )
+
+
+def ResolveControlConfig(ProjectDirectory: Path, ProcessId: int | None) -> ControlConfig:
+  """Create a client configuration using current discovery data and user timeout settings."""
+
+  Registration = ResolveRegistration(ResolveTargetExecutable(ProjectDirectory), ProcessId)
+  return replace(load_config([]), Port=Registration.Port)
 
 
 def JsonObjectArgument(Value: str) -> dict[str, object]:
@@ -28,6 +154,7 @@ def CreateParser() -> argparse.ArgumentParser:
   """Create the control command parser without any transport logic."""
 
   Parser = argparse.ArgumentParser(description="Control a running BROCCOLI ENGINE instance")
+  Parser.add_argument("--pid", type=int, help="PID of the target BROCCOLI ENGINE instance")
   Commands = Parser.add_subparsers(dest="Command", required=True)
 
   Commands.add_parser("state")
@@ -144,12 +271,14 @@ def Dispatch(Client: ControlClient, Arguments: argparse.Namespace) -> Mapping[st
   return CommandHandlers[Arguments.Command]()
 
 
-def Run(Arguments: list[str] | None = None) -> int:
+def Run(Arguments: list[str] | None = None, ProjectDirectory: Path | None = None) -> int:
   """Run the CLI adapter and produce JSON on stdout or one error on stderr."""
 
   try:
     ParsedArguments = CreateParser().parse_args(Arguments)
-    Config = load_config([])
+    if ParsedArguments.pid is not None and ParsedArguments.pid <= 0:
+      raise ValueError("PID must be a positive integer.")
+    Config = ResolveControlConfig(ProjectDirectory or Path.cwd(), ParsedArguments.pid)
     with ControlClient(Config) as Client:
       Result = Dispatch(Client, ParsedArguments)
   except (ControlError, ValueError) as Error:

@@ -33,7 +33,7 @@ class EngineUnavailable(ControlError):
       "ENGINE_UNAVAILABLE",
       (
         f"Could not connect to BROCCOLI ENGINE Automation Server at "
-        f"{Host}:{Port}. Start BROCCOLI ENGINE with -automation."
+        f"{Host}:{Port}. Start BROCCOLI ENGINE with --control."
       ),
       Operation=Operation,
       Retryable=True,

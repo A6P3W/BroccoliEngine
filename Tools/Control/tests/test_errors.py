@@ -28,7 +28,7 @@ def test_unavailable_error_explains_how_to_start_engine() -> None:
   Text = str(Error)
 
   assert "BROCCOLI ENGINE" in Text
-  assert "-automation" in Text
+  assert "--control" in Text
   assert "127.0.0.1:39100" in Text
 
 
