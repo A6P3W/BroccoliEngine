@@ -241,8 +241,13 @@ def create_server(Client: ControlClient) -> MCPServer:
     class_name: str,
     location_x: float = 0.0,
     location_y: float = 0.0,
-    rotation: float = 0.0,
-    scale: float = 1.0,
+    location_z: float = 0.0,
+    pitch: float = 0.0,
+    yaw: float = 0.0,
+    roll: float = 0.0,
+    scale_x: float = 1.0,
+    scale_y: float = 1.0,
+    scale_z: float = 1.0,
     instance_name: str | None = None,
   ) -> dict[str, object]:
     try:
@@ -250,8 +255,13 @@ def create_server(Client: ControlClient) -> MCPServer:
         class_name,
         LocationX=location_x,
         LocationY=location_y,
-        Rotation=rotation,
-        Scale=scale,
+        LocationZ=location_z,
+        Pitch=pitch,
+        Yaw=yaw,
+        Roll=roll,
+        ScaleX=scale_x,
+        ScaleY=scale_y,
+        ScaleZ=scale_z,
         InstanceName=instance_name,
       ).to_dict()
     except ControlError as Error:
@@ -285,16 +295,26 @@ def create_server(Client: ControlClient) -> MCPServer:
     actor_id: int,
     location_x: float | None = None,
     location_y: float | None = None,
-    rotation: float | None = None,
-    scale: float | None = None,
+    location_z: float | None = None,
+    pitch: float | None = None,
+    yaw: float | None = None,
+    roll: float | None = None,
+    scale_x: float | None = None,
+    scale_y: float | None = None,
+    scale_z: float | None = None,
   ) -> dict[str, object]:
     try:
       return Client.set_actor_transform(
         actor_id,
         LocationX=location_x,
         LocationY=location_y,
-        Rotation=rotation,
-        Scale=scale,
+        LocationZ=location_z,
+        Pitch=pitch,
+        Yaw=yaw,
+        Roll=roll,
+        ScaleX=scale_x,
+        ScaleY=scale_y,
+        ScaleZ=scale_z,
       ).to_dict()
     except ControlError as Error:
       raise ValueError(format_mcp_error(Error)) from None

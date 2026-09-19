@@ -220,7 +220,11 @@ def CreateParser() -> argparse.ArgumentParser:
   Parser = argparse.ArgumentParser(description="BroccoliEngine build and packaging tools")
   Commands = Parser.add_subparsers(dest="Command", required=True)
 
-  ControlParser = Commands.add_parser("control", help="Control a running BROCCOLI ENGINE instance")
+  ControlParser = Commands.add_parser(
+    "control",
+    help="Control a running BROCCOLI ENGINE instance",
+    add_help=False,
+  )
   ControlParser.add_argument("--pid", type=int, help="PID of the target BROCCOLI ENGINE instance")
   ControlParser.add_argument("arguments", nargs=argparse.REMAINDER)
 
@@ -286,6 +290,9 @@ def CreateParser() -> argparse.ArgumentParser:
 
 
 def Main() -> int:
+  if len(sys.argv) > 1 and sys.argv[1] == "control":
+    return RunControl(sys.argv[2:], Path.cwd())
+
   CliArguments, ApplicationArguments = SplitRunApplicationArguments(sys.argv[1:])
   Arguments = CreateParser().parse_args(CliArguments)
   try:

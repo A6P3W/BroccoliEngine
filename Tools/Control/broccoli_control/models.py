@@ -159,12 +159,25 @@ def _finite_number(
 
 @dataclass(frozen=True, slots=True)
 class ActorTransform:
-  """Validated two-dimensional actor transform."""
+  """Validated actor transform (3D with Euler angles)."""
 
   LocationX: float
   LocationY: float
-  Rotation: float
-  Scale: float
+  LocationZ: float
+  Pitch: float
+  Yaw: float
+  Roll: float
+  ScaleX: float
+  ScaleY: float
+  ScaleZ: float
+
+  @property
+  def Rotation(Self) -> float:
+    return Self.Roll
+
+  @property
+  def Scale(Self) -> float:
+    return Self.ScaleX
 
   @classmethod
   def from_mapping(
@@ -174,18 +187,25 @@ class ActorTransform:
     Operation: str,
   ) -> ActorTransform:
     Location = _required_mapping(Data, "location", Operation=Operation)
+    Rotation = _required_mapping(Data, "rotation", Operation=Operation)
+    Scale = _required_mapping(Data, "scale", Operation=Operation)
     return Class(
       LocationX=_finite_number(Location, "x", Operation=Operation),
       LocationY=_finite_number(Location, "y", Operation=Operation),
-      Rotation=_finite_number(Data, "rotation", Operation=Operation),
-      Scale=_finite_number(Data, "scale", Operation=Operation),
+      LocationZ=_finite_number(Location, "z", Operation=Operation),
+      Pitch=_finite_number(Rotation, "pitch", Operation=Operation),
+      Yaw=_finite_number(Rotation, "yaw", Operation=Operation),
+      Roll=_finite_number(Rotation, "roll", Operation=Operation),
+      ScaleX=_finite_number(Scale, "x", Operation=Operation),
+      ScaleY=_finite_number(Scale, "y", Operation=Operation),
+      ScaleZ=_finite_number(Scale, "z", Operation=Operation),
     )
 
   def to_dict(Self) -> dict[str, Any]:
     return {
-      "location": {"x": Self.LocationX, "y": Self.LocationY},
-      "rotation": Self.Rotation,
-      "scale": Self.Scale,
+      "location": {"x": Self.LocationX, "y": Self.LocationY, "z": Self.LocationZ},
+      "rotation": {"pitch": Self.Pitch, "yaw": Self.Yaw, "roll": Self.Roll},
+      "scale": {"x": Self.ScaleX, "y": Self.ScaleY, "z": Self.ScaleZ},
     }
 
 
@@ -888,36 +908,111 @@ def _optional_finite_number(Value: object, FieldName: str) -> float | None:
 class TransformPatch:
   """Validated transform values for PATCH /world/actors/{actorId}/transform."""
 
+  Location: Mapping[str, float] | None = None
+  Rotation: Mapping[str, float] | float | None = None
+  Scale: Mapping[str, float] | float | None = None
   LocationX: float | None = None
   LocationY: float | None = None
-  Rotation: float | None = None
-  Scale: float | None = None
+  LocationZ: float | None = None
+  Pitch: float | None = None
+  Yaw: float | None = None
+  Roll: float | None = None
+  ScaleX: float | None = None
+  ScaleY: float | None = None
+  ScaleZ: float | None = None
 
   def __post_init__(Self) -> None:
-    LocationX = _optional_finite_number(Self.LocationX, "location_x")
-    LocationY = _optional_finite_number(Self.LocationY, "location_y")
-    Rotation = _optional_finite_number(Self.Rotation, "rotation")
-    Scale = _optional_finite_number(Self.Scale, "scale")
-    if (LocationX is None) != (LocationY is None):
-      raise ValueError("location_x and location_y must be provided together.")
-    if LocationX is None and Rotation is None and Scale is None:
-      raise ValueError("At least one transform value must be provided.")
-    if Scale is not None and Scale <= 0.0:
-      raise ValueError("scale must be greater than zero.")
+    LocDict: dict[str, float] = {}
+    if Self.Location is not None:
+      if not isinstance(Self.Location, Mapping):
+        raise ValueError("location must be an object.")
+      for Key in ("x", "y", "z"):
+        if Key in Self.Location:
+          LocDict[Key] = _finite_number(Self.Location, Key, Operation="transform patch")
+    if Self.LocationX is not None:
+      LocDict["x"] = _optional_finite_number(Self.LocationX, "location_x")  # type: ignore[assignment]
+    if Self.LocationY is not None:
+      LocDict["y"] = _optional_finite_number(Self.LocationY, "location_y")  # type: ignore[assignment]
+    if Self.LocationZ is not None:
+      LocDict["z"] = _optional_finite_number(Self.LocationZ, "location_z")  # type: ignore[assignment]
 
-    object.__setattr__(Self, "LocationX", LocationX)
-    object.__setattr__(Self, "LocationY", LocationY)
-    object.__setattr__(Self, "Rotation", Rotation)
-    object.__setattr__(Self, "Scale", Scale)
+    RotVal: dict[str, float] | float | None = None
+    if Self.Rotation is not None:
+      if isinstance(Self.Rotation, (int, float)) and not isinstance(Self.Rotation, bool):
+        RotVal = _finite_number({"rotation": Self.Rotation}, "rotation", Operation="transform patch")
+      elif isinstance(Self.Rotation, Mapping):
+        RotDict: dict[str, float] = {}
+        for Key in ("pitch", "yaw", "roll", "x", "y", "z"):
+          if Key in Self.Rotation:
+            RotDict[Key] = _finite_number(Self.Rotation, Key, Operation="transform patch")
+        RotVal = RotDict
+      else:
+        raise ValueError("rotation must be a number or an object.")
+    RotDictCombined: dict[str, float] = dict(RotVal) if isinstance(RotVal, dict) else {}
+    if Self.Pitch is not None:
+      RotDictCombined["pitch"] = _optional_finite_number(Self.Pitch, "pitch")  # type: ignore[assignment]
+    if Self.Yaw is not None:
+      RotDictCombined["yaw"] = _optional_finite_number(Self.Yaw, "yaw")  # type: ignore[assignment]
+    if Self.Roll is not None:
+      RotDictCombined["roll"] = _optional_finite_number(Self.Roll, "roll")  # type: ignore[assignment]
+    if RotDictCombined:
+      RotVal = RotDictCombined
+
+    ScaleVal: dict[str, float] | float | None = None
+    if Self.Scale is not None:
+      if isinstance(Self.Scale, (int, float)) and not isinstance(Self.Scale, bool):
+        Val = _finite_number({"scale": Self.Scale}, "scale", Operation="transform patch")
+        if Val <= 0.0:
+          raise ValueError("scale must be greater than zero.")
+        ScaleVal = Val
+      elif isinstance(Self.Scale, Mapping):
+        ScaleDict: dict[str, float] = {}
+        for Key in ("x", "y", "z"):
+          if Key in Self.Scale:
+            Val = _finite_number(Self.Scale, Key, Operation="transform patch")
+            if Val <= 0.0:
+              raise ValueError(f"scale {Key} must be greater than zero.")
+            ScaleDict[Key] = Val
+        ScaleVal = ScaleDict
+      else:
+        raise ValueError("scale must be a number or an object.")
+    ScaleDictCombined: dict[str, float] = dict(ScaleVal) if isinstance(ScaleVal, dict) else {}
+    if Self.ScaleX is not None:
+      Val = _optional_finite_number(Self.ScaleX, "scale_x")
+      if Val is not None and Val <= 0.0:
+        raise ValueError("scale_x must be greater than zero.")
+      if Val is not None:
+        ScaleDictCombined["x"] = Val
+    if Self.ScaleY is not None:
+      Val = _optional_finite_number(Self.ScaleY, "scale_y")
+      if Val is not None and Val <= 0.0:
+        raise ValueError("scale_y must be greater than zero.")
+      if Val is not None:
+        ScaleDictCombined["y"] = Val
+    if Self.ScaleZ is not None:
+      Val = _optional_finite_number(Self.ScaleZ, "scale_z")
+      if Val is not None and Val <= 0.0:
+        raise ValueError("scale_z must be greater than zero.")
+      if Val is not None:
+        ScaleDictCombined["z"] = Val
+    if ScaleDictCombined:
+      ScaleVal = ScaleDictCombined
+
+    if not LocDict and RotVal is None and ScaleVal is None:
+      raise ValueError("At least one transform value must be provided.")
+
+    object.__setattr__(Self, "Location", LocDict if LocDict else None)
+    object.__setattr__(Self, "Rotation", RotVal)
+    object.__setattr__(Self, "Scale", ScaleVal)
 
   def to_dict(Self) -> dict[str, Any]:
     Result: dict[str, Any] = {}
-    if Self.LocationX is not None and Self.LocationY is not None:
-      Result["location"] = {"x": Self.LocationX, "y": Self.LocationY}
+    if Self.Location:
+      Result["location"] = dict(Self.Location)
     if Self.Rotation is not None:
-      Result["rotation"] = Self.Rotation
+      Result["rotation"] = dict(Self.Rotation) if isinstance(Self.Rotation, dict) else Self.Rotation
     if Self.Scale is not None:
-      Result["scale"] = Self.Scale
+      Result["scale"] = dict(Self.Scale) if isinstance(Self.Scale, dict) else Self.Scale
     return Result
 
 

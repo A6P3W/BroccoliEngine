@@ -150,64 +150,215 @@ def JsonObjectArgument(Value: str) -> dict[str, object]:
   return Parsed
 
 
+def JsonOrFloatArgument(Value: str) -> dict[str, object] | float:
+  """Parse a JSON object or a float passed as a command argument."""
+
+  try:
+    Parsed = json.loads(Value)
+    if isinstance(Parsed, (dict, int, float)) and not isinstance(Parsed, bool):
+      return Parsed
+  except json.JSONDecodeError:
+    pass
+  try:
+    return float(Value)
+  except ValueError:
+    raise argparse.ArgumentTypeError(f"Invalid JSON object or number: '{Value}'") from None
+
+
 def CreateParser() -> argparse.ArgumentParser:
   """Create the control command parser without any transport logic."""
 
-  Parser = argparse.ArgumentParser(description="Control a running BROCCOLI ENGINE instance")
+  Parser = argparse.ArgumentParser(
+    prog="broccoli.bat control",
+    description="Control a running BROCCOLI ENGINE instance",
+  )
   Parser.add_argument("--pid", type=int, help="PID of the target BROCCOLI ENGINE instance")
-  Commands = Parser.add_subparsers(dest="Command", required=True)
+  Commands = Parser.add_subparsers(
+    dest="Command",
+    required=True,
+    title="subcommands",
+    description="Available control operations",
+    metavar="<command>",
+  )
 
-  Commands.add_parser("state")
-  Commands.add_parser("actors")
-  FindActorsParser = Commands.add_parser("find-actors")
-  FindActorsParser.add_argument("--class", dest="class_name")
-  FindActorsParser.add_argument("--name", dest="instance_name")
-  ActorParser = Commands.add_parser("actor")
-  ActorParser.add_argument("actor_id", type=int)
-  ComponentsParser = Commands.add_parser("actor-components")
-  ComponentsParser.add_argument("actor_id", type=int)
-  Commands.add_parser("actor-classes")
-  Commands.add_parser("levels")
-  ClassMethodsParser = Commands.add_parser("class-methods")
-  ClassMethodsParser.add_argument("class_name")
-  ActorMethodsParser = Commands.add_parser("actor-methods")
-  ActorMethodsParser.add_argument("actor_id", type=int)
+  Commands.add_parser(
+    "state",
+    help="Get current engine scene, FPS, and physics state",
+    description="Get current engine scene, FPS, and physics state.",
+  )
+  Commands.add_parser(
+    "actors",
+    help="List all actors in the current world with transform info",
+    description="List all actors in the current world with transform info.",
+  )
+  FindActorsParser = Commands.add_parser(
+    "find-actors",
+    help="Find actors by class name or instance name",
+    description="Find actors by class name or instance name.",
+  )
+  FindActorsParser.add_argument("--class", dest="class_name", help="Actor class name to filter by")
+  FindActorsParser.add_argument("--name", dest="instance_name", help="Actor instance name to filter by")
+  ActorParser = Commands.add_parser(
+    "actor",
+    help="Get actor details by actor ID",
+    description="Get actor details by actor ID.",
+  )
+  ActorParser.add_argument("actor_id", type=int, help="Target actor ID")
+  ComponentsParser = Commands.add_parser(
+    "actor-components",
+    help="List components held by an actor",
+    description="List components held by an actor.",
+  )
+  ComponentsParser.add_argument("actor_id", type=int, help="Target actor ID")
+  Commands.add_parser(
+    "actor-classes",
+    help="List registered actor classes",
+    description="List registered actor classes in BROCCOLI ENGINE.",
+  )
+  Commands.add_parser(
+    "levels",
+    help="List registered levels",
+    description="List registered levels in BROCCOLI ENGINE.",
+  )
+  ClassMethodsParser = Commands.add_parser(
+    "class-methods",
+    help="List automation methods for an actor class",
+    description="List automation methods registered for an actor class.",
+  )
+  ClassMethodsParser.add_argument("class_name", help="Actor class name")
+  ActorMethodsParser = Commands.add_parser(
+    "actor-methods",
+    help="List automation methods for an actor instance",
+    description="List automation methods available on an actor instance.",
+  )
+  ActorMethodsParser.add_argument("actor_id", type=int, help="Target actor ID")
 
-  SpawnParser = Commands.add_parser("spawn-actor")
-  SpawnParser.add_argument("class_name")
-  SpawnParser.add_argument("--x", type=float, default=0.0)
-  SpawnParser.add_argument("--y", type=float, default=0.0)
-  SpawnParser.add_argument("--rotation", type=float, default=0.0)
-  SpawnParser.add_argument("--scale", type=float, default=1.0)
-  SpawnParser.add_argument("--name", dest="instance_name")
-  DestroyParser = Commands.add_parser("destroy-actor")
-  DestroyParser.add_argument("actor_id", type=int)
-  TransformParser = Commands.add_parser("set-transform")
-  TransformParser.add_argument("actor_id", type=int)
-  TransformParser.add_argument("--x", type=float)
-  TransformParser.add_argument("--y", type=float)
-  TransformParser.add_argument("--rotation", type=float)
-  TransformParser.add_argument("--scale", type=float)
-  CallParser = Commands.add_parser("call")
-  CallParser.add_argument("actor_id", type=int)
-  CallParser.add_argument("method_name")
-  CallParser.add_argument("--arguments", type=JsonObjectArgument, default={})
-  ComponentMethodsParser = Commands.add_parser("component-methods")
-  ComponentMethodsParser.add_argument("actor_id", type=int)
-  ComponentMethodsParser.add_argument("component_id", type=int)
-  ComponentCallParser = Commands.add_parser("component-call")
-  ComponentCallParser.add_argument("actor_id", type=int)
-  ComponentCallParser.add_argument("component_id", type=int)
-  ComponentCallParser.add_argument("method_name")
-  ComponentCallParser.add_argument("--arguments", type=JsonObjectArgument, default={})
-  Commands.add_parser("system-commands")
-  SystemCallParser = Commands.add_parser("system-call")
-  SystemCallParser.add_argument("command_name")
-  SystemCallParser.add_argument("--arguments", type=JsonObjectArgument, default={})
-  LogsParser = Commands.add_parser("logs")
-  LogsParser.add_argument("--limit", type=int, default=100)
-  LogsParser.add_argument("--level")
-  LogsParser.add_argument("--after-sequence", type=int)
+  SpawnParser = Commands.add_parser(
+    "spawn-actor",
+    help="Spawn an actor in the current world",
+    description="Spawn an actor in the current world with location, rotation, and scale.",
+  )
+  SpawnParser.add_argument("class_name", help="Actor class name to spawn")
+  SpawnParser.add_argument(
+    "--location",
+    type=JsonObjectArgument,
+    help='3D location as a JSON object, e.g. \'{"x": 0.0, "y": 1.0, "z": 2.0}\'',
+  )
+  SpawnParser.add_argument(
+    "--rotation",
+    type=JsonOrFloatArgument,
+    help='Euler rotation in degrees as a JSON object (e.g. \'{"pitch": 0, "yaw": 0, "roll": 90}\') or a single number for 2D roll',
+  )
+  SpawnParser.add_argument(
+    "--scale",
+    type=JsonOrFloatArgument,
+    help='Scale as a JSON object (e.g. \'{"x": 1, "y": 1, "z": 1}\') or a single number for uniform scale',
+  )
+  SpawnParser.add_argument("--x", type=float, help="Location X coordinate")
+  SpawnParser.add_argument("--y", type=float, help="Location Y coordinate")
+  SpawnParser.add_argument("--z", type=float, help="Location Z coordinate")
+  SpawnParser.add_argument("--pitch", type=float, help="Rotation Pitch in degrees (X axis)")
+  SpawnParser.add_argument("--yaw", type=float, help="Rotation Yaw in degrees (Y axis)")
+  SpawnParser.add_argument("--roll", type=float, help="Rotation Roll in degrees (Z axis)")
+  SpawnParser.add_argument("--scale-x", dest="scale_x", type=float, help="Scale X factor")
+  SpawnParser.add_argument("--scale-y", dest="scale_y", type=float, help="Scale Y factor")
+  SpawnParser.add_argument("--scale-z", dest="scale_z", type=float, help="Scale Z factor")
+  SpawnParser.add_argument("--name", dest="instance_name", help="Optional instance name")
+  DestroyParser = Commands.add_parser(
+    "destroy-actor",
+    help="Destroy an actor by ID",
+    description="Request destruction of an actor in the current world.",
+  )
+  DestroyParser.add_argument("actor_id", type=int, help="Actor ID to destroy")
+  TransformParser = Commands.add_parser(
+    "set-transform",
+    help="Partially or fully update an actor's transform",
+    description="Partially or fully update an actor's transform (3D location, Euler rotation, scale).",
+  )
+  TransformParser.add_argument("actor_id", type=int, help="Target actor ID")
+  TransformParser.add_argument(
+    "--location",
+    type=JsonObjectArgument,
+    help='3D location as a JSON object, e.g. \'{"x": 0.0, "y": 1.0, "z": 2.0}\'',
+  )
+  TransformParser.add_argument(
+    "--rotation",
+    type=JsonOrFloatArgument,
+    help='Euler rotation in degrees as a JSON object (e.g. \'{"pitch": 0, "yaw": 0, "roll": 90}\') or a single number for 2D roll',
+  )
+  TransformParser.add_argument(
+    "--scale",
+    type=JsonOrFloatArgument,
+    help='Scale as a JSON object (e.g. \'{"x": 1, "y": 1, "z": 1}\') or a single number for uniform scale',
+  )
+  TransformParser.add_argument("--x", type=float, help="Location X coordinate")
+  TransformParser.add_argument("--y", type=float, help="Location Y coordinate")
+  TransformParser.add_argument("--z", type=float, help="Location Z coordinate")
+  TransformParser.add_argument("--pitch", type=float, help="Rotation Pitch in degrees (X axis)")
+  TransformParser.add_argument("--yaw", type=float, help="Rotation Yaw in degrees (Y axis)")
+  TransformParser.add_argument("--roll", type=float, help="Rotation Roll in degrees (Z axis)")
+  TransformParser.add_argument("--scale-x", dest="scale_x", type=float, help="Scale X factor")
+  TransformParser.add_argument("--scale-y", dest="scale_y", type=float, help="Scale Y factor")
+  TransformParser.add_argument("--scale-z", dest="scale_z", type=float, help="Scale Z factor")
+  CallParser = Commands.add_parser(
+    "call",
+    help="Invoke an automation method on an actor",
+    description="Invoke a registered automation method on an actor.",
+  )
+  CallParser.add_argument("actor_id", type=int, help="Target actor ID")
+  CallParser.add_argument("method_name", help="Method name to invoke")
+  CallParser.add_argument(
+    "--arguments",
+    type=JsonObjectArgument,
+    default={},
+    help="Method arguments as a JSON object",
+  )
+  ComponentMethodsParser = Commands.add_parser(
+    "component-methods",
+    help="List automation methods for a component",
+    description="List registered automation methods for a component on an actor.",
+  )
+  ComponentMethodsParser.add_argument("actor_id", type=int, help="Target actor ID")
+  ComponentMethodsParser.add_argument("component_id", type=int, help="Target component ID")
+  ComponentCallParser = Commands.add_parser(
+    "component-call",
+    help="Invoke an automation method on a component",
+    description="Invoke a registered automation method on a component of an actor.",
+  )
+  ComponentCallParser.add_argument("actor_id", type=int, help="Target actor ID")
+  ComponentCallParser.add_argument("component_id", type=int, help="Target component ID")
+  ComponentCallParser.add_argument("method_name", help="Component method name to invoke")
+  ComponentCallParser.add_argument(
+    "--arguments",
+    type=JsonObjectArgument,
+    default={},
+    help="Component method arguments as a JSON object",
+  )
+  Commands.add_parser(
+    "system-commands",
+    help="List available system commands",
+    description="List registered BROCCOLI ENGINE system commands.",
+  )
+  SystemCallParser = Commands.add_parser(
+    "system-call",
+    help="Execute a registered system command",
+    description="Execute a registered BROCCOLI ENGINE system command (e.g. open_level_by_path).",
+  )
+  SystemCallParser.add_argument("command_name", help="System command name")
+  SystemCallParser.add_argument(
+    "--arguments",
+    type=JsonObjectArgument,
+    default={},
+    help="System command arguments as a JSON object",
+  )
+  LogsParser = Commands.add_parser(
+    "logs",
+    help="Get recent in-memory engine logs",
+    description="Get recent in-memory engine logs.",
+  )
+  LogsParser.add_argument("--limit", type=int, default=100, help="Maximum number of log entries (1-1000, default: 100)")
+  LogsParser.add_argument("--level", help="Filter by minimum log level (debug, info, warning, error)")
+  LogsParser.add_argument("--after-sequence", type=int, help="Return entries logged after this sequence number")
   return Parser
 
 
@@ -228,19 +379,35 @@ def Dispatch(Client: ControlClient, Arguments: argparse.Namespace) -> Mapping[st
     "actor-methods": lambda: Client.get_actor_methods(Arguments.actor_id).to_dict(),
     "spawn-actor": lambda: Client.spawn_actor(
       Arguments.class_name,
-      LocationX=Arguments.x,
-      LocationY=Arguments.y,
+      Location=Arguments.location,
       Rotation=Arguments.rotation,
       Scale=Arguments.scale,
+      LocationX=Arguments.x,
+      LocationY=Arguments.y,
+      LocationZ=Arguments.z,
+      Pitch=Arguments.pitch,
+      Yaw=Arguments.yaw,
+      Roll=Arguments.roll,
+      ScaleX=Arguments.scale_x,
+      ScaleY=Arguments.scale_y,
+      ScaleZ=Arguments.scale_z,
       InstanceName=Arguments.instance_name,
     ).to_dict(),
     "destroy-actor": lambda: Client.destroy_actor(Arguments.actor_id).to_dict(),
     "set-transform": lambda: Client.set_actor_transform(
       Arguments.actor_id,
-      LocationX=Arguments.x,
-      LocationY=Arguments.y,
+      Location=Arguments.location,
       Rotation=Arguments.rotation,
       Scale=Arguments.scale,
+      LocationX=Arguments.x,
+      LocationY=Arguments.y,
+      LocationZ=Arguments.z,
+      Pitch=Arguments.pitch,
+      Yaw=Arguments.yaw,
+      Roll=Arguments.roll,
+      ScaleX=Arguments.scale_x,
+      ScaleY=Arguments.scale_y,
+      ScaleZ=Arguments.scale_z,
     ).to_dict(),
     "call": lambda: Client.invoke_actor_method(
       Arguments.actor_id, Arguments.method_name, Arguments=Arguments.arguments
@@ -265,7 +432,21 @@ def Dispatch(Client: ControlClient, Arguments: argparse.Namespace) -> Mapping[st
     ).to_dict(),
   }
   if Arguments.Command == "set-transform" and all(
-    Value is None for Value in (Arguments.x, Arguments.y, Arguments.rotation, Arguments.scale)
+    Value is None
+    for Value in (
+      Arguments.location,
+      Arguments.rotation,
+      Arguments.scale,
+      Arguments.x,
+      Arguments.y,
+      Arguments.z,
+      Arguments.pitch,
+      Arguments.yaw,
+      Arguments.roll,
+      Arguments.scale_x,
+      Arguments.scale_y,
+      Arguments.scale_z,
+    )
   ):
     raise ValueError("Specify at least one transform value.")
   return CommandHandlers[Arguments.Command]()

@@ -1,0 +1,9 @@
+{
+  "actors": [
+    {"class": "APhysics3DStaticFloorActor", "instance_name": "Physics3DStaticFloor"},
+    {"class": "APhysics3DDynamicBoxActor", "instance_name": "Physics3DDynamicBox"},
+    {"class": "APhysics3DDynamicSphereActor", "instance_name": "Physics3DDynamicSphere"},
+    {"class": "APhysics3DKinematicActor", "instance_name": "Physics3DKinematic"}
+  ],
+  "meta": {"game_mode": "APhysics3DTestGameMode"}
+}

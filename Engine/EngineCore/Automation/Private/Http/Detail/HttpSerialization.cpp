@@ -1,16 +1,18 @@
 #include "HttpSerialization.h"
+
 #include <cmath>
 #include <stdexcept>
 #include <utility>
 namespace AutomationHttpDetail {
 nlohmann::json SerializeActor(const FAutomationActorSnapshot& Actor) {
-  const float LocationX = Actor.Location.X;
-  const float LocationY = Actor.Location.Y;
-  const float Rotation = Actor.Rotation.Rotation;
-  const float Scale = Actor.Scale.Scale;
+  const FVector3D& Location = Actor.Location;
+  const FRotator3D& Rotation = Actor.Rotation;
+  const FScale3D& Scale = Actor.Scale;
   if (Actor.ActorId == InvalidActorId || Actor.InstanceName.empty() || Actor.ClassName.empty() ||
-      !std::isfinite(LocationX) || !std::isfinite(LocationY) || !std::isfinite(Rotation) ||
-      !std::isfinite(Scale)) {
+      !std::isfinite(Location.X) || !std::isfinite(Location.Y) || !std::isfinite(Location.Z) ||
+      !std::isfinite(Rotation.Pitch) || !std::isfinite(Rotation.Yaw) ||
+      !std::isfinite(Rotation.Roll) || !std::isfinite(Scale.X) || !std::isfinite(Scale.Y) ||
+      !std::isfinite(Scale.Z)) {
     throw std::runtime_error("Invalid actor snapshot");
   }
 
@@ -19,9 +21,9 @@ nlohmann::json SerializeActor(const FAutomationActorSnapshot& Actor) {
       {"instanceName", Actor.InstanceName},
       {"className", Actor.ClassName},
       {"transform",
-       {{"location", {{"x", LocationX}, {"y", LocationY}}},
-        {"rotation", Rotation},
-        {"scale", Scale}}}
+       {{"location", {{"x", Location.X}, {"y", Location.Y}, {"z", Location.Z}}},
+        {"rotation", {{"pitch", Rotation.Pitch}, {"yaw", Rotation.Yaw}, {"roll", Rotation.Roll}}},
+        {"scale", {{"x", Scale.X}, {"y", Scale.Y}, {"z", Scale.Z}}}}}
   };
 }
 
@@ -37,6 +39,4 @@ nlohmann::json SerializeActorList(const FAutomationActorListSnapshot& Snapshot) 
   };
 }
 
-
-
-}
+}  // namespace AutomationHttpDetail
