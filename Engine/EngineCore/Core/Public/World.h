@@ -1,13 +1,13 @@
 #pragma once
-#include "BroccoliEngineAPI.h"
 #include <memory>
 #include <string>
 
+#include "ActorManager.h"
+#include "BroccoliEngineAPI.h"
 #include "CollisionSystem.h"
 #include "Log.h"
 #include "NetMode.h"
 #include "NetworkTypes.h"
-#include "ActorManager.h"
 #include "SoundManager.h"
 #include "TimerManager.h"
 #include "UMath.h"
@@ -15,6 +15,7 @@
 class AActor;
 class AGameModeBase;
 class FReplicationSystem;
+class FPhysicsSystem3D;
 class APlayerController;
 class APawn;
 
@@ -33,6 +34,7 @@ class BROCCOLI_ENGINE_API World {
   FSoundManager* GetSoundManager();
   FTimerManager* GetTimerManager();
   FReplicationSystem* GetReplicationSystem();
+  FPhysicsSystem3D* GetPhysicsSystem3D();
 
   AGameModeBase* GetGameMode() const;
 

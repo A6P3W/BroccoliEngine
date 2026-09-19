@@ -25,6 +25,7 @@
 #include <string>
 #include <utility>
 
+#include "Systems/Private/Jolt/JoltRuntime.h"
 #include "AutomationSubsystem.h"
 #include "BroccoliRaylib.h"
 #include "DebugOverlay.h"
@@ -299,6 +300,11 @@ bool Application::Run() {
   }
 
   ResourceManager::GetInstance();
+  if (!FJoltRuntime::Initialize()) {
+    M_LOG(Error, "Jolt runtime initialization failed.");
+    Shutdown();
+    return false;
+  }
   if (IsEditor) {
     SceneManager::GetInstance().OpenGameMode<EditorMode>();
   } else {
@@ -358,6 +364,7 @@ bool Application::Run() {
   }
   EOSTitleStorageManager::GetInstance().Shutdown();
   SceneManager::GetInstance().Shutdown();
+  FJoltRuntime::Shutdown();
   OnlinePlayManager::GetInstance().Shutdown();
   NetworkManager::GetInstance().Stop();
   EOSLobbyManager::GetInstance().Shutdown();

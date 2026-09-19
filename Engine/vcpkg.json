@@ -15,6 +15,7 @@
         "docking-experimental"
       ]
     },
-    "raylib"
+    "raylib",
+    "joltphysics"
   ]
 }

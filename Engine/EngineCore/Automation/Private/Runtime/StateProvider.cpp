@@ -10,7 +10,9 @@ FAutomationStateProvider CreateAutomationStateProvider(
         {"fps", WorldState.Fps},
         {"paused", RuntimeState.Paused},
         {"worldAvailable", WorldState.WorldAvailable},
-        {"actorCount", WorldState.ActorCount}
+        {"actorCount", WorldState.ActorCount},
+        {"physics3DAvailable", WorldState.Physics3DAvailable},
+        {"physics3DBodyCount", WorldState.Physics3DBodyCount}
     };
     return State;
   };

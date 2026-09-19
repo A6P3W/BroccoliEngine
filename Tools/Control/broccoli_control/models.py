@@ -24,6 +24,8 @@ class EngineState:
   Paused: bool
   WorldAvailable: bool
   ActorCount: int
+  Physics3DAvailable: bool
+  Physics3DBodyCount: int
 
   @classmethod
   def from_mapping(
@@ -70,12 +72,31 @@ class EngineState:
         Operation=Operation,
       )
 
+    Physics3DAvailable = Data.get("physics3DAvailable", False)
+    Physics3DBodyCount = Data.get("physics3DBodyCount", 0)
+    if not isinstance(Physics3DAvailable, bool):
+      raise InvalidEngineResponse(
+        "State field 'physics3DAvailable' has an invalid type.",
+        Operation=Operation,
+      )
+    if (
+      isinstance(Physics3DBodyCount, bool)
+      or not isinstance(Physics3DBodyCount, int)
+      or Physics3DBodyCount < 0
+    ):
+      raise InvalidEngineResponse(
+        "State field 'physics3DBodyCount' must be a non-negative integer.",
+        Operation=Operation,
+      )
+
     return Class(
       SceneName=Data["sceneName"],
       Fps=float(FpsValue),
       Paused=Data["paused"],
       WorldAvailable=Data["worldAvailable"],
       ActorCount=Data["actorCount"],
+      Physics3DAvailable=Physics3DAvailable,
+      Physics3DBodyCount=Physics3DBodyCount,
     )
 
   def to_dict(Self) -> dict[str, Any]:
@@ -85,6 +106,8 @@ class EngineState:
       "paused": Self.Paused,
       "worldAvailable": Self.WorldAvailable,
       "actorCount": Self.ActorCount,
+      "physics3DAvailable": Self.Physics3DAvailable,
+      "physics3DBodyCount": Self.Physics3DBodyCount,
     }
 
 

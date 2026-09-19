@@ -48,6 +48,8 @@ struct FAutomationWorldStateSnapshot {
   float Fps = 0.0f;
   bool WorldAvailable = false;
   uint32_t ActorCount = 0;
+  bool Physics3DAvailable = false;
+  uint32_t Physics3DBodyCount = 0;
 };
 
 struct FAutomationActorQuery {

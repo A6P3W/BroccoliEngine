@@ -73,6 +73,7 @@ target_include_directories(BroccoliEngine
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/EOS/SDK/Include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Automation/Private
+    ${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Systems/Private
     ${CMAKE_CURRENT_SOURCE_DIR}/../PrivateConfig
 )
 
@@ -91,6 +92,7 @@ find_package(imgui CONFIG REQUIRED)
 find_package(raylib CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(unofficial-minizip CONFIG REQUIRED)
+find_package(Jolt CONFIG REQUIRED)
 
 function(broccoli_link_first_available Target Visibility)
   foreach(Candidate IN LISTS ARGN)
@@ -108,6 +110,7 @@ broccoli_link_first_available(BroccoliEngine PRIVATE unofficial::enet::enet enet
 broccoli_link_first_available(BroccoliEngine PUBLIC imgui::imgui imgui)
 broccoli_link_first_available(BroccoliEngine PRIVATE raylib raylib_static)
 broccoli_link_first_available(BroccoliEngine PRIVATE glfw)
+broccoli_link_first_available(BroccoliEngine PRIVATE Jolt::Jolt)
 broccoli_link_first_available(BroccoliEngine PRIVATE
   unofficial::minizip::minizip minizip::minizip MINIZIP::minizip)
 
