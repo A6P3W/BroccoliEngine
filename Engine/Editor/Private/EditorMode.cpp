@@ -90,8 +90,8 @@ AActor* EditorMode::PlaceActorAtViewportCenter(const std::string& ClassName) {
   return Actor;
 }
 
-void EditorMode::OnMousePress(const FVector2D& worldPos) {
-  if (AActor* HitActor = Selection.HitTest2D(GetWorld(), worldPos)) {
+void EditorMode::OnMousePress(const FVector2D& WorldPos) {
+  if (AActor* HitActor = Selection.HitTest2D(GetWorld(), WorldPos)) {
     Selection.Select(HitActor);
     SelectingActor = HitActor;
     TransformTool.Begin(SelectingActor, GetActorAction());
@@ -101,6 +101,19 @@ void EditorMode::OnMousePress(const FVector2D& worldPos) {
     return;
   }
   Selection.Clear();
+
+  if (SelectedClass.empty() || State == EEditorState::Dragging) {
+    return;
+  }
+
+  SelectingActor = PlacementTool.Place2D(GetWorld(), SelectedClass, WorldPos);
+  if (SelectingActor == nullptr) {
+    return;
+  }
+
+  Selection.Select(SelectingActor);
+  TransformTool.Begin(SelectingActor, GetActorAction());
+  State = EEditorState::Dragging;
 }
 
 void EditorMode::OnMouseMove(const FVector2D& Delta) {
