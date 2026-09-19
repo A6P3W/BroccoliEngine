@@ -6,7 +6,8 @@
 #include "ActorRegistry.h"
 #include "BroccoliRaylib.h"
 #include "EditorController.h"
-#include "EditorPawn.h"
+#include "EditorPawn2D.h"
+#include "EditorPawn3D.h"
 #include "EditorUI.h"
 #include "FileDialog.h"
 #include "Log.h"
@@ -25,21 +26,27 @@ const std::vector<std::string>& EditorMode::GetGameModeClassList() const {
 }
 
 void EditorMode::SetViewportMode(EEditorViewportMode Mode) {
-  if (IsThreeDCameraNavigationActive()) return;
-  if (ViewportState.Mode == Mode) return;
-
-  if (EditorPawnPtr != nullptr) EditorPawnPtr->EndThreeDCameraNavigation();
-  ViewportState.Mode = Mode;
-  if (Mode == EEditorViewportMode::ThreeD && EditorPawnPtr != nullptr) {
-    EditorPawnPtr->SetEditorCamera3DActive();
-  } else {
-    RenderSystem::GetInstance().SetCameraView3D(nullptr);
+  if (IsThreeDCameraNavigationActive() || ViewportState.Mode == Mode ||
+      EditorControllerPtr == nullptr) {
+    return;
   }
+
+  APawn* TargetPawn = Mode == EEditorViewportMode::TwoD ? static_cast<APawn*>(EditorPawn2DPtr)
+                                                        : static_cast<APawn*>(EditorPawn3DPtr);
+  if (TargetPawn == nullptr) {
+    return;
+  }
+
+  ViewportState.Mode = Mode;
+  SetPlayerPawn(TargetPawn);
+  EditorControllerPtr->Possess(TargetPawn);
 }
 
 bool EditorMode::IsThreeDCameraNavigationActive() const {
-  return EditorPawnPtr != nullptr && EditorPawnPtr->IsThreeDCameraNavigationActive();
+  return EditorPawn3DPtr != nullptr && EditorPawn3DPtr->IsCameraNavigationActive();
 }
+
+void EditorMode::OnMousePress3D() {}
 
 void EditorMode::OnMousePress(const FVector2D& worldPos) {
   if (AActor* HitActor = Selection.HitTest2D(GetWorld(), worldPos)) {
@@ -148,8 +155,20 @@ EditorMode::EditorMode() {
   }
   M_LOG(Log, "EditorMode initialized");
   bEditorActor = true;
-  SetDefaultPawnClass(EditorPawn::StaticClassName());
+  SetDefaultPawnClass(EditorPawn2D::StaticClassName());
   SetDefaultPlayerControllerClass(EditorController::StaticClassName());
+}
+
+void EditorMode::OnPlayerSpawned(
+    APlayerController* Controller, APawn* Pawn, FNetworkConnectionId ConnectionId
+) {
+  if (ConnectionId != 0) {
+    return;
+  }
+
+  EditorControllerPtr = dynamic_cast<EditorController*>(Controller);
+  EditorPawn2DPtr = dynamic_cast<EditorPawn2D*>(Pawn);
+  EditorPawn3DPtr = GetWorld()->SpawnActor<EditorPawn3D>();
 }
 
 void EditorMode::CopySelectedActor() {
