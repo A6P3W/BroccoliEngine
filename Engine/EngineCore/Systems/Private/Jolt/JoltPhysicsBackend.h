@@ -3,7 +3,9 @@
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
+#include "JoltContactListener.h"
 #include "PhysicsSystem3D.h"
 
 namespace JPH {
@@ -13,7 +15,13 @@ class JobSystemThreadPool;
 class BroadPhaseLayerInterfaceTable;
 class ObjectLayerPairFilterTable;
 class ObjectVsBroadPhaseLayerFilterTable;
+class ContactListener;
 }  // namespace JPH
+
+struct FJoltRaycastHit {
+  void* Key = nullptr;
+  float Fraction = 0.0f;
+};
 
 class FJoltPhysicsBackend {
  public:
@@ -33,6 +41,15 @@ class FJoltPhysicsBackend {
   void SetLinearVelocity(void* Key, const FVector3D& Velocity);
   void AddForce(void* Key, const FVector3D& Force);
   void AddImpulse(void* Key, const FVector3D& Impulse);
+  std::vector<FJoltContactEvent> DrainContactEvents();
+  void* FindBodyKey(uint32_t BodyId) const;
+  bool ShouldDispatchContactEnd(uint32_t BodyIdA, uint32_t BodyIdB) const;
+  std::vector<void*> OverlapShape(
+      const FVector3D& Center, const FVector3D& Dimensions, bool Sphere
+  ) const;
+  std::vector<FJoltRaycastHit> RaycastAll(
+      const FVector3D& Origin, const FVector3D& Direction, float MaxDistance
+  ) const;
 
  private:
   std::unique_ptr<JPH::PhysicsSystem> PhysicsSystem;
@@ -42,5 +59,8 @@ class FJoltPhysicsBackend {
   std::unique_ptr<JPH::ObjectLayerPairFilterTable> ObjectLayerPairFilter;
   std::unique_ptr<JPH::ObjectVsBroadPhaseLayerFilterTable> ObjectVsBroadPhaseLayerFilter;
   struct FBodyRecord;
+  bool ShouldCollide(uint32_t BodyIdA, uint32_t BodyIdB) const;
   std::unordered_map<void*, FBodyRecord> Bodies;
+  std::unique_ptr<FJoltContactEventQueue> ContactEvents;
+  std::unique_ptr<JPH::ContactListener> ContactListener;
 };

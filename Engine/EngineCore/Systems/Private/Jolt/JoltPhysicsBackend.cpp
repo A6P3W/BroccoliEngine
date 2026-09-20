@@ -9,15 +9,24 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayerInterfaceTable.h>
 #include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterTable.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/CollideShape.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+#include <Jolt/Physics/Collision/ContactListener.h>
+#include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 #include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
+#include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/EPhysicsUpdateError.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
 #include <algorithm>
+#include <cmath>
+#include <functional>
 #include <thread>
 
+#include "JoltContactListener.h"
 #include "JoltRuntime.h"
 #include "Log.h"
 
@@ -36,7 +45,127 @@ constexpr uint32_t MaxPhysicsBarriers = 1024;
 
 struct FJoltPhysicsBackend::FBodyRecord {
   JPH::BodyID Id;
+  uint16_t CollisionLayer = 0;
+  uint16_t CollisionMask = 0xffff;
 };
+
+std::vector<void*> FJoltPhysicsBackend::OverlapShape(
+    const FVector3D& Center, const FVector3D& Dimensions, bool Sphere
+) const {
+  std::vector<void*> Result;
+  if (!IsInitialized() || !std::isfinite(Center.X) || !std::isfinite(Center.Y) ||
+      !std::isfinite(Center.Z) || !std::isfinite(Dimensions.X) || !std::isfinite(Dimensions.Y) ||
+      !std::isfinite(Dimensions.Z) || Dimensions.X <= 0 || Dimensions.Y <= 0 || Dimensions.Z <= 0) {
+    return Result;
+  }
+  JPH::ShapeSettings::ShapeResult ShapeResult;
+  if (Sphere) {
+    ShapeResult = JPH::SphereShapeSettings(Dimensions.X).Create();
+  } else {
+    ShapeResult =
+        JPH::BoxShapeSettings(JPH::Vec3(Dimensions.X, Dimensions.Y, Dimensions.Z), 0.0f).Create();
+  }
+  if (ShapeResult.HasError()) {
+    return Result;
+  }
+  JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> Collector;
+  const JPH::RVec3 Position(Center.X, Center.Y, Center.Z);
+  PhysicsSystem->GetNarrowPhaseQuery().CollideShape(
+      ShapeResult.Get(),
+      JPH::Vec3::sReplicate(1.0f),
+      JPH::RMat44::sTranslation(Position),
+      JPH::CollideShapeSettings(),
+      Position,
+      Collector
+  );
+  for (const auto& Hit : Collector.mHits) {
+    void* Key = FindBodyKey(Hit.mBodyID2.GetIndexAndSequenceNumber());
+    if (Key && std::find(Result.begin(), Result.end(), Key) == Result.end()) {
+      Result.push_back(Key);
+    }
+  }
+  return Result;
+}
+
+std::vector<FJoltRaycastHit> FJoltPhysicsBackend::RaycastAll(
+    const FVector3D& Origin, const FVector3D& Direction, float MaxDistance
+) const {
+  std::vector<FJoltRaycastHit> Result;
+  if (!IsInitialized() || !std::isfinite(Origin.X) || !std::isfinite(Origin.Y) ||
+      !std::isfinite(Origin.Z) || !std::isfinite(Direction.X) || !std::isfinite(Direction.Y) ||
+      !std::isfinite(Direction.Z) || !std::isfinite(MaxDistance) || MaxDistance < 0.0f) {
+    return Result;
+  }
+  const float LengthSquared =
+      Direction.X * Direction.X + Direction.Y * Direction.Y + Direction.Z * Direction.Z;
+  if (LengthSquared <= 0.0f) {
+    return Result;
+  }
+  const float InverseLength = 1.0f / std::sqrt(LengthSquared);
+  const JPH::RRayCast Ray(
+      JPH::RVec3(Origin.X, Origin.Y, Origin.Z),
+      JPH::Vec3(
+          Direction.X * InverseLength * MaxDistance,
+          Direction.Y * InverseLength * MaxDistance,
+          Direction.Z * InverseLength * MaxDistance
+      )
+  );
+  JPH::AllHitCollisionCollector<JPH::CastRayCollector> Collector;
+  PhysicsSystem->GetNarrowPhaseQuery().CastRay(Ray, JPH::RayCastSettings(), Collector);
+  Collector.Sort();
+  for (const JPH::RayCastResult& Hit : Collector.mHits) {
+    void* Key = FindBodyKey(Hit.mBodyID.GetIndexAndSequenceNumber());
+    if (Key) {
+      Result.push_back({Key, Hit.mFraction});
+    }
+  }
+  return Result;
+}
+
+namespace {
+class FJoltContactListener final : public JPH::ContactListener {
+ public:
+  FJoltContactListener(
+      FJoltContactEventQueue& InEvents, std::function<bool(uint32_t, uint32_t)> InShouldCollide
+  )
+      : Events(InEvents), ShouldCollide(std::move(InShouldCollide)) {}
+
+  JPH::ValidateResult OnContactValidate(
+      const JPH::Body& BodyA, const JPH::Body& BodyB, JPH::RVec3Arg, const JPH::CollideShapeResult&
+  ) override {
+    return ShouldCollide(
+               BodyA.GetID().GetIndexAndSequenceNumber(), BodyB.GetID().GetIndexAndSequenceNumber()
+           )
+               ? JPH::ValidateResult::AcceptAllContactsForThisBodyPair
+               : JPH::ValidateResult::RejectAllContactsForThisBodyPair;
+  }
+
+  void OnContactAdded(
+      const JPH::Body& BodyA,
+      const JPH::Body& BodyB,
+      const JPH::ContactManifold&,
+      JPH::ContactSettings&
+  ) override {
+    Events.Push(
+        BodyA.GetID().GetIndexAndSequenceNumber(),
+        BodyB.GetID().GetIndexAndSequenceNumber(),
+        FJoltContactEvent::EType::Begin
+    );
+  }
+
+  void OnContactRemoved(const JPH::SubShapeIDPair& Pair) override {
+    Events.Push(
+        Pair.GetBody1ID().GetIndexAndSequenceNumber(),
+        Pair.GetBody2ID().GetIndexAndSequenceNumber(),
+        FJoltContactEvent::EType::End
+    );
+  }
+
+ private:
+  FJoltContactEventQueue& Events;
+  std::function<bool(uint32_t, uint32_t)> ShouldCollide;
+};
+}  // namespace
 
 namespace {
 JPH::RVec3 ToJolt(const FVector3D& Value) { return {Value.X, Value.Y, Value.Z}; }
@@ -101,6 +230,12 @@ FJoltPhysicsBackend::FJoltPhysicsBackend() {
       *ObjectVsBroadPhaseLayerFilter,
       *ObjectLayerPairFilter
   );
+  ContactEvents = std::make_unique<FJoltContactEventQueue>();
+  ContactListener = std::make_unique<FJoltContactListener>(
+      *ContactEvents,
+      [this](uint32_t BodyIdA, uint32_t BodyIdB) { return ShouldCollide(BodyIdA, BodyIdB); }
+  );
+  PhysicsSystem->SetContactListener(ContactListener.get());
 }
 
 FJoltPhysicsBackend::~FJoltPhysicsBackend() {
@@ -160,6 +295,7 @@ bool FJoltPhysicsBackend::CreateBody(void* Key, const FPhysicsBody3DDesc& Descri
       ToJolt(Description.Type),
       DefaultObjectLayer
   );
+  Settings.mIsSensor = Description.bIsSensor;
   if (Description.Type == EPhysicsBody3DType::Dynamic && Description.Mass > 0.0f) {
     Settings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
     Settings.mMassPropertiesOverride.mMass = Description.Mass;
@@ -169,7 +305,7 @@ bool FJoltPhysicsBackend::CreateBody(void* Key, const FPhysicsBody3DDesc& Descri
   if (Id.IsInvalid()) {
     return false;
   }
-  Bodies.emplace(Key, FBodyRecord{Id});
+  Bodies.emplace(Key, FBodyRecord{Id, Description.CollisionLayer, Description.CollisionMask});
   return true;
 }
 
@@ -238,4 +374,58 @@ void FJoltPhysicsBackend::AddImpulse(void* Key, const FVector3D& Impulse) {
   if (It != Bodies.end()) {
     PhysicsSystem->GetBodyInterface().AddImpulse(It->second.Id, ToJolt(Impulse));
   }
+}
+
+std::vector<FJoltContactEvent> FJoltPhysicsBackend::DrainContactEvents() {
+  return ContactEvents ? ContactEvents->Drain() : std::vector<FJoltContactEvent>();
+}
+
+void* FJoltPhysicsBackend::FindBodyKey(uint32_t BodyId) const {
+  for (const auto& [Key, Record] : Bodies) {
+    if (Record.Id.GetIndexAndSequenceNumber() == BodyId) {
+      return Key;
+    }
+  }
+  return nullptr;
+}
+
+bool FJoltPhysicsBackend::ShouldDispatchContactEnd(uint32_t BodyIdA, uint32_t BodyIdB) const {
+  if (!PhysicsSystem) {
+    return false;
+  }
+  const FBodyRecord* RecordA = nullptr;
+  const FBodyRecord* RecordB = nullptr;
+  for (const auto& [Key, Record] : Bodies) {
+    if (Record.Id.GetIndexAndSequenceNumber() == BodyIdA) {
+      RecordA = &Record;
+    } else if (Record.Id.GetIndexAndSequenceNumber() == BodyIdB) {
+      RecordB = &Record;
+    }
+  }
+  if (!RecordA || !RecordB) {
+    return false;
+  }
+  const JPH::BodyInterface& BodyInterface = PhysicsSystem->GetBodyInterface();
+  if (!BodyInterface.IsActive(RecordA->Id) && !BodyInterface.IsActive(RecordB->Id)) {
+    return false;
+  }
+  return !PhysicsSystem->WereBodiesInContact(RecordA->Id, RecordB->Id);
+}
+
+bool FJoltPhysicsBackend::ShouldCollide(uint32_t BodyIdA, uint32_t BodyIdB) const {
+  const FBodyRecord* RecordA = nullptr;
+  const FBodyRecord* RecordB = nullptr;
+  for (const auto& [Key, Record] : Bodies) {
+    if (Record.Id.GetIndexAndSequenceNumber() == BodyIdA) {
+      RecordA = &Record;
+    } else if (Record.Id.GetIndexAndSequenceNumber() == BodyIdB) {
+      RecordB = &Record;
+    }
+  }
+  if (!RecordA || !RecordB || RecordA->CollisionLayer >= 16 || RecordB->CollisionLayer >= 16) {
+    return false;
+  }
+  const uint16_t LayerMaskA = static_cast<uint16_t>(1U << RecordA->CollisionLayer);
+  const uint16_t LayerMaskB = static_cast<uint16_t>(1U << RecordB->CollisionLayer);
+  return (RecordA->CollisionMask & LayerMaskB) != 0 && (RecordB->CollisionMask & LayerMaskA) != 0;
 }
