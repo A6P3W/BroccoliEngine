@@ -9,7 +9,10 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayerInterfaceTable.h>
 #include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterTable.h>
+#include <Jolt/Physics/Collision/CollideShape.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
+#include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 #include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
@@ -17,6 +20,7 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <thread>
 
@@ -42,6 +46,44 @@ struct FJoltPhysicsBackend::FBodyRecord {
   uint16_t CollisionLayer = 0;
   uint16_t CollisionMask = 0xffff;
 };
+
+std::vector<void*> FJoltPhysicsBackend::OverlapShape(
+    const FVector3D& Center, const FVector3D& Dimensions, bool Sphere
+) const {
+  std::vector<void*> Result;
+  if (!IsInitialized() || !std::isfinite(Center.X) || !std::isfinite(Center.Y) ||
+      !std::isfinite(Center.Z) || !std::isfinite(Dimensions.X) || !std::isfinite(Dimensions.Y) ||
+      !std::isfinite(Dimensions.Z) || Dimensions.X <= 0 || Dimensions.Y <= 0 || Dimensions.Z <= 0) {
+    return Result;
+  }
+  JPH::ShapeSettings::ShapeResult ShapeResult;
+  if (Sphere) {
+    ShapeResult = JPH::SphereShapeSettings(Dimensions.X).Create();
+  } else {
+    ShapeResult =
+        JPH::BoxShapeSettings(JPH::Vec3(Dimensions.X, Dimensions.Y, Dimensions.Z), 0.0f).Create();
+  }
+  if (ShapeResult.HasError()) {
+    return Result;
+  }
+  JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> Collector;
+  const JPH::RVec3 Position(Center.X, Center.Y, Center.Z);
+  PhysicsSystem->GetNarrowPhaseQuery().CollideShape(
+      ShapeResult.Get(),
+      JPH::Vec3::sReplicate(1.0f),
+      JPH::RMat44::sTranslation(Position),
+      JPH::CollideShapeSettings(),
+      Position,
+      Collector
+  );
+  for (const auto& Hit : Collector.mHits) {
+    void* Key = FindBodyKey(Hit.mBodyID2.GetIndexAndSequenceNumber());
+    if (Key && std::find(Result.begin(), Result.end(), Key) == Result.end()) {
+      Result.push_back(Key);
+    }
+  }
+  return Result;
+}
 
 namespace {
 class FJoltContactListener final : public JPH::ContactListener {

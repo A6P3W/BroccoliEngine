@@ -285,7 +285,9 @@ std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::OverlapBox(
   if (!ImplPtr) {
     return Hits;
   }
-  for (const auto& [Actor, Body] : ImplPtr->Bodies) {
+  for (void* Key : ImplPtr->Backend->OverlapShape(Center, HalfExtent, false)) {
+    auto* Body = static_cast<MRigidBody3DComponent*>(Key);
+    AActor* Actor = Body->GetOwner();
     const std::vector<MCollisionComponent3D*> Colliders =
         Actor ? Actor->GetComponents<MCollisionComponent3D>()
               : std::vector<MCollisionComponent3D*>();
@@ -293,13 +295,8 @@ std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::OverlapBox(
         !PassesFilter(*Actor, *Colliders.front(), Filter)) {
       continue;
     }
-    const FVector3D Bounds = GetBounds(*Colliders.front());
     const FVector3D Location = Actor->GetActorLocation3D();
-    if (std::abs(Location.X - Center.X) <= Bounds.X + HalfExtent.X &&
-        std::abs(Location.Y - Center.Y) <= Bounds.Y + HalfExtent.Y &&
-        std::abs(Location.Z - Center.Z) <= Bounds.Z + HalfExtent.Z) {
-      Hits.push_back({Actor, Location, std::sqrt(LengthSquared(Location - Center))});
-    }
+    Hits.push_back({Actor, Location, std::sqrt(LengthSquared(Location - Center))});
   }
   return Hits;
 }
@@ -307,5 +304,22 @@ std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::OverlapBox(
 std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::OverlapSphere(
     const FVector3D& Center, float Radius, const FPhysicsQueryFilter3D& Filter
 ) const {
-  return OverlapBox(Center, {Radius, Radius, Radius}, Filter);
+  std::vector<FPhysicsQueryHit3D> Hits;
+  if (!ImplPtr) {
+    return Hits;
+  }
+  for (void* Key : ImplPtr->Backend->OverlapShape(Center, {Radius, Radius, Radius}, true)) {
+    auto* Body = static_cast<MRigidBody3DComponent*>(Key);
+    AActor* Actor = Body->GetOwner();
+    if (!Actor || Actor->IsPendingDestroy()) {
+      continue;
+    }
+    const auto Colliders = Actor->GetComponents<MCollisionComponent3D>();
+    if (Colliders.empty() || !PassesFilter(*Actor, *Colliders.front(), Filter)) {
+      continue;
+    }
+    const FVector3D Location = Actor->GetActorLocation3D();
+    Hits.push_back({Actor, Location, std::sqrt(LengthSquared(Location - Center))});
+  }
+  return Hits;
 }

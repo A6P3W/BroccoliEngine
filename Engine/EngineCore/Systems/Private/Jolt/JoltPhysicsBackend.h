@@ -39,6 +39,9 @@ class FJoltPhysicsBackend {
   std::vector<FJoltContactEvent> DrainContactEvents();
   void* FindBodyKey(uint32_t BodyId) const;
   bool ShouldDispatchContactEnd(uint32_t BodyIdA, uint32_t BodyIdB) const;
+  std::vector<void*> OverlapShape(
+      const FVector3D& Center, const FVector3D& Dimensions, bool Sphere
+  ) const;
 
  private:
   std::unique_ptr<JPH::PhysicsSystem> PhysicsSystem;
