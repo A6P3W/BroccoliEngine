@@ -21,6 +21,7 @@ struct FPhysicsBody3DDesc {
   float Mass = 1.0f;
   uint16_t CollisionLayer = 0;
   uint16_t CollisionMask = 0xffff;
+  bool bIsSensor = false;
 };
 
 class BROCCOLI_ENGINE_API FPhysicsSystem3D {

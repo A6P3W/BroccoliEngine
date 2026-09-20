@@ -125,6 +125,7 @@ void FPhysicsSystem3D::RefreshActorBody(AActor* Actor) {
   Description.Mass = Body->GetMass();
   Description.CollisionLayer = Collider->GetCollisionLayer3D();
   Description.CollisionMask = Collider->GetCollisionMask3D();
+  Description.bIsSensor = Collider->GetCollisionType3D() == ECollisionType3D::Overlap;
   UnregisterActorBody(Actor);
   if (ImplPtr->Backend->CreateBody(Body, Description)) {
     ImplPtr->Bodies.emplace(Actor, Body);

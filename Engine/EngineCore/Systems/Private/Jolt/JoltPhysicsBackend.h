@@ -47,6 +47,7 @@ class FJoltPhysicsBackend {
   std::unique_ptr<JPH::ObjectLayerPairFilterTable> ObjectLayerPairFilter;
   std::unique_ptr<JPH::ObjectVsBroadPhaseLayerFilterTable> ObjectVsBroadPhaseLayerFilter;
   struct FBodyRecord;
+  bool ShouldCollide(uint32_t BodyIdA, uint32_t BodyIdB) const;
   std::unordered_map<void*, FBodyRecord> Bodies;
   std::unique_ptr<FJoltContactEventQueue> ContactEvents;
   std::unique_ptr<JPH::ContactListener> ContactListener;
