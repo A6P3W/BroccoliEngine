@@ -111,6 +111,146 @@ bool TryParseComponentId(std::string_view Text, FComponentId& OutComponentId) {
   return true;
 }
 
+namespace {
+bool TryParseLocationObject(
+    const nlohmann::json& LocationJson, FOptionalVector3D& OutLocation, std::string& OutError
+) {
+  if (!HasOnlyAllowedFields(LocationJson, {"x", "y", "z"})) {
+    OutError = "location contains an unknown field or is not an object.";
+    return false;
+  }
+  if (LocationJson.contains("x")) {
+    float Val = 0.0f;
+    if (!TryReadFiniteFloat(LocationJson, "x", Val, OutError)) return false;
+    OutLocation.X = Val;
+  }
+  if (LocationJson.contains("y")) {
+    float Val = 0.0f;
+    if (!TryReadFiniteFloat(LocationJson, "y", Val, OutError)) return false;
+    OutLocation.Y = Val;
+  }
+  if (LocationJson.contains("z")) {
+    float Val = 0.0f;
+    if (!TryReadFiniteFloat(LocationJson, "z", Val, OutError)) return false;
+    OutLocation.Z = Val;
+  }
+  return true;
+}
+
+bool TryParseRotationJson(
+    const nlohmann::json& RotationJson, FOptionalRotator3D& OutRotation, std::string& OutError
+) {
+  if (RotationJson.is_number()) {
+    float Roll = 0.0f;
+    const double Value = RotationJson.get<double>();
+    if (!std::isfinite(Value) ||
+        Value < static_cast<double>((std::numeric_limits<float>::lowest)()) ||
+        Value > static_cast<double>((std::numeric_limits<float>::max)())) {
+      OutError = "rotation must be a finite 32-bit floating-point value.";
+      return false;
+    }
+    OutRotation.Roll = static_cast<float>(Value);
+    return true;
+  }
+  if (RotationJson.is_object()) {
+    if (!HasOnlyAllowedFields(RotationJson, {"pitch", "yaw", "roll", "x", "y", "z"})) {
+      OutError = "rotation contains an unknown field or is not an object.";
+      return false;
+    }
+    if (RotationJson.contains("pitch")) {
+      float Val = 0.0f;
+      if (!TryReadFiniteFloat(RotationJson, "pitch", Val, OutError)) return false;
+      OutRotation.Pitch = Val;
+    } else if (RotationJson.contains("x")) {
+      float Val = 0.0f;
+      if (!TryReadFiniteFloat(RotationJson, "x", Val, OutError)) return false;
+      OutRotation.Pitch = Val;
+    }
+    if (RotationJson.contains("yaw")) {
+      float Val = 0.0f;
+      if (!TryReadFiniteFloat(RotationJson, "yaw", Val, OutError)) return false;
+      OutRotation.Yaw = Val;
+    } else if (RotationJson.contains("y")) {
+      float Val = 0.0f;
+      if (!TryReadFiniteFloat(RotationJson, "y", Val, OutError)) return false;
+      OutRotation.Yaw = Val;
+    }
+    if (RotationJson.contains("roll")) {
+      float Val = 0.0f;
+      if (!TryReadFiniteFloat(RotationJson, "roll", Val, OutError)) return false;
+      OutRotation.Roll = Val;
+    } else if (RotationJson.contains("z")) {
+      float Val = 0.0f;
+      if (!TryReadFiniteFloat(RotationJson, "z", Val, OutError)) return false;
+      OutRotation.Roll = Val;
+    }
+    return true;
+  }
+  OutError = "rotation must be a number or an object.";
+  return false;
+}
+
+bool TryParseScaleJson(
+    const nlohmann::json& ScaleJson, FOptionalScale3D& OutScale, std::string& OutError
+) {
+  if (ScaleJson.is_number()) {
+    float ScaleValue = 1.0f;
+    const double Value = ScaleJson.get<double>();
+    if (!std::isfinite(Value) ||
+        Value < static_cast<double>((std::numeric_limits<float>::lowest)()) ||
+        Value > static_cast<double>((std::numeric_limits<float>::max)())) {
+      OutError = "scale must be a finite 32-bit floating-point value.";
+      return false;
+    }
+    ScaleValue = static_cast<float>(Value);
+    if (ScaleValue <= 0.0f) {
+      OutError = "scale must be greater than zero.";
+      return false;
+    }
+    OutScale.X = ScaleValue;
+    OutScale.Y = ScaleValue;
+    OutScale.Z = ScaleValue;
+    return true;
+  }
+  if (ScaleJson.is_object()) {
+    if (!HasOnlyAllowedFields(ScaleJson, {"x", "y", "z"})) {
+      OutError = "scale contains an unknown field or is not an object.";
+      return false;
+    }
+    if (ScaleJson.contains("x")) {
+      float Val = 0.0f;
+      if (!TryReadFiniteFloat(ScaleJson, "x", Val, OutError)) return false;
+      if (Val <= 0.0f) {
+        OutError = "scale x must be greater than zero.";
+        return false;
+      }
+      OutScale.X = Val;
+    }
+    if (ScaleJson.contains("y")) {
+      float Val = 0.0f;
+      if (!TryReadFiniteFloat(ScaleJson, "y", Val, OutError)) return false;
+      if (Val <= 0.0f) {
+        OutError = "scale y must be greater than zero.";
+        return false;
+      }
+      OutScale.Y = Val;
+    }
+    if (ScaleJson.contains("z")) {
+      float Val = 0.0f;
+      if (!TryReadFiniteFloat(ScaleJson, "z", Val, OutError)) return false;
+      if (Val <= 0.0f) {
+        OutError = "scale z must be greater than zero.";
+        return false;
+      }
+      OutScale.Z = Val;
+    }
+    return true;
+  }
+  OutError = "scale must be a number or an object.";
+  return false;
+}
+}  // namespace
+
 bool TryParseSpawnRequest(
     const nlohmann::json& Body, FAutomationSpawnActorRequest& OutRequest, std::string& OutError
 ) {
@@ -151,30 +291,33 @@ bool TryParseSpawnRequest(
     }
 
     if (Transform.contains("location")) {
-      const nlohmann::json& Location = Transform["location"];
-      if (!HasOnlyAllowedFields(Location, {"x", "y"}) || !Location.contains("x") ||
-          !Location.contains("y")) {
-        OutError = "location must be an object containing only x and y.";
+      FOptionalVector3D OptLocation;
+      if (!TryParseLocationObject(Transform["location"], OptLocation, OutError)) {
         return false;
       }
-      if (!TryReadFiniteFloat(Location, "x", Request.Location.X, OutError) ||
-          !TryReadFiniteFloat(Location, "y", Request.Location.Y, OutError)) {
-        return false;
-      }
+      if (OptLocation.X) Request.Location.X = *OptLocation.X;
+      if (OptLocation.Y) Request.Location.Y = *OptLocation.Y;
+      if (OptLocation.Z) Request.Location.Z = *OptLocation.Z;
     }
 
-    if (Transform.contains("rotation") &&
-        !TryReadFiniteFloat(Transform, "rotation", Request.Rotation.Rotation, OutError)) {
-      return false;
+    if (Transform.contains("rotation")) {
+      FOptionalRotator3D OptRotation;
+      if (!TryParseRotationJson(Transform["rotation"], OptRotation, OutError)) {
+        return false;
+      }
+      if (OptRotation.Pitch) Request.Rotation.Pitch = *OptRotation.Pitch;
+      if (OptRotation.Yaw) Request.Rotation.Yaw = *OptRotation.Yaw;
+      if (OptRotation.Roll) Request.Rotation.Roll = *OptRotation.Roll;
     }
+
     if (Transform.contains("scale")) {
-      if (!TryReadFiniteFloat(Transform, "scale", Request.Scale.Scale, OutError)) {
+      FOptionalScale3D OptScale;
+      if (!TryParseScaleJson(Transform["scale"], OptScale, OutError)) {
         return false;
       }
-      if (Request.Scale.Scale <= 0.0f) {
-        OutError = "scale must be greater than zero.";
-        return false;
-      }
+      if (OptScale.X) Request.Scale.X = *OptScale.X;
+      if (OptScale.Y) Request.Scale.Y = *OptScale.Y;
+      if (OptScale.Z) Request.Scale.Z = *OptScale.Z;
     }
   }
 
@@ -192,37 +335,33 @@ bool TryParseTransformPatch(
 
   FAutomationTransformPatch Patch;
   if (Body.contains("location")) {
-    const nlohmann::json& Location = Body["location"];
-    if (!HasOnlyAllowedFields(Location, {"x", "y"}) || !Location.contains("x") ||
-        !Location.contains("y")) {
-      OutError = "location must be an object containing only x and y.";
+    if (!TryParseLocationObject(Body["location"], Patch.Location, OutError)) {
       return false;
     }
-    FVector2D Value;
-    if (!TryReadFiniteFloat(Location, "x", Value.X, OutError) ||
-        !TryReadFiniteFloat(Location, "y", Value.Y, OutError)) {
+    if (!Patch.Location.HasAnyValue()) {
+      OutError = "location must contain at least one of x, y, or z.";
       return false;
     }
-    Patch.Location = Value;
   }
 
   if (Body.contains("rotation")) {
-    FRotator Value;
-    if (!TryReadFiniteFloat(Body, "rotation", Value.Rotation, OutError)) {
+    if (!TryParseRotationJson(Body["rotation"], Patch.Rotation, OutError)) {
       return false;
     }
-    Patch.Rotation = Value;
+    if (!Patch.Rotation.HasAnyValue()) {
+      OutError = "rotation must contain at least one rotation field.";
+      return false;
+    }
   }
+
   if (Body.contains("scale")) {
-    FScale Value;
-    if (!TryReadFiniteFloat(Body, "scale", Value.Scale, OutError)) {
+    if (!TryParseScaleJson(Body["scale"], Patch.Scale, OutError)) {
       return false;
     }
-    if (Value.Scale <= 0.0f) {
-      OutError = "scale must be greater than zero.";
+    if (!Patch.Scale.HasAnyValue()) {
+      OutError = "scale must contain at least one of x, y, or z.";
       return false;
     }
-    Patch.Scale = Value;
   }
 
   if (!Patch.HasAnyValue()) {
