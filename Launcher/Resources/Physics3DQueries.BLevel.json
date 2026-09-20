@@ -1,0 +1,7 @@
+{
+  "actors": [
+    {"class": "APhysics3DQueryTestActor", "instance_name": "QuerySphere"},
+    {"class": "APhysics3DQueryBoxActor", "instance_name": "RotatedBox"}
+  ],
+  "meta": {"game_mode": "APhysics3DTestGameMode"}
+}
