@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "BroccoliEngineAPI.h"
+#include "PhysicsQuery3D.h"
 #include "UMath.h"
 
 class AActor;
@@ -40,6 +41,18 @@ class BROCCOLI_ENGINE_API FPhysicsSystem3D {
   void SetLinearVelocity(MRigidBody3DComponent* Component, const FVector3D& Velocity);
   void AddForce(MRigidBody3DComponent* Component, const FVector3D& Force);
   void AddImpulse(MRigidBody3DComponent* Component, const FVector3D& Impulse);
+  bool RaycastNearest(
+      const FPhysicsRay3D& Ray, const FPhysicsQueryFilter3D& Filter, FPhysicsQueryHit3D& OutHit
+  ) const;
+  std::vector<FPhysicsQueryHit3D> RaycastAll(
+      const FPhysicsRay3D& Ray, const FPhysicsQueryFilter3D& Filter
+  ) const;
+  std::vector<FPhysicsQueryHit3D> OverlapBox(
+      const FVector3D& Center, const FVector3D& HalfExtent, const FPhysicsQueryFilter3D& Filter
+  ) const;
+  std::vector<FPhysicsQueryHit3D> OverlapSphere(
+      const FVector3D& Center, float Radius, const FPhysicsQueryFilter3D& Filter
+  ) const;
 
   bool IsInitialized() const;
   uint32_t GetBodyCount() const;

@@ -15,6 +15,29 @@ namespace {
 constexpr float DefaultFixedTimeStep = 1.0f / 60.0f;
 constexpr float MaximumFrameDeltaTime = 0.25f;
 constexpr uint32_t MaximumStepsPerFrame = 8;
+
+float Dot(const FVector3D& Left, const FVector3D& Right) {
+  return Left.X * Right.X + Left.Y * Right.Y + Left.Z * Right.Z;
+}
+
+float LengthSquared(const FVector3D& Value) { return Dot(Value, Value); }
+
+FVector3D GetBounds(const MCollisionComponent3D& Collider) {
+  if (Collider.GetShapeType3D() == ECollisionShape3D::Sphere) {
+    const float Radius = Collider.GetShapeDimensions3D().X;
+    return {Radius, Radius, Radius};
+  }
+  return Collider.GetShapeDimensions3D();
+}
+
+bool PassesFilter(
+    const AActor& Actor, const MCollisionComponent3D& Collider, const FPhysicsQueryFilter3D& Filter
+) {
+  if (&Actor == Filter.IgnoredActor || Collider.GetCollisionLayer3D() >= 16) {
+    return false;
+  }
+  return (Filter.CollisionMask & static_cast<uint16_t>(1U << Collider.GetCollisionLayer3D())) != 0;
+}
 }  // namespace
 
 struct FPhysicsSystem3D::Impl {
@@ -193,4 +216,93 @@ void FPhysicsSystem3D::AddImpulse(MRigidBody3DComponent* Component, const FVecto
   if (Component) {
     ImplPtr->Backend->AddImpulse(Component, Impulse);
   }
+}
+
+std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::RaycastAll(
+    const FPhysicsRay3D& Ray, const FPhysicsQueryFilter3D& Filter
+) const {
+  std::vector<FPhysicsQueryHit3D> Hits;
+  if (!ImplPtr || Ray.MaxDistance < 0.0f || LengthSquared(Ray.Direction) <= 0.0f) {
+    return Hits;
+  }
+  const float DirectionLength = std::sqrt(LengthSquared(Ray.Direction));
+  const FVector3D Direction{
+      Ray.Direction.X / DirectionLength,
+      Ray.Direction.Y / DirectionLength,
+      Ray.Direction.Z / DirectionLength
+  };
+  for (const auto& [Actor, Body] : ImplPtr->Bodies) {
+    if (!Actor || !Body || Actor->IsPendingDestroy()) {
+      continue;
+    }
+    const std::vector<MCollisionComponent3D*> Colliders =
+        Actor->GetComponents<MCollisionComponent3D>();
+    if (Colliders.empty() || !PassesFilter(*Actor, *Colliders.front(), Filter)) {
+      continue;
+    }
+    const FVector3D Center = Actor->GetActorLocation3D();
+    const FVector3D Offset{
+        Center.X - Ray.Origin.X, Center.Y - Ray.Origin.Y, Center.Z - Ray.Origin.Z
+    };
+    const float Distance = Dot(Offset, Direction);
+    if (Distance < 0.0f || Distance > Ray.MaxDistance) {
+      continue;
+    }
+    const FVector3D Closest{
+        Ray.Origin.X + Direction.X * Distance,
+        Ray.Origin.Y + Direction.Y * Distance,
+        Ray.Origin.Z + Direction.Z * Distance
+    };
+    const FVector3D Delta{Center.X - Closest.X, Center.Y - Closest.Y, Center.Z - Closest.Z};
+    if (LengthSquared(Delta) <= LengthSquared(GetBounds(*Colliders.front()))) {
+      Hits.push_back({Actor, Closest, Distance});
+    }
+  }
+  std::sort(Hits.begin(), Hits.end(), [](const auto& Left, const auto& Right) {
+    return Left.Distance < Right.Distance;
+  });
+  return Hits;
+}
+
+bool FPhysicsSystem3D::RaycastNearest(
+    const FPhysicsRay3D& Ray, const FPhysicsQueryFilter3D& Filter, FPhysicsQueryHit3D& OutHit
+) const {
+  std::vector<FPhysicsQueryHit3D> Hits = RaycastAll(Ray, Filter);
+  if (Hits.empty()) {
+    return false;
+  }
+  OutHit = Hits.front();
+  return true;
+}
+
+std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::OverlapBox(
+    const FVector3D& Center, const FVector3D& HalfExtent, const FPhysicsQueryFilter3D& Filter
+) const {
+  std::vector<FPhysicsQueryHit3D> Hits;
+  if (!ImplPtr) {
+    return Hits;
+  }
+  for (const auto& [Actor, Body] : ImplPtr->Bodies) {
+    const std::vector<MCollisionComponent3D*> Colliders =
+        Actor ? Actor->GetComponents<MCollisionComponent3D>()
+              : std::vector<MCollisionComponent3D*>();
+    if (!Actor || !Body || Actor->IsPendingDestroy() || Colliders.empty() ||
+        !PassesFilter(*Actor, *Colliders.front(), Filter)) {
+      continue;
+    }
+    const FVector3D Bounds = GetBounds(*Colliders.front());
+    const FVector3D Location = Actor->GetActorLocation3D();
+    if (std::abs(Location.X - Center.X) <= Bounds.X + HalfExtent.X &&
+        std::abs(Location.Y - Center.Y) <= Bounds.Y + HalfExtent.Y &&
+        std::abs(Location.Z - Center.Z) <= Bounds.Z + HalfExtent.Z) {
+      Hits.push_back({Actor, Location, std::sqrt(LengthSquared(Location - Center))});
+    }
+  }
+  return Hits;
+}
+
+std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::OverlapSphere(
+    const FVector3D& Center, float Radius, const FPhysicsQueryFilter3D& Filter
+) const {
+  return OverlapBox(Center, {Radius, Radius, Radius}, Filter);
 }
