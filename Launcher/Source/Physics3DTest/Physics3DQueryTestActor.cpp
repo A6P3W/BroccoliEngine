@@ -18,6 +18,13 @@ CONTROL_METHOD(
     CONTROL_PARAMETERS(),
     ([](const std::string& Result) { return nlohmann::json::parse(Result); })
 )
+CONTROL_METHOD(
+    "observe_rays",
+    "Observe exact raycasts against the query fixture.",
+    &APhysics3DQueryTestActor::ObserveRays,
+    CONTROL_PARAMETERS(),
+    ([](const std::string& Result) { return nlohmann::json::parse(Result); })
+)
 
 APhysics3DQueryTestActor::APhysics3DQueryTestActor() {
   auto* Body = NewObject<MRigidBody3DComponent>(this);
@@ -82,5 +89,36 @@ std::string APhysics3DQueryTestActor::ObserveQueries() {
       "invalid_center",
       Physics->OverlapSphere({std::numeric_limits<float>::quiet_NaN(), 0, 0}, 1, {})
   );
+  return Result.dump();
+}
+
+std::string APhysics3DQueryTestActor::ObserveRays() {
+  auto* Physics = GetWorld()->GetPhysicsSystem3D();
+  nlohmann::json Result = nlohmann::json::object();
+  auto Record = [&](const char* Name, const std::vector<FPhysicsQueryHit3D>& Hits) {
+    auto Entries = nlohmann::json::array();
+    for (const auto& Hit : Hits) {
+      Entries.push_back(
+          {{"instance_name", Hit.Actor->GetInstanceName()},
+           {"distance", Hit.Distance},
+           {"location", {{"x", Hit.Location.X}, {"y", Hit.Location.Y}, {"z", Hit.Location.Z}}}}
+      );
+    }
+    Result[Name] = Entries;
+  };
+  const FPhysicsRay3D MainRay{{-2, 0, 0}, {1, 0, 0}, 20};
+  Record("all", Physics->RaycastAll(MainRay, {}));
+  FPhysicsQueryHit3D Nearest;
+  Result["nearest"] = Physics->RaycastNearest(MainRay, {}, Nearest)
+                          ? nlohmann::json{{"instance_name", Nearest.Actor->GetInstanceName()},
+                                           {"distance", Nearest.Distance},
+                                           {"location", {{"x", Nearest.Location.X},
+                                                         {"y", Nearest.Location.Y},
+                                                         {"z", Nearest.Location.Z}}}}
+                          : nlohmann::json();
+  Record("mask1", Physics->RaycastAll(MainRay, {2, nullptr}));
+  Record("mask2", Physics->RaycastAll(MainRay, {4, nullptr}));
+  Record("ignore", Physics->RaycastAll(MainRay, {0xffff, this}));
+  Record("miss", Physics->RaycastAll({{-2, 3, 0}, {1, 0, 0}, 20}, {}));
   return Result.dump();
 }

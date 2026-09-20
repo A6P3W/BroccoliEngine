@@ -7,6 +7,7 @@ class APhysics3DQueryTestActor final : public AActor {
   DEFINE_ACTOR_CLASS(APhysics3DQueryTestActor)
   APhysics3DQueryTestActor();
   std::string ObserveQueries();
+  std::string ObserveRays();
 };
 
 class APhysics3DQueryBoxActor final : public AActor {
