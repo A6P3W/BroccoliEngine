@@ -15,9 +15,6 @@ REGISTER_ACTOR(EditorPawn2D);
 namespace {
 constexpr float MinEditorFOV = 0.01f;
 constexpr float MaxEditorFOV = 1000.0f;
-constexpr float MinCameraSpeedMultiplier = 0.1f;
-constexpr float MaxCameraSpeedMultiplier = 15.0f;
-constexpr float CameraSpeedMultiplierStep = 0.5f;
 }  // namespace
 
 EditorPawn2D::EditorPawn2D() {
@@ -163,9 +160,6 @@ void EditorPawn2D::UpdateCameraDrag() {
 
   const float FieldOfView = std::clamp(Camera->GetFOV(), MinEditorFOV, MaxEditorFOV);
   FVector2D WorldDelta = {RenderTargetDelta.X, -RenderTargetDelta.Y};
-  const float SpeedMultiplier =
-      std::clamp(CameraSpeedMultiplier, MinCameraSpeedMultiplier, MaxCameraSpeedMultiplier);
-  WorldDelta *= SpeedMultiplier / FieldOfView;
   WorldDelta = WorldDelta.RotateVector(GetActorRotation());
   AddActorWorldOffset(WorldDelta * -1.0f);
 }
@@ -185,14 +179,6 @@ void EditorPawn2D::OnMouseMove(const FInputActionValue&) {
 
 void EditorPawn2D::OnWheel(const FInputActionValue& Value) {
   if (EditorModePtr == nullptr) {
-    return;
-  }
-  if (CameraDragActive) {
-    CameraSpeedMultiplier = std::clamp(
-        CameraSpeedMultiplier + Value.Axis1D * CameraSpeedMultiplierStep,
-        MinCameraSpeedMultiplier,
-        MaxCameraSpeedMultiplier
-    );
     return;
   }
   if (!EditorModePtr->IsViewportInputAvailable() || Camera == nullptr) {

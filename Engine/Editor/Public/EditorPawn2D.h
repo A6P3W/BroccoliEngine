@@ -35,6 +35,5 @@ class EditorPawn2D : public APawn {
   MSpriteComponent* GameScreenView = nullptr;
   bool CameraDragActive = false;
   bool DiscardNextCameraDelta = false;
-  float CameraSpeedMultiplier = 1.0f;
   bool IsPossessed = false;
 };
