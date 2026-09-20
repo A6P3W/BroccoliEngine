@@ -18,6 +18,11 @@ class ObjectVsBroadPhaseLayerFilterTable;
 class ContactListener;
 }  // namespace JPH
 
+struct FJoltRaycastHit {
+  void* Key = nullptr;
+  float Fraction = 0.0f;
+};
+
 class FJoltPhysicsBackend {
  public:
   FJoltPhysicsBackend();
@@ -41,6 +46,9 @@ class FJoltPhysicsBackend {
   bool ShouldDispatchContactEnd(uint32_t BodyIdA, uint32_t BodyIdB) const;
   std::vector<void*> OverlapShape(
       const FVector3D& Center, const FVector3D& Dimensions, bool Sphere
+  ) const;
+  std::vector<FJoltRaycastHit> RaycastAll(
+      const FVector3D& Origin, const FVector3D& Direction, float MaxDistance
   ) const;
 
  private:

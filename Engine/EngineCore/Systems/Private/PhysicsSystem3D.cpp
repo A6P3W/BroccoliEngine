@@ -22,14 +22,6 @@ float Dot(const FVector3D& Left, const FVector3D& Right) {
 
 float LengthSquared(const FVector3D& Value) { return Dot(Value, Value); }
 
-FVector3D GetBounds(const MCollisionComponent3D& Collider) {
-  if (Collider.GetShapeType3D() == ECollisionShape3D::Sphere) {
-    const float Radius = Collider.GetShapeDimensions3D().X;
-    return {Radius, Radius, Radius};
-  }
-  return Collider.GetShapeDimensions3D();
-}
-
 bool PassesFilter(
     const AActor& Actor, const MCollisionComponent3D& Collider, const FPhysicsQueryFilter3D& Filter
 ) {
@@ -234,8 +226,12 @@ std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::RaycastAll(
       Ray.Direction.Y / DirectionLength,
       Ray.Direction.Z / DirectionLength
   };
-  for (const auto& [Actor, Body] : ImplPtr->Bodies) {
-    if (!Actor || !Body || Actor->IsPendingDestroy()) {
+  std::unordered_map<AActor*, FPhysicsQueryHit3D> ClosestHits;
+  for (const FJoltRaycastHit& Hit :
+       ImplPtr->Backend->RaycastAll(Ray.Origin, Ray.Direction, Ray.MaxDistance)) {
+    auto* Body = static_cast<MRigidBody3DComponent*>(Hit.Key);
+    AActor* Actor = Body ? Body->GetOwner() : nullptr;
+    if (!Actor || Actor->IsPendingDestroy()) {
       continue;
     }
     const std::vector<MCollisionComponent3D*> Colliders =
@@ -243,23 +239,20 @@ std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::RaycastAll(
     if (Colliders.empty() || !PassesFilter(*Actor, *Colliders.front(), Filter)) {
       continue;
     }
-    const FVector3D Center = Actor->GetActorLocation3D();
-    const FVector3D Offset{
-        Center.X - Ray.Origin.X, Center.Y - Ray.Origin.Y, Center.Z - Ray.Origin.Z
-    };
-    const float Distance = Dot(Offset, Direction);
-    if (Distance < 0.0f || Distance > Ray.MaxDistance) {
-      continue;
-    }
-    const FVector3D Closest{
+    const float Distance = Hit.Fraction * Ray.MaxDistance;
+    const FVector3D Location{
         Ray.Origin.X + Direction.X * Distance,
         Ray.Origin.Y + Direction.Y * Distance,
         Ray.Origin.Z + Direction.Z * Distance
     };
-    const FVector3D Delta{Center.X - Closest.X, Center.Y - Closest.Y, Center.Z - Closest.Z};
-    if (LengthSquared(Delta) <= LengthSquared(GetBounds(*Colliders.front()))) {
-      Hits.push_back({Actor, Closest, Distance});
+    const auto It = ClosestHits.find(Actor);
+    if (It == ClosestHits.end() || Distance < It->second.Distance) {
+      ClosestHits.insert_or_assign(Actor, FPhysicsQueryHit3D{Actor, Location, Distance});
     }
+  }
+  Hits.reserve(ClosestHits.size());
+  for (const auto& [Actor, Hit] : ClosestHits) {
+    Hits.push_back(Hit);
   }
   std::sort(Hits.begin(), Hits.end(), [](const auto& Left, const auto& Right) {
     return Left.Distance < Right.Distance;

@@ -9,11 +9,13 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayerInterfaceTable.h>
 #include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterTable.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/CollideShape.h>
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 #include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
+#include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/EPhysicsUpdateError.h>
@@ -80,6 +82,41 @@ std::vector<void*> FJoltPhysicsBackend::OverlapShape(
     void* Key = FindBodyKey(Hit.mBodyID2.GetIndexAndSequenceNumber());
     if (Key && std::find(Result.begin(), Result.end(), Key) == Result.end()) {
       Result.push_back(Key);
+    }
+  }
+  return Result;
+}
+
+std::vector<FJoltRaycastHit> FJoltPhysicsBackend::RaycastAll(
+    const FVector3D& Origin, const FVector3D& Direction, float MaxDistance
+) const {
+  std::vector<FJoltRaycastHit> Result;
+  if (!IsInitialized() || !std::isfinite(Origin.X) || !std::isfinite(Origin.Y) ||
+      !std::isfinite(Origin.Z) || !std::isfinite(Direction.X) || !std::isfinite(Direction.Y) ||
+      !std::isfinite(Direction.Z) || !std::isfinite(MaxDistance) || MaxDistance < 0.0f) {
+    return Result;
+  }
+  const float LengthSquared =
+      Direction.X * Direction.X + Direction.Y * Direction.Y + Direction.Z * Direction.Z;
+  if (LengthSquared <= 0.0f) {
+    return Result;
+  }
+  const float InverseLength = 1.0f / std::sqrt(LengthSquared);
+  const JPH::RRayCast Ray(
+      JPH::RVec3(Origin.X, Origin.Y, Origin.Z),
+      JPH::Vec3(
+          Direction.X * InverseLength * MaxDistance,
+          Direction.Y * InverseLength * MaxDistance,
+          Direction.Z * InverseLength * MaxDistance
+      )
+  );
+  JPH::AllHitCollisionCollector<JPH::CastRayCollector> Collector;
+  PhysicsSystem->GetNarrowPhaseQuery().CastRay(Ray, JPH::RayCastSettings(), Collector);
+  Collector.Sort();
+  for (const JPH::RayCastResult& Hit : Collector.mHits) {
+    void* Key = FindBodyKey(Hit.mBodyID.GetIndexAndSequenceNumber());
+    if (Key) {
+      Result.push_back({Key, Hit.mFraction});
     }
   }
   return Result;
