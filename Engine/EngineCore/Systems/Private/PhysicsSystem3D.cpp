@@ -88,7 +88,10 @@ void FPhysicsSystem3D::Step(float DeltaTime) {
           ColliderA->NotifyOverlapBegin(ActorB);
           ColliderB->NotifyOverlapBegin(ActorA);
         }
-      } else if (ImplPtr->ActivePairs.erase(Pair) > 0) {
+      } else if (
+          ImplPtr->Backend->ShouldDispatchContactEnd(Event.BodyIdA, Event.BodyIdB) &&
+          ImplPtr->ActivePairs.erase(Pair) > 0
+      ) {
         ColliderA->NotifyOverlapEnd(ActorB);
         ColliderB->NotifyOverlapEnd(ActorA);
       }

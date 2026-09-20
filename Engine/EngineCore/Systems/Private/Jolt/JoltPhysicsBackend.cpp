@@ -310,6 +310,29 @@ void* FJoltPhysicsBackend::FindBodyKey(uint32_t BodyId) const {
   return nullptr;
 }
 
+bool FJoltPhysicsBackend::ShouldDispatchContactEnd(uint32_t BodyIdA, uint32_t BodyIdB) const {
+  if (!PhysicsSystem) {
+    return false;
+  }
+  const FBodyRecord* RecordA = nullptr;
+  const FBodyRecord* RecordB = nullptr;
+  for (const auto& [Key, Record] : Bodies) {
+    if (Record.Id.GetIndexAndSequenceNumber() == BodyIdA) {
+      RecordA = &Record;
+    } else if (Record.Id.GetIndexAndSequenceNumber() == BodyIdB) {
+      RecordB = &Record;
+    }
+  }
+  if (!RecordA || !RecordB) {
+    return false;
+  }
+  const JPH::BodyInterface& BodyInterface = PhysicsSystem->GetBodyInterface();
+  if (!BodyInterface.IsActive(RecordA->Id) && !BodyInterface.IsActive(RecordB->Id)) {
+    return false;
+  }
+  return !PhysicsSystem->WereBodiesInContact(RecordA->Id, RecordB->Id);
+}
+
 bool FJoltPhysicsBackend::ShouldCollide(uint32_t BodyIdA, uint32_t BodyIdB) const {
   const FBodyRecord* RecordA = nullptr;
   const FBodyRecord* RecordB = nullptr;

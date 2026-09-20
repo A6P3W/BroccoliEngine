@@ -38,6 +38,7 @@ class FJoltPhysicsBackend {
   void AddImpulse(void* Key, const FVector3D& Impulse);
   std::vector<FJoltContactEvent> DrainContactEvents();
   void* FindBodyKey(uint32_t BodyId) const;
+  bool ShouldDispatchContactEnd(uint32_t BodyIdA, uint32_t BodyIdB) const;
 
  private:
   std::unique_ptr<JPH::PhysicsSystem> PhysicsSystem;
