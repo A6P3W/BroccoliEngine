@@ -9,6 +9,7 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayerInterfaceTable.h>
 #include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterTable.h>
+#include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
@@ -18,6 +19,7 @@
 #include <algorithm>
 #include <thread>
 
+#include "JoltContactListener.h"
 #include "JoltRuntime.h"
 #include "Log.h"
 
@@ -37,6 +39,37 @@ constexpr uint32_t MaxPhysicsBarriers = 1024;
 struct FJoltPhysicsBackend::FBodyRecord {
   JPH::BodyID Id;
 };
+
+namespace {
+class FJoltContactListener final : public JPH::ContactListener {
+ public:
+  explicit FJoltContactListener(FJoltContactEventQueue& InEvents) : Events(InEvents) {}
+
+  void OnContactAdded(
+      const JPH::Body& BodyA,
+      const JPH::Body& BodyB,
+      const JPH::ContactManifold&,
+      JPH::ContactSettings&
+  ) override {
+    Events.Push(
+        BodyA.GetID().GetIndexAndSequenceNumber(),
+        BodyB.GetID().GetIndexAndSequenceNumber(),
+        FJoltContactEvent::EType::Begin
+    );
+  }
+
+  void OnContactRemoved(const JPH::SubShapeIDPair& Pair) override {
+    Events.Push(
+        Pair.GetBody1ID().GetIndexAndSequenceNumber(),
+        Pair.GetBody2ID().GetIndexAndSequenceNumber(),
+        FJoltContactEvent::EType::End
+    );
+  }
+
+ private:
+  FJoltContactEventQueue& Events;
+};
+}  // namespace
 
 namespace {
 JPH::RVec3 ToJolt(const FVector3D& Value) { return {Value.X, Value.Y, Value.Z}; }
@@ -101,6 +134,9 @@ FJoltPhysicsBackend::FJoltPhysicsBackend() {
       *ObjectVsBroadPhaseLayerFilter,
       *ObjectLayerPairFilter
   );
+  ContactEvents = std::make_unique<FJoltContactEventQueue>();
+  ContactListener = std::make_unique<FJoltContactListener>(*ContactEvents);
+  PhysicsSystem->SetContactListener(ContactListener.get());
 }
 
 FJoltPhysicsBackend::~FJoltPhysicsBackend() {
@@ -238,4 +274,17 @@ void FJoltPhysicsBackend::AddImpulse(void* Key, const FVector3D& Impulse) {
   if (It != Bodies.end()) {
     PhysicsSystem->GetBodyInterface().AddImpulse(It->second.Id, ToJolt(Impulse));
   }
+}
+
+std::vector<FJoltContactEvent> FJoltPhysicsBackend::DrainContactEvents() {
+  return ContactEvents ? ContactEvents->Drain() : std::vector<FJoltContactEvent>();
+}
+
+void* FJoltPhysicsBackend::FindBodyKey(uint32_t BodyId) const {
+  for (const auto& [Key, Record] : Bodies) {
+    if (Record.Id.GetIndexAndSequenceNumber() == BodyId) {
+      return Key;
+    }
+  }
+  return nullptr;
 }

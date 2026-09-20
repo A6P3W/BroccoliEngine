@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <set>
 #include <unordered_map>
 
 #include "Actor.h"
@@ -19,6 +20,7 @@ constexpr uint32_t MaximumStepsPerFrame = 8;
 struct FPhysicsSystem3D::Impl {
   std::unique_ptr<FJoltPhysicsBackend> Backend = std::make_unique<FJoltPhysicsBackend>();
   std::unordered_map<AActor*, MRigidBody3DComponent*> Bodies;
+  std::set<std::pair<AActor*, AActor*>> ActivePairs;
   float FixedTimeStep = DefaultFixedTimeStep;
   float Accumulator = 0.0f;
 };
@@ -36,6 +38,38 @@ void FPhysicsSystem3D::Step(float DeltaTime) {
   uint32_t StepCount = 0;
   while (ImplPtr->Accumulator >= ImplPtr->FixedTimeStep && StepCount < MaximumStepsPerFrame) {
     ImplPtr->Backend->Step(ImplPtr->FixedTimeStep);
+    for (const FJoltContactEvent& Event : ImplPtr->Backend->DrainContactEvents()) {
+      auto* BodyA =
+          static_cast<MRigidBody3DComponent*>(ImplPtr->Backend->FindBodyKey(Event.BodyIdA));
+      auto* BodyB =
+          static_cast<MRigidBody3DComponent*>(ImplPtr->Backend->FindBodyKey(Event.BodyIdB));
+      AActor* ActorA = BodyA ? BodyA->GetOwner() : nullptr;
+      AActor* ActorB = BodyB ? BodyB->GetOwner() : nullptr;
+      if (!ActorA || !ActorB || ActorA == ActorB || ActorA->IsPendingDestroy() ||
+          ActorB->IsPendingDestroy()) {
+        continue;
+      }
+      const std::pair<AActor*, AActor*> Pair =
+          ActorA < ActorB ? std::pair{ActorA, ActorB} : std::pair{ActorB, ActorA};
+      const std::vector<MCollisionComponent3D*> CollidersA =
+          ActorA->GetComponents<MCollisionComponent3D>();
+      const std::vector<MCollisionComponent3D*> CollidersB =
+          ActorB->GetComponents<MCollisionComponent3D>();
+      MCollisionComponent3D* ColliderA = CollidersA.empty() ? nullptr : CollidersA.front();
+      MCollisionComponent3D* ColliderB = CollidersB.empty() ? nullptr : CollidersB.front();
+      if (!ColliderA || !ColliderB) {
+        continue;
+      }
+      if (Event.Type == FJoltContactEvent::EType::Begin) {
+        if (ImplPtr->ActivePairs.insert(Pair).second) {
+          ColliderA->NotifyOverlapBegin(ActorB);
+          ColliderB->NotifyOverlapBegin(ActorA);
+        }
+      } else if (ImplPtr->ActivePairs.erase(Pair) > 0) {
+        ColliderA->NotifyOverlapEnd(ActorB);
+        ColliderB->NotifyOverlapEnd(ActorA);
+      }
+    }
     for (const auto& [Actor, Body] : ImplPtr->Bodies) {
       if (!Actor || !Body || Body->GetBodyType() != ERigidBody3DType::Dynamic) {
         continue;
@@ -105,6 +139,20 @@ void FPhysicsSystem3D::UnregisterActorBody(AActor* Actor) {
   const auto It = ImplPtr->Bodies.find(Actor);
   if (It == ImplPtr->Bodies.end()) {
     return;
+  }
+  for (auto PairIt = ImplPtr->ActivePairs.begin(); PairIt != ImplPtr->ActivePairs.end();) {
+    if (PairIt->first != Actor && PairIt->second != Actor) {
+      ++PairIt;
+      continue;
+    }
+    AActor* OtherActor = PairIt->first == Actor ? PairIt->second : PairIt->first;
+    const std::vector<MCollisionComponent3D*> OtherColliders =
+        OtherActor->GetComponents<MCollisionComponent3D>();
+    if (!OtherColliders.empty()) {
+      MCollisionComponent3D* OtherCollider = OtherColliders.front();
+      OtherCollider->RemoveOverlappingActor(Actor);
+    }
+    PairIt = ImplPtr->ActivePairs.erase(PairIt);
   }
   ImplPtr->Backend->DestroyBody(It->second);
   It->second->SetRegisteredWithPhysics(false);
