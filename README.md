@@ -95,8 +95,8 @@ broccoli.bat run Debug
 
 ### Control CLI
 
-`--control` を指定すると、broccoli.batまたはmcpを介して操作できるようになります。
+`--control` を指定すると、`broccoli.bat control` から Engine を操作できます。
 
 [Auto-Control-C++使用方法](./Engine/Documents/Auto-Control-C++使用方法.md)
 
-[Auto-Control-CLI,MCP使用方法](./Engine/Documents/Auto-Control-CLI,MCP使用方法.md)
+[Auto-Control-CLI使用方法](./Engine/Documents/Auto-Control-CLI使用方法.md)

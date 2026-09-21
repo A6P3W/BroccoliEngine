@@ -1,4 +1,4 @@
-"""MCP-independent models for the Automation API."""
+"""Shared models for the Automation API."""
 
 from __future__ import annotations
 
