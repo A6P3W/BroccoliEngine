@@ -126,6 +126,7 @@ def run_integration() -> dict[str, object]:
     if not {
       "start_simulation",
       "stop_simulation",
+      "quit_game",
       "open_level_by_id",
       "open_level_by_path",
     }.issubset(CommandNames) or {"pause_game", "resume_game"}.intersection(CommandNames):
