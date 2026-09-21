@@ -161,7 +161,7 @@ void EditorPawn2D::UpdateCameraDrag() {
   const float FieldOfView = std::clamp(Camera->GetFOV(), MinEditorFOV, MaxEditorFOV);
   FVector2D WorldDelta = {RenderTargetDelta.X, -RenderTargetDelta.Y};
   WorldDelta = WorldDelta.RotateVector(GetActorRotation());
-  AddActorWorldOffset(WorldDelta * -1.0f);
+  AddActorWorldOffset(WorldDelta * -1.0f / FieldOfView);
 }
 
 void EditorPawn2D::OnMouseMove(const FInputActionValue&) {

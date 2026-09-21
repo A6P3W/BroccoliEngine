@@ -14,7 +14,6 @@ namespace {
 constexpr float MinCameraSpeedMultiplier = 0.1f;
 constexpr float MaxCameraSpeedMultiplier = 15.0f;
 constexpr float CameraSpeedMultiplierStep = 0.5f;
-constexpr float CameraBaseSpeedMultiplier = 10.0f;
 }  // namespace
 
 EditorPawn3D::EditorPawn3D() {
@@ -142,8 +141,7 @@ void EditorPawn3D::UpdateCamera(float DeltaTime) {
 
   const float SpeedMultiplier =
       std::clamp(CameraSpeedMultiplier, MinCameraSpeedMultiplier, MaxCameraSpeedMultiplier);
-  const float Speed =
-      (IsKeyDown(KEY_LEFT_SHIFT) ? 20.0f : 8.0f) * CameraBaseSpeedMultiplier * SpeedMultiplier;
+  const float Speed = (IsKeyDown(KEY_LEFT_SHIFT) ? 20.0f : 8.0f) * SpeedMultiplier;
   FVector3D Movement = EditorCamera3D->GetForwardVector() * MovementInput.Y;
   Movement += EditorCamera3D->GetRightVector() * -MovementInput.X;
   Movement.Y += VerticalMovementInput;
