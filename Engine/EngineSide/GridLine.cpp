@@ -76,6 +76,6 @@ void AGridLine::Draw2DGrid() {
 }
 
 void AGridLine::Draw3DGrid() {
-  RenderSystem::GetInstance().SubmitGrid3D(100, CollisionCellSize, EGridPlane::XZ);
-  RenderSystem::GetInstance().SubmitGrid3D(100, CollisionCellSize, EGridPlane::XY);
+  RenderSystem::GetInstance().SubmitGrid3D(100, CollisionCellSize / 100, EGridPlane::XZ);
+  RenderSystem::GetInstance().SubmitGrid3D(100, CollisionCellSize / 100, EGridPlane::XY);
 }
