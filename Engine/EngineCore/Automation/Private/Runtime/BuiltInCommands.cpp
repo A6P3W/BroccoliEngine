@@ -2,6 +2,7 @@
 
 #include <string_view>
 
+#include "Application.h"
 #include "NetworkTypes.h"
 #include "Registration/SystemCommandBinding.h"
 #include "Registry/SystemCommandRegistry.h"
@@ -49,6 +50,12 @@ void RegisterAutomationBuiltInCommands(FAutomationSystemCommandRegistry& Registr
       "stop_simulation",
       "Stop world simulation while keeping world updates available.",
       [] { return SetSimulationState("stop_simulation", false); }
+  );
+  AutomationHelper::RegisterSystemCommand(
+      Registry, "quit_game", "Request normal game shutdown.", [] {
+        Application::QuitGame();
+        return nlohmann::json{{"quitting", true}};
+      }
   );
   AutomationHelper::RegisterSystemCommand(
       Registry,
