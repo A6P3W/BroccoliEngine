@@ -1,45 +1,54 @@
 #include "BuiltInCommands.h"
 
+#include <string_view>
+
 #include "NetworkTypes.h"
 #include "Registration/SystemCommandBinding.h"
 #include "Registry/SystemCommandRegistry.h"
-#include "Runtime/RuntimeState.h"
 #include "SceneManager.h"
 #include "World.h"
 
-void RegisterAutomationBuiltInCommands(
-    FAutomationSystemCommandRegistry& Registry, FAutomationRuntimeState& RuntimeState
-) {
+namespace {
+nlohmann::json SetSimulationState(std::string_view CommandName, bool Simulating) {
+  World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
+  if (!CurrentWorld || CurrentWorld->IsTearingDown()) {
+    return nlohmann::json{
+        {"commandName", CommandName},
+        {"worldAvailable", false},
+        {"changed", false},
+        {"simulating", false}
+    };
+  }
+
+  const bool Changed = CurrentWorld->IsSimulating() != Simulating;
+  CurrentWorld->SetSimulating(Simulating);
+  M_LOG(
+      Log,
+      "Automation system command state changed: command={} changed={} simulating={}",
+      CommandName,
+      Changed,
+      Simulating
+  );
+  return nlohmann::json{
+      {"commandName", CommandName},
+      {"worldAvailable", true},
+      {"changed", Changed},
+      {"simulating", Simulating}
+  };
+}
+}  // namespace
+
+void RegisterAutomationBuiltInCommands(FAutomationSystemCommandRegistry& Registry) {
   AutomationHelper::RegisterSystemCommand(
-      Registry,
-      "pause_game",
-      "Pause world updates while keeping automation available.",
-      [&RuntimeState]() {
-        const bool Changed = !RuntimeState.Paused;
-        RuntimeState.Paused = true;
-        M_LOG(
-            Log,
-            "Automation system command state changed: command=pause_game changed={} paused=true",
-            Changed
-        );
-        return nlohmann::json{
-            {"commandName", "pause_game"}, {"changed", Changed}, {"paused", true}
-        };
+      Registry, "start_simulation", "Start world simulation.", [] {
+        return SetSimulationState("start_simulation", true);
       }
   );
   AutomationHelper::RegisterSystemCommand(
-      Registry, "resume_game", "Resume world updates.", [&RuntimeState]() {
-        const bool Changed = RuntimeState.Paused;
-        RuntimeState.Paused = false;
-        M_LOG(
-            Log,
-            "Automation system command state changed: command=resume_game changed={} paused=false",
-            Changed
-        );
-        return nlohmann::json{
-            {"commandName", "resume_game"}, {"changed", Changed}, {"paused", false}
-        };
-      }
+      Registry,
+      "stop_simulation",
+      "Stop world simulation while keeping world updates available.",
+      [] { return SetSimulationState("stop_simulation", false); }
   );
   AutomationHelper::RegisterSystemCommand(
       Registry,

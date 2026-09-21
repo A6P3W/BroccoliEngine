@@ -46,6 +46,7 @@ struct FAutomationActorListSnapshot {
 struct FAutomationWorldStateSnapshot {
   std::string SceneName;
   float Fps = 0.0f;
+  bool Simulating = false;
   bool WorldAvailable = false;
   uint32_t ActorCount = 0;
   bool Physics3DAvailable = false;

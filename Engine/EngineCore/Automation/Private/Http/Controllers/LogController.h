@@ -2,8 +2,6 @@
 
 #include "HttpControllerBase.h"
 
-#include "Runtime/RuntimeState.h"
-
 class FAutomationLogController final : public FAutomationHttpControllerBase {
  public:
   FAutomationLogController(
