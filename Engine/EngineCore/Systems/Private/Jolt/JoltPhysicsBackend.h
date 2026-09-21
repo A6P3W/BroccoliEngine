@@ -36,6 +36,9 @@ class FJoltPhysicsBackend {
   bool CreateBody(void* Key, const FPhysicsBody3DDesc& Description);
   void DestroyBody(void* Key);
   bool SetTransform(void* Key, const FVector3D& Location, const FQuaternion& Rotation);
+  bool MoveKinematic(
+      void* Key, const FVector3D& TargetLocation, const FQuaternion& TargetRotation, float DeltaTime
+  );
   bool GetTransform(void* Key, FVector3D& OutLocation, FQuaternion& OutRotation) const;
   FVector3D GetLinearVelocity(void* Key) const;
   void SetLinearVelocity(void* Key, const FVector3D& Velocity);

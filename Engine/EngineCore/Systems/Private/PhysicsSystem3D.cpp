@@ -52,6 +52,14 @@ void FPhysicsSystem3D::Step(float DeltaTime) {
   ImplPtr->Accumulator += (std::min)(DeltaTime, MaximumFrameDeltaTime);
   uint32_t StepCount = 0;
   while (ImplPtr->Accumulator >= ImplPtr->FixedTimeStep && StepCount < MaximumStepsPerFrame) {
+    for (const auto& [Actor, Body] : ImplPtr->Bodies) {
+      if (!Actor || !Body || Body->GetBodyType() != ERigidBody3DType::Kinematic) {
+        continue;
+      }
+      ImplPtr->Backend->MoveKinematic(
+          Body, Actor->GetActorLocation3D(), Actor->GetActorRotation3D(), ImplPtr->FixedTimeStep
+      );
+    }
     ImplPtr->Backend->Step(ImplPtr->FixedTimeStep);
     for (const FJoltContactEvent& Event : ImplPtr->Backend->DrainContactEvents()) {
       auto* BodyA =
@@ -182,7 +190,7 @@ void FPhysicsSystem3D::SetActorTransform(
     AActor* Actor, const FVector3D& Location, const FQuaternion& Rotation
 ) {
   const auto It = ImplPtr->Bodies.find(Actor);
-  if (It != ImplPtr->Bodies.end()) {
+  if (It != ImplPtr->Bodies.end() && It->second->GetBodyType() != ERigidBody3DType::Kinematic) {
     ImplPtr->Backend->SetTransform(It->second, Location, Rotation);
   }
 }
