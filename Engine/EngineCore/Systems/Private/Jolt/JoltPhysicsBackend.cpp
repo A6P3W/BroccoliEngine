@@ -333,6 +333,19 @@ bool FJoltPhysicsBackend::SetTransform(
   return true;
 }
 
+bool FJoltPhysicsBackend::MoveKinematic(
+    void* Key, const FVector3D& TargetLocation, const FQuaternion& TargetRotation, float DeltaTime
+) {
+  const auto It = Bodies.find(Key);
+  if (It == Bodies.end()) {
+    return false;
+  }
+  PhysicsSystem->GetBodyInterface().MoveKinematic(
+      It->second.Id, ToJolt(TargetLocation), ToJolt(TargetRotation), DeltaTime
+  );
+  return true;
+}
+
 bool FJoltPhysicsBackend::GetTransform(
     void* Key, FVector3D& OutLocation, FQuaternion& OutRotation
 ) const {
