@@ -25,7 +25,6 @@
 #include <string>
 #include <utility>
 
-#include "Systems/Private/Jolt/JoltRuntime.h"
 #include "AutomationSubsystem.h"
 #include "BroccoliRaylib.h"
 #include "DebugOverlay.h"
@@ -50,6 +49,7 @@
 #include "ResourceManager.h"
 #include "SceneManager.h"
 #include "SoundManager.h"
+#include "Systems/Private/Jolt/JoltRuntime.h"
 #include "TimerManager.h"
 #include "World.h"
 #include "rlImGui/rlImGui.h"
@@ -471,7 +471,6 @@ bool Application::Update(float FrameDeltaTime, bool ProcessInput) {
     PerformanceOverlay.EndSection(EPerformanceSection::Audio);
 #endif
   }
-  if (AutomationSubsystem && AutomationSubsystem->IsPaused()) return true;
   if (CurrentScene != nullptr) {
 #if !defined(_RELEASE)
     PerformanceOverlay.BeginSection(EPerformanceSection::World);

@@ -14,9 +14,11 @@ class FakeServerClient:
     return EngineState(
       SceneName="SceneTest",
       Fps=60.0,
-      Paused=False,
+      Simulating=False,
       WorldAvailable=True,
       ActorCount=0,
+      Physics3DAvailable=False,
+      Physics3DBodyCount=0,
     )
 
   def spawn_actor(Self, ClassName: str, **Arguments: object) -> ActorInfo:
@@ -26,7 +28,17 @@ class FakeServerClient:
       ActorId=7,
       InstanceName="ATestActor_1",
       ClassName=ClassName,
-      Transform=ActorTransform(LocationX=1.0, LocationY=0.0, Rotation=0.0, Scale=1.0),
+      Transform=ActorTransform(
+        LocationX=1.0,
+        LocationY=0.0,
+        LocationZ=0.0,
+        Pitch=0.0,
+        Yaw=0.0,
+        Roll=0.0,
+        ScaleX=1.0,
+        ScaleY=1.0,
+        ScaleZ=1.0,
+      ),
     )
 
 

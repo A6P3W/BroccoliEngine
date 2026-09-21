@@ -21,7 +21,7 @@ class EngineState:
 
   SceneName: str
   Fps: float
-  Paused: bool
+  Simulating: bool
   WorldAvailable: bool
   ActorCount: int
   Physics3DAvailable: bool
@@ -36,7 +36,7 @@ class EngineState:
   ) -> EngineState:
     RequiredFields = {
       "sceneName": str,
-      "paused": bool,
+      "simulating": bool,
       "worldAvailable": bool,
       "actorCount": int,
     }
@@ -92,7 +92,7 @@ class EngineState:
     return Class(
       SceneName=Data["sceneName"],
       Fps=float(FpsValue),
-      Paused=Data["paused"],
+      Simulating=Data["simulating"],
       WorldAvailable=Data["worldAvailable"],
       ActorCount=Data["actorCount"],
       Physics3DAvailable=Physics3DAvailable,
@@ -103,7 +103,7 @@ class EngineState:
     return {
       "sceneName": Self.SceneName,
       "fps": Self.Fps,
-      "paused": Self.Paused,
+      "simulating": Self.Simulating,
       "worldAvailable": Self.WorldAvailable,
       "actorCount": Self.ActorCount,
       "physics3DAvailable": Self.Physics3DAvailable,

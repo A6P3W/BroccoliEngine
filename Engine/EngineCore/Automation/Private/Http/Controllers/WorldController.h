@@ -1,12 +1,10 @@
 #pragma once
 
-#include "HttpControllerBase.h"
-
 #include <nlohmann/json.hpp>
 #include <string_view>
 
-#include "Runtime/RuntimeState.h"
-#include "World/WorldTypes.h"
+#include "HttpControllerBase.h"
+#include "Runtime/StateProvider.h"
 
 class FAutomationWorldController final : public FAutomationHttpControllerBase {
  public:

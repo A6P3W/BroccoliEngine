@@ -1,8 +1,12 @@
 #pragma once
 
-#include "Runtime/RuntimeState.h"
+#include <functional>
+#include <nlohmann/json.hpp>
+
 #include "World/WorldTypes.h"
 
+using FAutomationStateProvider = std::function<nlohmann::json()>;
+
 FAutomationStateProvider CreateAutomationStateProvider(
-    const FAutomationRuntimeState& RuntimeState, FAutomationWorldStateProvider WorldStateProvider
+    FAutomationWorldStateProvider WorldStateProvider
 );

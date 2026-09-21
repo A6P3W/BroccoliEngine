@@ -197,9 +197,10 @@ async def run_integration() -> dict[str, object]:
           MutationResults["destroyedActor"] = DestroyedActor.to_dict()
     if ActorMethods and [Method["name"] for Method in ActorMethods["methods"]] != ["get_status"]:
       raise RuntimeError("LevelStarter actor method list is invalid.")
-    if not {"pause_game", "resume_game", "open_level_by_id", "open_level_by_path"}.issubset(
-      {Command["name"] for Command in SystemCommandList["commands"]}
-    ):
+    CommandNames = {Command["name"] for Command in SystemCommandList["commands"]}
+    if not {"start_simulation", "stop_simulation", "open_level_by_id", "open_level_by_path"}.issubset(
+      CommandNames
+    ) or {"pause_game", "resume_game"}.intersection(CommandNames):
       raise RuntimeError("System command list is invalid.")
 
     if ActorId:
@@ -224,72 +225,74 @@ async def run_integration() -> dict[str, object]:
     else:
       MethodData = None
 
-    PauseResult = await Session.call_tool(
+    StopResult = await Session.call_tool(
       "execute_system_command",
-      {"command_name": "pause_game", "arguments": {}},
+      {"command_name": "stop_simulation", "arguments": {}},
     )
-    PauseData = PauseResult.structured_content
+    StopData = StopResult.structured_content
     if (
-      PauseResult.is_error
-      or not isinstance(PauseData, dict)
-      or PauseData.get("result", {}).get("changed") is not True
-      or PauseData.get("result", {}).get("paused") is not True
+      StopResult.is_error
+      or not isinstance(StopData, dict)
+      or StopData.get("result", {}).get("worldAvailable") is not True
+      or StopData.get("result", {}).get("changed") is not True
+      or StopData.get("result", {}).get("simulating") is not False
     ):
-      raise RuntimeError("pause_game did not pause the engine.")
+      raise RuntimeError("stop_simulation did not stop the simulation.")
 
-    RepeatedPauseResult = await Session.call_tool(
+    RepeatedStopResult = await Session.call_tool(
       "execute_system_command",
-      {"command_name": "pause_game", "arguments": {}},
+      {"command_name": "stop_simulation", "arguments": {}},
     )
-    RepeatedPauseData = RepeatedPauseResult.structured_content
+    RepeatedStopData = RepeatedStopResult.structured_content
     if (
-      RepeatedPauseResult.is_error
-      or not isinstance(RepeatedPauseData, dict)
-      or RepeatedPauseData.get("result", {}).get("changed") is not False
-      or RepeatedPauseData.get("result", {}).get("paused") is not True
+      RepeatedStopResult.is_error
+      or not isinstance(RepeatedStopData, dict)
+      or RepeatedStopData.get("result", {}).get("changed") is not False
+      or RepeatedStopData.get("result", {}).get("simulating") is not False
     ):
-      raise RuntimeError("Repeated pause_game was not idempotent.")
+      raise RuntimeError("Repeated stop_simulation was not idempotent.")
 
-    PausedStateResult = await Session.read_resource("game://state")
-    PausedState = json.loads(PausedStateResult.contents[0].text)  # type: ignore[union-attr]
-    if PausedState.get("paused") is not True:
-      raise RuntimeError("State resource did not report paused=true.")
+    StoppedStateResult = await Session.read_resource("game://state")
+    StoppedState = json.loads(StoppedStateResult.contents[0].text)  # type: ignore[union-attr]
+    if StoppedState.get("simulating") is not False:
+      raise RuntimeError("State resource did not report simulating=false.")
 
-    ResumeResult = await Session.call_tool(
+    StartResult = await Session.call_tool(
       "execute_system_command",
-      {"command_name": "resume_game", "arguments": {}},
+      {"command_name": "start_simulation", "arguments": {}},
     )
-    ResumeData = ResumeResult.structured_content
+    StartData = StartResult.structured_content
     if (
-      ResumeResult.is_error
-      or not isinstance(ResumeData, dict)
-      or ResumeData.get("result", {}).get("changed") is not True
-      or ResumeData.get("result", {}).get("paused") is not False
+      StartResult.is_error
+      or not isinstance(StartData, dict)
+      or StartData.get("result", {}).get("worldAvailable") is not True
+      or StartData.get("result", {}).get("changed") is not True
+      or StartData.get("result", {}).get("simulating") is not True
     ):
-      raise RuntimeError("resume_game did not resume the engine.")
+      raise RuntimeError("start_simulation did not start the simulation.")
 
-    RepeatedResumeResult = await Session.call_tool(
+    RepeatedStartResult = await Session.call_tool(
       "execute_system_command",
-      {"command_name": "resume_game", "arguments": {}},
+      {"command_name": "start_simulation", "arguments": {}},
     )
-    RepeatedResumeData = RepeatedResumeResult.structured_content
+    RepeatedStartData = RepeatedStartResult.structured_content
     if (
-      RepeatedResumeResult.is_error
-      or not isinstance(RepeatedResumeData, dict)
-      or RepeatedResumeData.get("result", {}).get("changed") is not False
-      or RepeatedResumeData.get("result", {}).get("paused") is not False
+      RepeatedStartResult.is_error
+      or not isinstance(RepeatedStartData, dict)
+      or RepeatedStartData.get("result", {}).get("changed") is not False
+      or RepeatedStartData.get("result", {}).get("simulating") is not True
     ):
-      raise RuntimeError("Repeated resume_game was not idempotent.")
+      raise RuntimeError("Repeated start_simulation was not idempotent.")
 
-    ResumedStateResult = await Session.read_resource("game://state")
-    ResumedState = json.loads(ResumedStateResult.contents[0].text)  # type: ignore[union-attr]
-    if ResumedState.get("paused") is not False:
-      raise RuntimeError("State resource did not report paused=false.")
+    StartedStateResult = await Session.read_resource("game://state")
+    StartedState = json.loads(StartedStateResult.contents[0].text)  # type: ignore[union-attr]
+    if StartedState.get("simulating") is not True:
+      raise RuntimeError("State resource did not report simulating=true.")
 
   RequiredFields = {
     "sceneName",
     "fps",
-    "paused",
+    "simulating",
     "worldAvailable",
     "actorCount",
   }
@@ -325,12 +328,12 @@ async def run_integration() -> dict[str, object]:
     "systemCommandList": SystemCommandList,
     "mutations": MutationResults,
     "systemCommands": {
-      "pause": PauseData,
-      "repeatedPause": RepeatedPauseData,
-      "pausedState": PausedState,
-      "resume": ResumeData,
-      "repeatedResume": RepeatedResumeData,
-      "resumedState": ResumedState,
+      "stop": StopData,
+      "repeatedStop": RepeatedStopData,
+      "stoppedState": StoppedState,
+      "start": StartData,
+      "repeatedStart": RepeatedStartData,
+      "startedState": StartedState,
     },
     "discovery": DiscoveryResults,
   }

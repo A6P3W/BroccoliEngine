@@ -18,7 +18,7 @@ from broccoli_control.errors import (
 STATE_DATA = {
   "sceneName": "LevelStarter",
   "fps": 59.5,
-  "paused": False,
+  "simulating": False,
   "worldAvailable": True,
   "actorCount": 12,
 }
@@ -138,10 +138,10 @@ def test_missing_state_field_is_rejected() -> None:
   def handler(Request: httpx.Request) -> httpx.Response:
     del Request
     Data = dict(STATE_DATA)
-    del Data["paused"]
+    del Data["simulating"]
     return json_response(200, {"success": True, "data": Data})
 
-  with pytest.raises(InvalidEngineResponse, match="paused"):
+  with pytest.raises(InvalidEngineResponse, match="simulating"):
     run_request(handler)
 
 

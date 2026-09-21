@@ -102,7 +102,7 @@ def test_automation_descriptors_reject_invalid_values() -> None:
   with pytest.raises(InvalidEngineResponse):
     SystemCommandInfo.from_mapping(
       {
-        "name": "pause_game",
+        "name": "start_simulation",
         "description": "",
         "inputSchema": {},
       },

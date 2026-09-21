@@ -13,7 +13,6 @@
 #include "Runtime/BuiltInCommands.h"
 #include "Runtime/CommandQueue.h"
 #include "Runtime/ControlRegistration.h"
-#include "Runtime/RuntimeState.h"
 #include "Runtime/StateProvider.h"
 #include "World/DiscoveryService.h"
 #include "World/WorldService.h"
@@ -38,7 +37,7 @@ struct FAutomationSubsystem::FImpl {
     WorldController = std::make_unique<FAutomationWorldController>(
         *HttpRequestExecutor,
         *CommandQueue,
-        CreateAutomationStateProvider(RuntimeState, WorldAdapter->CreateWorldStateProvider()),
+        CreateAutomationStateProvider(WorldAdapter->CreateWorldStateProvider()),
         WorldAdapter->CreateActorListProvider(),
         WorldAdapter->CreateActorProvider(),
         WorldAdapter->CreateActorComponentListProvider(),
@@ -110,7 +109,7 @@ struct FAutomationSubsystem::FImpl {
 
     SystemCommandRegistry = std::make_unique<FAutomationSystemCommandRegistry>();
     try {
-      RegisterAutomationBuiltInCommands(*SystemCommandRegistry, RuntimeState);
+      RegisterAutomationBuiltInCommands(*SystemCommandRegistry);
       SystemCommandRegistry->Freeze();
     } catch (const std::exception& Exception) {
       M_LOG(Log, "Automation system command registration failed: {}", Exception.what());
@@ -158,10 +157,8 @@ struct FAutomationSubsystem::FImpl {
     ComponentMethodRegistry.reset();
     MethodRegistry.reset();
     CommandQueue.reset();
-    RuntimeState.Paused = false;
   }
 
-  FAutomationRuntimeState RuntimeState;
   std::unique_ptr<FAutomationCommandQueue> CommandQueue;
   std::unique_ptr<FAutomationActorMethodRegistry> MethodRegistry;
   std::unique_ptr<FAutomationComponentMethodRegistry> ComponentMethodRegistry;
@@ -196,5 +193,3 @@ void FAutomationSubsystem::Shutdown() {
 bool FAutomationSubsystem::IsRunning() const {
   return ImplPtr && ImplPtr->HttpServer && ImplPtr->HttpServer->IsRunning();
 }
-
-bool FAutomationSubsystem::IsPaused() const { return ImplPtr && ImplPtr->RuntimeState.Paused; }

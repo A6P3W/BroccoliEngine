@@ -18,7 +18,6 @@ class BROCCOLI_ENGINE_API FAutomationSubsystem {
   void Shutdown();
 
   bool IsRunning() const;
-  bool IsPaused() const;
 
  private:
   struct FImpl;
