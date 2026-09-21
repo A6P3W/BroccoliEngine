@@ -413,7 +413,7 @@ class ControlClient:
           ResponseContent.extend(Chunk)
           if len(ResponseContent) > Self.Config.MaxResponseBytes:
             raise InvalidEngineResponse(
-              "The engine response exceeds the bridge size limit.",
+              "The engine response exceeds the Control client size limit.",
               Operation=Operation,
             )
     except InvalidEngineResponse:

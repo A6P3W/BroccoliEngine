@@ -4,7 +4,7 @@ from __future__ import annotations
 
 
 class ControlError(Exception):
-  """Base class for errors that may safely be reported to an MCP client."""
+  """Base class for errors that may safely be reported to a Control client."""
 
   def __init__(
     Self,
@@ -46,7 +46,7 @@ class EngineTimeout(ControlError):
   def __init__(Self, *, Operation: str) -> None:
     super().__init__(
       "ENGINE_TIMEOUT",
-      "BROCCOLI ENGINE did not respond before the bridge timeout.",
+      "BROCCOLI ENGINE did not respond before the Control client timeout.",
       Operation=Operation,
       Retryable=True,
     )
@@ -80,7 +80,7 @@ class InvalidEngineResponse(ControlError):
 
 
 class ControlConfigurationError(ControlError):
-  """Bridge configuration is invalid."""
+  """Control client configuration is invalid."""
 
   def __init__(Self, Message: str) -> None:
     super().__init__(
@@ -92,7 +92,7 @@ class ControlConfigurationError(ControlError):
 
 
 class ControlInternalError(ControlError):
-  """An unexpected bridge failure represented without internal details."""
+  """An unexpected Control client failure represented without internal details."""
 
   def __init__(Self, *, Operation: str) -> None:
     super().__init__(

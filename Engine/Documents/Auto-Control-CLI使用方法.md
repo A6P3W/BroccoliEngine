@@ -1,7 +1,5 @@
 # Control Server を起動する
 
-MCPは非推奨です。broccoli.bat controlの仕様を推奨します。
-
 Control Server は Engine に `--control` を渡した場合だけ起動する。開発中は次のコマンドを使う。
 
 ```powershell
