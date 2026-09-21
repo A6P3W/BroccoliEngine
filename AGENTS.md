@@ -18,5 +18,5 @@ c++20環境
 control機能使用方法
 [Auto-Control-CLI](Engine\Documents\Auto-Control-CLI,MCP使用方法.md)
 
-broccoli.batを使用して
-ビルド、実行。
+broccoli.batを使用してビルド、実行。
+詳細はbroccoli.bat --helpを参照。
