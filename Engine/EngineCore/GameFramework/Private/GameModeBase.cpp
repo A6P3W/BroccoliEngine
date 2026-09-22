@@ -5,7 +5,7 @@
 
 #include "ActorManager.h"
 #include "ActorRegistry.h"
-#include "CameraComponent.h"
+#include "Camera2DComponent.h"
 #include "CollisionSystem.h"
 #include "NetworkManager.h"
 #include "Pawn.h"
@@ -26,10 +26,10 @@ struct AGameModeBase::Impl {
 AGameModeBase::AGameModeBase() : ImplPtr(new Impl()) {
   ImplPtr->DefaultPawnClass = APawn::StaticClassName();
   ImplPtr->DefaultPlayerControllerClass = APlayerController::StaticClassName();
-  auto* CameraComponent = NewObject<MCameraComponent>(this);
-  if (CameraComponent) {
-    CameraComponent->RegisterComponent();
-    CameraComponent->SetActiveCamera();
+  auto* Camera2DComponent = NewObject<MCamera2DComponent>(this);
+  if (Camera2DComponent) {
+    Camera2DComponent->RegisterComponent();
+    Camera2DComponent->SetActiveCamera();
   }
 }
 

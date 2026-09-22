@@ -8,7 +8,7 @@
 
 class AActor;
 class MRigidBody3DComponent;
-class MCollisionComponent3D;
+class MCollision3DComponent;
 
 enum class EPhysicsBody3DType : uint8_t { Static, Kinematic, Dynamic };
 enum class EPhysicsShape3DType : uint8_t { Box, Sphere };

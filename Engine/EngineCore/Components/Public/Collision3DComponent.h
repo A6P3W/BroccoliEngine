@@ -12,10 +12,10 @@ class FPhysicsSystem3D;
 enum class ECollisionShape3D : uint8_t { Box, Sphere };
 enum class ECollisionType3D : uint8_t { Block, Overlap };
 
-class BROCCOLI_ENGINE_API MCollisionComponent3D : public MSceneComponent {
+class BROCCOLI_ENGINE_API MCollision3DComponent : public MSceneComponent {
  public:
-  DEFINE_ACTOR_COMPONENT_CLASS(MCollisionComponent3D)
-  virtual ~MCollisionComponent3D() override = default;
+  DEFINE_ACTOR_COMPONENT_CLASS(MCollision3DComponent)
+  virtual ~MCollision3DComponent() override = default;
 
   virtual ECollisionShape3D GetShapeType3D() const = 0;
   virtual FVector3D GetShapeDimensions3D() const = 0;

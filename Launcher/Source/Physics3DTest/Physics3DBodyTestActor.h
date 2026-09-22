@@ -2,9 +2,9 @@
 
 #include "Actor.h"
 
-class MBoxCollisionComponent3D;
+class MBoxCollision3DComponent;
 class MRigidBody3DComponent;
-class MSphereCollisionComponent3D;
+class MSphereCollision3DComponent;
 
 struct FPhysics3DCollisionObservation {
   uint32_t BeginOverlapCount = 0;

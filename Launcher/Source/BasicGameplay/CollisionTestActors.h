@@ -2,7 +2,7 @@
 
 #include "Actor.h"
 
-class MCollisionComponent;
+class MCollision2DComponent;
 
 // エンジンの汎用オブジェクトであるアクターの基底クラス AActorを継承したコリジョン検証用ベースアクター
 class ACollisionTestActorBase : public AActor {
@@ -17,7 +17,7 @@ class ACollisionTestActorBase : public AActor {
   void EndOverlap(AActor* OtherActor) override;
 
  protected:
-  void ConfigureCollision(MCollisionComponent* Collision, const char* ShapeName);
+  void ConfigureCollision(MCollision2DComponent* Collision, const char* ShapeName);
 
  private:
   const char* ShapeLabel = "Collision";

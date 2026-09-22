@@ -3,8 +3,8 @@
 #include "Actor.h"
 #include "BroccoliEngineAPI.h"
 
-class MCircleCollisionComponent;
-class MCollisionComponent;
+class MCircleCollision2DComponent;
+class MCollision2DComponent;
 class MForceFieldComponent;
 
 class BROCCOLI_ENGINE_API AForceFieldActor : public AActor {
@@ -13,12 +13,12 @@ class BROCCOLI_ENGINE_API AForceFieldActor : public AActor {
   AForceFieldActor();
 
   MForceFieldComponent* GetForceFieldComponent() const;
-  MCollisionComponent* GetRangeComponent() const;
+  MCollision2DComponent* GetRangeComponent() const;
 
  protected:
   void OnUpdate(float DeltaTime) override;
 
  private:
   MForceFieldComponent* ForceFieldComponent = nullptr;
-  MCircleCollisionComponent* RangeComponent = nullptr;
+  MCircleCollision2DComponent* RangeComponent = nullptr;
 };

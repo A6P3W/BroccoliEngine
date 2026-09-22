@@ -1,6 +1,6 @@
 #include "CanvasTestActor.h"
 
-#include "CameraComponent.h"
+#include "Camera2DComponent.h"
 #include "CanvasComponent.h"
 #include "EnhancedInputComponent.h"
 #include "InputManager.h"

@@ -93,7 +93,7 @@ struct RenderCommand {
   RenderCommandData data;
 };
 
-class MCameraComponent;
+class MCamera2DComponent;
 class MCamera3DComponent;
 struct FRenderContext;
 class RenderSystemImpl;
@@ -170,8 +170,8 @@ class BROCCOLI_ENGINE_API RenderSystem {
 
   void Draw();
 
-  void SetCameraView(MCameraComponent* m);
-  MCameraComponent* GetCamera();
+  void SetCameraView(MCamera2DComponent* m);
+  MCamera2DComponent* GetCamera();
   void SetCameraView3D(MCamera3DComponent* Camera);
   MCamera3DComponent* GetCamera3D();
   void SetViewCullingEnabled(bool BEnabled);

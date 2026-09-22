@@ -2,10 +2,10 @@
 
 #include <memory>
 
-#include "CollisionComponent.h"
+#include "Collision2DComponent.h"
 #include "Log.h"
 #include "NetworkTestPawn.h"
-#include "RectangleCollisionComponent.h"
+#include "RectangleCollision2DComponent.h"
 #include "SpriteComponent.h"
 
 // このアクタークラスを ActorRegistry に一般アクターとして自動登録するマクロ
@@ -26,7 +26,7 @@ ANetworkTestBreakableActor::ANetworkTestBreakableActor() {
   BodySprite->RegisterComponent();
 
   // 衝突判定用の矩形コリジョンコンポーネントを作成
-  auto* Collision = NewObject<MRectangleCollisionComponent>(this);
+  auto* Collision = NewObject<MRectangleCollision2DComponent>(this);
   // 衝突判定用矩形（ボックス）のサイズ（幅・高さ）を設定する関数
   Collision->SetSize(40.0f, 40.0f);
   // このコンポーネントをアクターのルートコンポーネントにアタッチ（親子関係を構築）する関数

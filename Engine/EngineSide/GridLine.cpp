@@ -5,7 +5,7 @@
 #include <format>
 #include <string>
 
-#include "CameraComponent.h"
+#include "Camera2DComponent.h"
 #include "CollisionSystem.h"
 #include "EngineDefine.h"
 #include "RenderSystem.h"

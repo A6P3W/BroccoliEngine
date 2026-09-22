@@ -4,7 +4,7 @@
 #include <NetMovementComponent.h>
 
 #include "ActorManager.h"
-#include "CameraComponent.h"
+#include "Camera2DComponent.h"
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "Log.h"
@@ -16,7 +16,7 @@
 REGISTER_ACTOR(APawn)
 
 APawn::APawn() {
-  Camera = NewObject<MCameraComponent>(this);
+  Camera = NewObject<MCamera2DComponent>(this);
   if (Camera) {
     Camera->SetFOV(1);
     Camera->RegisterComponent();

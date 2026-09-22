@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "BroccoliRaylib.h"
-#include "CameraComponent.h"
+#include "Camera2DComponent.h"
 #include "EditorMode.h"
 #include "EnhancedInputComponent.h"
 #include "RenderSystem.h"

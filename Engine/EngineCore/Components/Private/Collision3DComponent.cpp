@@ -1,4 +1,4 @@
-#include "CollisionComponent3D.h"
+#include "Collision3DComponent.h"
 
 #include <algorithm>
 
@@ -6,26 +6,26 @@
 #include "PhysicsSystem3D.h"
 #include "World.h"
 
-void MCollisionComponent3D::OnRegister() {
+void MCollision3DComponent::OnRegister() {
   AActor* Owner = GetOwner();
   if (Owner && Owner->GetWorld() && Owner->GetWorld()->GetPhysicsSystem3D()) {
     Owner->GetWorld()->GetPhysicsSystem3D()->RefreshActorBody(Owner);
   }
 }
 
-void MCollisionComponent3D::OnUnregister() {
+void MCollision3DComponent::OnUnregister() {
   AActor* Owner = GetOwner();
   if (Owner && Owner->GetWorld() && Owner->GetWorld()->GetPhysicsSystem3D()) {
     Owner->GetWorld()->GetPhysicsSystem3D()->UnregisterActorBody(Owner);
   }
 }
 
-bool MCollisionComponent3D::IsOverlappingActor(AActor* OtherActor) const {
+bool MCollision3DComponent::IsOverlappingActor(AActor* OtherActor) const {
   return std::find(OverlappingActors.begin(), OverlappingActors.end(), OtherActor) !=
          OverlappingActors.end();
 }
 
-std::vector<AActor*> MCollisionComponent3D::GetOverlappingActors() const {
+std::vector<AActor*> MCollision3DComponent::GetOverlappingActors() const {
   std::vector<AActor*> Result;
   Result.reserve(OverlappingActors.size());
   for (AActor* Actor : OverlappingActors) {
@@ -36,7 +36,7 @@ std::vector<AActor*> MCollisionComponent3D::GetOverlappingActors() const {
   return Result;
 }
 
-void MCollisionComponent3D::NotifyOverlapBegin(AActor* OtherActor) {
+void MCollision3DComponent::NotifyOverlapBegin(AActor* OtherActor) {
   AActor* Owner = GetOwner();
   if (!Owner || !OtherActor || Owner == OtherActor || OtherActor->IsPendingDestroy()) {
     return;
@@ -47,7 +47,7 @@ void MCollisionComponent3D::NotifyOverlapBegin(AActor* OtherActor) {
   }
 }
 
-void MCollisionComponent3D::NotifyOverlapEnd(AActor* OtherActor) {
+void MCollision3DComponent::NotifyOverlapEnd(AActor* OtherActor) {
   AActor* Owner = GetOwner();
   const auto It = std::find(OverlappingActors.begin(), OverlappingActors.end(), OtherActor);
   if (It == OverlappingActors.end()) {
@@ -59,6 +59,6 @@ void MCollisionComponent3D::NotifyOverlapEnd(AActor* OtherActor) {
   }
 }
 
-void MCollisionComponent3D::RemoveOverlappingActor(AActor* OtherActor) {
+void MCollision3DComponent::RemoveOverlappingActor(AActor* OtherActor) {
   std::erase(OverlappingActors, OtherActor);
 }

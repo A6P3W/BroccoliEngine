@@ -2,11 +2,11 @@
 
 #include <limits>
 
-#include "BoxCollisionComponent3D.h"
+#include "BoxCollision3DComponent.h"
 #include "ControlMacros.h"
 #include "PhysicsSystem3D.h"
 #include "RigidBody3DComponent.h"
-#include "SphereCollisionComponent3D.h"
+#include "SphereCollision3DComponent.h"
 #include "World.h"
 
 REGISTER_ACTOR(APhysics3DQueryTestActor)
@@ -29,7 +29,7 @@ CONTROL_METHOD(
 APhysics3DQueryTestActor::APhysics3DQueryTestActor() {
   auto* Body = NewObject<MRigidBody3DComponent>(this);
   Body->RegisterComponent();
-  auto* Collider = NewObject<MSphereCollisionComponent3D>(this);
+  auto* Collider = NewObject<MSphereCollision3DComponent>(this);
   Collider->SetRadius(0.5f);
   Collider->SetCollisionLayer3D(1);
   Collider->RegisterComponent();
@@ -38,7 +38,7 @@ APhysics3DQueryTestActor::APhysics3DQueryTestActor() {
 APhysics3DQueryBoxActor::APhysics3DQueryBoxActor() {
   auto* Body = NewObject<MRigidBody3DComponent>(this);
   Body->RegisterComponent();
-  auto* Collider = NewObject<MBoxCollisionComponent3D>(this);
+  auto* Collider = NewObject<MBoxCollision3DComponent>(this);
   Collider->SetHalfExtent({2.0f, 0.2f, 0.2f});
   Collider->SetCollisionLayer3D(2);
   Collider->RegisterComponent();

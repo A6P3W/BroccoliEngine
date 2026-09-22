@@ -1,10 +1,10 @@
-#include "LineCollisionComponent.h"
+#include "LineCollision2DComponent.h"
 
 #include <RenderSystem.h>
 
 #include "EngineDefine.h"
 
-void MLineCollisionComponent::Draw() {
+void MLineCollision2DComponent::Draw() {
   if (!IsDebug) return;
 
   RenderSystem::GetInstance().SubmitLine(
@@ -12,7 +12,7 @@ void MLineCollisionComponent::Draw() {
   );
 }
 
-FAABB MLineCollisionComponent::GetAABB() const {
+FAABB MLineCollision2DComponent::GetAABB() const {
   FVector2D start = GetWorldStart();
   FVector2D end = GetWorldEnd();
 

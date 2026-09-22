@@ -1,11 +1,11 @@
 #pragma once
 #include "BroccoliEngineAPI.h"
-#include "CollisionComponent.h"
+#include "Collision2DComponent.h"
 
-class BROCCOLI_ENGINE_API MRectangleCollisionComponent : public MCollisionComponent {
+class BROCCOLI_ENGINE_API MRectangleCollision2DComponent : public MCollision2DComponent {
  public:
-  DEFINE_ACTOR_COMPONENT_CLASS(MRectangleCollisionComponent)
-  MRectangleCollisionComponent() = default;
+  DEFINE_ACTOR_COMPONENT_CLASS(MRectangleCollision2DComponent)
+  MRectangleCollision2DComponent() = default;
 
   ECollisionShape GetShapeType() const override { return ECollisionShape::Rectangle; }
 

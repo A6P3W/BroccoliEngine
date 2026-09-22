@@ -1,6 +1,6 @@
 #include "StressTestActor.h"
 
-#include "RectangleCollisionComponent.h"
+#include "RectangleCollision2DComponent.h"
 #include "ResourceManager.h"
 #include "SpriteComponent.h"
 
@@ -31,7 +31,7 @@ AStressTestActor::AStressTestActor() {
         Sprite->RegisterComponent();
       }
 
-      auto* Collision = NewObject<MRectangleCollisionComponent>(this);
+      auto* Collision = NewObject<MRectangleCollision2DComponent>(this);
       if (Collision) {
         Collision->SetSize(size, size);
         Collision->SetStatic(true);

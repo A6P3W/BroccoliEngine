@@ -1,7 +1,7 @@
 #include "NetworkTestPawn.h"
 
 #include <NetMovementComponent.h>
-#include <RectangleCollisionComponent.h>
+#include <RectangleCollision2DComponent.h>
 
 #include "EnhancedInputComponent.h"
 #include "Log.h"
@@ -37,20 +37,20 @@ ANetworkTestPawn::ANetworkTestPawn() {
   // コンポーネントをエンジンシステムに登録し、アップデートや描画などのライフサイクル処理を有効化する関数。
   BodySprite->RegisterComponent();
 
-  // 物理衝突判定を担当する MRectangleCollisionComponent を動的に作成。
-  auto* CollisionComponent = NewObject<MRectangleCollisionComponent>(this);
+  // 物理衝突判定を担当する MRectangleCollision2DComponent を動的に作成。
+  auto* Collision2DComponent = NewObject<MRectangleCollision2DComponent>(this);
 
   // 衝突判定用矩形（ボックス）のサイズ（幅・高さ）を設定する関数。
-  CollisionComponent->SetSize(48.0f, 48.0f);
+  Collision2DComponent->SetSize(48.0f, 48.0f);
 
   // このコンポーネントをアクターのルートコンポーネントにアタッチ（親子関係を設定）する関数。
-  CollisionComponent->AttachToComponent(GetRootComponent());
+  Collision2DComponent->AttachToComponent(GetRootComponent());
 
   // コリジョンを動的（移動可能）オブジェクトとして設定する関数（false にすると静的/固定オブジェクトになる）。
-  CollisionComponent->SetStatic(false);
+  Collision2DComponent->SetStatic(false);
 
   // コリジョンコンポーネントを登録し、衝突判定処理を有効化する関数。
-  CollisionComponent->RegisterComponent();
+  Collision2DComponent->RegisterComponent();
 
   // ネットワーク同期に対応した移動制御コンポーネント MNetMovementComponent を動的に作成。
   Movement = NewObject<MNetMovementComponent>(this);

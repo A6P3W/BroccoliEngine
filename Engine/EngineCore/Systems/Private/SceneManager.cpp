@@ -34,10 +34,9 @@ std::string ResolveRuntimeLevelPath(const std::string& LevelPath) {
 
   std::string Extension = FileUtils::PathToUtf8(InputPath.extension());
   std::transform(
-      Extension.begin(),
-      Extension.end(),
-      Extension.begin(),
-      [](unsigned char Character) { return static_cast<char>(std::tolower(Character)); }
+      Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char Character) {
+        return static_cast<char>(std::tolower(Character));
+      }
   );
   if (Extension != ".blevel") {
     M_LOG(Log, "[SceneManager] ResolveRuntimeLevelPath: Extension '{}' != '.blevel'", Extension);
@@ -83,7 +82,7 @@ SceneManager& SceneManager::GetInstance() {
 
 #include "Actor.h"
 #include "ActorManager.h"
-#include "CameraComponent.h"
+#include "Camera2DComponent.h"
 #include "CollisionSystem.h"
 #include "EngineDefine.h"
 #include "GameModeBase.h"

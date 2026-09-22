@@ -6,7 +6,7 @@
 #include <string>
 
 #include "Actor.h"
-#include "CollisionComponent.h"
+#include "Collision2DComponent.h"
 #include "DebugOverlay.h"
 #include "MovementComponent.h"
 #if !defined(_RELEASE)
@@ -52,7 +52,7 @@ void MForceFieldComponent::OnUpdate(float DeltaTime) {
   ApplyToTargets(EApplicationType::Force, 1.0f);
 }
 
-void MForceFieldComponent::SetRangeComponent(MCollisionComponent* NewRangeComponent) {
+void MForceFieldComponent::SetRangeComponent(MCollision2DComponent* NewRangeComponent) {
   if (NewRangeComponent && NewRangeComponent->GetOwner() != GetOwner()) {
     return;
   }
@@ -65,7 +65,7 @@ void MForceFieldComponent::SetRangeComponent(MCollisionComponent* NewRangeCompon
 #endif
 }
 
-MCollisionComponent* MForceFieldComponent::GetRangeComponent() const { return RangeComponent; }
+MCollision2DComponent* MForceFieldComponent::GetRangeComponent() const { return RangeComponent; }
 void MForceFieldComponent::SetForceType(EForceFieldType NewForceType) {
   ForceType = NewForceType;
 #if !defined(_RELEASE)
