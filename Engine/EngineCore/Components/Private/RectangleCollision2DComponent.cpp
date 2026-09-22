@@ -1,10 +1,10 @@
-#include "RectangleCollisionComponent.h"
+#include "RectangleCollision2DComponent.h"
 
 #include <RenderSystem.h>
 
 #include "EngineDefine.h"
 
-void MRectangleCollisionComponent::Draw() {
+void MRectangleCollision2DComponent::Draw() {
   if (!IsDebug) return;
   FVector2D center = GetWorldLocation();
   float halfWidth = (Width * GetWorldScale().Scale) * 0.5f;
@@ -41,7 +41,7 @@ void MRectangleCollisionComponent::Draw() {
   );
 }
 
-FAABB MRectangleCollisionComponent::GetAABB() const {
+FAABB MRectangleCollision2DComponent::GetAABB() const {
   FVector2D center = GetWorldLocation();
   float halfWidth = (Width * GetWorldScale().Scale) * 0.5f;
   float halfHeight = (Height * GetWorldScale().Scale) * 0.5f;

@@ -1,11 +1,11 @@
 #pragma once
 #include "BroccoliEngineAPI.h"
-#include "CollisionComponent.h"
+#include "Collision2DComponent.h"
 
-class BROCCOLI_ENGINE_API MCircleCollisionComponent : public MCollisionComponent {
+class BROCCOLI_ENGINE_API MCircleCollision2DComponent : public MCollision2DComponent {
  public:
-  DEFINE_ACTOR_COMPONENT_CLASS(MCircleCollisionComponent)
-  MCircleCollisionComponent() = default;
+  DEFINE_ACTOR_COMPONENT_CLASS(MCircleCollision2DComponent)
+  MCircleCollision2DComponent() = default;
   ECollisionShape GetShapeType() const override { return ECollisionShape::Circle; }
   float GetRadius() const { return Radius; };
   void SetRadius(float NewRadius) { Radius = NewRadius; }

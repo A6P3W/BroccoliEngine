@@ -14,11 +14,11 @@ enum class ECollisionType { Overlap, Block };
 struct FAABB {
   float MinX, MinY, MaxX, MaxY;
 };
-class BROCCOLI_ENGINE_API MCollisionComponent : public MSceneComponent {
+class BROCCOLI_ENGINE_API MCollision2DComponent : public MSceneComponent {
  public:
-  DEFINE_ACTOR_COMPONENT_CLASS(MCollisionComponent)
-  MCollisionComponent();
-  virtual ~MCollisionComponent();
+  DEFINE_ACTOR_COMPONENT_CLASS(MCollision2DComponent)
+  MCollision2DComponent();
+  virtual ~MCollision2DComponent();
   virtual ECollisionShape GetShapeType() const = 0;
 
   std::vector<AActor*> GetOverlappingActors() const;
@@ -28,7 +28,7 @@ class BROCCOLI_ENGINE_API MCollisionComponent : public MSceneComponent {
   void SetCollisionType(ECollisionType NewType);
 
   bool IsOverlappingActor(AActor* OtherActor) const;
-  bool ShouldProcessPair(MCollisionComponent* OtherComponent, std::uint64_t FrameId);
+  bool ShouldProcessPair(MCollision2DComponent* OtherComponent, std::uint64_t FrameId);
   void UpdateOverlapState(AActor* OtherActor, bool bIsIntersecting);
   void RemoveActorReference(AActor* Actor);
   void SetStatic(bool IsStatic);

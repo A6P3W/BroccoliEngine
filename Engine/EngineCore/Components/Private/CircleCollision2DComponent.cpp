@@ -1,9 +1,9 @@
-#include "CircleCollisionComponent.h"
+#include "CircleCollision2DComponent.h"
 
 #include <RenderSystem.h>
 
 #include "EngineDefine.h"
-void MCircleCollisionComponent::Draw() {
+void MCircleCollision2DComponent::Draw() {
   if (!IsDebug) return;
   RenderSystem::GetInstance().SubmitCircle(
       GetWorldLocation(),
@@ -23,7 +23,7 @@ void MCircleCollisionComponent::Draw() {
   );
 }
 
-FAABB MCircleCollisionComponent::GetAABB() const {
+FAABB MCircleCollision2DComponent::GetAABB() const {
   FVector2D center = GetWorldLocation();
   float radius = Radius * GetWorldScale().Scale;
 

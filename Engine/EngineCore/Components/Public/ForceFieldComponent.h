@@ -9,7 +9,7 @@
 #include "UMath.h"
 
 class AActor;
-class MCollisionComponent;
+class MCollision2DComponent;
 #if !defined(_RELEASE)
 class MSpriteComponent;
 #endif
@@ -26,8 +26,8 @@ class BROCCOLI_ENGINE_API MForceFieldComponent : public MSceneComponent {
   ~MForceFieldComponent() override = default;
 
   void OnUpdate(float DeltaTime) override;
-  void SetRangeComponent(MCollisionComponent* NewRangeComponent);
-  MCollisionComponent* GetRangeComponent() const;
+  void SetRangeComponent(MCollision2DComponent* NewRangeComponent);
+  MCollision2DComponent* GetRangeComponent() const;
   void SetForceType(EForceFieldType NewForceType);
   EForceFieldType GetForceType() const;
   void SetDirection(const FVector2D& NewDirection);
@@ -63,7 +63,7 @@ class BROCCOLI_ENGINE_API MForceFieldComponent : public MSceneComponent {
   FVector2D Direction = {1.0f, 0.0f};
   float Strength = 1.0f;
   bool bActive = false;
-  MCollisionComponent* RangeComponent = nullptr;
+  MCollision2DComponent* RangeComponent = nullptr;
   std::vector<std::string> AffectedActorTags;
   std::vector<std::string> IgnoredActorTags;
 #if !defined(_RELEASE)

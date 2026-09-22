@@ -5,8 +5,8 @@
 #include <type_traits>
 
 #include "BroccoliRaylib.h"
+#include "Camera2DComponent.h"
 #include "Camera3DComponent.h"
-#include "CameraComponent.h"
 #include "EngineDefine.h"
 #include "Log.h"
 #include "RaylibResourceBridge.h"
@@ -423,7 +423,7 @@ class RenderSystemImpl {
  public:
   std::vector<RenderCommand> CommandBuffer;
   std::vector<RenderCommand3D> CommandBuffer3D;
-  MCameraComponent* MainCamera = nullptr;
+  MCamera2DComponent* MainCamera = nullptr;
   MCamera3DComponent* MainCamera3D = nullptr;
   FVector2D RenderTargetSize = {
       static_cast<float>(VirtualWidth), static_cast<float>(VirtualHeight)
@@ -861,8 +861,8 @@ void RenderSystem::Draw() {
   Impl->CommandBuffer.clear();
 }
 
-void RenderSystem::SetCameraView(MCameraComponent* m) { Impl->MainCamera = m; }
-MCameraComponent* RenderSystem::GetCamera() { return Impl->MainCamera; }
+void RenderSystem::SetCameraView(MCamera2DComponent* m) { Impl->MainCamera = m; }
+MCamera2DComponent* RenderSystem::GetCamera() { return Impl->MainCamera; }
 void RenderSystem::SetCameraView3D(MCamera3DComponent* Camera) { Impl->MainCamera3D = Camera; }
 MCamera3DComponent* RenderSystem::GetCamera3D() { return Impl->MainCamera3D; }
 

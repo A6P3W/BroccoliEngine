@@ -1,6 +1,6 @@
 #include "NetworkTestForceFieldActor.h"
 
-#include "CircleCollisionComponent.h"
+#include "CircleCollision2DComponent.h"
 #include "ForceFieldComponent.h"
 #include "SpriteComponent.h"
 
@@ -24,7 +24,8 @@ ANetworkTestForceFieldActor::ANetworkTestForceFieldActor() {
   }
 
   // 力場の範囲を規定するコリジョンコンポーネントを取得する関数
-  MCircleCollisionComponent* Range = dynamic_cast<MCircleCollisionComponent*>(GetRangeComponent());
+  MCircleCollision2DComponent* Range =
+      dynamic_cast<MCircleCollision2DComponent*>(GetRangeComponent());
   if (Range) {
     // 影響が及ぶ円の半径を設定する関数
     Range->SetRadius(160.0f);

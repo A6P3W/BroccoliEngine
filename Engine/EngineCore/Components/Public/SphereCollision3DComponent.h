@@ -1,10 +1,10 @@
 #pragma once
 
-#include "CollisionComponent3D.h"
+#include "Collision3DComponent.h"
 
-class BROCCOLI_ENGINE_API MSphereCollisionComponent3D : public MCollisionComponent3D {
+class BROCCOLI_ENGINE_API MSphereCollision3DComponent : public MCollision3DComponent {
  public:
-  DEFINE_ACTOR_COMPONENT_CLASS(MSphereCollisionComponent3D)
+  DEFINE_ACTOR_COMPONENT_CLASS(MSphereCollision3DComponent)
 
   ECollisionShape3D GetShapeType3D() const override { return ECollisionShape3D::Sphere; }
   FVector3D GetShapeDimensions3D() const override;

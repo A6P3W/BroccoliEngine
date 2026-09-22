@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 #include "Actor.h"
-#include "CollisionComponent3D.h"
+#include "Collision3DComponent.h"
 #include "Jolt/JoltPhysicsBackend.h"
 #include "RigidBody3DComponent.h"
 
@@ -23,7 +23,7 @@ float Dot(const FVector3D& Left, const FVector3D& Right) {
 float LengthSquared(const FVector3D& Value) { return Dot(Value, Value); }
 
 bool PassesFilter(
-    const AActor& Actor, const MCollisionComponent3D& Collider, const FPhysicsQueryFilter3D& Filter
+    const AActor& Actor, const MCollision3DComponent& Collider, const FPhysicsQueryFilter3D& Filter
 ) {
   if (&Actor == Filter.IgnoredActor || Collider.GetCollisionLayer3D() >= 16) {
     return false;
@@ -74,12 +74,12 @@ void FPhysicsSystem3D::Step(float DeltaTime) {
       }
       const std::pair<AActor*, AActor*> Pair =
           ActorA < ActorB ? std::pair{ActorA, ActorB} : std::pair{ActorB, ActorA};
-      const std::vector<MCollisionComponent3D*> CollidersA =
-          ActorA->GetComponents<MCollisionComponent3D>();
-      const std::vector<MCollisionComponent3D*> CollidersB =
-          ActorB->GetComponents<MCollisionComponent3D>();
-      MCollisionComponent3D* ColliderA = CollidersA.empty() ? nullptr : CollidersA.front();
-      MCollisionComponent3D* ColliderB = CollidersB.empty() ? nullptr : CollidersB.front();
+      const std::vector<MCollision3DComponent*> CollidersA =
+          ActorA->GetComponents<MCollision3DComponent>();
+      const std::vector<MCollision3DComponent*> CollidersB =
+          ActorB->GetComponents<MCollision3DComponent>();
+      MCollision3DComponent* ColliderA = CollidersA.empty() ? nullptr : CollidersA.front();
+      MCollision3DComponent* ColliderB = CollidersB.empty() ? nullptr : CollidersB.front();
       if (!ColliderA || !ColliderB) {
         continue;
       }
@@ -135,13 +135,13 @@ void FPhysicsSystem3D::RefreshActorBody(AActor* Actor) {
     return;
   }
   std::vector<MRigidBody3DComponent*> RigidBodies = Actor->GetComponents<MRigidBody3DComponent>();
-  std::vector<MCollisionComponent3D*> Colliders = Actor->GetComponents<MCollisionComponent3D>();
+  std::vector<MCollision3DComponent*> Colliders = Actor->GetComponents<MCollision3DComponent>();
   if (RigidBodies.size() != 1 || Colliders.size() != 1 || !RigidBodies[0]->IsRegistered()) {
     return;
   }
 
   MRigidBody3DComponent* Body = RigidBodies[0];
-  MCollisionComponent3D* Collider = Colliders[0];
+  MCollision3DComponent* Collider = Colliders[0];
   FPhysicsBody3DDesc Description;
   Description.Type = static_cast<EPhysicsBody3DType>(Body->GetBodyType());
   Description.ShapeType = static_cast<EPhysicsShape3DType>(Collider->GetShapeType3D());
@@ -173,10 +173,10 @@ void FPhysicsSystem3D::UnregisterActorBody(AActor* Actor) {
       continue;
     }
     AActor* OtherActor = PairIt->first == Actor ? PairIt->second : PairIt->first;
-    const std::vector<MCollisionComponent3D*> OtherColliders =
-        OtherActor->GetComponents<MCollisionComponent3D>();
+    const std::vector<MCollision3DComponent*> OtherColliders =
+        OtherActor->GetComponents<MCollision3DComponent>();
     if (!OtherColliders.empty()) {
-      MCollisionComponent3D* OtherCollider = OtherColliders.front();
+      MCollision3DComponent* OtherCollider = OtherColliders.front();
       OtherCollider->RemoveOverlappingActor(Actor);
     }
     PairIt = ImplPtr->ActivePairs.erase(PairIt);
@@ -242,8 +242,8 @@ std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::RaycastAll(
     if (!Actor || Actor->IsPendingDestroy()) {
       continue;
     }
-    const std::vector<MCollisionComponent3D*> Colliders =
-        Actor->GetComponents<MCollisionComponent3D>();
+    const std::vector<MCollision3DComponent*> Colliders =
+        Actor->GetComponents<MCollision3DComponent>();
     if (Colliders.empty() || !PassesFilter(*Actor, *Colliders.front(), Filter)) {
       continue;
     }
@@ -289,9 +289,9 @@ std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::OverlapBox(
   for (void* Key : ImplPtr->Backend->OverlapShape(Center, HalfExtent, false)) {
     auto* Body = static_cast<MRigidBody3DComponent*>(Key);
     AActor* Actor = Body->GetOwner();
-    const std::vector<MCollisionComponent3D*> Colliders =
-        Actor ? Actor->GetComponents<MCollisionComponent3D>()
-              : std::vector<MCollisionComponent3D*>();
+    const std::vector<MCollision3DComponent*> Colliders =
+        Actor ? Actor->GetComponents<MCollision3DComponent>()
+              : std::vector<MCollision3DComponent*>();
     if (!Actor || !Body || Actor->IsPendingDestroy() || Colliders.empty() ||
         !PassesFilter(*Actor, *Colliders.front(), Filter)) {
       continue;
@@ -315,7 +315,7 @@ std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::OverlapSphere(
     if (!Actor || Actor->IsPendingDestroy()) {
       continue;
     }
-    const auto Colliders = Actor->GetComponents<MCollisionComponent3D>();
+    const auto Colliders = Actor->GetComponents<MCollision3DComponent>();
     if (Colliders.empty() || !PassesFilter(*Actor, *Colliders.front(), Filter)) {
       continue;
     }

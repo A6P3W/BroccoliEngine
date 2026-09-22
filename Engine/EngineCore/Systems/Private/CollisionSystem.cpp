@@ -9,10 +9,10 @@
 #include <vector>
 
 #include "Actor.h"
-#include "CircleCollisionComponent.h"
-#include "LineCollisionComponent.h"
+#include "CircleCollision2DComponent.h"
+#include "LineCollision2DComponent.h"
 #include "MovementComponent.h"
-#include "RectangleCollisionComponent.h"
+#include "RectangleCollision2DComponent.h"
 
 struct pair_hash {
   inline std::size_t operator()(const std::pair<int, int>& v) const {
@@ -21,32 +21,32 @@ struct pair_hash {
 };
 
 struct FCollisionSystem::Impl {
-  std::vector<MCollisionComponent*> CollisionComponents;
+  std::vector<MCollision2DComponent*> Collision2DComponents;
 
-  std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash>
+  std::unordered_map<std::pair<int, int>, std::vector<MCollision2DComponent*>, pair_hash>
       StaticCollisionMap;
-  std::unordered_map<std::pair<int, int>, std::vector<MCollisionComponent*>, pair_hash>
+  std::unordered_map<std::pair<int, int>, std::vector<MCollision2DComponent*>, pair_hash>
       DynamicCollisionMap;
 
   std::vector<std::pair<int, int>> ActiveStaticCells;
   std::vector<std::pair<int, int>> ActiveDynamicCells;
 
-  std::unordered_map<MCollisionComponent*, FAABB> CachedAABBs;
+  std::unordered_map<MCollision2DComponent*, FAABB> CachedAABBs;
 
   float CollisionCellSize = 100;
   std::uint64_t FrameId = 0;
 
   bool bDeferStaticRebuild = false;
   bool bPendingStaticRebuild = false;
-  std::vector<MCollisionComponent*> PendingStaticRegistrations;
+  std::vector<MCollision2DComponent*> PendingStaticRegistrations;
 };
 FCollisionSystem::FCollisionSystem() : ImplPtr(new Impl()) {}
 FCollisionSystem::~FCollisionSystem() { delete ImplPtr; }
 
 float FCollisionSystem::GetCollisionCellSize() const { return ImplPtr->CollisionCellSize; }
 
-void FCollisionSystem::RegisterCollision(MCollisionComponent* component) {
-  ImplPtr->CollisionComponents.push_back(component);
+void FCollisionSystem::RegisterCollision(MCollision2DComponent* component) {
+  ImplPtr->Collision2DComponents.push_back(component);
   if (component->IsStatic()) {
     if (std::find(
             ImplPtr->PendingStaticRegistrations.begin(),
@@ -58,13 +58,13 @@ void FCollisionSystem::RegisterCollision(MCollisionComponent* component) {
   }
 }
 
-void FCollisionSystem::UnRegisterCollision(MCollisionComponent* component) {
+void FCollisionSystem::UnRegisterCollision(MCollision2DComponent* component) {
   auto it = std::find(
-      ImplPtr->CollisionComponents.begin(), ImplPtr->CollisionComponents.end(), component
+      ImplPtr->Collision2DComponents.begin(), ImplPtr->Collision2DComponents.end(), component
   );
-  if (it != ImplPtr->CollisionComponents.end()) {
-    *it = ImplPtr->CollisionComponents.back();
-    ImplPtr->CollisionComponents.pop_back();
+  if (it != ImplPtr->Collision2DComponents.end()) {
+    *it = ImplPtr->Collision2DComponents.back();
+    ImplPtr->Collision2DComponents.pop_back();
   }
 
   ImplPtr->PendingStaticRegistrations.erase(
@@ -103,7 +103,7 @@ void FCollisionSystem::RebuildStaticCollisionMap() {
   }
   ImplPtr->ActiveStaticCells.clear();
 
-  for (auto* comp : ImplPtr->CollisionComponents) {
+  for (auto* comp : ImplPtr->Collision2DComponents) {
     if (!comp->IsStatic()) continue;
     ImplPtr->CachedAABBs[comp] = comp->GetAABB();
     RegisterToStaticMap(comp);
@@ -117,7 +117,7 @@ void FCollisionSystem::UpdateCollisionMap() {
   }
   ImplPtr->ActiveDynamicCells.clear();
 
-  for (auto collision : ImplPtr->CollisionComponents) {
+  for (auto collision : ImplPtr->Collision2DComponents) {
     if (collision->IsStatic()) {
       continue;
     }
@@ -142,7 +142,7 @@ void FCollisionSystem::UpdateCollisionMap() {
 }
 
 void FCollisionSystem::CheckCollisions() {
-  for (auto* comp : ImplPtr->CollisionComponents) {
+  for (auto* comp : ImplPtr->Collision2DComponents) {
     ImplPtr->CachedAABBs[comp] = comp->GetAABB();
   }
 
@@ -203,21 +203,23 @@ void FCollisionSystem::CheckCollisions() {
     }
   }
 
-  for (auto* comp : ImplPtr->CollisionComponents) {
+  for (auto* comp : ImplPtr->Collision2DComponents) {
     comp->FlushOverlapState();
   }
 }
 
 void FCollisionSystem::RemoveActorReferences(AActor* Actor) {
   if (!Actor) return;
-  for (auto* comp : ImplPtr->CollisionComponents) {
+  for (auto* comp : ImplPtr->Collision2DComponents) {
     if (comp) {
       comp->RemoveActorReference(Actor);
     }
   }
 }
 
-void FCollisionSystem::CircleAndCircle(MCircleCollisionComponent* a, MCircleCollisionComponent* b) {
+void FCollisionSystem::CircleAndCircle(
+    MCircleCollision2DComponent* a, MCircleCollision2DComponent* b
+) {
   FVector2D locA = a->GetWorldLocation(), locB = b->GetWorldLocation();
   float radA = a->GetRadius() * a->GetWorldScale().Scale,
         radB = b->GetRadius() * b->GetWorldScale().Scale;
@@ -294,7 +296,7 @@ static bool LineSegmentsIntersect(
 }
 
 void FCollisionSystem::CircleAndRectangle(
-    MCircleCollisionComponent* circle, MRectangleCollisionComponent* rect
+    MCircleCollision2DComponent* circle, MRectangleCollision2DComponent* rect
 ) {
   FVector2D circleCenter = circle->GetWorldLocation();
   FVector2D rectCenter = rect->GetWorldLocation();
@@ -368,9 +370,9 @@ struct OBB {
 };
 
 void FCollisionSystem::RectangleAndRectangle(
-    MRectangleCollisionComponent* a, MRectangleCollisionComponent* b
+    MRectangleCollision2DComponent* a, MRectangleCollision2DComponent* b
 ) {
-  auto GetOBB = [](MRectangleCollisionComponent* rect) -> OBB {
+  auto GetOBB = [](MRectangleCollision2DComponent* rect) -> OBB {
     OBB obb;
     obb.Center = rect->GetWorldLocation();
     float rad = UMath::DegToRad(rect->GetWorldRotation().Rotation);
@@ -426,7 +428,7 @@ void FCollisionSystem::RectangleAndRectangle(
 }
 
 void FCollisionSystem::LineAndCircle(
-    MLineCollisionComponent* line, MCircleCollisionComponent* circle
+    MLineCollision2DComponent* line, MCircleCollision2DComponent* circle
 ) {
   FVector2D start = line->GetWorldStart();
   FVector2D end = line->GetWorldEnd();
@@ -463,7 +465,7 @@ void FCollisionSystem::LineAndCircle(
 }
 
 void FCollisionSystem::LineAndRectangle(
-    MLineCollisionComponent* line, MRectangleCollisionComponent* rect
+    MLineCollision2DComponent* line, MRectangleCollision2DComponent* rect
 ) {
   FVector2D start = line->GetWorldStart();
   FVector2D end = line->GetWorldEnd();
@@ -539,7 +541,7 @@ void FCollisionSystem::LineAndRectangle(
   }
 }
 
-void FCollisionSystem::LineAndLine(MLineCollisionComponent* a, MLineCollisionComponent* b) {
+void FCollisionSystem::LineAndLine(MLineCollision2DComponent* a, MLineCollision2DComponent* b) {
   FVector2D aStart = a->GetWorldStart();
   FVector2D aEnd = a->GetWorldEnd();
   FVector2D bStart = b->GetWorldStart();
@@ -585,7 +587,7 @@ void FCollisionSystem::CollisionResolution(
   }
 }
 
-void FCollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComponent* B) {
+void FCollisionSystem::CheckCollisionPair(MCollision2DComponent* A, MCollision2DComponent* B) {
   if (A->GetOwner() == B->GetOwner()) return;
   if (A->IsStatic() && B->IsStatic()) return;
 
@@ -593,55 +595,58 @@ void FCollisionSystem::CheckCollisionPair(MCollisionComponent* A, MCollisionComp
     case ECollisionShape::Circle:
       if (B->GetShapeType() == ECollisionShape::Circle) {
         CircleAndCircle(
-            static_cast<MCircleCollisionComponent*>(A), static_cast<MCircleCollisionComponent*>(B)
+            static_cast<MCircleCollision2DComponent*>(A),
+            static_cast<MCircleCollision2DComponent*>(B)
         );
       } else if (B->GetShapeType() == ECollisionShape::Rectangle) {
         CircleAndRectangle(
-            static_cast<MCircleCollisionComponent*>(A),
-            static_cast<MRectangleCollisionComponent*>(B)
+            static_cast<MCircleCollision2DComponent*>(A),
+            static_cast<MRectangleCollision2DComponent*>(B)
         );
       } else if (B->GetShapeType() == ECollisionShape::Line) {
         LineAndCircle(
-            static_cast<MLineCollisionComponent*>(B), static_cast<MCircleCollisionComponent*>(A)
+            static_cast<MLineCollision2DComponent*>(B), static_cast<MCircleCollision2DComponent*>(A)
         );
       }
       break;
     case ECollisionShape::Rectangle:
       if (B->GetShapeType() == ECollisionShape::Circle) {
         CircleAndRectangle(
-            static_cast<MCircleCollisionComponent*>(B),
-            static_cast<MRectangleCollisionComponent*>(A)
+            static_cast<MCircleCollision2DComponent*>(B),
+            static_cast<MRectangleCollision2DComponent*>(A)
         );
       } else if (B->GetShapeType() == ECollisionShape::Rectangle) {
         RectangleAndRectangle(
-            static_cast<MRectangleCollisionComponent*>(A),
-            static_cast<MRectangleCollisionComponent*>(B)
+            static_cast<MRectangleCollision2DComponent*>(A),
+            static_cast<MRectangleCollision2DComponent*>(B)
         );
       } else if (B->GetShapeType() == ECollisionShape::Line) {
         LineAndRectangle(
-            static_cast<MLineCollisionComponent*>(B), static_cast<MRectangleCollisionComponent*>(A)
+            static_cast<MLineCollision2DComponent*>(B),
+            static_cast<MRectangleCollision2DComponent*>(A)
         );
       }
       break;
     case ECollisionShape::Line:
       if (B->GetShapeType() == ECollisionShape::Circle) {
         LineAndCircle(
-            static_cast<MLineCollisionComponent*>(A), static_cast<MCircleCollisionComponent*>(B)
+            static_cast<MLineCollision2DComponent*>(A), static_cast<MCircleCollision2DComponent*>(B)
         );
       } else if (B->GetShapeType() == ECollisionShape::Rectangle) {
         LineAndRectangle(
-            static_cast<MLineCollisionComponent*>(A), static_cast<MRectangleCollisionComponent*>(B)
+            static_cast<MLineCollision2DComponent*>(A),
+            static_cast<MRectangleCollision2DComponent*>(B)
         );
       } else if (B->GetShapeType() == ECollisionShape::Line) {
         LineAndLine(
-            static_cast<MLineCollisionComponent*>(A), static_cast<MLineCollisionComponent*>(B)
+            static_cast<MLineCollision2DComponent*>(A), static_cast<MLineCollision2DComponent*>(B)
         );
       }
       break;
   }
 }
 
-void FCollisionSystem::RegisterToStaticMap(MCollisionComponent* component) {
+void FCollisionSystem::RegisterToStaticMap(MCollision2DComponent* component) {
   const FAABB& box = ImplPtr->CachedAABBs[component];
   int minX = static_cast<int>(std::floor(box.MinX / ImplPtr->CollisionCellSize));
   int maxX = static_cast<int>(std::floor(box.MaxX / ImplPtr->CollisionCellSize));

@@ -1,10 +1,10 @@
 #include "CollisionTestActors.h"
 
-#include "CircleCollisionComponent.h"
-#include "CollisionComponent.h"
-#include "LineCollisionComponent.h"
+#include "CircleCollision2DComponent.h"
+#include "Collision2DComponent.h"
+#include "LineCollision2DComponent.h"
 #include "Log.h"
-#include "RectangleCollisionComponent.h"
+#include "RectangleCollision2DComponent.h"
 #include "SpriteComponent.h"
 
 // 各アクタークラスを ActorRegistry にアクターとして自動登録するマクロ
@@ -14,7 +14,7 @@ REGISTER_ACTOR(ACollisionTestCircleActor)
 REGISTER_ACTOR(ACollisionTestLineActor)
 
 void ACollisionTestActorBase::ConfigureCollision(
-    MCollisionComponent* Collision, const char* ShapeName
+    MCollision2DComponent* Collision, const char* ShapeName
 ) {
   ShapeLabel = ShapeName;
   // コリジョンの反応タイプを設定（ECollisionType::Overlap
@@ -58,8 +58,8 @@ void ACollisionTestActorBase::EndOverlap(AActor* OtherActor) {
 }
 
 ACollisionTestRectangleActor::ACollisionTestRectangleActor() {
-  // 指定したアクター（this）を所有者として、矩形コリジョンコンポーネント（MRectangleCollisionComponent）を動的に作成するエンジンの関数
-  auto* Collision = NewObject<MRectangleCollisionComponent>(this);
+  // 指定したアクター（this）を所有者として、矩形コリジョンコンポーネント（MRectangleCollision2DComponent）を動的に作成するエンジンの関数
+  auto* Collision = NewObject<MRectangleCollision2DComponent>(this);
   // 矩形コリジョンのサイズ（幅: 180.0f, 高さ: 90.0f）を設定する関数
   Collision->SetSize(180.0f, 90.0f);
   ConfigureCollision(Collision, "Rectangle");
@@ -67,7 +67,7 @@ ACollisionTestRectangleActor::ACollisionTestRectangleActor() {
 
 ACollisionTestBlockRectangleActor::ACollisionTestBlockRectangleActor() {
   // 指定したアクター（this）を所有者として、矩形コリジョンコンポーネントを動的に作成
-  auto* Collision = NewObject<MRectangleCollisionComponent>(this);
+  auto* Collision = NewObject<MRectangleCollision2DComponent>(this);
   // 矩形コリジョンのサイズを設定
   Collision->SetSize(130.0f, 70.0f);
   ConfigureCollision(Collision, "Rectangle (Block)");
@@ -75,16 +75,16 @@ ACollisionTestBlockRectangleActor::ACollisionTestBlockRectangleActor() {
   Collision->SetCollisionType(ECollisionType::Block);
 }
 ACollisionTestCircleActor::ACollisionTestCircleActor() {
-  // 指定したアクター（this）を所有者として、円形コリジョンコンポーネント（MCircleCollisionComponent）を動的に作成するエンジンの関数
-  auto* Collision = NewObject<MCircleCollisionComponent>(this);
+  // 指定したアクター（this）を所有者として、円形コリジョンコンポーネント（MCircleCollision2DComponent）を動的に作成するエンジンの関数
+  auto* Collision = NewObject<MCircleCollision2DComponent>(this);
   // コリジョンの半径を設定する関数
   Collision->SetRadius(55.0f);
   ConfigureCollision(Collision, "Circle");
 }
 
 ACollisionTestLineActor::ACollisionTestLineActor() {
-  // 指定したアクター（this）を所有者として、線分コリジョンコンポーネント（MLineCollisionComponent）を動的に作成するエンジンの関数
-  auto* Collision = NewObject<MLineCollisionComponent>(this);
+  // 指定したアクター（this）を所有者として、線分コリジョンコンポーネント（MLineCollision2DComponent）を動的に作成するエンジンの関数
+  auto* Collision = NewObject<MLineCollision2DComponent>(this);
   // 線分コリジョンの始点と終点（ローカル座標系）を設定する関数
   Collision->SetLine({-90.0f, 0.0f}, {90.0f, 0.0f});
   ConfigureCollision(Collision, "Line");

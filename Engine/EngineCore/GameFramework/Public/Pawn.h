@@ -1,9 +1,9 @@
 #pragma once
-#include "BroccoliEngineAPI.h"
 #include "Actor.h"
+#include "BroccoliEngineAPI.h"
 #include "UMath.h"
 
-class MCameraComponent;
+class MCamera2DComponent;
 class MEnhancedInputComponent;
 struct FInputActionValue;
 class APlayerController;
@@ -24,7 +24,7 @@ class BROCCOLI_ENGINE_API APawn : public AActor {
   virtual void OnMove(const FInputActionValue& Value);
 
  protected:
-  MCameraComponent* Camera = nullptr;
+  MCamera2DComponent* Camera = nullptr;
   FVector2D ControlInputVector = {0, 0};
   APlayerController* Controller = nullptr;
 };

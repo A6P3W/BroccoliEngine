@@ -1,10 +1,10 @@
 #include "WidgetTestPawn.h"
 
-#include <CircleCollisionComponent.h>
+#include <CircleCollision2DComponent.h>
 #include <EnhancedInputComponent.h>
 #include <MovementComponent.h>
 
-#include "CameraComponent.h"
+#include "Camera2DComponent.h"
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "Log.h"
@@ -17,7 +17,7 @@ REGISTER_ACTOR(AWidgetTestPawn)
 
 AWidgetTestPawn::AWidgetTestPawn() {
   // 衝突判定用の円形コリジョンコンポーネントを作成
-  auto* col = NewObject<MCircleCollisionComponent>(this);
+  auto* col = NewObject<MCircleCollision2DComponent>(this);
   col->SetRadius(32.0f);
   // このコンポーネントをアクターのルートコンポーネントにアタッチ（親子関係を構築）する関数
   col->AttachToComponent(GetRootComponent());

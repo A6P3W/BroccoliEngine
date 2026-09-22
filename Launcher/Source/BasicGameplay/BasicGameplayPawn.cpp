@@ -1,6 +1,6 @@
 #include "BasicGameplayPawn.h"
 
-#include "CircleCollisionComponent.h"
+#include "CircleCollision2DComponent.h"
 #include "EnhancedInputComponent.h"
 #include "Log.h"
 #include "MovementComponent.h"
@@ -21,8 +21,8 @@ ABasicGameplayPawn::ABasicGameplayPawn() {
   // コンポーネントをエンジンシステムに登録し、レンダリングなどの処理を有効化
   Body->RegisterComponent();
 
-  // 円形の物理衝突判定を担当する MCircleCollisionComponent を動的に作成
-  auto* Collision = NewObject<MCircleCollisionComponent>(this);
+  // 円形の物理衝突判定を担当する MCircleCollision2DComponent を動的に作成
+  auto* Collision = NewObject<MCircleCollision2DComponent>(this);
   // 衝突判定用の半径を 24.0f に設定
   Collision->SetRadius(24.0f);
   // コリジョンを動的（移動可能）オブジェクトとして設定（false にすると静的/固定オブジェクトになる）

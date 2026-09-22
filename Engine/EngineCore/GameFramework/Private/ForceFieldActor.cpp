@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-#include "CircleCollisionComponent.h"
+#include "CircleCollision2DComponent.h"
 #include "DebugOverlay.h"
 #include "ForceFieldComponent.h"
 
@@ -18,7 +18,7 @@ AForceFieldActor::AForceFieldActor() {
   SetRootComponent(ForceFieldComponent);
   ForceFieldComponent->RegisterComponent();
 
-  RangeComponent = NewObject<MCircleCollisionComponent>(this);
+  RangeComponent = NewObject<MCircleCollision2DComponent>(this);
   if (!RangeComponent) {
     return;
   }
@@ -38,7 +38,7 @@ MForceFieldComponent* AForceFieldActor::GetForceFieldComponent() const {
   return ForceFieldComponent;
 }
 
-MCollisionComponent* AForceFieldActor::GetRangeComponent() const { return RangeComponent; }
+MCollision2DComponent* AForceFieldActor::GetRangeComponent() const { return RangeComponent; }
 
 void AForceFieldActor::OnUpdate(float DeltaTime) {
   AActor::OnUpdate(DeltaTime);

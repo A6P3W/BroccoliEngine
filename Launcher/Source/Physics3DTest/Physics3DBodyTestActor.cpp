@@ -2,11 +2,11 @@
 
 #include <algorithm>
 
-#include "BoxCollisionComponent3D.h"
+#include "BoxCollision3DComponent.h"
 #include "ControlMacros.h"
 #include "CubeComponent.h"
 #include "RigidBody3DComponent.h"
-#include "SphereCollisionComponent3D.h"
+#include "SphereCollision3DComponent.h"
 
 REGISTER_ACTOR(APhysics3DStaticFloorActor)
 REGISTER_ACTOR(APhysics3DDynamicBoxActor)
@@ -49,7 +49,7 @@ void ConfigureBody(AActor& Actor, ERigidBody3DType Type) {
 
 APhysics3DStaticFloorActor::APhysics3DStaticFloorActor() {
   ConfigureBody(*this, ERigidBody3DType::Static);
-  MBoxCollisionComponent3D* Collider = NewObject<MBoxCollisionComponent3D>(this);
+  MBoxCollision3DComponent* Collider = NewObject<MBoxCollision3DComponent>(this);
   Collider->SetHalfExtent({5.0f, 0.5f, 5.0f});
   Collider->RegisterComponent();
 
@@ -63,7 +63,7 @@ void APhysics3DStaticFloorActor::BeginPlay() { SetActorLocation3D({0.0f, -1.0f, 
 
 APhysics3DDynamicBoxActor::APhysics3DDynamicBoxActor() {
   ConfigureBody(*this, ERigidBody3DType::Dynamic);
-  MBoxCollisionComponent3D* Collider = NewObject<MBoxCollisionComponent3D>(this);
+  MBoxCollision3DComponent* Collider = NewObject<MBoxCollision3DComponent>(this);
   Collider->SetHalfExtent({0.5f, 0.5f, 0.5f});
   Collider->RegisterComponent();
 
@@ -97,7 +97,7 @@ void APhysics3DDynamicBoxActor::EndOverlap(AActor* OtherActor) {
 
 APhysics3DDynamicSphereActor::APhysics3DDynamicSphereActor() {
   ConfigureBody(*this, ERigidBody3DType::Dynamic);
-  MSphereCollisionComponent3D* Collider = NewObject<MSphereCollisionComponent3D>(this);
+  MSphereCollision3DComponent* Collider = NewObject<MSphereCollision3DComponent>(this);
   Collider->SetRadius(0.5f);
   Collider->RegisterComponent();
 
@@ -131,7 +131,7 @@ void APhysics3DDynamicSphereActor::EndOverlap(AActor* OtherActor) {
 
 APhysics3DKinematicActor::APhysics3DKinematicActor() {
   ConfigureBody(*this, ERigidBody3DType::Kinematic);
-  MBoxCollisionComponent3D* Collider = NewObject<MBoxCollisionComponent3D>(this);
+  MBoxCollision3DComponent* Collider = NewObject<MBoxCollision3DComponent>(this);
   Collider->SetHalfExtent({0.5f, 0.5f, 0.5f});
   Collider->RegisterComponent();
 
