@@ -294,11 +294,11 @@ void EditorMode::DeleteSelectedActor() {
 
 void EditorMode::OnUpdate(float DeltaTime) {
   (void)DeltaTime;
+  static EditorUI ui;
+  ui.UpdateAndDraw(this);
   RefreshPickingProxies();
   UpdateHoveredActor();
   DrawPickingProxies();
-  static EditorUI ui;
-  ui.UpdateAndDraw(this);
 }
 
 void EditorMode::BeginPlay() {
