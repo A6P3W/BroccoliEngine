@@ -139,6 +139,26 @@ void DrawGridCommand(const GridRenderData& Data) {
   rlEnd();
 }
 
+void DrawRenderCommand3D(const RenderCommand3D& Command) {
+  std::visit(
+      [](const auto& Data) {
+        using T = std::decay_t<decltype(Data)>;
+        if constexpr (std::is_same_v<T, CubeRenderData>) {
+          DrawCubeCommand(Data);
+        } else if constexpr (std::is_same_v<T, SphereRenderData>) {
+          DrawSphereCommand(Data);
+        } else if constexpr (std::is_same_v<T, Line3DRenderData>) {
+          DrawLine3DCommand(Data);
+        } else if constexpr (std::is_same_v<T, StaticMeshRenderData>) {
+          DrawStaticMeshCommand(Data);
+        } else if constexpr (std::is_same_v<T, GridRenderData>) {
+          DrawGridCommand(Data);
+        }
+      },
+      Command.Data
+  );
+}
+
 FScreenBounds MakeScreenBounds(float X1, float Y1, float X2, float Y2) {
   return {(std::min)(X1, X2), (std::min)(Y1, Y2), (std::max)(X1, X2), (std::max)(Y1, Y2)};
 }
@@ -540,28 +560,34 @@ void RenderSystem::SubmitRectGraph(
   );
 }
 
-void RenderSystem::SubmitCube(const FTransform3D& Transform, const FColor& Color, bool Fill) {
-  Impl->CommandBuffer3D.push_back({CubeRenderData{Transform, Color, Fill}});
+void RenderSystem::SubmitCube(
+    const FTransform3D& Transform, const FColor& Color, bool Fill, ERenderLayer3D Layer
+) {
+  Impl->CommandBuffer3D.push_back({Layer, CubeRenderData{Transform, Color, Fill}});
 }
 
 void RenderSystem::SubmitSphere(
-    const FVector3D& Center, float Radius, const FColor& Color, bool Fill
+    const FVector3D& Center, float Radius, const FColor& Color, bool Fill, ERenderLayer3D Layer
 ) {
-  Impl->CommandBuffer3D.push_back({SphereRenderData{Center, Radius, Color, Fill}});
+  Impl->CommandBuffer3D.push_back({Layer, SphereRenderData{Center, Radius, Color, Fill}});
 }
 
-void RenderSystem::SubmitLine3D(const FVector3D& Start, const FVector3D& End, const FColor& Color) {
-  Impl->CommandBuffer3D.push_back({Line3DRenderData{Start, End, Color}});
+void RenderSystem::SubmitLine3D(
+    const FVector3D& Start, const FVector3D& End, const FColor& Color, ERenderLayer3D Layer
+) {
+  Impl->CommandBuffer3D.push_back({Layer, Line3DRenderData{Start, End, Color}});
 }
 
 void RenderSystem::SubmitStaticMesh(
     const FTransform3D& Transform, int ModelHandle, const FColor& Tint
 ) {
-  Impl->CommandBuffer3D.push_back({StaticMeshRenderData{Transform, ModelHandle, Tint}});
+  Impl->CommandBuffer3D.push_back(
+      {ERenderLayer3D::World, StaticMeshRenderData{Transform, ModelHandle, Tint}}
+  );
 }
 
 void RenderSystem::SubmitGrid3D(int Slices, float Spacing, EGridPlane Plane) {
-  Impl->CommandBuffer3D.push_back({GridRenderData{Slices, Spacing, Plane}});
+  Impl->CommandBuffer3D.push_back({ERenderLayer3D::World, GridRenderData{Slices, Spacing, Plane}});
 }
 
 FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
@@ -856,23 +882,19 @@ void RenderSystem::Draw() {
     };
     BeginMode3D(Camera);
     for (const RenderCommand3D& Command : Impl->CommandBuffer3D) {
-      std::visit(
-          [](const auto& Data) {
-            using T = std::decay_t<decltype(Data)>;
-            if constexpr (std::is_same_v<T, CubeRenderData>) {
-              DrawCubeCommand(Data);
-            } else if constexpr (std::is_same_v<T, SphereRenderData>) {
-              DrawSphereCommand(Data);
-            } else if constexpr (std::is_same_v<T, Line3DRenderData>) {
-              DrawLine3DCommand(Data);
-            } else if constexpr (std::is_same_v<T, StaticMeshRenderData>) {
-              DrawStaticMeshCommand(Data);
-            } else if constexpr (std::is_same_v<T, GridRenderData>) {
-              DrawGridCommand(Data);
-            }
-          },
-          Command.Data
-      );
+      if (Command.Layer == ERenderLayer3D::World) DrawRenderCommand3D(Command);
+    }
+    const bool HasOverlay = std::any_of(
+        Impl->CommandBuffer3D.begin(),
+        Impl->CommandBuffer3D.end(),
+        [](const RenderCommand3D& Command) { return Command.Layer == ERenderLayer3D::Overlay; }
+    );
+    if (HasOverlay) {
+      rlDisableDepthTest();
+      for (const RenderCommand3D& Command : Impl->CommandBuffer3D) {
+        if (Command.Layer == ERenderLayer3D::Overlay) DrawRenderCommand3D(Command);
+      }
+      rlEnableDepthTest();
     }
     EndMode3D();
   }

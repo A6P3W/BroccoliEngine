@@ -295,7 +295,7 @@ void EditorTransformTool::Draw3D(
       BuildGizmoBoxes(Actor->GetActorLocation3D(), GetGizmoSize(Actor, CameraLocation), InAction);
   for (const FGizmoBox3D& Box : Boxes) {
     if (Box.Handle == EGizmoHandle3D::Center && InAction != EActorAction::Scale) continue;
-    RenderSystem::GetInstance().SubmitCube(Box.Transform, Box.Color, true);
+    RenderSystem::GetInstance().SubmitCube(Box.Transform, Box.Color, true, ERenderLayer3D::Overlay);
   }
 }
 
