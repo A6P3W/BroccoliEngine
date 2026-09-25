@@ -60,6 +60,18 @@ struct RectGraphData {
 struct CubeRenderData {
   FTransform3D Transform;
   FColor Color;
+  bool Fill = true;
+};
+struct SphereRenderData {
+  FVector3D Center;
+  float Radius = 0.5f;
+  FColor Color;
+  bool Fill = true;
+};
+struct Line3DRenderData {
+  FVector3D Start;
+  FVector3D End;
+  FColor Color;
 };
 struct StaticMeshRenderData {
   FTransform3D Transform;
@@ -73,7 +85,12 @@ struct GridRenderData {
   float Spacing = 1.0f;
   EGridPlane Plane = EGridPlane::XZ;
 };
-using RenderCommand3DData = std::variant<CubeRenderData, StaticMeshRenderData, GridRenderData>;
+using RenderCommand3DData = std::variant<
+    CubeRenderData,
+    SphereRenderData,
+    Line3DRenderData,
+    StaticMeshRenderData,
+    GridRenderData>;
 struct RenderCommand3D {
   RenderCommand3DData Data;
 };
@@ -154,7 +171,9 @@ class BROCCOLI_ENGINE_API RenderSystem {
       int Alpha = 255,
       const FColor& Tint = FColor::White
   );
-  void SubmitCube(const FTransform3D& Transform, const FColor& Color);
+  void SubmitCube(const FTransform3D& Transform, const FColor& Color, bool Fill = true);
+  void SubmitSphere(const FVector3D& Center, float Radius, const FColor& Color, bool Fill = true);
+  void SubmitLine3D(const FVector3D& Start, const FVector3D& End, const FColor& Color);
   void SubmitStaticMesh(
       const FTransform3D& Transform, int ModelHandle, const FColor& Tint = FColor::White
   );
