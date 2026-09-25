@@ -386,3 +386,33 @@ void EditorMode::DrawPickingProxies() const {
     }
   }
 }
+
+bool EditorMode::BuildViewportRay(FPhysicsRay3D& OutRay) const {
+  if (EditorPawn3DPtr == nullptr || EditorPawn3DPtr->GetEditorCamera3D() == nullptr ||
+      ViewportState.RenderTargetSize.X <= 0.0f || ViewportState.RenderTargetSize.Y <= 0.0f) {
+    return false;
+  }
+  FVector2D Mouse;
+  if (!TryGetViewportRenderTargetMousePosition(Mouse)) return false;
+
+  MCamera3DComponent* Camera = EditorPawn3DPtr->GetEditorCamera3D();
+  const float NormalizedX = Mouse.X * 2.0f / ViewportState.RenderTargetSize.X - 1.0f;
+  const float NormalizedY = 1.0f - Mouse.Y * 2.0f / ViewportState.RenderTargetSize.Y;
+  const float Aspect = ViewportState.RenderTargetSize.X / ViewportState.RenderTargetSize.Y;
+  const FVector3D Forward = Camera->GetForwardVector();
+  const FVector3D Right = Camera->GetRightVector();
+  const FVector3D Up = Camera->GetUpVector();
+  OutRay.Origin = Camera->GetWorldLocation3D();
+  if (Camera->GetProjection() == ECameraProjection3D::Perspective) {
+    const float HalfHeight = std::tan(UMath::DegToRad(Camera->GetFOV()) * 0.5f);
+    OutRay.Direction =
+        (Forward + Right * (NormalizedX * HalfHeight * Aspect) + Up * (NormalizedY * HalfHeight))
+            .Normalize();
+  } else {
+    const float HalfHeight = Camera->GetFOV() * 0.5f;
+    OutRay.Origin += Right * (NormalizedX * HalfHeight * Aspect) + Up * (NormalizedY * HalfHeight);
+    OutRay.Direction = Forward;
+  }
+  OutRay.MaxDistance = 1000.0f;
+  return true;
+}

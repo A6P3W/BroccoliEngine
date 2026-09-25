@@ -123,6 +123,7 @@ class EditorMode : public AGameModeBase {
   FEditorPickingProxy3D ResolvePickingProxy(AActor* Actor) const;
   void RefreshPickingProxies();
   void DrawPickingProxies() const;
+  bool BuildViewportRay(FPhysicsRay3D& OutRay) const;
 
   std::unordered_map<AActor*, FEditorPickingProxy3D> PickingProxies;
   AActor* HoveredActor = nullptr;
