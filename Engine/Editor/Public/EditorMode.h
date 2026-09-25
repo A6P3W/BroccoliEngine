@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "EditorClipboard.h"
@@ -9,6 +10,7 @@
 #include "EditorViewportState.h"
 #include "GameModeBase.h"
 #include "LevelSerializer.h"
+#include "PhysicsQuery3D.h"
 #include "UMath.h"
 
 class AActor;
@@ -118,4 +120,12 @@ class EditorMode : public AGameModeBase {
   std::string CurrentLevelPath;
 
   bool TryGetMouseWorldPosition(FVector2D& OutPosition, bool RequireInside = true) const;
+  FEditorPickingProxy3D ResolvePickingProxy(AActor* Actor) const;
+  void RefreshPickingProxies();
+  void DrawPickingProxies() const;
+  bool BuildViewportRay(FPhysicsRay3D& OutRay) const;
+  void UpdateHoveredActor();
+
+  std::unordered_map<AActor*, FEditorPickingProxy3D> PickingProxies;
+  AActor* HoveredActor = nullptr;
 };

@@ -72,6 +72,7 @@ struct FFontResource {
 struct FModelResource {
   Model ModelData{};
   FTransform3D ImportTransform;
+  FBox3D Bounds;
   std::string Path;
 };
 
@@ -93,12 +94,15 @@ class FRaylibResourceStore {
       return InvalidResourceHandle;
     }
 
+    const BoundingBox Bounds = GetModelBoundingBox(ModelData);
     const int Handle = NextHandle++;
     Models.emplace(
         Handle,
         FModelResource{
             ModelData,
             {},
+            {{Bounds.min.x, Bounds.min.y, Bounds.min.z},
+             {Bounds.max.x, Bounds.max.y, Bounds.max.z}},
             Path,
         }
     );
@@ -387,6 +391,13 @@ int ResourceManager::LoadResourceModel(const std::string& Path) {
 
 bool ResourceManager::IsModelValid(int Handle) const {
   return GetResourceStore().FindModel(Handle) != nullptr;
+}
+
+bool ResourceManager::GetModelBounds(int Handle, FBox3D& OutBounds) const {
+  const FModelResource* Resource = GetResourceStore().FindModel(Handle);
+  if (Resource == nullptr) return false;
+  OutBounds = Resource->Bounds;
+  return true;
 }
 
 int ResourceManager::NormalizeFontWeight(int Weight) {

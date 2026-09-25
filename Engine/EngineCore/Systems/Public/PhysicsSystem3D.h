@@ -36,6 +36,8 @@ class BROCCOLI_ENGINE_API FPhysicsSystem3D {
   void SetFixedTimeStep(float NewFixedTimeStep);
   void RefreshActorBody(AActor* Actor);
   void UnregisterActorBody(AActor* Actor);
+  void RefreshEditorPickingBody(AActor* Actor, const FEditorPickingProxy3D& Proxy);
+  void UnregisterEditorPickingBody(AActor* Actor);
   void SetActorTransform(AActor* Actor, const FVector3D& Location, const FQuaternion& Rotation);
   FVector3D GetLinearVelocity(const MRigidBody3DComponent* Component) const;
   void SetLinearVelocity(MRigidBody3DComponent* Component, const FVector3D& Velocity);

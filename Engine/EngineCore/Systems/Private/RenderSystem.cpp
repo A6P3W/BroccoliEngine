@@ -59,9 +59,27 @@ void ApplyRaylibTransform(const FTransform3D& Transform) {
 void DrawCubeCommand(const CubeRenderData& Data) {
   rlPushMatrix();
   ApplyRaylibTransform(Data.Transform);
-  DrawCube({0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, ToRaylibColor(Data.Color));
-  DrawCubeWires({0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, BLACK);
+  if (Data.Fill) {
+    DrawCube({0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, ToRaylibColor(Data.Color));
+    DrawCubeWires({0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, BLACK);
+  } else {
+    DrawCubeWires({0.0f, 0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, ToRaylibColor(Data.Color));
+  }
   rlPopMatrix();
+}
+
+void DrawSphereCommand(const SphereRenderData& Data) {
+  const Vector3 Center{Data.Center.X, Data.Center.Y, Data.Center.Z};
+  if (Data.Fill) DrawSphere(Center, Data.Radius, ToRaylibColor(Data.Color));
+  DrawSphereWires(Center, Data.Radius, 12, 12, ToRaylibColor(Data.Color));
+}
+
+void DrawLine3DCommand(const Line3DRenderData& Data) {
+  DrawLine3D(
+      {Data.Start.X, Data.Start.Y, Data.Start.Z},
+      {Data.End.X, Data.End.Y, Data.End.Z},
+      ToRaylibColor(Data.Color)
+  );
 }
 
 void DrawStaticMeshCommand(const StaticMeshRenderData& Data) {
@@ -522,8 +540,18 @@ void RenderSystem::SubmitRectGraph(
   );
 }
 
-void RenderSystem::SubmitCube(const FTransform3D& Transform, const FColor& Color) {
-  Impl->CommandBuffer3D.push_back({CubeRenderData{Transform, Color}});
+void RenderSystem::SubmitCube(const FTransform3D& Transform, const FColor& Color, bool Fill) {
+  Impl->CommandBuffer3D.push_back({CubeRenderData{Transform, Color, Fill}});
+}
+
+void RenderSystem::SubmitSphere(
+    const FVector3D& Center, float Radius, const FColor& Color, bool Fill
+) {
+  Impl->CommandBuffer3D.push_back({SphereRenderData{Center, Radius, Color, Fill}});
+}
+
+void RenderSystem::SubmitLine3D(const FVector3D& Start, const FVector3D& End, const FColor& Color) {
+  Impl->CommandBuffer3D.push_back({Line3DRenderData{Start, End, Color}});
 }
 
 void RenderSystem::SubmitStaticMesh(
@@ -833,6 +861,10 @@ void RenderSystem::Draw() {
             using T = std::decay_t<decltype(Data)>;
             if constexpr (std::is_same_v<T, CubeRenderData>) {
               DrawCubeCommand(Data);
+            } else if constexpr (std::is_same_v<T, SphereRenderData>) {
+              DrawSphereCommand(Data);
+            } else if constexpr (std::is_same_v<T, Line3DRenderData>) {
+              DrawLine3DCommand(Data);
             } else if constexpr (std::is_same_v<T, StaticMeshRenderData>) {
               DrawStaticMeshCommand(Data);
             } else if constexpr (std::is_same_v<T, GridRenderData>) {

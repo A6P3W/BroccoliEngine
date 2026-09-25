@@ -2,7 +2,10 @@
 
 #include <PlayerController.h>
 
+#include <cmath>
+
 #include "Actor.h"
+#include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "BroccoliRaylib.h"
 #include "Camera3DComponent.h"
@@ -13,11 +16,22 @@
 #include "FileDialog.h"
 #include "Log.h"
 #include "PathResolver.h"
+#include "PhysicsSystem3D.h"
 #include "RenderSystem.h"
+#include "ResourceManager.h"
 #include "SceneManager.h"
 #include "SpriteActor.h"
 #include "StaticMeshActor.h"
+#include "StaticMeshComponent.h"
 #include "World.h"
+
+namespace {
+bool IsSamePickingProxy(const FEditorPickingProxy3D& Left, const FEditorPickingProxy3D& Right) {
+  return Left.Shape == Right.Shape && Left.Center == Right.Center &&
+         Left.HalfExtent == Right.HalfExtent && Left.Radius == Right.Radius;
+}
+}  // namespace
+
 const std::vector<std::string>& EditorMode::GetClassList() const {
   return ActorRegistry::GetInstance().GetClassNames();
 }
@@ -47,7 +61,22 @@ bool EditorMode::IsThreeDCameraNavigationActive() const {
   return EditorPawn3DPtr != nullptr && EditorPawn3DPtr->IsCameraNavigationActive();
 }
 
-void EditorMode::OnMousePress3D() {}
+void EditorMode::OnMousePress3D() {
+  if (ViewportState.Mode != EEditorViewportMode::ThreeD || IsThreeDCameraNavigationActive() ||
+      !IsViewportInputAvailable()) {
+    return;
+  }
+  FPhysicsRay3D Ray;
+  if (!BuildViewportRay(Ray)) return;
+  FPhysicsQueryFilter3D Filter;
+  Filter.QueryLayer = EPhysicsQueryLayer3D::EditorPicking;
+  FPhysicsQueryHit3D Hit;
+  if (GetWorld()->GetPhysicsSystem3D()->RaycastNearest(Ray, Filter, Hit)) {
+    SetSelectedActor(Hit.Actor);
+  } else {
+    SetSelectedActor(nullptr);
+  }
+}
 
 AActor* EditorMode::PlaceSelectedClassAtViewportCenter() {
   if (SelectedClass.empty()) {
@@ -267,6 +296,9 @@ void EditorMode::OnUpdate(float DeltaTime) {
   (void)DeltaTime;
   static EditorUI ui;
   ui.UpdateAndDraw(this);
+  RefreshPickingProxies();
+  UpdateHoveredActor();
+  DrawPickingProxies();
 }
 
 void EditorMode::BeginPlay() {
@@ -304,4 +336,115 @@ bool EditorMode::TryGetMouseWorldPosition(FVector2D& OutPosition, bool RequireIn
   if (!TryGetViewportRenderTargetMousePosition(RenderTargetPosition, RequireInside)) return false;
   OutPosition = RenderSystem::GetInstance().ScreenToWorld(RenderTargetPosition);
   return true;
+}
+
+FEditorPickingProxy3D EditorMode::ResolvePickingProxy(AActor* Actor) const {
+  FEditorPickingProxy3D Proxy;
+  if (Actor == nullptr) return Proxy;
+
+  Proxy.Center = Actor->GetActorLocation3D();
+  auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(Actor);
+  const auto Meshes = Actor->GetComponents<MStaticMeshComponent>();
+  FBox3D Bounds;
+  if (StaticMeshActor == nullptr || Meshes.size() != 1 ||
+      !ResourceManager::GetInstance().GetModelBounds(Meshes.front()->GetModel(), Bounds)) {
+    return Proxy;
+  }
+
+  const FVector3D LocalCenter = (Bounds.Min + Bounds.Max) * 0.5f;
+  const FVector3D LocalHalfExtent = (Bounds.Max - Bounds.Min) * 0.5f;
+  const FTransform3D Transform = Actor->GetActorTransform3D();
+  Proxy.Shape = EEditorPickingShape3D::Box;
+  Proxy.Center = Transform.TransformPosition(LocalCenter);
+  Proxy.HalfExtent = {
+      LocalHalfExtent.X * std::abs(Transform.Scale.X),
+      LocalHalfExtent.Y * std::abs(Transform.Scale.Y),
+      LocalHalfExtent.Z * std::abs(Transform.Scale.Z),
+  };
+  return Proxy;
+}
+
+void EditorMode::RefreshPickingProxies() {
+  FPhysicsSystem3D* Physics = GetWorld()->GetPhysicsSystem3D();
+  if (Physics == nullptr) return;
+
+  std::unordered_map<AActor*, FEditorPickingProxy3D> CurrentProxies;
+  for (const std::unique_ptr<AActor>& ActorOwner : GetWorld()->GetActorManager()->GetAllActors()) {
+    AActor* Actor = ActorOwner.get();
+    if (Actor == nullptr || Actor->IsPendingDestroy() || Actor->IsEditorActor()) continue;
+    FEditorPickingProxy3D Proxy = ResolvePickingProxy(Actor);
+    const auto Existing = PickingProxies.find(Actor);
+    if (Existing == PickingProxies.end() || !IsSamePickingProxy(Existing->second, Proxy)) {
+      Physics->RefreshEditorPickingBody(Actor, Proxy);
+    }
+    CurrentProxies.emplace(Actor, Proxy);
+  }
+  for (const auto& [Actor, Proxy] : PickingProxies) {
+    if (!CurrentProxies.contains(Actor)) Physics->UnregisterEditorPickingBody(Actor);
+  }
+  PickingProxies = std::move(CurrentProxies);
+}
+
+void EditorMode::DrawPickingProxies() const {
+  if (ViewportState.Mode != EEditorViewportMode::ThreeD) return;
+  constexpr FColor PickingColor{255, 196, 0, 255};
+  for (const auto& [Actor, Proxy] : PickingProxies) {
+    if (Proxy.Shape == EEditorPickingShape3D::Sphere) {
+      RenderSystem::GetInstance().SubmitSphere(Proxy.Center, Proxy.Radius, PickingColor, false);
+    } else if (Actor == HoveredActor || Actor == GetSelectedActor()) {
+      RenderSystem::GetInstance().SubmitCube(
+          {Proxy.Center,
+           Actor->GetActorRotation3D(),
+           {Proxy.HalfExtent.X * 2.0f, Proxy.HalfExtent.Y * 2.0f, Proxy.HalfExtent.Z * 2.0f}},
+          PickingColor,
+          false
+      );
+    }
+  }
+}
+
+bool EditorMode::BuildViewportRay(FPhysicsRay3D& OutRay) const {
+  if (EditorPawn3DPtr == nullptr || EditorPawn3DPtr->GetEditorCamera3D() == nullptr ||
+      ViewportState.RenderTargetSize.X <= 0.0f || ViewportState.RenderTargetSize.Y <= 0.0f) {
+    return false;
+  }
+  FVector2D Mouse;
+  if (!TryGetViewportRenderTargetMousePosition(Mouse)) return false;
+
+  MCamera3DComponent* Camera = EditorPawn3DPtr->GetEditorCamera3D();
+  const float NormalizedX = Mouse.X * 2.0f / ViewportState.RenderTargetSize.X - 1.0f;
+  const float NormalizedY = 1.0f - Mouse.Y * 2.0f / ViewportState.RenderTargetSize.Y;
+  const float Aspect = ViewportState.RenderTargetSize.X / ViewportState.RenderTargetSize.Y;
+  const FVector3D Forward = Camera->GetForwardVector();
+  const FVector3D Right = Camera->GetRightVector();
+  const FVector3D Up = Camera->GetUpVector();
+  OutRay.Origin = Camera->GetWorldLocation3D();
+  if (Camera->GetProjection() == ECameraProjection3D::Perspective) {
+    const float HalfHeight = std::tan(UMath::DegToRad(Camera->GetFOV()) * 0.5f);
+    OutRay.Direction =
+        (Forward - Right * (NormalizedX * HalfHeight * Aspect) + Up * (NormalizedY * HalfHeight))
+            .Normalize();
+  } else {
+    const float HalfHeight = Camera->GetFOV() * 0.5f;
+    OutRay.Origin += Right * (-NormalizedX * HalfHeight * Aspect) + Up * (NormalizedY * HalfHeight);
+    OutRay.Direction = Forward;
+  }
+  OutRay.MaxDistance = 1000.0f;
+  return true;
+}
+
+void EditorMode::UpdateHoveredActor() {
+  HoveredActor = nullptr;
+  if (ViewportState.Mode != EEditorViewportMode::ThreeD || IsThreeDCameraNavigationActive() ||
+      !IsViewportInputAvailable()) {
+    return;
+  }
+  FPhysicsRay3D Ray;
+  if (!BuildViewportRay(Ray)) return;
+  FPhysicsQueryFilter3D Filter;
+  Filter.QueryLayer = EPhysicsQueryLayer3D::EditorPicking;
+  FPhysicsQueryHit3D Hit;
+  if (GetWorld()->GetPhysicsSystem3D()->RaycastNearest(Ray, Filter, Hit)) {
+    HoveredActor = Hit.Actor;
+  }
 }

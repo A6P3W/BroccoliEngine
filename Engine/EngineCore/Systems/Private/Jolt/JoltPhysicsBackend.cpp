@@ -14,6 +14,7 @@
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
+#include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
@@ -31,9 +32,10 @@
 #include "Log.h"
 
 namespace {
-constexpr JPH::ObjectLayer DefaultObjectLayer = 0;
-constexpr uint32_t ObjectLayerCount = 1;
-constexpr uint32_t BroadPhaseLayerCount = 1;
+constexpr JPH::ObjectLayer GameplayObjectLayer = 0;
+constexpr JPH::ObjectLayer EditorPickingObjectLayer = 1;
+constexpr uint32_t ObjectLayerCount = 2;
+constexpr uint32_t BroadPhaseLayerCount = 2;
 constexpr uint32_t MaxBodies = 1024;
 constexpr uint32_t BodyMutexCount = 0;
 constexpr uint32_t MaxBodyPairs = 1024;
@@ -41,12 +43,23 @@ constexpr uint32_t MaxContactConstraints = 1024;
 constexpr size_t TempAllocatorSize = 10 * 1024 * 1024;
 constexpr uint32_t MaxPhysicsJobs = 1024;
 constexpr uint32_t MaxPhysicsBarriers = 1024;
+
+class FQueryObjectLayerFilter final : public JPH::ObjectLayerFilter {
+ public:
+  explicit FQueryObjectLayerFilter(JPH::ObjectLayer InLayer) : Layer(InLayer) {}
+
+  bool ShouldCollide(JPH::ObjectLayer Candidate) const override { return Candidate == Layer; }
+
+ private:
+  JPH::ObjectLayer Layer;
+};
 }  // namespace
 
 struct FJoltPhysicsBackend::FBodyRecord {
   JPH::BodyID Id;
   uint16_t CollisionLayer = 0;
   uint16_t CollisionMask = 0xffff;
+  EPhysicsQueryLayer3D QueryLayer = EPhysicsQueryLayer3D::Gameplay;
 };
 
 std::vector<void*> FJoltPhysicsBackend::OverlapShape(
@@ -80,7 +93,10 @@ std::vector<void*> FJoltPhysicsBackend::OverlapShape(
   );
   for (const auto& Hit : Collector.mHits) {
     void* Key = FindBodyKey(Hit.mBodyID2.GetIndexAndSequenceNumber());
-    if (Key && std::find(Result.begin(), Result.end(), Key) == Result.end()) {
+    const auto Record = Bodies.find(Key);
+    if (Key && Record != Bodies.end() &&
+        Record->second.QueryLayer == EPhysicsQueryLayer3D::Gameplay &&
+        std::find(Result.begin(), Result.end(), Key) == Result.end()) {
       Result.push_back(Key);
     }
   }
@@ -88,7 +104,10 @@ std::vector<void*> FJoltPhysicsBackend::OverlapShape(
 }
 
 std::vector<FJoltRaycastHit> FJoltPhysicsBackend::RaycastAll(
-    const FVector3D& Origin, const FVector3D& Direction, float MaxDistance
+    const FVector3D& Origin,
+    const FVector3D& Direction,
+    float MaxDistance,
+    EPhysicsQueryLayer3D Layer
 ) const {
   std::vector<FJoltRaycastHit> Result;
   if (!IsInitialized() || !std::isfinite(Origin.X) || !std::isfinite(Origin.Y) ||
@@ -111,7 +130,12 @@ std::vector<FJoltRaycastHit> FJoltPhysicsBackend::RaycastAll(
       )
   );
   JPH::AllHitCollisionCollector<JPH::CastRayCollector> Collector;
-  PhysicsSystem->GetNarrowPhaseQuery().CastRay(Ray, JPH::RayCastSettings(), Collector);
+  const FQueryObjectLayerFilter LayerFilter(
+      Layer == EPhysicsQueryLayer3D::EditorPicking ? EditorPickingObjectLayer : GameplayObjectLayer
+  );
+  PhysicsSystem->GetNarrowPhaseQuery().CastRay(
+      Ray, JPH::RayCastSettings(), Collector, {}, LayerFilter
+  );
   Collector.Sort();
   for (const JPH::RayCastResult& Hit : Collector.mHits) {
     void* Key = FindBodyKey(Hit.mBodyID.GetIndexAndSequenceNumber());
@@ -208,9 +232,14 @@ FJoltPhysicsBackend::FJoltPhysicsBackend() {
 
   BroadPhaseLayerInterface =
       std::make_unique<JPH::BroadPhaseLayerInterfaceTable>(ObjectLayerCount, BroadPhaseLayerCount);
-  BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(DefaultObjectLayer, JPH::BroadPhaseLayer(0));
+  BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(
+      GameplayObjectLayer, JPH::BroadPhaseLayer(0)
+  );
+  BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(
+      EditorPickingObjectLayer, JPH::BroadPhaseLayer(1)
+  );
   ObjectLayerPairFilter = std::make_unique<JPH::ObjectLayerPairFilterTable>(ObjectLayerCount);
-  ObjectLayerPairFilter->EnableCollision(DefaultObjectLayer, DefaultObjectLayer);
+  ObjectLayerPairFilter->EnableCollision(GameplayObjectLayer, GameplayObjectLayer);
   ObjectVsBroadPhaseLayerFilter = std::make_unique<JPH::ObjectVsBroadPhaseLayerFilterTable>(
       *BroadPhaseLayerInterface, BroadPhaseLayerCount, *ObjectLayerPairFilter, ObjectLayerCount
   );
@@ -271,7 +300,9 @@ bool FJoltPhysicsBackend::IsInitialized() const {
 
 uint32_t FJoltPhysicsBackend::GetBodyCount() const { return static_cast<uint32_t>(Bodies.size()); }
 
-bool FJoltPhysicsBackend::CreateBody(void* Key, const FPhysicsBody3DDesc& Description) {
+bool FJoltPhysicsBackend::CreateBody(
+    void* Key, const FPhysicsBody3DDesc& Description, EPhysicsQueryLayer3D Layer
+) {
   if (!Key || !IsInitialized()) {
     return false;
   }
@@ -293,7 +324,7 @@ bool FJoltPhysicsBackend::CreateBody(void* Key, const FPhysicsBody3DDesc& Descri
       ToJolt(Description.Location),
       ToJolt(Description.Rotation),
       ToJolt(Description.Type),
-      DefaultObjectLayer
+      Layer == EPhysicsQueryLayer3D::EditorPicking ? EditorPickingObjectLayer : GameplayObjectLayer
   );
   Settings.mIsSensor = Description.bIsSensor;
   if (Description.Type == EPhysicsBody3DType::Dynamic && Description.Mass > 0.0f) {
@@ -305,7 +336,9 @@ bool FJoltPhysicsBackend::CreateBody(void* Key, const FPhysicsBody3DDesc& Descri
   if (Id.IsInvalid()) {
     return false;
   }
-  Bodies.emplace(Key, FBodyRecord{Id, Description.CollisionLayer, Description.CollisionMask});
+  Bodies.emplace(
+      Key, FBodyRecord{Id, Description.CollisionLayer, Description.CollisionMask, Layer}
+  );
   return true;
 }
 

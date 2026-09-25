@@ -261,6 +261,11 @@ struct BROCCOLI_ENGINE_API FVector3D {
   auto operator<=>(const FVector3D&) const = default;
 };
 
+struct BROCCOLI_ENGINE_API FBox3D {
+  FVector3D Min;
+  FVector3D Max;
+};
+
 struct BROCCOLI_ENGINE_API FRotator3D {
   // BroccoliEngine uses a Y-up coordinate system: Pitch=X, Yaw=Y, Roll=Z.
   float Pitch = 0.0f;

@@ -33,7 +33,11 @@ class FJoltPhysicsBackend {
   bool Step(float DeltaTime);
   bool IsInitialized() const;
   uint32_t GetBodyCount() const;
-  bool CreateBody(void* Key, const FPhysicsBody3DDesc& Description);
+  bool CreateBody(
+      void* Key,
+      const FPhysicsBody3DDesc& Description,
+      EPhysicsQueryLayer3D Layer = EPhysicsQueryLayer3D::Gameplay
+  );
   void DestroyBody(void* Key);
   bool SetTransform(void* Key, const FVector3D& Location, const FQuaternion& Rotation);
   bool MoveKinematic(
@@ -51,7 +55,10 @@ class FJoltPhysicsBackend {
       const FVector3D& Center, const FVector3D& Dimensions, bool Sphere
   ) const;
   std::vector<FJoltRaycastHit> RaycastAll(
-      const FVector3D& Origin, const FVector3D& Direction, float MaxDistance
+      const FVector3D& Origin,
+      const FVector3D& Direction,
+      float MaxDistance,
+      EPhysicsQueryLayer3D Layer
   ) const;
 
  private:
