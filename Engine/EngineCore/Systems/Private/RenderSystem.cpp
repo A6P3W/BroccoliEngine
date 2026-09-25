@@ -884,6 +884,7 @@ void RenderSystem::Draw() {
     for (const RenderCommand3D& Command : Impl->CommandBuffer3D) {
       if (Command.Layer == ERenderLayer3D::World) DrawRenderCommand3D(Command);
     }
+    rlDrawRenderBatchActive();
     const bool HasOverlay = std::any_of(
         Impl->CommandBuffer3D.begin(),
         Impl->CommandBuffer3D.end(),
@@ -894,6 +895,7 @@ void RenderSystem::Draw() {
       for (const RenderCommand3D& Command : Impl->CommandBuffer3D) {
         if (Command.Layer == ERenderLayer3D::Overlay) DrawRenderCommand3D(Command);
       }
+      rlDrawRenderBatchActive();
       rlEnableDepthTest();
     }
     EndMode3D();
