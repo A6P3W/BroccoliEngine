@@ -422,11 +422,11 @@ bool EditorMode::BuildViewportRay(FPhysicsRay3D& OutRay) const {
   if (Camera->GetProjection() == ECameraProjection3D::Perspective) {
     const float HalfHeight = std::tan(UMath::DegToRad(Camera->GetFOV()) * 0.5f);
     OutRay.Direction =
-        (Forward + Right * (NormalizedX * HalfHeight * Aspect) + Up * (NormalizedY * HalfHeight))
+        (Forward - Right * (NormalizedX * HalfHeight * Aspect) + Up * (NormalizedY * HalfHeight))
             .Normalize();
   } else {
     const float HalfHeight = Camera->GetFOV() * 0.5f;
-    OutRay.Origin += Right * (NormalizedX * HalfHeight * Aspect) + Up * (NormalizedY * HalfHeight);
+    OutRay.Origin += Right * (-NormalizedX * HalfHeight * Aspect) + Up * (NormalizedY * HalfHeight);
     OutRay.Direction = Forward;
   }
   OutRay.MaxDistance = 1000.0f;
