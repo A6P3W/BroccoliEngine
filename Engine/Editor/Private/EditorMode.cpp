@@ -61,7 +61,22 @@ bool EditorMode::IsThreeDCameraNavigationActive() const {
   return EditorPawn3DPtr != nullptr && EditorPawn3DPtr->IsCameraNavigationActive();
 }
 
-void EditorMode::OnMousePress3D() {}
+void EditorMode::OnMousePress3D() {
+  if (ViewportState.Mode != EEditorViewportMode::ThreeD || IsThreeDCameraNavigationActive() ||
+      !IsViewportInputAvailable()) {
+    return;
+  }
+  FPhysicsRay3D Ray;
+  if (!BuildViewportRay(Ray)) return;
+  FPhysicsQueryFilter3D Filter;
+  Filter.QueryLayer = EPhysicsQueryLayer3D::EditorPicking;
+  FPhysicsQueryHit3D Hit;
+  if (GetWorld()->GetPhysicsSystem3D()->RaycastNearest(Ray, Filter, Hit)) {
+    SetSelectedActor(Hit.Actor);
+  } else {
+    SetSelectedActor(nullptr);
+  }
+}
 
 AActor* EditorMode::PlaceSelectedClassAtViewportCenter() {
   if (SelectedClass.empty()) {
@@ -280,6 +295,7 @@ void EditorMode::DeleteSelectedActor() {
 void EditorMode::OnUpdate(float DeltaTime) {
   (void)DeltaTime;
   RefreshPickingProxies();
+  UpdateHoveredActor();
   DrawPickingProxies();
   static EditorUI ui;
   ui.UpdateAndDraw(this);
@@ -415,4 +431,20 @@ bool EditorMode::BuildViewportRay(FPhysicsRay3D& OutRay) const {
   }
   OutRay.MaxDistance = 1000.0f;
   return true;
+}
+
+void EditorMode::UpdateHoveredActor() {
+  HoveredActor = nullptr;
+  if (ViewportState.Mode != EEditorViewportMode::ThreeD || IsThreeDCameraNavigationActive() ||
+      !IsViewportInputAvailable()) {
+    return;
+  }
+  FPhysicsRay3D Ray;
+  if (!BuildViewportRay(Ray)) return;
+  FPhysicsQueryFilter3D Filter;
+  Filter.QueryLayer = EPhysicsQueryLayer3D::EditorPicking;
+  FPhysicsQueryHit3D Hit;
+  if (GetWorld()->GetPhysicsSystem3D()->RaycastNearest(Ray, Filter, Hit)) {
+    HoveredActor = Hit.Actor;
+  }
 }
