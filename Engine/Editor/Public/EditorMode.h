@@ -92,6 +92,7 @@ class EditorMode : public AGameModeBase {
  public:
   EditorMode();
   void OnUpdate(float DeltaTime) override;
+  void Draw() override;
 
  private:
   EditorMode(const EditorMode&) = delete;

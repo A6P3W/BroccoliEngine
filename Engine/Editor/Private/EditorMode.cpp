@@ -366,14 +366,22 @@ void EditorMode::OnUpdate(float DeltaTime) {
   AActor* SelectedActor = GetSelectedActor();
   if (SelectedActor != nullptr && SelectedActor->IsPendingDestroy()) {
     SetSelectedActor(nullptr);
+  }
+}
+
+void EditorMode::Draw() {
+  AGameModeBase::Draw();
+
+  AActor* SelectedActor = GetSelectedActor();
+  if (ViewportState.Mode != EEditorViewportMode::ThreeD || SelectedActor == nullptr ||
+      SelectedActor->IsPendingDestroy() || EditorPawn3DPtr == nullptr ||
+      EditorPawn3DPtr->GetEditorCamera3D() == nullptr) {
     return;
   }
-  if (ViewportState.Mode == EEditorViewportMode::ThreeD && SelectedActor != nullptr &&
-      EditorPawn3DPtr != nullptr && EditorPawn3DPtr->GetEditorCamera3D() != nullptr) {
-    TransformTool.Draw3D(
-        SelectedActor, ActorAction, EditorPawn3DPtr->GetEditorCamera3D()->GetWorldLocation3D()
-    );
-  }
+
+  TransformTool.Draw3D(
+      SelectedActor, ActorAction, EditorPawn3DPtr->GetEditorCamera3D()->GetWorldLocation3D()
+  );
 }
 
 void EditorMode::BeginPlay() {
