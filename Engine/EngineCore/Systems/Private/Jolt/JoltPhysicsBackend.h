@@ -33,7 +33,11 @@ class FJoltPhysicsBackend {
   bool Step(float DeltaTime);
   bool IsInitialized() const;
   uint32_t GetBodyCount() const;
-  bool CreateBody(void* Key, const FPhysicsBody3DDesc& Description);
+  bool CreateBody(
+      void* Key,
+      const FPhysicsBody3DDesc& Description,
+      EPhysicsQueryLayer3D Layer = EPhysicsQueryLayer3D::Gameplay
+  );
   void DestroyBody(void* Key);
   bool SetTransform(void* Key, const FVector3D& Location, const FQuaternion& Rotation);
   bool MoveKinematic(

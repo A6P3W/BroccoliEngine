@@ -31,9 +31,10 @@
 #include "Log.h"
 
 namespace {
-constexpr JPH::ObjectLayer DefaultObjectLayer = 0;
-constexpr uint32_t ObjectLayerCount = 1;
-constexpr uint32_t BroadPhaseLayerCount = 1;
+constexpr JPH::ObjectLayer GameplayObjectLayer = 0;
+constexpr JPH::ObjectLayer EditorPickingObjectLayer = 1;
+constexpr uint32_t ObjectLayerCount = 2;
+constexpr uint32_t BroadPhaseLayerCount = 2;
 constexpr uint32_t MaxBodies = 1024;
 constexpr uint32_t BodyMutexCount = 0;
 constexpr uint32_t MaxBodyPairs = 1024;
@@ -208,9 +209,14 @@ FJoltPhysicsBackend::FJoltPhysicsBackend() {
 
   BroadPhaseLayerInterface =
       std::make_unique<JPH::BroadPhaseLayerInterfaceTable>(ObjectLayerCount, BroadPhaseLayerCount);
-  BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(DefaultObjectLayer, JPH::BroadPhaseLayer(0));
+  BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(
+      GameplayObjectLayer, JPH::BroadPhaseLayer(0)
+  );
+  BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(
+      EditorPickingObjectLayer, JPH::BroadPhaseLayer(1)
+  );
   ObjectLayerPairFilter = std::make_unique<JPH::ObjectLayerPairFilterTable>(ObjectLayerCount);
-  ObjectLayerPairFilter->EnableCollision(DefaultObjectLayer, DefaultObjectLayer);
+  ObjectLayerPairFilter->EnableCollision(GameplayObjectLayer, GameplayObjectLayer);
   ObjectVsBroadPhaseLayerFilter = std::make_unique<JPH::ObjectVsBroadPhaseLayerFilterTable>(
       *BroadPhaseLayerInterface, BroadPhaseLayerCount, *ObjectLayerPairFilter, ObjectLayerCount
   );
@@ -271,7 +277,9 @@ bool FJoltPhysicsBackend::IsInitialized() const {
 
 uint32_t FJoltPhysicsBackend::GetBodyCount() const { return static_cast<uint32_t>(Bodies.size()); }
 
-bool FJoltPhysicsBackend::CreateBody(void* Key, const FPhysicsBody3DDesc& Description) {
+bool FJoltPhysicsBackend::CreateBody(
+    void* Key, const FPhysicsBody3DDesc& Description, EPhysicsQueryLayer3D Layer
+) {
   if (!Key || !IsInitialized()) {
     return false;
   }
@@ -293,7 +301,7 @@ bool FJoltPhysicsBackend::CreateBody(void* Key, const FPhysicsBody3DDesc& Descri
       ToJolt(Description.Location),
       ToJolt(Description.Rotation),
       ToJolt(Description.Type),
-      DefaultObjectLayer
+      Layer == EPhysicsQueryLayer3D::EditorPicking ? EditorPickingObjectLayer : GameplayObjectLayer
   );
   Settings.mIsSensor = Description.bIsSensor;
   if (Description.Type == EPhysicsBody3DType::Dynamic && Description.Mass > 0.0f) {
