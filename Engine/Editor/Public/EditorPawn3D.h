@@ -31,6 +31,7 @@ class EditorPawn3D : public APawn {
   void OnMove(const FInputActionValue& Value) override;
   void OnVerticalMove(const FInputActionValue& Value);
   void OnMouseLeftPress(const FInputActionValue& Value);
+  void OnMouseLeftRelease(const FInputActionValue& Value);
   void OnMouseRightPress(const FInputActionValue& Value);
   void OnMouseRightRelease(const FInputActionValue& Value);
   void OnMouseMove(const FInputActionValue& Value);
