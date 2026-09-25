@@ -221,11 +221,6 @@ void FPhysicsSystem3D::SetActorTransform(
   if (It != ImplPtr->Bodies.end() && It->second->GetBodyType() != ERigidBody3DType::Kinematic) {
     ImplPtr->Backend->SetTransform(It->second, Location, Rotation);
   }
-  const auto PickingIt = ImplPtr->PickingBodies.find(Actor);
-  if (PickingIt != ImplPtr->PickingBodies.end()) {
-    PickingIt->second.Center = Location;
-    ImplPtr->Backend->SetTransform(Actor, PickingIt->second.Center, Rotation);
-  }
 }
 
 FVector3D FPhysicsSystem3D::GetLinearVelocity(const MRigidBody3DComponent* Component) const {
