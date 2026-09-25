@@ -14,6 +14,7 @@
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
+#include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
@@ -42,6 +43,16 @@ constexpr uint32_t MaxContactConstraints = 1024;
 constexpr size_t TempAllocatorSize = 10 * 1024 * 1024;
 constexpr uint32_t MaxPhysicsJobs = 1024;
 constexpr uint32_t MaxPhysicsBarriers = 1024;
+
+class FQueryObjectLayerFilter final : public JPH::ObjectLayerFilter {
+ public:
+  explicit FQueryObjectLayerFilter(JPH::ObjectLayer InLayer) : Layer(InLayer) {}
+
+  bool ShouldCollide(JPH::ObjectLayer Candidate) const override { return Candidate == Layer; }
+
+ private:
+  JPH::ObjectLayer Layer;
+};
 }  // namespace
 
 struct FJoltPhysicsBackend::FBodyRecord {
@@ -89,7 +100,10 @@ std::vector<void*> FJoltPhysicsBackend::OverlapShape(
 }
 
 std::vector<FJoltRaycastHit> FJoltPhysicsBackend::RaycastAll(
-    const FVector3D& Origin, const FVector3D& Direction, float MaxDistance
+    const FVector3D& Origin,
+    const FVector3D& Direction,
+    float MaxDistance,
+    EPhysicsQueryLayer3D Layer
 ) const {
   std::vector<FJoltRaycastHit> Result;
   if (!IsInitialized() || !std::isfinite(Origin.X) || !std::isfinite(Origin.Y) ||
@@ -112,7 +126,12 @@ std::vector<FJoltRaycastHit> FJoltPhysicsBackend::RaycastAll(
       )
   );
   JPH::AllHitCollisionCollector<JPH::CastRayCollector> Collector;
-  PhysicsSystem->GetNarrowPhaseQuery().CastRay(Ray, JPH::RayCastSettings(), Collector);
+  const FQueryObjectLayerFilter LayerFilter(
+      Layer == EPhysicsQueryLayer3D::EditorPicking ? EditorPickingObjectLayer : GameplayObjectLayer
+  );
+  PhysicsSystem->GetNarrowPhaseQuery().CastRay(
+      Ray, JPH::RayCastSettings(), Collector, {}, LayerFilter
+  );
   Collector.Sort();
   for (const JPH::RayCastResult& Hit : Collector.mHits) {
     void* Key = FindBodyKey(Hit.mBodyID.GetIndexAndSequenceNumber());

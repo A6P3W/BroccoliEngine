@@ -235,8 +235,9 @@ std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::RaycastAll(
       Ray.Direction.Z / DirectionLength
   };
   std::unordered_map<AActor*, FPhysicsQueryHit3D> ClosestHits;
-  for (const FJoltRaycastHit& Hit :
-       ImplPtr->Backend->RaycastAll(Ray.Origin, Ray.Direction, Ray.MaxDistance)) {
+  for (const FJoltRaycastHit& Hit : ImplPtr->Backend->RaycastAll(
+           Ray.Origin, Ray.Direction, Ray.MaxDistance, Filter.QueryLayer
+       )) {
     auto* Body = static_cast<MRigidBody3DComponent*>(Hit.Key);
     AActor* Actor = Body ? Body->GetOwner() : nullptr;
     if (!Actor || Actor->IsPendingDestroy()) {

@@ -55,7 +55,10 @@ class FJoltPhysicsBackend {
       const FVector3D& Center, const FVector3D& Dimensions, bool Sphere
   ) const;
   std::vector<FJoltRaycastHit> RaycastAll(
-      const FVector3D& Origin, const FVector3D& Direction, float MaxDistance
+      const FVector3D& Origin,
+      const FVector3D& Direction,
+      float MaxDistance,
+      EPhysicsQueryLayer3D Layer
   ) const;
 
  private:
