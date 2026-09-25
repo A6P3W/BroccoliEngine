@@ -2,6 +2,8 @@
 
 #include <PlayerController.h>
 
+#include <cmath>
+
 #include "Actor.h"
 #include "ActorRegistry.h"
 #include "BroccoliRaylib.h"
@@ -14,9 +16,11 @@
 #include "Log.h"
 #include "PathResolver.h"
 #include "RenderSystem.h"
+#include "ResourceManager.h"
 #include "SceneManager.h"
 #include "SpriteActor.h"
 #include "StaticMeshActor.h"
+#include "StaticMeshComponent.h"
 #include "World.h"
 const std::vector<std::string>& EditorMode::GetClassList() const {
   return ActorRegistry::GetInstance().GetClassNames();
@@ -304,4 +308,30 @@ bool EditorMode::TryGetMouseWorldPosition(FVector2D& OutPosition, bool RequireIn
   if (!TryGetViewportRenderTargetMousePosition(RenderTargetPosition, RequireInside)) return false;
   OutPosition = RenderSystem::GetInstance().ScreenToWorld(RenderTargetPosition);
   return true;
+}
+
+FEditorPickingProxy3D EditorMode::ResolvePickingProxy(AActor* Actor) const {
+  FEditorPickingProxy3D Proxy;
+  if (Actor == nullptr) return Proxy;
+
+  Proxy.Center = Actor->GetActorLocation3D();
+  auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(Actor);
+  const auto Meshes = Actor->GetComponents<MStaticMeshComponent>();
+  FBox3D Bounds;
+  if (StaticMeshActor == nullptr || Meshes.size() != 1 ||
+      !ResourceManager::GetInstance().GetModelBounds(Meshes.front()->GetModel(), Bounds)) {
+    return Proxy;
+  }
+
+  const FVector3D LocalCenter = (Bounds.Min + Bounds.Max) * 0.5f;
+  const FVector3D LocalHalfExtent = (Bounds.Max - Bounds.Min) * 0.5f;
+  const FTransform3D Transform = Actor->GetActorTransform3D();
+  Proxy.Shape = EEditorPickingShape3D::Box;
+  Proxy.Center = Transform.TransformPosition(LocalCenter);
+  Proxy.HalfExtent = {
+      LocalHalfExtent.X * std::abs(Transform.Scale.X),
+      LocalHalfExtent.Y * std::abs(Transform.Scale.Y),
+      LocalHalfExtent.Z * std::abs(Transform.Scale.Z),
+  };
+  return Proxy;
 }
