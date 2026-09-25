@@ -59,6 +59,7 @@ struct FJoltPhysicsBackend::FBodyRecord {
   JPH::BodyID Id;
   uint16_t CollisionLayer = 0;
   uint16_t CollisionMask = 0xffff;
+  EPhysicsQueryLayer3D QueryLayer = EPhysicsQueryLayer3D::Gameplay;
 };
 
 std::vector<void*> FJoltPhysicsBackend::OverlapShape(
@@ -92,7 +93,10 @@ std::vector<void*> FJoltPhysicsBackend::OverlapShape(
   );
   for (const auto& Hit : Collector.mHits) {
     void* Key = FindBodyKey(Hit.mBodyID2.GetIndexAndSequenceNumber());
-    if (Key && std::find(Result.begin(), Result.end(), Key) == Result.end()) {
+    const auto Record = Bodies.find(Key);
+    if (Key && Record != Bodies.end() &&
+        Record->second.QueryLayer == EPhysicsQueryLayer3D::Gameplay &&
+        std::find(Result.begin(), Result.end(), Key) == Result.end()) {
       Result.push_back(Key);
     }
   }
@@ -332,7 +336,9 @@ bool FJoltPhysicsBackend::CreateBody(
   if (Id.IsInvalid()) {
     return false;
   }
-  Bodies.emplace(Key, FBodyRecord{Id, Description.CollisionLayer, Description.CollisionMask});
+  Bodies.emplace(
+      Key, FBodyRecord{Id, Description.CollisionLayer, Description.CollisionMask, Layer}
+  );
   return true;
 }
 
