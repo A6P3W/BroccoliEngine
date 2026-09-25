@@ -24,6 +24,14 @@
 #include "StaticMeshActor.h"
 #include "StaticMeshComponent.h"
 #include "World.h"
+
+namespace {
+bool IsSamePickingProxy(const FEditorPickingProxy3D& Left, const FEditorPickingProxy3D& Right) {
+  return Left.Shape == Right.Shape && Left.Center == Right.Center &&
+         Left.HalfExtent == Right.HalfExtent && Left.Radius == Right.Radius;
+}
+}  // namespace
+
 const std::vector<std::string>& EditorMode::GetClassList() const {
   return ActorRegistry::GetInstance().GetClassNames();
 }
@@ -271,6 +279,7 @@ void EditorMode::DeleteSelectedActor() {
 
 void EditorMode::OnUpdate(float DeltaTime) {
   (void)DeltaTime;
+  RefreshPickingProxies();
   static EditorUI ui;
   ui.UpdateAndDraw(this);
 }
@@ -347,7 +356,10 @@ void EditorMode::RefreshPickingProxies() {
     AActor* Actor = ActorOwner.get();
     if (Actor == nullptr || Actor->IsPendingDestroy() || Actor->IsEditorActor()) continue;
     FEditorPickingProxy3D Proxy = ResolvePickingProxy(Actor);
-    Physics->RefreshEditorPickingBody(Actor, Proxy);
+    const auto Existing = PickingProxies.find(Actor);
+    if (Existing == PickingProxies.end() || !IsSamePickingProxy(Existing->second, Proxy)) {
+      Physics->RefreshEditorPickingBody(Actor, Proxy);
+    }
     CurrentProxies.emplace(Actor, Proxy);
   }
   for (const auto& [Actor, Proxy] : PickingProxies) {
