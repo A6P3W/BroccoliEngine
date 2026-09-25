@@ -280,6 +280,7 @@ void EditorMode::DeleteSelectedActor() {
 void EditorMode::OnUpdate(float DeltaTime) {
   (void)DeltaTime;
   RefreshPickingProxies();
+  DrawPickingProxies();
   static EditorUI ui;
   ui.UpdateAndDraw(this);
 }
@@ -366,4 +367,22 @@ void EditorMode::RefreshPickingProxies() {
     if (!CurrentProxies.contains(Actor)) Physics->UnregisterEditorPickingBody(Actor);
   }
   PickingProxies = std::move(CurrentProxies);
+}
+
+void EditorMode::DrawPickingProxies() const {
+  if (ViewportState.Mode != EEditorViewportMode::ThreeD) return;
+  constexpr FColor PickingColor{255, 196, 0, 255};
+  for (const auto& [Actor, Proxy] : PickingProxies) {
+    if (Proxy.Shape == EEditorPickingShape3D::Sphere) {
+      RenderSystem::GetInstance().SubmitSphere(Proxy.Center, Proxy.Radius, PickingColor, false);
+    } else if (Actor == HoveredActor || Actor == GetSelectedActor()) {
+      RenderSystem::GetInstance().SubmitCube(
+          {Proxy.Center,
+           Actor->GetActorRotation3D(),
+           {Proxy.HalfExtent.X * 2.0f, Proxy.HalfExtent.Y * 2.0f, Proxy.HalfExtent.Z * 2.0f}},
+          PickingColor,
+          false
+      );
+    }
+  }
 }
