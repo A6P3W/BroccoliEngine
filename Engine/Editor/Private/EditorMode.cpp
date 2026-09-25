@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "Actor.h"
+#include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "BroccoliRaylib.h"
 #include "Camera3DComponent.h"
@@ -15,6 +16,7 @@
 #include "FileDialog.h"
 #include "Log.h"
 #include "PathResolver.h"
+#include "PhysicsSystem3D.h"
 #include "RenderSystem.h"
 #include "ResourceManager.h"
 #include "SceneManager.h"
@@ -334,4 +336,22 @@ FEditorPickingProxy3D EditorMode::ResolvePickingProxy(AActor* Actor) const {
       LocalHalfExtent.Z * std::abs(Transform.Scale.Z),
   };
   return Proxy;
+}
+
+void EditorMode::RefreshPickingProxies() {
+  FPhysicsSystem3D* Physics = GetWorld()->GetPhysicsSystem3D();
+  if (Physics == nullptr) return;
+
+  std::unordered_map<AActor*, FEditorPickingProxy3D> CurrentProxies;
+  for (const std::unique_ptr<AActor>& ActorOwner : GetWorld()->GetActorManager()->GetAllActors()) {
+    AActor* Actor = ActorOwner.get();
+    if (Actor == nullptr || Actor->IsPendingDestroy() || Actor->IsEditorActor()) continue;
+    FEditorPickingProxy3D Proxy = ResolvePickingProxy(Actor);
+    Physics->RefreshEditorPickingBody(Actor, Proxy);
+    CurrentProxies.emplace(Actor, Proxy);
+  }
+  for (const auto& [Actor, Proxy] : PickingProxies) {
+    if (!CurrentProxies.contains(Actor)) Physics->UnregisterEditorPickingBody(Actor);
+  }
+  PickingProxies = std::move(CurrentProxies);
 }

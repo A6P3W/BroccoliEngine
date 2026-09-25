@@ -121,6 +121,7 @@ class EditorMode : public AGameModeBase {
 
   bool TryGetMouseWorldPosition(FVector2D& OutPosition, bool RequireInside = true) const;
   FEditorPickingProxy3D ResolvePickingProxy(AActor* Actor) const;
+  void RefreshPickingProxies();
 
   std::unordered_map<AActor*, FEditorPickingProxy3D> PickingProxies;
 };
