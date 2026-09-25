@@ -35,6 +35,7 @@ bool PassesFilter(
 struct FPhysicsSystem3D::Impl {
   std::unique_ptr<FJoltPhysicsBackend> Backend = std::make_unique<FJoltPhysicsBackend>();
   std::unordered_map<AActor*, MRigidBody3DComponent*> Bodies;
+  std::unordered_map<AActor*, FEditorPickingProxy3D> PickingBodies;
   std::set<std::pair<AActor*, AActor*>> ActivePairs;
   float FixedTimeStep = DefaultFixedTimeStep;
   float Accumulator = 0.0f;
@@ -186,12 +187,44 @@ void FPhysicsSystem3D::UnregisterActorBody(AActor* Actor) {
   ImplPtr->Bodies.erase(It);
 }
 
+void FPhysicsSystem3D::RefreshEditorPickingBody(AActor* Actor, const FEditorPickingProxy3D& Proxy) {
+  if (!Actor || !IsInitialized()) return;
+
+  UnregisterEditorPickingBody(Actor);
+  FPhysicsBody3DDesc Description;
+  Description.Type = EPhysicsBody3DType::Static;
+  Description.ShapeType = Proxy.Shape == EEditorPickingShape3D::Box ? EPhysicsShape3DType::Box
+                                                                    : EPhysicsShape3DType::Sphere;
+  Description.ShapeDimensions = Proxy.Shape == EEditorPickingShape3D::Box
+                                    ? Proxy.HalfExtent
+                                    : FVector3D{Proxy.Radius, Proxy.Radius, Proxy.Radius};
+  Description.Location = Proxy.Center;
+  Description.Rotation = Actor->GetActorRotation3D();
+  Description.bIsSensor = true;
+  if (ImplPtr->Backend->CreateBody(Actor, Description, EPhysicsQueryLayer3D::EditorPicking)) {
+    ImplPtr->PickingBodies.emplace(Actor, Proxy);
+  }
+}
+
+void FPhysicsSystem3D::UnregisterEditorPickingBody(AActor* Actor) {
+  if (!Actor || !ImplPtr) return;
+  const auto It = ImplPtr->PickingBodies.find(Actor);
+  if (It == ImplPtr->PickingBodies.end()) return;
+  ImplPtr->Backend->DestroyBody(Actor);
+  ImplPtr->PickingBodies.erase(It);
+}
+
 void FPhysicsSystem3D::SetActorTransform(
     AActor* Actor, const FVector3D& Location, const FQuaternion& Rotation
 ) {
   const auto It = ImplPtr->Bodies.find(Actor);
   if (It != ImplPtr->Bodies.end() && It->second->GetBodyType() != ERigidBody3DType::Kinematic) {
     ImplPtr->Backend->SetTransform(It->second, Location, Rotation);
+  }
+  const auto PickingIt = ImplPtr->PickingBodies.find(Actor);
+  if (PickingIt != ImplPtr->PickingBodies.end()) {
+    PickingIt->second.Center = Location;
+    ImplPtr->Backend->SetTransform(Actor, PickingIt->second.Center, Rotation);
   }
 }
 
@@ -238,14 +271,20 @@ std::vector<FPhysicsQueryHit3D> FPhysicsSystem3D::RaycastAll(
   for (const FJoltRaycastHit& Hit : ImplPtr->Backend->RaycastAll(
            Ray.Origin, Ray.Direction, Ray.MaxDistance, Filter.QueryLayer
        )) {
-    auto* Body = static_cast<MRigidBody3DComponent*>(Hit.Key);
-    AActor* Actor = Body ? Body->GetOwner() : nullptr;
+    auto* Body = Filter.QueryLayer == EPhysicsQueryLayer3D::Gameplay
+                     ? static_cast<MRigidBody3DComponent*>(Hit.Key)
+                     : nullptr;
+    AActor* Actor = Filter.QueryLayer == EPhysicsQueryLayer3D::EditorPicking
+                        ? static_cast<AActor*>(Hit.Key)
+                        : (Body ? Body->GetOwner() : nullptr);
     if (!Actor || Actor->IsPendingDestroy()) {
       continue;
     }
-    const std::vector<MCollision3DComponent*> Colliders =
-        Actor->GetComponents<MCollision3DComponent>();
-    if (Colliders.empty() || !PassesFilter(*Actor, *Colliders.front(), Filter)) {
+    if (Filter.QueryLayer == EPhysicsQueryLayer3D::Gameplay) {
+      const std::vector<MCollision3DComponent*> Colliders =
+          Actor->GetComponents<MCollision3DComponent>();
+      if (Colliders.empty() || !PassesFilter(*Actor, *Colliders.front(), Filter)) continue;
+    } else if (Actor == Filter.IgnoredActor) {
       continue;
     }
     const float Distance = Hit.Fraction * Ray.MaxDistance;
