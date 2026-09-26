@@ -59,6 +59,9 @@ void EditorPawn3D::SetupPlayerInputComponent(MEnhancedInputComponent* PlayerInpu
       InputActionMouse::MouseLeft, ETriggerEvent::Started, this, &EditorPawn3D::OnMouseLeftPress
   );
   PlayerInputComponent->BindAction(
+      InputActionMouse::MouseLeft, ETriggerEvent::Completed, this, &EditorPawn3D::OnMouseLeftRelease
+  );
+  PlayerInputComponent->BindAction(
       InputActionMouse::MouseRight, ETriggerEvent::Started, this, &EditorPawn3D::OnMouseRightPress
   );
   PlayerInputComponent->BindAction(
@@ -197,7 +200,17 @@ void EditorPawn3D::OnMouseRightPress(const FInputActionValue&) {
 
 void EditorPawn3D::OnMouseRightRelease(const FInputActionValue&) { EndCameraNavigation(); }
 
-void EditorPawn3D::OnMouseMove(const FInputActionValue&) {}
+void EditorPawn3D::OnMouseLeftRelease(const FInputActionValue&) {
+  if (EditorModePtr != nullptr) {
+    EditorModePtr->OnMouseRelease3D();
+  }
+}
+
+void EditorPawn3D::OnMouseMove(const FInputActionValue&) {
+  if (EditorModePtr != nullptr && !CameraNavigationActive) {
+    EditorModePtr->OnMouseMove3D();
+  }
+}
 
 void EditorPawn3D::OnWheel(const FInputActionValue& Value) {
   if (!CameraNavigationActive) {

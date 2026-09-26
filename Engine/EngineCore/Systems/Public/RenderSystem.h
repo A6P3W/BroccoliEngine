@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <variant>
@@ -12,6 +13,7 @@
 
 enum class RenderType { Graph, Box, Text, Line, RectGraph, Circle };
 enum class RenderSpace { World, Screen };
+enum class ERenderLayer3D : uint8_t { World, Overlay };
 
 struct FScreenRenderArea {
   FVector2D Position = FVector2D::ZeroVector();
@@ -92,6 +94,7 @@ using RenderCommand3DData = std::variant<
     StaticMeshRenderData,
     GridRenderData>;
 struct RenderCommand3D {
+  ERenderLayer3D Layer = ERenderLayer3D::World;
   RenderCommand3DData Data;
 };
 
@@ -171,9 +174,25 @@ class BROCCOLI_ENGINE_API RenderSystem {
       int Alpha = 255,
       const FColor& Tint = FColor::White
   );
-  void SubmitCube(const FTransform3D& Transform, const FColor& Color, bool Fill = true);
-  void SubmitSphere(const FVector3D& Center, float Radius, const FColor& Color, bool Fill = true);
-  void SubmitLine3D(const FVector3D& Start, const FVector3D& End, const FColor& Color);
+  void SubmitCube(
+      const FTransform3D& Transform,
+      const FColor& Color,
+      bool Fill = true,
+      ERenderLayer3D Layer = ERenderLayer3D::World
+  );
+  void SubmitSphere(
+      const FVector3D& Center,
+      float Radius,
+      const FColor& Color,
+      bool Fill = true,
+      ERenderLayer3D Layer = ERenderLayer3D::World
+  );
+  void SubmitLine3D(
+      const FVector3D& Start,
+      const FVector3D& End,
+      const FColor& Color,
+      ERenderLayer3D Layer = ERenderLayer3D::World
+  );
   void SubmitStaticMesh(
       const FTransform3D& Transform, int ModelHandle, const FColor& Tint = FColor::White
   );

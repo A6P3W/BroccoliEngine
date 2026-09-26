@@ -37,7 +37,7 @@ class EditorMode : public AGameModeBase {
   const std::string& GetSelectedGameModeClass() const { return SelectedGameModeClass; }
 
   // --- アクタ選択 (インスペクタ・アウトライナ用) ---
-  void SetSelectedActor(AActor* Actor) { Selection.Select(Actor); }
+  void SetSelectedActor(AActor* Actor);
   AActor* GetSelectedActor() const { return Selection.GetSelectedActor(); }
 
   // --- マウス入力（EditorPawnから呼ぶ） ---
@@ -55,13 +55,15 @@ class EditorMode : public AGameModeBase {
   EEditorState GetState() const { return State; }
 
   EActorAction GetActorAction() const { return ActorAction; }
-  void SetActorAction(EActorAction action) { ActorAction = action; }
+  void SetActorAction(EActorAction Action);
 
   EEditorViewportMode GetViewportMode() const { return ViewportState.Mode; }
   void SetViewportMode(EEditorViewportMode Mode);
   bool IsThreeDCameraNavigationActive() const;
   EditorPawn3D* GetEditorPawn3D() const { return EditorPawn3DPtr; }
   void OnMousePress3D();
+  void OnMouseMove3D();
+  void OnMouseRelease3D();
   AActor* PlaceSelectedClassAtViewportCenter();
   AActor* PlaceActorAtViewportCenter(const std::string& ClassName);
 
@@ -90,6 +92,7 @@ class EditorMode : public AGameModeBase {
  public:
   EditorMode();
   void OnUpdate(float DeltaTime) override;
+  void Draw() override;
 
  private:
   EditorMode(const EditorMode&) = delete;
@@ -123,7 +126,7 @@ class EditorMode : public AGameModeBase {
   FEditorPickingProxy3D ResolvePickingProxy(AActor* Actor) const;
   void RefreshPickingProxies();
   void DrawPickingProxies() const;
-  bool BuildViewportRay(FPhysicsRay3D& OutRay) const;
+  bool BuildViewportRay(FPhysicsRay3D& OutRay, bool RequireInside = true) const;
   void UpdateHoveredActor();
 
   std::unordered_map<AActor*, FEditorPickingProxy3D> PickingProxies;

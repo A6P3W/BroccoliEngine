@@ -53,8 +53,29 @@ void EditorMode::SetViewportMode(EEditorViewportMode Mode) {
   }
 
   ViewportState.Mode = Mode;
+  TransformTool.End();
+  SelectingActor = nullptr;
+  State = EEditorState::Idle;
   SetPlayerPawn(TargetPawn);
   EditorControllerPtr->Possess(TargetPawn);
+}
+
+void EditorMode::SetSelectedActor(AActor* Actor) {
+  if (Selection.GetSelectedActor() != Actor) {
+    TransformTool.End();
+    SelectingActor = nullptr;
+    State = EEditorState::Idle;
+  }
+  Selection.Select(Actor);
+}
+
+void EditorMode::SetActorAction(EActorAction Action) {
+  if (ActorAction != Action) {
+    TransformTool.End();
+    SelectingActor = nullptr;
+    State = EEditorState::Idle;
+  }
+  ActorAction = Action;
 }
 
 bool EditorMode::IsThreeDCameraNavigationActive() const {
@@ -68,6 +89,28 @@ void EditorMode::OnMousePress3D() {
   }
   FPhysicsRay3D Ray;
   if (!BuildViewportRay(Ray)) return;
+  AActor* SelectedActor = GetSelectedActor();
+  MCamera3DComponent* Camera = EditorPawn3DPtr->GetEditorCamera3D();
+  if (SelectedActor != nullptr && !SelectedActor->IsPendingDestroy() &&
+      (ActorAction == EActorAction::Move || ActorAction == EActorAction::Scale)) {
+    const EGizmoHandle3D Handle =
+        TransformTool.HitTest3D(SelectedActor, ActorAction, Ray, Camera->GetWorldLocation3D());
+    FVector2D MousePosition;
+    if (Handle != EGizmoHandle3D::None && TryGetViewportRenderTargetMousePosition(MousePosition) &&
+        TransformTool.Begin3D(
+            SelectedActor,
+            ActorAction,
+            Handle,
+            Ray,
+            Camera->GetForwardVector(),
+            MousePosition,
+            Camera->GetWorldLocation3D()
+        )) {
+      SelectingActor = SelectedActor;
+      State = EEditorState::Dragging;
+      return;
+    }
+  }
   FPhysicsQueryFilter3D Filter;
   Filter.QueryLayer = EPhysicsQueryLayer3D::EditorPicking;
   FPhysicsQueryHit3D Hit;
@@ -76,6 +119,27 @@ void EditorMode::OnMousePress3D() {
   } else {
     SetSelectedActor(nullptr);
   }
+}
+
+void EditorMode::OnMouseMove3D() {
+  if (ViewportState.Mode != EEditorViewportMode::ThreeD || State != EEditorState::Dragging ||
+      !TransformTool.IsActive()) {
+    return;
+  }
+  FPhysicsRay3D Ray;
+  FVector2D MousePosition;
+  if (!BuildViewportRay(Ray, false) ||
+      !TryGetViewportRenderTargetMousePosition(MousePosition, false)) {
+    return;
+  }
+  TransformTool.Update3D(Ray, MousePosition);
+}
+
+void EditorMode::OnMouseRelease3D() {
+  if (State != EEditorState::Dragging) return;
+  SelectingActor = nullptr;
+  TransformTool.End();
+  State = EEditorState::Idle;
 }
 
 AActor* EditorMode::PlaceSelectedClassAtViewportCenter() {
@@ -299,6 +363,26 @@ void EditorMode::OnUpdate(float DeltaTime) {
   RefreshPickingProxies();
   UpdateHoveredActor();
   DrawPickingProxies();
+  AActor* SelectedActor = GetSelectedActor();
+  if (SelectedActor != nullptr && SelectedActor->IsPendingDestroy()) {
+    SetSelectedActor(nullptr);
+  }
+}
+
+void EditorMode::Draw() {
+  AGameModeBase::Draw();
+
+  AActor* SelectedActor = GetSelectedActor();
+  if (ViewportState.Mode != EEditorViewportMode::ThreeD || SelectedActor == nullptr ||
+      SelectedActor->IsPendingDestroy() || EditorPawn3DPtr == nullptr ||
+      EditorPawn3DPtr->GetEditorCamera3D() == nullptr) {
+    return;
+  }
+
+  MCamera3DComponent* Camera = EditorPawn3DPtr->GetEditorCamera3D();
+  TransformTool.Draw3D(
+      SelectedActor, ActorAction, Camera->GetWorldLocation3D(), Camera->GetForwardVector()
+  );
 }
 
 void EditorMode::BeginPlay() {
@@ -403,13 +487,13 @@ void EditorMode::DrawPickingProxies() const {
   }
 }
 
-bool EditorMode::BuildViewportRay(FPhysicsRay3D& OutRay) const {
+bool EditorMode::BuildViewportRay(FPhysicsRay3D& OutRay, bool RequireInside) const {
   if (EditorPawn3DPtr == nullptr || EditorPawn3DPtr->GetEditorCamera3D() == nullptr ||
       ViewportState.RenderTargetSize.X <= 0.0f || ViewportState.RenderTargetSize.Y <= 0.0f) {
     return false;
   }
   FVector2D Mouse;
-  if (!TryGetViewportRenderTargetMousePosition(Mouse)) return false;
+  if (!TryGetViewportRenderTargetMousePosition(Mouse, RequireInside)) return false;
 
   MCamera3DComponent* Camera = EditorPawn3DPtr->GetEditorCamera3D();
   const float NormalizedX = Mouse.X * 2.0f / ViewportState.RenderTargetSize.X - 1.0f;
