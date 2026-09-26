@@ -21,6 +21,7 @@ from .plugins import (
 from .prepare_output import PrepareOutput
 from .stage_runtime import StageRuntime
 from .verify_runtime import VerifyRuntime
+from .worktree import CreateWorktree, ResolveDefaultTargetDirectory
 
 CONFIGURATION_PRESETS = {
   "debug": ("Debug", "debug-local"),
@@ -286,6 +287,13 @@ def CreateParser() -> argparse.ArgumentParser:
   VerifyParser.add_argument("--publish-dir", type=PathArgument)
   VerifyParser.add_argument("--configuration")
   VerifyParser.add_argument("--required-plugin", action="append", default=[])
+  WorktreeParser = Commands.add_parser("worktree", help="Create a configured Git worktree")
+  WorktreeCommands = WorktreeParser.add_subparsers(dest="worktree_command", required=True)
+  WorktreeCreateParser = WorktreeCommands.add_parser(
+    "create", help="Create a branch and worktree from the current HEAD"
+  )
+  WorktreeCreateParser.add_argument("branch")
+  WorktreeCreateParser.add_argument("--path", type=PathArgument)
   return Parser
 
 
@@ -367,6 +375,14 @@ def Main() -> int:
           Arguments.publish_dir,
           [PluginName for PluginName in Arguments.required_plugin if PluginName],
         )
+    elif Arguments.Command == "worktree":
+      if Arguments.worktree_command == "create":
+        SourceDirectory = Path.cwd().resolve()
+        TargetDirectory = Arguments.path or ResolveDefaultTargetDirectory(
+          SourceDirectory, Arguments.branch
+        )
+        CreateWorktree(SourceDirectory, TargetDirectory, Arguments.branch)
+        print(f"Created worktree: {TargetDirectory}")
   except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as Error:
     print(Error, file=sys.stderr)
     return 1
