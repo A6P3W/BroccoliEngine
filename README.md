@@ -100,3 +100,23 @@ broccoli.bat run Debug
 [Auto-Control-C++使用方法](./Engine/Documents/Auto-Control-C++使用方法.md)
 
 [Auto-Control-CLI使用方法](./Engine/Documents/Auto-Control-CLI使用方法.md)
+
+---
+
+## worktree の作成
+
+現在の `HEAD` から新規ブランチと worktree を作成し、ローカル開発環境を引き継ぎます。
+
+```cmd
+broccoli.bat worktree create feature/example
+broccoli.bat worktree create feature/example --path C:\Dev\example-worktree
+```
+
+`--path` を省略すると、リポジトリと同階層の
+`<RepositoryName>-worktrees/<BranchDirectory>` に作成します。ブランチ名の `/` は `-` に
+置き換えられます。
+
+存在する場合は `CMakeUserPresets.json` と `build/windows-x64` 全体を新しい worktree へ
+コピーします。ゲームプロジェクトでは、既存の `BroccoliEngine` checkout を clone 元として
+独立したローカル checkout を作成し、ゲームリポジトリが記録する gitlink commit に合わせます。
+この場合、元の `BroccoliEngine` に未コミット変更があると作成を中止します。
