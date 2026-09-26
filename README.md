@@ -108,17 +108,8 @@ broccoli.bat run Debug
 Git 標準コマンドで worktree を作成した後、Broccoli 固有のローカル開発環境を引き継ぎます。
 
 ```cmd
-git worktree add -b feature/example ..\BroccoliEngine-worktrees\feature-example HEAD
-broccoli.bat worktree setup ..\BroccoliEngine-worktrees\feature-example
+git worktree add -b feature/example ../BroccoliEngine-worktrees/feature-example HEAD
+broccoli.bat worktree setup ../BroccoliEngine-worktrees/feature-example
 ```
 
-既存ブランチや detached HEAD を使用する場合も、`git worktree add` の標準オプションを使用して
-worktree を作成してください。`worktree setup` の対象は、現在のプロジェクトと同一リポジトリに
-属する既存 worktree のルートである必要があります。
-
-存在する場合は `CMakeUserPresets.json` を新しい worktree へコピーします。CMake/MSBuildの
-生成物はworktree間で移設できないため、`build` ディレクトリはコピーしません。
-
-ゲームプロジェクトでは、既存の `BroccoliEngine` checkout を clone 元として独立したローカル
-checkout を作成し、ゲームリポジトリが記録する gitlink commit に合わせます。この場合、元の
-`BroccoliEngine` に未コミット変更があると作成を中止します。
+存在する場合は `CMakeUserPresets.json` を新しい worktree へコピーします。
