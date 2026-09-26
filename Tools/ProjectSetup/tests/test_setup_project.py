@@ -96,6 +96,7 @@ def TestRenderTemplatesCreatesBasicGameplay(
     UserConfigurePresets["windows-x64-local"]["environment"]["VCPKG_ROOT"]
     == "{YOUR_VCPKG_ROOT_DIRECTORY}"
   )
+  assert "{YOUR_MINGW_BIN_DIRECTORY}" in UserPresetsText
   assert "CMAKE_TOOLCHAIN_FILE" not in UserPresetsText
 
   assert not (OutputRoot / "Game").exists()

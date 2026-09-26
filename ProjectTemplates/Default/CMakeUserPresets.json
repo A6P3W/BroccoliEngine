@@ -5,7 +5,12 @@
       "name": "windows-x64-local",
       "inherits": "windows-x64",
       "environment": {
-        "VCPKG_ROOT": "{YOUR_VCPKG_ROOT_DIRECTORY}"
+        "VCPKG_ROOT": "{YOUR_VCPKG_ROOT_DIRECTORY}",
+        "PATH": "{YOUR_MINGW_BIN_DIRECTORY};$penv{PATH}"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "{YOUR_MINGW_BIN_DIRECTORY}/gcc.exe",
+        "CMAKE_CXX_COMPILER": "{YOUR_MINGW_BIN_DIRECTORY}/g++.exe"
       }
     }
   ],

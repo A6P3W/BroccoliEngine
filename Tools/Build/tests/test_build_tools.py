@@ -67,7 +67,7 @@ def TestBuildLeavesPluginGenerationToCmakeConfigure(
   TmpPath: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   WritePluginSettings(TmpPath, [])
-  CacheFile = TmpPath / "build" / "windows-x64" / "CMakeCache.txt"
+  CacheFile = TmpPath / "build" / "windows-x64-gcc26" / "CMakeCache.txt"
   CacheFile.parent.mkdir(parents=True)
   CacheFile.write_text("cache", encoding="utf-8")
   Commands: list[tuple[list[str], Path]] = []
@@ -102,7 +102,7 @@ def TestRegenerateDoesNotBuild(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -
 
 def TestBuildRecordsLatestConfiguration(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
   WritePluginSettings(TmpPath, [])
-  CacheFile = TmpPath / "build" / "windows-x64" / "CMakeCache.txt"
+  CacheFile = TmpPath / "build" / "windows-x64-gcc26" / "CMakeCache.txt"
   CacheFile.parent.mkdir(parents=True)
   CacheFile.write_text("cache", encoding="utf-8")
 
@@ -257,7 +257,7 @@ def TestCleanOnlyRemovesTheRequestedConfiguration(
   for Configuration in ("Debug", "Editor"):
     (TmpPath / "Bin" / "x64" / Configuration).mkdir(parents=True)
     (TmpPath / "Publish" / Configuration).mkdir(parents=True)
-  CacheFile = TmpPath / "build" / "windows-x64" / "CMakeCache.txt"
+  CacheFile = TmpPath / "build" / "windows-x64-gcc26" / "CMakeCache.txt"
   CacheFile.parent.mkdir(parents=True)
   CacheFile.write_text("cache", encoding="utf-8")
   Commands: list[list[str]] = []
@@ -278,7 +278,14 @@ def TestCleanOnlyRemovesTheRequestedConfiguration(
 
 
 def TestCleanAllRemovesOnlyGeneratedDirectories(TmpPath: Path) -> None:
-  for Directory in ("build/windows-x64", "Intermediate", "Bin", "Publish"):
+  for Directory in (
+    "build/windows-x64",
+    "build/windows-x64-gcc",
+    "build/windows-x64-gcc26",
+    "Intermediate",
+    "Bin",
+    "Publish",
+  ):
     (TmpPath / Directory).mkdir(parents=True)
   SourceFile = TmpPath / "Source" / "main.cpp"
   SourceFile.parent.mkdir()
@@ -286,7 +293,10 @@ def TestCleanAllRemovesOnlyGeneratedDirectories(TmpPath: Path) -> None:
 
   cli.Clean(TmpPath, None, True)
 
-  assert not (TmpPath / "build" / "windows-x64").exists()
+  assert not any(
+    (TmpPath / "build" / Directory).exists()
+    for Directory in ("windows-x64", "windows-x64-gcc", "windows-x64-gcc26")
+  )
   assert not any((TmpPath / Directory).exists() for Directory in ("Intermediate", "Bin", "Publish"))
   assert SourceFile.is_file()
 

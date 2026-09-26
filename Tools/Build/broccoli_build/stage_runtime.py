@@ -14,11 +14,21 @@ def StageRuntime(
   GameName: str,
   EosBinary: Path,
   ConvertLevelsScript: Path,
+  MingwRuntime: list[Path] | None = None,
+  RequiredPlugins: list[str] | None = None,
 ) -> None:
   EnsureDirectory(OutputDirectory)
   CopyFile(EngineBinary, OutputDirectory)
   if EosBinary.is_file():
     CopyFile(EosBinary, OutputDirectory)
+  for RuntimeBinary in MingwRuntime or []:
+    CopyFile(RuntimeBinary, OutputDirectory)
+  if MingwRuntime:
+    for PluginName in RequiredPlugins or []:
+      CopyFile(
+        OutputDirectory / "Plugins" / PluginName / f"{PluginName}.dll",
+        OutputDirectory,
+      )
 
   if Configuration.casefold() == "editor":
     print("Editor configuration: runtime resources staging skipped.")

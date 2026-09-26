@@ -236,7 +236,7 @@ void SceneManager::ProcessSceneChanges() {
     ImplPtr->CurrentSceneId = NewSceneId;
     ImplPtr->CurrentLevelPath = NewLevelPath;
 
-    if (ImplPtr->CurrentScene && IsDebug) {
+    if (ImplPtr->CurrentScene && (IsDebug || IsEditor)) {
       ImplPtr->CurrentScene->SpawnActor<AGridLine>();
     }
 

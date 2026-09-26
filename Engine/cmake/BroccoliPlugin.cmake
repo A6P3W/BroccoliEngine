@@ -123,7 +123,7 @@ function(broccoli_add_plugin)
   set(PluginOutputDirectory
     "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>/Plugins/${BroccoliPlugin_NAME}")
   add_library("${BroccoliPlugin_NAME}" SHARED ${PluginSources})
-  target_compile_features("${BroccoliPlugin_NAME}" PRIVATE cxx_std_20)
+  target_compile_features("${BroccoliPlugin_NAME}" PRIVATE cxx_std_26)
   target_link_libraries("${BroccoliPlugin_NAME}" PRIVATE Broccoli::Engine)
   if(MSVC)
     broccoli_apply_common_msvc_options("${BroccoliPlugin_NAME}")
@@ -132,6 +132,7 @@ function(broccoli_add_plugin)
   endif()
   set_target_properties("${BroccoliPlugin_NAME}" PROPERTIES
     OUTPUT_NAME "${BroccoliPlugin_NAME}"
+    PREFIX ""
     RUNTIME_OUTPUT_DIRECTORY "${PluginOutputDirectory}"
     LIBRARY_OUTPUT_DIRECTORY "${PluginOutputDirectory}"
     ARCHIVE_OUTPUT_DIRECTORY "${PluginOutputDirectory}"

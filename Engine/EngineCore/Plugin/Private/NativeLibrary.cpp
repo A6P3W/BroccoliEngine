@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include <system_error>
 #include <utility>
 
 namespace {
@@ -50,7 +51,31 @@ bool NativeLibrary::Load(const std::filesystem::path& Path) {
   Unload();
   LastError.clear();
 
-  HMODULE Module = LoadLibraryW(Path.c_str());
+  HMODULE Module = nullptr;
+#if defined(__MINGW32__)
+  // GCC eagerly loads linked plugins. Reuse that module when plugin discovery runs.
+  if (GetModuleHandleExW(0, Path.filename().c_str(), &Module) && Module != nullptr) {
+    std::wstring LoadedPath(MAX_PATH, L'\0');
+    DWORD Length =
+        GetModuleFileNameW(Module, LoadedPath.data(), static_cast<DWORD>(LoadedPath.size()));
+    while (Length == LoadedPath.size() && ::GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+      LoadedPath.resize(LoadedPath.size() * 2);
+      Length = GetModuleFileNameW(Module, LoadedPath.data(), static_cast<DWORD>(LoadedPath.size()));
+    }
+    if (Length > 0) {
+      LoadedPath.resize(Length);
+      std::error_code ErrorCode;
+      if (!std::filesystem::equivalent(Path, LoadedPath, ErrorCode)) {
+        FreeLibrary(Module);
+        Module = nullptr;
+      }
+    } else {
+      FreeLibrary(Module);
+      Module = nullptr;
+    }
+  }
+#endif
+  if (Module == nullptr) Module = LoadLibraryW(Path.c_str());
   if (Module == nullptr) {
     LastError = GetWindowsErrorMessage(::GetLastError());
     return false;

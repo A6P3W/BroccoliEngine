@@ -29,7 +29,7 @@ CONFIGURATION_PRESETS = {
   "release": ("Release", "release-local"),
 }
 CONFIGURE_PRESET = "windows-x64-local"
-CMAKE_CACHE_FILE = Path("build") / "windows-x64" / "CMakeCache.txt"
+CMAKE_CACHE_FILE = Path("build") / "windows-x64-gcc26" / "CMakeCache.txt"
 LATEST_BUILD_CONFIGURATION_FILE = Path("Intermediate") / "LastBuildConfiguration.txt"
 
 
@@ -87,13 +87,15 @@ def FindCmakeCommand() -> str:
 
 def ValidateUserPresets(ProjectDirectory: Path) -> None:
   PresetsPath = ProjectDirectory / "CMakeUserPresets.json"
-  if PresetsPath.is_file() and "{YOUR_VCPKG_ROOT_DIRECTORY}" in PresetsPath.read_text(
-    encoding="utf-8"
-  ):
-    raise RuntimeError(
-      "CMakeUserPresets.json still contains {YOUR_VCPKG_ROOT_DIRECTORY}. "
-      "Please update VCPKG_ROOT in CMakeUserPresets.json to point to your vcpkg installation."
-    )
+  if not PresetsPath.is_file():
+    return
+  PresetsText = PresetsPath.read_text(encoding="utf-8")
+  for Placeholder in ("{YOUR_VCPKG_ROOT_DIRECTORY}", "{YOUR_MINGW_BIN_DIRECTORY}"):
+    if Placeholder in PresetsText:
+      raise RuntimeError(
+        f"CMakeUserPresets.json still contains {Placeholder}. "
+        "Please configure the local vcpkg and MinGW paths."
+      )
 
 
 def Regenerate(ProjectDirectory: Path, CmakeCommand: str | None = None) -> None:
@@ -196,6 +198,8 @@ def Clean(ProjectDirectory: Path, Configuration: str | None, CleanAll: bool) -> 
   if CleanAll:
     for GeneratedPath in (
       ProjectDirectory / "build" / "windows-x64",
+      ProjectDirectory / "build" / "windows-x64-gcc",
+      ProjectDirectory / "build" / "windows-x64-gcc26",
       ProjectDirectory / "Intermediate",
       ProjectDirectory / "Bin",
       ProjectDirectory / "Publish",
@@ -267,6 +271,8 @@ def CreateParser() -> argparse.ArgumentParser:
   StageParser.add_argument("--game-name", required=True)
   StageParser.add_argument("--eos-binary", type=PathArgument, required=True)
   StageParser.add_argument("--convert-levels-script", type=PathArgument, required=True)
+  StageParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
+  StageParser.add_argument("--required-plugin", action="append", default=[])
 
   PackageParser = Commands.add_parser("package-runtime", help="Create a distributable package")
   PackageParser.add_argument("--configuration", required=True)
@@ -280,6 +286,7 @@ def CreateParser() -> argparse.ArgumentParser:
   PackageParser.add_argument("--convert-levels-script", type=PathArgument, required=True)
   PackageParser.add_argument("--bootstrap-binary", type=PathArgument, required=True)
   PackageParser.add_argument("--required-plugin", action="append", default=[])
+  PackageParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
 
   VerifyParser = Commands.add_parser("verify-runtime", help="Verify runtime artifacts")
   VerifyParser.add_argument("--output-dir", type=PathArgument, required=True)
@@ -287,6 +294,7 @@ def CreateParser() -> argparse.ArgumentParser:
   VerifyParser.add_argument("--publish-dir", type=PathArgument)
   VerifyParser.add_argument("--configuration")
   VerifyParser.add_argument("--required-plugin", action="append", default=[])
+  VerifyParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
   WorktreeParser = Commands.add_parser("worktree", help="Set up an existing Git worktree")
   WorktreeCommands = WorktreeParser.add_subparsers(dest="worktree_command", required=True)
   WorktreeSetupParser = WorktreeCommands.add_parser(
@@ -349,6 +357,8 @@ def Main() -> int:
         Arguments.game_name,
         Arguments.eos_binary,
         Arguments.convert_levels_script,
+        Arguments.mingw_runtime,
+        [PluginName for PluginName in Arguments.required_plugin if PluginName],
       )
     elif Arguments.Command == "package-runtime":
       PackageRuntime(
@@ -363,6 +373,7 @@ def Main() -> int:
         Arguments.convert_levels_script,
         Arguments.bootstrap_binary,
         [PluginName for PluginName in Arguments.required_plugin if PluginName],
+        Arguments.mingw_runtime,
       )
     elif Arguments.Command == "verify-runtime":
       if Arguments.configuration is not None and Arguments.configuration.casefold() == "editor":
@@ -373,6 +384,7 @@ def Main() -> int:
           Arguments.game_name,
           Arguments.publish_dir,
           [PluginName for PluginName in Arguments.required_plugin if PluginName],
+          Arguments.mingw_runtime,
         )
     elif Arguments.Command == "worktree":
       if Arguments.worktree_command == "setup":

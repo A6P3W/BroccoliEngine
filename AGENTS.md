@@ -10,7 +10,7 @@ BroccoliEngineフォルダの./broccoli.bat build {必要な構成}
 
 必要な構成はDebug必須、Editorが必要とされる場合はEditorも指定すること。
 
-c++20環境
+c++26環境
 
 開発開始前に確認：CONTRIBUTING.md
 

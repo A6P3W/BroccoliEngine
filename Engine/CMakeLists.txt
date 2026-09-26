@@ -42,7 +42,7 @@ list(APPEND BROCCOLI_ENGINE_FILES
 add_library(BroccoliEngine SHARED ${BROCCOLI_ENGINE_FILES})
 add_library(Broccoli::Engine ALIAS BroccoliEngine)
 
-target_compile_features(BroccoliEngine PUBLIC cxx_std_20)
+target_compile_features(BroccoliEngine PUBLIC cxx_std_26)
 target_compile_definitions(BroccoliEngine
   PRIVATE
     BROCCOLI_ENGINE_BUILD
@@ -115,6 +115,7 @@ broccoli_link_first_available(BroccoliEngine PRIVATE
   unofficial::minizip::minizip minizip::minizip MINIZIP::minizip)
 
 if(WIN32)
+  target_compile_definitions(BroccoliEngine PRIVATE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
   target_link_libraries(BroccoliEngine PRIVATE
     ws2_32 winmm crypt32 bcrypt secur32 iphlpapi shell32
   )
@@ -145,6 +146,7 @@ endif()
 
 set_target_properties(BroccoliEngine PROPERTIES
   OUTPUT_NAME BroccoliEngine
+  PREFIX ""
   RUNTIME_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
   LIBRARY_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
   ARCHIVE_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
@@ -168,7 +170,7 @@ if(WIN32)
   add_executable(BroccoliBootstrap WIN32
     "${CMAKE_CURRENT_SOURCE_DIR}/Bootstrap/Bootstrap.cpp"
   )
-  target_compile_features(BroccoliBootstrap PRIVATE cxx_std_20)
+  target_compile_features(BroccoliBootstrap PRIVATE cxx_std_26)
   target_link_libraries(BroccoliBootstrap PRIVATE user32 shlwapi shell32)
   set_target_properties(BroccoliBootstrap PROPERTIES
     OUTPUT_NAME BroccoliBootstrap

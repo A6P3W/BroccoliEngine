@@ -25,6 +25,7 @@ def PackageRuntime(
   ConvertLevelsScript: Path,
   BootstrapBinary: Path,
   RequiredPlugins: list[str] | None = None,
+  MingwRuntime: list[Path] | None = None,
 ) -> None:
   if Configuration.casefold() == "editor":
     print("Editor configuration: runtime packaging skipped.")
@@ -52,6 +53,11 @@ def PackageRuntime(
   CopyFile(EngineBinary, BinariesDirectory)
   if EosBinary.is_file():
     CopyFile(EosBinary, BinariesDirectory)
+  for RuntimeBinary in MingwRuntime or []:
+    CopyFile(OutputDirectory / RuntimeBinary.name, BinariesDirectory)
+  if MingwRuntime:
+    for PluginName in RequiredPlugins:
+      CopyFile(OutputDirectory / f"{PluginName}.dll", BinariesDirectory)
   CopyFile(BootstrapBinary, PublishDirectory)
   (PublishDirectory / BootstrapBinary.name).replace(PublishDirectory / f"{GameName}.exe")
   if PluginsDirectory.is_dir():

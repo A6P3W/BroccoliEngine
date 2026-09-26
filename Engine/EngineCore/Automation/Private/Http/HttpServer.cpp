@@ -2,6 +2,10 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#if defined(__MINGW32__)
+// MinGW-w64 declares GetAddrInfoExW but omits the matching cancellation API.
+extern "C" WINSOCK_API_LINKAGE INT WSAAPI GetAddrInfoExCancel(LPHANDLE Handle);
+#endif
 #endif
 
 #include <httplib.h>
