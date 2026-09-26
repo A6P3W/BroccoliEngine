@@ -379,8 +379,9 @@ void EditorMode::Draw() {
     return;
   }
 
+  MCamera3DComponent* Camera = EditorPawn3DPtr->GetEditorCamera3D();
   TransformTool.Draw3D(
-      SelectedActor, ActorAction, EditorPawn3DPtr->GetEditorCamera3D()->GetWorldLocation3D()
+      SelectedActor, ActorAction, Camera->GetWorldLocation3D(), Camera->GetForwardVector()
   );
 }
 

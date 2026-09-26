@@ -285,14 +285,24 @@ void EditorTransformTool::Update3D(const FPhysicsRay3D& Ray, const FVector2D& Mo
 }
 
 void EditorTransformTool::Draw3D(
-    AActor* Actor, EActorAction InAction, const FVector3D& CameraLocation
+    AActor* Actor,
+    EActorAction InAction,
+    const FVector3D& CameraLocation,
+    const FVector3D& CameraDirection
 ) const {
   if (Actor == nullptr || Actor->IsPendingDestroy() ||
       (InAction != EActorAction::Move && InAction != EActorAction::Scale)) {
     return;
   }
-  const auto Boxes =
+  auto Boxes =
       BuildGizmoBoxes(Actor->GetActorLocation3D(), GetGizmoSize(Actor, CameraLocation), InAction);
+  std::stable_sort(
+      Boxes.begin(), Boxes.end(), [&](const FGizmoBox3D& Left, const FGizmoBox3D& Right) {
+        const float LeftDepth = (Left.Transform.Location - CameraLocation).Dot(CameraDirection);
+        const float RightDepth = (Right.Transform.Location - CameraLocation).Dot(CameraDirection);
+        return LeftDepth > RightDepth;
+      }
+  );
   for (const FGizmoBox3D& Box : Boxes) {
     if (Box.Handle == EGizmoHandle3D::Center && InAction != EActorAction::Scale) continue;
     RenderSystem::GetInstance().SubmitCube(Box.Transform, Box.Color, true, ERenderLayer3D::Overlay);

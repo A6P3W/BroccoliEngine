@@ -37,7 +37,12 @@ class EditorTransformTool {
       const FVector3D& CameraLocation
   );
   void Update3D(const FPhysicsRay3D& Ray, const FVector2D& MousePosition);
-  void Draw3D(AActor* Actor, EActorAction Action, const FVector3D& CameraLocation) const;
+  void Draw3D(
+      AActor* Actor,
+      EActorAction Action,
+      const FVector3D& CameraLocation,
+      const FVector3D& CameraDirection
+  ) const;
   void End();
 
   bool IsActive() const { return TargetActor != nullptr; }
