@@ -100,3 +100,16 @@ broccoli.bat run Debug
 [Auto-Control-C++使用方法](./Engine/Documents/Auto-Control-C++使用方法.md)
 
 [Auto-Control-CLI使用方法](./Engine/Documents/Auto-Control-CLI使用方法.md)
+
+---
+
+## worktree のセットアップ
+
+Git 標準コマンドで worktree を作成した後、Broccoli 固有のローカル開発環境を引き継ぎます。
+
+```cmd
+git worktree add -b feature/example ../BroccoliEngine-worktrees/feature-example HEAD
+broccoli.bat worktree setup ../BroccoliEngine-worktrees/feature-example
+```
+
+存在する場合は `CMakeUserPresets.json` を新しい worktree へコピーします。

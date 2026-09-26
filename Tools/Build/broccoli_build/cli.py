@@ -21,6 +21,7 @@ from .plugins import (
 from .prepare_output import PrepareOutput
 from .stage_runtime import StageRuntime
 from .verify_runtime import VerifyRuntime
+from .worktree import SetupWorktree
 
 CONFIGURATION_PRESETS = {
   "debug": ("Debug", "debug-local"),
@@ -286,6 +287,12 @@ def CreateParser() -> argparse.ArgumentParser:
   VerifyParser.add_argument("--publish-dir", type=PathArgument)
   VerifyParser.add_argument("--configuration")
   VerifyParser.add_argument("--required-plugin", action="append", default=[])
+  WorktreeParser = Commands.add_parser("worktree", help="Set up an existing Git worktree")
+  WorktreeCommands = WorktreeParser.add_subparsers(dest="worktree_command", required=True)
+  WorktreeSetupParser = WorktreeCommands.add_parser(
+    "setup", help="Copy local development setup to an existing worktree"
+  )
+  WorktreeSetupParser.add_argument("path", type=PathArgument)
   return Parser
 
 
@@ -367,6 +374,10 @@ def Main() -> int:
           Arguments.publish_dir,
           [PluginName for PluginName in Arguments.required_plugin if PluginName],
         )
+    elif Arguments.Command == "worktree":
+      if Arguments.worktree_command == "setup":
+        SetupWorktree(Path.cwd().resolve(), Arguments.path)
+        print(f"Set up worktree: {Arguments.path}")
   except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as Error:
     print(Error, file=sys.stderr)
     return 1
