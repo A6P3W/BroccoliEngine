@@ -1,6 +1,6 @@
 # BROCCOLI ENGINE
 
-BroccoliEngine は、C++20 / raylib / vcpkg をベースとした2Dゲームエンジンおよび開発ツール群です。
+BroccoliEngine は、C++26 / raylib / vcpkg をベースとした2Dゲームエンジンおよび開発ツール群です。
 エディタ機能、自動化サーバー、ネットワーク同期、パッケージングツールが統合されています。
 
 ゲーム開発時はサブモジュールとして使用されます。
@@ -10,8 +10,8 @@ BroccoliEngine は、C++20 / raylib / vcpkg をベースとした2Dゲームエ�
 ## 開発要件
 
 * **OS:** Windows 11 / 10 (x64)
-* **C++ コンパイラ:** MSVC (Visual Studio 2026 推奨, C++20 対応)
-* **ビルドツール:** CMake 4.2 以上
+* **C++ コンパイラ:** MinGW-w64 GCC 14 以上（GCC 16 推奨）
+* **ビルドツール:** CMake 4.2 以上、Ninja
 * **パッケージマネージャー:** [vcpkg](https://github.com/microsoft/vcpkg)
 * **Python 環境:** Python `>=3.11, <3.15` および [uv](https://github.com/astral-sh/uv)
 
@@ -72,7 +72,9 @@ MyGame/
 copy CMakeUserPresets.json.template CMakeUserPresets.json
 ```
 
-`CMakeUserPresets.json` の `{YOUR_VCPKG_ROOT_DIRECTORY}` を vcpkg ルートへ置き換えてください。
+`CMakeUserPresets.json` の `{YOUR_VCPKG_ROOT_DIRECTORY}` を vcpkg ルートへ、
+`{YOUR_MINGW_BIN_DIRECTORY}` を GCC と Ninja が入った `bin` ディレクトリへ置き換えてください。
+例: `C:/msys64/mingw64/bin`。GCC 13 以前では C++26 モードを使用できません。
 
 ```cmd
 broccoli.bat build
@@ -85,7 +87,7 @@ broccoli.bat run --latest
 
 エンジンリポジトリ単体でも、同梱の `Launcher` をゲームと同じ CMake 構成でビルド・実行できます。
 
-`CMakeUserPresets.json` の `{YOUR_VCPKG_ROOT_DIRECTORY}` を vcpkg ルートへ置き換えた後、
+`CMakeUserPresets.json` の vcpkg と MinGW のパスを設定した後、
 リポジトリルートで実行してください。
 
 ```cmd

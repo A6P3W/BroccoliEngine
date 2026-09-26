@@ -45,7 +45,7 @@ cd ..\..\..
 
 ### 5. CMake User Preset の設定
 
-ローカル環境固有のvcpkgパスは`CMakeUserPresets.json` に設定します。
+ローカル環境固有のvcpkgとMinGW-w64 GCCのパスは`CMakeUserPresets.json` に設定します。
 
 プロジェクトルートへ `CMakeUserPresets.json` を作成します。
 
@@ -57,7 +57,12 @@ cd ..\..\..
       "name": "windows-x64-local",
       "inherits": "windows-x64",
       "environment": {
-        "VCPKG_ROOT": "C:/vcpkg"
+        "VCPKG_ROOT": "C:/vcpkg",
+        "PATH": "C:/msys64/mingw64/bin;$penv{PATH}"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "C:/msys64/mingw64/bin/gcc.exe",
+        "CMAKE_CXX_COMPILER": "C:/msys64/mingw64/bin/g++.exe"
       }
     }
   ],
@@ -82,7 +87,7 @@ cd ..\..\..
 
 ```
 
-`C:\vcpkg` 以外へvcpkgを配置している場合は、自分の環境に合わせて変更してください。
+`C:\vcpkg` または `C:\msys64\mingw64\bin` 以外へ配置している場合は、自分の環境に合わせて変更してください。GCC 14 以上が必要です。
 
 `CMakeUserPresets.json` は開発環境固有の設定なので、Git管理対象には含まれません。
 
