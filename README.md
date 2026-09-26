@@ -116,7 +116,10 @@ broccoli.bat worktree create feature/example --path C:\Dev\example-worktree
 `<RepositoryName>-worktrees/<BranchDirectory>` に作成します。ブランチ名の `/` は `-` に
 置き換えられます。
 
-存在する場合は `CMakeUserPresets.json` と `build/windows-x64` 全体を新しい worktree へ
-コピーします。ゲームプロジェクトでは、既存の `BroccoliEngine` checkout を clone 元として
-独立したローカル checkout を作成し、ゲームリポジトリが記録する gitlink commit に合わせます。
-この場合、元の `BroccoliEngine` に未コミット変更があると作成を中止します。
+存在する場合は `CMakeUserPresets.json` と `build/windows-x64` を新しい worktree へコピーします。
+移設元の絶対パスを保持する `CMakeCache.txt` と `CMakeFiles` はコピー後に削除し、初回ビルドで
+再生成します。`vcpkg_installed` とコンパイラ中間物は引き継がれます。
+
+ゲームプロジェクトでは、既存の `BroccoliEngine` checkout を clone 元として独立したローカル
+checkout を作成し、ゲームリポジトリが記録する gitlink commit に合わせます。この場合、元の
+`BroccoliEngine` に未コミット変更があると作成を中止します。
