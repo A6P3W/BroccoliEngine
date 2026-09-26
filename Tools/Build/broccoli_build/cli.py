@@ -29,7 +29,7 @@ CONFIGURATION_PRESETS = {
   "release": ("Release", "release-local"),
 }
 CONFIGURE_PRESET = "windows-x64-local"
-CMAKE_CACHE_FILE = Path("build") / "windows-x64" / "CMakeCache.txt"
+CMAKE_CACHE_FILE = Path("build") / "windows-x64-gcc" / "CMakeCache.txt"
 LATEST_BUILD_CONFIGURATION_FILE = Path("Intermediate") / "LastBuildConfiguration.txt"
 
 
@@ -195,7 +195,7 @@ def ResolveRunInvocation(Arguments: argparse.Namespace) -> str:
 def Clean(ProjectDirectory: Path, Configuration: str | None, CleanAll: bool) -> None:
   if CleanAll:
     for GeneratedPath in (
-      ProjectDirectory / "build" / "windows-x64",
+      ProjectDirectory / "build" / "windows-x64-gcc",
       ProjectDirectory / "Intermediate",
       ProjectDirectory / "Bin",
       ProjectDirectory / "Publish",
