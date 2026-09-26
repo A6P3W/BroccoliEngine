@@ -50,7 +50,12 @@ bool NativeLibrary::Load(const std::filesystem::path& Path) {
   Unload();
   LastError.clear();
 
-  HMODULE Module = LoadLibraryW(Path.c_str());
+  HMODULE Module = nullptr;
+#if defined(__MINGW32__)
+  // GCC eagerly loads linked plugins. Reuse that module when plugin discovery runs.
+  GetModuleHandleExW(0, Path.filename().c_str(), &Module);
+#endif
+  if (Module == nullptr) Module = LoadLibraryW(Path.c_str());
   if (Module == nullptr) {
     LastError = GetWindowsErrorMessage(::GetLastError());
     return false;

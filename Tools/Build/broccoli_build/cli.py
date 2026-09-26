@@ -267,6 +267,8 @@ def CreateParser() -> argparse.ArgumentParser:
   StageParser.add_argument("--game-name", required=True)
   StageParser.add_argument("--eos-binary", type=PathArgument, required=True)
   StageParser.add_argument("--convert-levels-script", type=PathArgument, required=True)
+  StageParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
+  StageParser.add_argument("--required-plugin", action="append", default=[])
 
   PackageParser = Commands.add_parser("package-runtime", help="Create a distributable package")
   PackageParser.add_argument("--configuration", required=True)
@@ -280,6 +282,7 @@ def CreateParser() -> argparse.ArgumentParser:
   PackageParser.add_argument("--convert-levels-script", type=PathArgument, required=True)
   PackageParser.add_argument("--bootstrap-binary", type=PathArgument, required=True)
   PackageParser.add_argument("--required-plugin", action="append", default=[])
+  PackageParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
 
   VerifyParser = Commands.add_parser("verify-runtime", help="Verify runtime artifacts")
   VerifyParser.add_argument("--output-dir", type=PathArgument, required=True)
@@ -287,6 +290,7 @@ def CreateParser() -> argparse.ArgumentParser:
   VerifyParser.add_argument("--publish-dir", type=PathArgument)
   VerifyParser.add_argument("--configuration")
   VerifyParser.add_argument("--required-plugin", action="append", default=[])
+  VerifyParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
   WorktreeParser = Commands.add_parser("worktree", help="Set up an existing Git worktree")
   WorktreeCommands = WorktreeParser.add_subparsers(dest="worktree_command", required=True)
   WorktreeSetupParser = WorktreeCommands.add_parser(
@@ -349,6 +353,8 @@ def Main() -> int:
         Arguments.game_name,
         Arguments.eos_binary,
         Arguments.convert_levels_script,
+        Arguments.mingw_runtime,
+        [PluginName for PluginName in Arguments.required_plugin if PluginName],
       )
     elif Arguments.Command == "package-runtime":
       PackageRuntime(
@@ -363,6 +369,7 @@ def Main() -> int:
         Arguments.convert_levels_script,
         Arguments.bootstrap_binary,
         [PluginName for PluginName in Arguments.required_plugin if PluginName],
+        Arguments.mingw_runtime,
       )
     elif Arguments.Command == "verify-runtime":
       if Arguments.configuration is not None and Arguments.configuration.casefold() == "editor":
@@ -373,6 +380,7 @@ def Main() -> int:
           Arguments.game_name,
           Arguments.publish_dir,
           [PluginName for PluginName in Arguments.required_plugin if PluginName],
+          Arguments.mingw_runtime,
         )
     elif Arguments.Command == "worktree":
       if Arguments.worktree_command == "setup":
