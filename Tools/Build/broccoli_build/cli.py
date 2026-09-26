@@ -29,7 +29,7 @@ CONFIGURATION_PRESETS = {
   "release": ("Release", "release-local"),
 }
 CONFIGURE_PRESET = "windows-x64-local"
-CMAKE_CACHE_FILE = Path("build") / "windows-x64-gcc" / "CMakeCache.txt"
+CMAKE_CACHE_FILE = Path("build") / "windows-x64-gcc26" / "CMakeCache.txt"
 LATEST_BUILD_CONFIGURATION_FILE = Path("Intermediate") / "LastBuildConfiguration.txt"
 
 
@@ -87,13 +87,15 @@ def FindCmakeCommand() -> str:
 
 def ValidateUserPresets(ProjectDirectory: Path) -> None:
   PresetsPath = ProjectDirectory / "CMakeUserPresets.json"
-  if PresetsPath.is_file() and "{YOUR_VCPKG_ROOT_DIRECTORY}" in PresetsPath.read_text(
-    encoding="utf-8"
-  ):
-    raise RuntimeError(
-      "CMakeUserPresets.json still contains {YOUR_VCPKG_ROOT_DIRECTORY}. "
-      "Please update VCPKG_ROOT in CMakeUserPresets.json to point to your vcpkg installation."
-    )
+  if not PresetsPath.is_file():
+    return
+  PresetsText = PresetsPath.read_text(encoding="utf-8")
+  for Placeholder in ("{YOUR_VCPKG_ROOT_DIRECTORY}", "{YOUR_MINGW_BIN_DIRECTORY}"):
+    if Placeholder in PresetsText:
+      raise RuntimeError(
+        f"CMakeUserPresets.json still contains {Placeholder}. "
+        "Please configure the local vcpkg and MinGW paths."
+      )
 
 
 def Regenerate(ProjectDirectory: Path, CmakeCommand: str | None = None) -> None:
@@ -195,7 +197,9 @@ def ResolveRunInvocation(Arguments: argparse.Namespace) -> str:
 def Clean(ProjectDirectory: Path, Configuration: str | None, CleanAll: bool) -> None:
   if CleanAll:
     for GeneratedPath in (
+      ProjectDirectory / "build" / "windows-x64",
       ProjectDirectory / "build" / "windows-x64-gcc",
+      ProjectDirectory / "build" / "windows-x64-gcc26",
       ProjectDirectory / "Intermediate",
       ProjectDirectory / "Bin",
       ProjectDirectory / "Publish",

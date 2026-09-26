@@ -2,6 +2,7 @@ param(
   [string]$EngineRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..")).Path,
   [Parameter(Mandatory)]
   [string]$ToolchainFile,
+  [string]$MingwBinDirectory = (Split-Path -Parent (Get-Command g++).Source),
   [string]$ProjectName = "BroccoliSetupTest",
   [switch]$KeepArtifacts,
   [switch]$SkipLaunch
@@ -127,6 +128,10 @@ try {
     $UserPresets = $UserPresets.Replace(
       "{YOUR_VCPKG_ROOT_DIRECTORY}",
       $NormalizedVcpkgRoot
+    )
+    $UserPresets = $UserPresets.Replace(
+      "{YOUR_MINGW_BIN_DIRECTORY}",
+      $MingwBinDirectory.Replace("\", "/")
     )
     [System.IO.File]::WriteAllText(
       $UserPresetsPath,
