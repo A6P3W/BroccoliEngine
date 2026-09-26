@@ -34,7 +34,7 @@ function(broccoli_add_game)
   )
 
   add_executable(${GameName} WIN32 ${BroccoliGameFiles})
-  target_compile_features(${GameName} PRIVATE cxx_std_20)
+  target_compile_features(${GameName} PRIVATE cxx_std_26)
   target_compile_definitions(${GameName} PRIVATE
     $<$<CONFIG:Debug>:_DEBUG>
     $<$<CONFIG:Editor>:_EDITOR>
@@ -68,7 +68,7 @@ function(broccoli_add_game)
   set(BroccoliMingwRuntimeArguments)
   if(MINGW)
     get_filename_component(BroccoliCompilerDirectory "${CMAKE_CXX_COMPILER}" DIRECTORY)
-    foreach(RuntimeName IN ITEMS libgcc_s_seh-1.dll libstdc++-6.dll)
+    foreach(RuntimeName IN ITEMS libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll)
       set(RuntimePath "${BroccoliCompilerDirectory}/${RuntimeName}")
       if(NOT EXISTS "${RuntimePath}")
         message(FATAL_ERROR "MinGW runtime DLL not found: ${RuntimePath}")
