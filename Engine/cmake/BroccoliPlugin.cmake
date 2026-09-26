@@ -132,6 +132,7 @@ function(broccoli_add_plugin)
   endif()
   set_target_properties("${BroccoliPlugin_NAME}" PROPERTIES
     OUTPUT_NAME "${BroccoliPlugin_NAME}"
+    PREFIX ""
     RUNTIME_OUTPUT_DIRECTORY "${PluginOutputDirectory}"
     LIBRARY_OUTPUT_DIRECTORY "${PluginOutputDirectory}"
     ARCHIVE_OUTPUT_DIRECTORY "${PluginOutputDirectory}"
