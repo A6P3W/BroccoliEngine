@@ -11,6 +11,8 @@ PROJECT_SETTINGS_FILE_NAME = ".broccoli-project.json"
 ENGINE_DIRECTORY_NAME = "BroccoliEngine"
 USER_PRESETS_FILE_NAME = "CMakeUserPresets.json"
 BUILD_DIRECTORY = Path("build") / "windows-x64"
+CMAKE_CACHE_FILE_NAME = "CMakeCache.txt"
+CMAKE_FILES_DIRECTORY_NAME = "CMakeFiles"
 
 
 def ResolveDefaultTargetDirectory(SourceDirectory: Path, Branch: str) -> Path:
@@ -75,7 +77,10 @@ def CopyLocalSetup(SourceDirectory: Path, TargetDirectory: Path) -> None:
     shutil.copy2(SourcePresets, TargetDirectory / USER_PRESETS_FILE_NAME)
   SourceBuildDirectory = SourceDirectory / BUILD_DIRECTORY
   if SourceBuildDirectory.is_dir():
-    shutil.copytree(SourceBuildDirectory, TargetDirectory / BUILD_DIRECTORY)
+    TargetBuildDirectory = TargetDirectory / BUILD_DIRECTORY
+    shutil.copytree(SourceBuildDirectory, TargetBuildDirectory)
+    (TargetBuildDirectory / CMAKE_CACHE_FILE_NAME).unlink(missing_ok=True)
+    shutil.rmtree(TargetBuildDirectory / CMAKE_FILES_DIRECTORY_NAME, ignore_errors=True)
 
 
 def CreateWorktree(SourceDirectory: Path, TargetDirectory: Path, Branch: str) -> None:

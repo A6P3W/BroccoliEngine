@@ -72,7 +72,11 @@ def TestCreateWorktreeCopiesCompleteLocalSetup(tmp_path: Path) -> None:
   )
   BuildDirectory = SourceDirectory / "build" / "windows-x64"
   (BuildDirectory / "vcpkg_installed").mkdir(parents=True)
+  (BuildDirectory / "CMakeFiles").mkdir()
   (BuildDirectory / "CMakeCache.txt").write_text("cache\n", encoding="utf-8", newline="\n")
+  (BuildDirectory / "CMakeFiles" / "generate.stamp").write_text(
+    "source path\n", encoding="utf-8", newline="\n"
+  )
   (BuildDirectory / "project.obj").write_bytes(b"object")
   (BuildDirectory / "vcpkg_installed" / "package.txt").write_text(
     "package\n", encoding="utf-8", newline="\n"
@@ -82,7 +86,8 @@ def TestCreateWorktreeCopiesCompleteLocalSetup(tmp_path: Path) -> None:
 
   assert RunGit(TargetDirectory, "branch", "--show-current") == "feature/copied-setup"
   assert (TargetDirectory / "CMakeUserPresets.json").is_file()
-  assert (TargetDirectory / "build" / "windows-x64" / "CMakeCache.txt").is_file()
+  assert not (TargetDirectory / "build" / "windows-x64" / "CMakeCache.txt").exists()
+  assert not (TargetDirectory / "build" / "windows-x64" / "CMakeFiles").exists()
   assert (TargetDirectory / "build" / "windows-x64" / "project.obj").read_bytes() == b"object"
   assert (TargetDirectory / "build" / "windows-x64" / "vcpkg_installed" / "package.txt").is_file()
 
