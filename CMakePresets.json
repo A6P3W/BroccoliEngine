@@ -10,15 +10,13 @@
       "name": "windows-x64",
       "hidden": true,
       "displayName": "Windows x64",
-      "generator": "Visual Studio 18 2026",
-      "binaryDir": "${sourceDir}/build/windows-x64",
-      "architecture": {
-        "value": "x64",
-        "strategy": "set"
-      },
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build/windows-x64-gcc",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
         "VCPKG_MANIFEST_DIR": "${sourceDir}/Engine"
       }
     }
