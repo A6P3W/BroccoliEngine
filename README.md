@@ -116,9 +116,8 @@ broccoli.bat worktree setup ..\BroccoliEngine-worktrees\feature-example
 worktree を作成してください。`worktree setup` の対象は、現在のプロジェクトと同一リポジトリに
 属する既存 worktree のルートである必要があります。
 
-存在する場合は `CMakeUserPresets.json` と `build/windows-x64` を新しい worktree へコピーします。
-移設元の絶対パスを保持する `CMakeCache.txt` と `CMakeFiles` はコピー後に削除し、初回ビルドで
-再生成します。`vcpkg_installed` とコンパイラ中間物は引き継がれます。
+存在する場合は `CMakeUserPresets.json` を新しい worktree へコピーします。CMake/MSBuildの
+生成物はworktree間で移設できないため、`build` ディレクトリはコピーしません。
 
 ゲームプロジェクトでは、既存の `BroccoliEngine` checkout を clone 元として独立したローカル
 checkout を作成し、ゲームリポジトリが記録する gitlink commit に合わせます。この場合、元の
