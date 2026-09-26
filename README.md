@@ -103,18 +103,18 @@ broccoli.bat run Debug
 
 ---
 
-## worktree の作成
+## worktree のセットアップ
 
-現在の `HEAD` から新規ブランチと worktree を作成し、ローカル開発環境を引き継ぎます。
+Git 標準コマンドで worktree を作成した後、Broccoli 固有のローカル開発環境を引き継ぎます。
 
 ```cmd
-broccoli.bat worktree create feature/example
-broccoli.bat worktree create feature/example --path C:\Dev\example-worktree
+git worktree add -b feature/example ..\BroccoliEngine-worktrees\feature-example HEAD
+broccoli.bat worktree setup ..\BroccoliEngine-worktrees\feature-example
 ```
 
-`--path` を省略すると、リポジトリと同階層の
-`<RepositoryName>-worktrees/<BranchDirectory>` に作成します。ブランチ名の `/` は `-` に
-置き換えられます。
+既存ブランチや detached HEAD を使用する場合も、`git worktree add` の標準オプションを使用して
+worktree を作成してください。`worktree setup` の対象は、現在のプロジェクトと同一リポジトリに
+属する既存 worktree のルートである必要があります。
 
 存在する場合は `CMakeUserPresets.json` と `build/windows-x64` を新しい worktree へコピーします。
 移設元の絶対パスを保持する `CMakeCache.txt` と `CMakeFiles` はコピー後に削除し、初回ビルドで
