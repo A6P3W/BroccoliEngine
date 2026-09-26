@@ -1,4 +1,4 @@
-"""Git worktree creation and local development setup transfer."""
+"""Local development setup transfer between existing Git worktrees."""
 
 from __future__ import annotations
 
@@ -15,9 +15,29 @@ CMAKE_CACHE_FILE_NAME = "CMakeCache.txt"
 CMAKE_FILES_DIRECTORY_NAME = "CMakeFiles"
 
 
-def ResolveDefaultTargetDirectory(SourceDirectory: Path, Branch: str) -> Path:
-  BranchDirectory = Branch.replace("/", "-").replace("\\", "-")
-  return SourceDirectory.parent / f"{SourceDirectory.name}-worktrees" / BranchDirectory
+def ResolveGitPath(Directory: Path, Argument: str) -> Path:
+  Result = subprocess.run(
+    ["git", "-C", str(Directory), "rev-parse", "--path-format=absolute", Argument],
+    check=True,
+    capture_output=True,
+    text=True,
+  )
+  return Path(Result.stdout.strip()).resolve()
+
+
+def ValidateWorktreeTarget(SourceDirectory: Path, TargetDirectory: Path) -> None:
+  if not TargetDirectory.is_dir():
+    raise ValueError(f"Target worktree does not exist: {TargetDirectory}")
+  if SourceDirectory == TargetDirectory:
+    raise ValueError("Source and target worktree must be different directories.")
+  if ResolveGitPath(TargetDirectory, "--show-toplevel") != TargetDirectory:
+    raise ValueError(f"Target path is not a Git worktree root: {TargetDirectory}")
+  SourceCommonDirectory = ResolveGitPath(SourceDirectory, "--git-common-dir")
+  TargetCommonDirectory = ResolveGitPath(TargetDirectory, "--git-common-dir")
+  if SourceCommonDirectory != TargetCommonDirectory:
+    raise ValueError(
+      f"Source and target are not worktrees of the same repository: {TargetDirectory}"
+    )
 
 
 def LoadEngineDirectory(SourceDirectory: Path) -> Path | None:
@@ -83,22 +103,16 @@ def CopyLocalSetup(SourceDirectory: Path, TargetDirectory: Path) -> None:
     shutil.rmtree(TargetBuildDirectory / CMAKE_FILES_DIRECTORY_NAME, ignore_errors=True)
 
 
-def CreateWorktree(SourceDirectory: Path, TargetDirectory: Path, Branch: str) -> None:
+def SetupWorktree(SourceDirectory: Path, TargetDirectory: Path) -> None:
   SourceDirectory = SourceDirectory.resolve()
   TargetDirectory = TargetDirectory.resolve()
+  ValidateWorktreeTarget(SourceDirectory, TargetDirectory)
   SourceEngineDirectory = LoadEngineDirectory(SourceDirectory)
   if SourceEngineDirectory is not None:
     RequireCleanEngine(SourceEngineDirectory)
-  subprocess.run(
-    ["git", "worktree", "add", "-b", Branch, str(TargetDirectory), "HEAD"],
-    cwd=SourceDirectory,
-    check=True,
-  )
   try:
     if SourceEngineDirectory is not None:
       CreateEngineCheckout(TargetDirectory, SourceEngineDirectory)
     CopyLocalSetup(SourceDirectory, TargetDirectory)
   except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as Error:
-    raise RuntimeError(
-      f"Worktree was created at '{TargetDirectory}', but setup copying failed: {Error}"
-    ) from Error
+    raise RuntimeError(f"Could not set up worktree '{TargetDirectory}': {Error}") from Error

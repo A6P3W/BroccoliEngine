@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 from broccoli_build.cli import CreateParser
-from broccoli_build.worktree import CreateWorktree, ResolveDefaultTargetDirectory
+from broccoli_build.worktree import SetupWorktree
 
 
 def RunGit(Directory: Path, *Arguments: str) -> str:
@@ -24,6 +24,10 @@ def InitializeRepository(Directory: Path) -> None:
   (Directory / "tracked.txt").write_text("tracked\n", encoding="utf-8", newline="\n")
   RunGit(Directory, "add", "tracked.txt")
   RunGit(Directory, "commit", "-m", "test: initialize repository")
+
+
+def AddWorktree(SourceDirectory: Path, TargetDirectory: Path, Branch: str) -> None:
+  RunGit(SourceDirectory, "worktree", "add", "-b", Branch, str(TargetDirectory), "HEAD")
 
 
 def AddEngineSubmodule(GameDirectory: Path, EngineOrigin: Path) -> None:
@@ -45,28 +49,24 @@ def AddEngineSubmodule(GameDirectory: Path, EngineOrigin: Path) -> None:
   RunGit(GameDirectory, "commit", "-m", "test: add engine submodule")
 
 
-def TestResolveDefaultTargetDirectoryReplacesBranchSeparators(tmp_path: Path) -> None:
-  SourceDirectory = tmp_path / "BroccoliEngine"
-  assert ResolveDefaultTargetDirectory(SourceDirectory, "feature/worktree") == (
-    tmp_path / "BroccoliEngine-worktrees" / "feature-worktree"
-  )
-
-
-def TestParserAcceptsWorktreeCreatePath(tmp_path: Path) -> None:
+def TestParserAcceptsWorktreeSetupPath(tmp_path: Path) -> None:
   TargetDirectory = tmp_path / "target"
-  Arguments = CreateParser().parse_args(
-    ["worktree", "create", "feature/example", "--path", str(TargetDirectory)]
-  )
+  Arguments = CreateParser().parse_args(["worktree", "setup", str(TargetDirectory)])
   assert Arguments.Command == "worktree"
-  assert Arguments.worktree_command == "create"
-  assert Arguments.branch == "feature/example"
+  assert Arguments.worktree_command == "setup"
   assert Arguments.path == TargetDirectory.resolve()
 
 
-def TestCreateWorktreeCopiesCompleteLocalSetup(tmp_path: Path) -> None:
+def TestParserRejectsRemovedWorktreeCreateCommand() -> None:
+  with pytest.raises(SystemExit):
+    CreateParser().parse_args(["worktree", "create", "feature/example"])
+
+
+def TestSetupWorktreeCopiesCompleteLocalSetup(tmp_path: Path) -> None:
   SourceDirectory = tmp_path / "source"
   TargetDirectory = tmp_path / "target"
   InitializeRepository(SourceDirectory)
+  AddWorktree(SourceDirectory, TargetDirectory, "test/copied-setup")
   (SourceDirectory / "CMakeUserPresets.json").write_text(
     '{"version": 6}\n', encoding="utf-8", newline="\n"
   )
@@ -82,9 +82,9 @@ def TestCreateWorktreeCopiesCompleteLocalSetup(tmp_path: Path) -> None:
     "package\n", encoding="utf-8", newline="\n"
   )
 
-  CreateWorktree(SourceDirectory, TargetDirectory, "feature/copied-setup")
+  SetupWorktree(SourceDirectory, TargetDirectory)
 
-  assert RunGit(TargetDirectory, "branch", "--show-current") == "feature/copied-setup"
+  assert RunGit(TargetDirectory, "branch", "--show-current") == "test/copied-setup"
   assert (TargetDirectory / "CMakeUserPresets.json").is_file()
   assert not (TargetDirectory / "build" / "windows-x64" / "CMakeCache.txt").exists()
   assert not (TargetDirectory / "build" / "windows-x64" / "CMakeFiles").exists()
@@ -92,26 +92,46 @@ def TestCreateWorktreeCopiesCompleteLocalSetup(tmp_path: Path) -> None:
   assert (TargetDirectory / "build" / "windows-x64" / "vcpkg_installed" / "package.txt").is_file()
 
 
-def TestCreateWorktreeSucceedsWithoutLocalSetup(tmp_path: Path) -> None:
+def TestSetupWorktreeSucceedsWithoutLocalSetup(tmp_path: Path) -> None:
   SourceDirectory = tmp_path / "source"
   TargetDirectory = tmp_path / "target"
   InitializeRepository(SourceDirectory)
-  CreateWorktree(SourceDirectory, TargetDirectory, "feature/no-local-setup")
-  assert TargetDirectory.is_dir()
+  AddWorktree(SourceDirectory, TargetDirectory, "test/no-local-setup")
+  SetupWorktree(SourceDirectory, TargetDirectory)
   assert not (TargetDirectory / "CMakeUserPresets.json").exists()
   assert not (TargetDirectory / "build" / "windows-x64").exists()
 
 
-def TestGitFailureDoesNotCopyLocalSetup(tmp_path: Path) -> None:
+def TestSetupWorktreeRejectsMissingTarget(tmp_path: Path) -> None:
+  SourceDirectory = tmp_path / "source"
+  InitializeRepository(SourceDirectory)
+  with pytest.raises(ValueError, match="does not exist"):
+    SetupWorktree(SourceDirectory, tmp_path / "missing")
+
+
+def TestSetupWorktreeRejectsSourceAsTarget(tmp_path: Path) -> None:
+  SourceDirectory = tmp_path / "source"
+  InitializeRepository(SourceDirectory)
+  with pytest.raises(ValueError, match="must be different"):
+    SetupWorktree(SourceDirectory, SourceDirectory)
+
+
+def TestSetupWorktreeRejectsNonWorktreeTarget(tmp_path: Path) -> None:
   SourceDirectory = tmp_path / "source"
   TargetDirectory = tmp_path / "target"
   InitializeRepository(SourceDirectory)
-  (SourceDirectory / "CMakeUserPresets.json").write_text(
-    "presets\n", encoding="utf-8", newline="\n"
-  )
-  with pytest.raises(subprocess.CalledProcessError):
-    CreateWorktree(SourceDirectory, TargetDirectory, "invalid branch name")
-  assert not TargetDirectory.exists()
+  TargetDirectory.mkdir()
+  with pytest.raises(ValueError, match="not a Git worktree root"):
+    SetupWorktree(SourceDirectory, TargetDirectory)
+
+
+def TestSetupWorktreeRejectsDifferentRepository(tmp_path: Path) -> None:
+  SourceDirectory = tmp_path / "source"
+  TargetDirectory = tmp_path / "target"
+  InitializeRepository(SourceDirectory)
+  InitializeRepository(TargetDirectory)
+  with pytest.raises(ValueError, match="same repository"):
+    SetupWorktree(SourceDirectory, TargetDirectory)
 
 
 def TestGameWorktreeClonesEngineAtGitlinkCommit(tmp_path: Path) -> None:
@@ -122,24 +142,28 @@ def TestGameWorktreeClonesEngineAtGitlinkCommit(tmp_path: Path) -> None:
   InitializeRepository(GameDirectory)
   AddEngineSubmodule(GameDirectory, EngineOrigin)
   TargetDirectory = tmp_path / "game-worktree"
+  AddWorktree(GameDirectory, TargetDirectory, "test/game-worktree")
 
-  CreateWorktree(GameDirectory, TargetDirectory, "feature/game-worktree")
+  SetupWorktree(GameDirectory, TargetDirectory)
 
   TargetEngine = TargetDirectory / "BroccoliEngine"
   assert RunGit(TargetEngine, "rev-parse", "HEAD") == EngineCommit
   assert (TargetEngine / ".git").is_dir()
 
 
-def TestGameWorktreeRejectsDirtyEngineBeforeCreation(tmp_path: Path) -> None:
+def TestGameWorktreeRejectsDirtyEngineBeforeSetup(tmp_path: Path) -> None:
   EngineOrigin = tmp_path / "engine-origin"
   InitializeRepository(EngineOrigin)
   GameDirectory = tmp_path / "game"
   InitializeRepository(GameDirectory)
   AddEngineSubmodule(GameDirectory, EngineOrigin)
+  TargetDirectory = tmp_path / "game-worktree"
+  AddWorktree(GameDirectory, TargetDirectory, "test/dirty-engine")
   (GameDirectory / "BroccoliEngine" / "tracked.txt").write_text(
     "dirty\n", encoding="utf-8", newline="\n"
   )
-  TargetDirectory = tmp_path / "game-worktree"
+
   with pytest.raises(RuntimeError, match="uncommitted changes"):
-    CreateWorktree(GameDirectory, TargetDirectory, "feature/dirty-engine")
-  assert not TargetDirectory.exists()
+    SetupWorktree(GameDirectory, TargetDirectory)
+
+  assert not (TargetDirectory / "BroccoliEngine" / ".git").exists()
