@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -47,12 +48,21 @@ const char* GetTransportTypeName(ENetworkTransportType Type) {
 
 ENetworkTransportType GetConfiguredTransportType() {
   constexpr ENetworkTransportType DefaultType = ENetworkTransportType::ENet;
+  std::string ConfigString;
+#ifdef _MSC_VER
   char* ConfigValue = nullptr;
   size_t ConfigLength = 0;
   const errno_t ConfigResult = _dupenv_s(&ConfigValue, &ConfigLength, "NetworkTransport");
-  const std::string ConfigString = ConfigValue ? ConfigValue : "";
+  if (ConfigResult == 0 && ConfigValue) {
+    ConfigString = ConfigValue;
+  }
   std::free(ConfigValue);
-  if (ConfigResult != 0 || ConfigString.empty()) {
+#else
+  if (const char* ConfigValue = std::getenv("NetworkTransport")) {
+    ConfigString = ConfigValue;
+  }
+#endif
+  if (ConfigString.empty()) {
     M_LOG(
         Log,
         "[NetworkManager] NetworkTransport is not set. default={}",
