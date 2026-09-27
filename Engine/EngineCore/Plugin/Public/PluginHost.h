@@ -41,7 +41,7 @@ class BROCCOLI_ENGINE_API PluginHost {
 
   bool DiscoverPlugins();
   bool ActivatePlugin(FLoadedPlugin& Plugin);
-  void DeactivatePlugin(FLoadedPlugin& Plugin);
+  bool DeactivatePlugin(FLoadedPlugin& Plugin);
 
   std::filesystem::path PluginsDirectory;
   std::vector<std::unique_ptr<FLoadedPlugin>> Plugins;

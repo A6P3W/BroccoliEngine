@@ -57,6 +57,7 @@ AActor::AActor() : ImplPtr(new Impl()) {
 }
 
 AActor::~AActor() {
+  ActorRegistry::GetInstance().NotifyDestroyed(this);
   if (ImplPtr) {
     if (ImplPtr->OwnerWorld && ImplPtr->OwnerWorld->GetTimerManager()) {
       ImplPtr->OwnerWorld->GetTimerManager()->ClearAllTimersForObject(this);
@@ -102,6 +103,7 @@ void AActor::Spawned() {
 void AActor::SetWorld(World* world) {
   if (ImplPtr->OwnerWorld == world) return;
   ImplPtr->OwnerWorld = world;
+  if (world != nullptr) ActorRegistry::GetInstance().NotifySpawned(this, GetActorClassName());
 
   CompletePendingComponentRegistrations();
 #ifdef _EDITOR
