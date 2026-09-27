@@ -65,13 +65,13 @@ AActor* EditorClipboard::Paste(World* WorldPtr, const FVector3D& PasteLocation) 
   if (auto* SpriteActor = dynamic_cast<ASpriteActor*>(NewActor)) {
     auto It = ClipboardData.CustomProperties.find("ImagePath");
     if (It != ClipboardData.CustomProperties.end()) {
-      SpriteActor->SetImagePath(It->second);
+      if (It->second.is_string()) SpriteActor->SetImagePath(It->second.get<std::string>());
     }
   }
   if (auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(NewActor)) {
     auto It = ClipboardData.CustomProperties.find("ModelPath");
     if (It != ClipboardData.CustomProperties.end()) {
-      StaticMeshActor->SetModelPath(It->second);
+      if (It->second.is_string()) StaticMeshActor->SetModelPath(It->second.get<std::string>());
     }
   }
 

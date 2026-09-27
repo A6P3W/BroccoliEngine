@@ -5,6 +5,7 @@
 
 #include "BroccoliEngineAPI.h"
 #include "UMath.h"
+#include "nlohmann/json.hpp"
 
 struct FLevelMetaData {
   std::string GameModeClassName;
@@ -17,7 +18,7 @@ struct FActorSaveData {
   FTransform3D Transform;
 
   // アクタ固有のプロパティ保存用
-  std::unordered_map<std::string, std::string> CustomProperties;
+  std::unordered_map<std::string, nlohmann::json> CustomProperties;
 };
 
 class World;
