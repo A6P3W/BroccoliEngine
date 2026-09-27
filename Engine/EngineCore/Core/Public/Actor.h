@@ -19,14 +19,18 @@
 #include "NetBuffer.h"
 #include "NetworkManager.h"
 #include "NetworkTypes.h"
+#include "ReflectionGenerator.h"
 #include "ReplicatedProperty.h"
 #include "SceneComponent.h"
 #include "UMath.h"
 
 template <class T>
 struct TActorAutoRegister {
-  TActorAutoRegister(bool bIsGameMode = false) {
-    ActorRegistry::GetInstance().Register<T>(bIsGameMode);
+  TActorAutoRegister(bool IsGameMode = false) {
+    if (!ActorRegistry::GetInstance().RegisterOwned<T>("Static", IsGameMode)) return;
+    if (!ReflectionGenerator::RegisterStaticClass<T>()) {
+      ActorRegistry::GetInstance().UnregisterClass(T::StaticClassName());
+    }
   }
 };
 

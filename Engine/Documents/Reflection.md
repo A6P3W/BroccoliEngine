@@ -23,12 +23,11 @@ class AEnemy : public AActor {
 
 // AEnemy.cpp
 REGISTER_ACTOR(AEnemy)
-REGISTER_REFLECTION(AEnemy, AActor, "Game")
 ```
 
 Callback は Annotation より前に宣言してください。GCC 16 の Annotation 値は structural type を要するため、数値や文字数の任意項目には `TAnnotationOptional<T>` を使っています。指定子 `.Min = 0.0f` などは従来の設計例と同じです。
 
-派生 Actor は親の Reflection 登録後に `REGISTER_REFLECTION(ABoss, AEnemy, "Game")` で登録します。名前の重複、非 public への Annotation、型不一致、不正な制約や Callback シグネチャは登録・コンパイル時に拒否されます。親の virtual Callback は派生クラスで override できます。
+`REGISTER_ACTOR` は Actor と Reflection の両方を登録し、C++26 Reflection で直接の基底クラスを取得します。派生 Actor の親 Reflection 登録は必要に応じて先に行われます。名前の重複、非 public への Annotation、型不一致、不正な制約や Callback シグネチャは登録・コンパイル時に拒否されます。親の virtual Callback は派生クラスで override できます。
 
 Plugin は `OnLoad(PluginContext& Context)` の中で `Context.RegisterActor<T, Base>()` を使用してください。Host は Plugin の登録情報を DLL unload 前に解除し、生存 Actor がいる間は unload を延期します。Plugin Actor に従来の静的 `REGISTER_ACTOR` は使用しません。
 

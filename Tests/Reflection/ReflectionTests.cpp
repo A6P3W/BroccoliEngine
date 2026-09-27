@@ -97,6 +97,40 @@ class AReflectionPluginTestActor final : public AActor {
   DEFINE_ACTOR_CLASS(AReflectionPluginTestActor)
 };
 
+class AReflectionStaticBase : public AActor {
+ public:
+  DEFINE_ACTOR_CLASS(AReflectionStaticBase)
+  [[= FBoolEditorProperty{}]] bool BaseEnabled = false;
+};
+
+class AReflectionIntermediate : public AReflectionStaticBase {
+ public:
+  [[= FIntEditorProperty{}]] int IntermediateValue = 1;
+};
+
+class AReflectionStaticDerived final : public AReflectionIntermediate {
+ public:
+  DEFINE_ACTOR_CLASS(AReflectionStaticDerived)
+  [[= FFloatEditorProperty{}]] float DerivedValue = 2.0F;
+};
+
+REGISTER_ACTOR(AReflectionStaticDerived)
+REGISTER_ACTOR(AReflectionStaticBase)
+
+void TestStaticActorReflectionRegistration() {
+  const FClass* Derived =
+      FReflectionRegistry::GetInstance().FindClass(AReflectionStaticDerived::StaticClassName());
+  Check(Derived != nullptr, "Static derived Actor has no Reflection class.");
+  Check(Derived->GetProperties().size() == 3, "Static Actor Reflection inheritance is incomplete.");
+  Check(Derived->FindProperty("BaseEnabled") != nullptr, "Static base property is missing.");
+  Check(Derived->FindProperty("IntermediateValue") != nullptr, "Intermediate property is missing.");
+  Check(Derived->FindProperty("DerivedValue") != nullptr, "Derived property is missing.");
+  Check(
+      ActorRegistry::GetInstance().Contains(AReflectionStaticDerived::StaticClassName()),
+      "Static derived Actor factory is missing."
+  );
+}
+
 void TestSixPropertyTypesAndMetadata() {
   FClass Class = ReflectionGenerator::MakeClass<FReflectionTestSubject>("ReflectionTestSubject");
   Check(Class.OwnProperties.size() == 7, "Unannotated data members were reflected as properties.");
@@ -621,6 +655,7 @@ int main(int ArgCount, char** Arguments) {
     if (ArgCount == 2 && std::string_view(Arguments[1]) == "--live-actor-exit") {
       TestPluginHostExitWithLiveActor();
     } else {
+      TestStaticActorReflectionRegistration();
       TestSixPropertyTypesAndMetadata();
       TestTypeMismatchAndCallbackFailure();
       TestInheritanceAndRegistry();

@@ -306,27 +306,50 @@ FClass MakeClass(std::string Name, const FClass* BaseClass = nullptr) {
   return Class;
 }
 
+template <class T>
+consteval std::meta::info DirectBase() {
+  static_assert(
+      std::meta::bases_of(^^T, std::meta::access_context::unchecked()).size() == 1,
+      "Actor must have exactly one direct base class"
+  );
+  return std::meta::type_of(std::meta::bases_of(^^T, std::meta::access_context::unchecked())[0]);
+}
+
+template <class T>
+std::string ClassName() {
+  return std::string(std::meta::identifier_of(^^T));
+}
+
 template <class T, class Base>
-FReflectionRegistry::FToken RegisterClass(std::string ModuleOwner) {
+FReflectionRegistry::FToken RegisterClass(
+    std::string ModuleOwner, bool RequireActorRegistration = true
+) {
   static_assert(std::is_base_of_v<Base, T>);
-  if (!ActorRegistry::GetInstance().Contains(T::StaticClassName())) {
-    M_LOG(Error, "Actor class '{}' must be registered before Reflection.", T::StaticClassName());
+  if (RequireActorRegistration && !ActorRegistry::GetInstance().Contains(ClassName<T>())) {
+    M_LOG(Error, "Actor class '{}' must be registered before Reflection.", ClassName<T>());
     return 0;
   }
   const FClass* BaseClass = nullptr;
   if constexpr (!std::is_same_v<Base, AActor>) {
-    BaseClass = FReflectionRegistry::GetInstance().FindClass(Base::StaticClassName());
+    BaseClass = FReflectionRegistry::GetInstance().FindClass(ClassName<Base>());
     if (BaseClass == nullptr) {
-      M_LOG(Error, "Reflection base class '{}' is not registered.", Base::StaticClassName());
+      M_LOG(Error, "Reflection base class '{}' is not registered.", ClassName<Base>());
       return 0;
     }
   }
   return FReflectionRegistry::GetInstance().Register(
-      MakeClass<T>(T::StaticClassName(), BaseClass), std::move(ModuleOwner)
+      MakeClass<T>(ClassName<T>(), BaseClass), std::move(ModuleOwner)
   );
 }
-}  // namespace ReflectionGenerator
 
-#define REGISTER_REFLECTION(ClassName, BaseClass, ModuleOwner) \
-  static const auto ReflectionToken_##ClassName =              \
-      ReflectionGenerator::RegisterClass<ClassName, BaseClass>(ModuleOwner);
+template <class T>
+bool RegisterStaticClass() {
+  using Base = [:DirectBase<T>():];
+  static_assert(std::is_base_of_v<AActor, Base>);
+  if constexpr (!std::is_same_v<Base, AActor>) {
+    if (!RegisterStaticClass<Base>()) return false;
+  }
+  if (FReflectionRegistry::GetInstance().FindClass(ClassName<T>()) != nullptr) return true;
+  return RegisterClass<T, Base>("Static", false) != 0;
+}
+}  // namespace ReflectionGenerator
