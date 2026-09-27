@@ -35,6 +35,8 @@ class AEnemy : public AActor {
 REGISTER_ACTOR(AEnemy)
 ```
 
+実際の利用例として `Engine/EngineSide/MovingPlatformActor.h` の `AMovingPlatformActor` があります。Inspector で `Speed`、`Distance`、`Direction`、`Enabled` を編集でき、開始位置から指定方向へ指定距離だけ進み、`Speed` に従って往復します。4つの値は private のまま `EDITOR_PROPERTY` で公開しています。`ATintTestActor` は6種類の対応型を確認する例として残しています。
+
 Callback は Annotation より前に宣言してください。Metadata が不要なら `EDITOR_PROPERTY()` と書きます。対応するメンバ型は `bool`、`int`、`float`、`std::string`、`FVector2D`、`FVector3D` です。
 
 Editor Property は `private` を標準とします。派生クラスから直接アクセスする必要があれば `protected`、外部コードからの直接アクセスが必要なら `public` を選びます。どのアクセス修飾子でも `EDITOR_PROPERTY` があれば Inspector と Level JSON の対象になり、付けなければ対象になりません。Annotation は通常の C++ アクセス制御を変更しません。Inspector と LevelSerializer は `FProperty::Get/Set` から値を操作します。
