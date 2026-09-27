@@ -51,8 +51,8 @@ FSoundManager::~FSoundManager() {
   delete ImplPtr;
 }
 
-int FSoundManager::GetMasterHandle(const std::string& Path) {
-  const std::string ResolvedPath = PathResolver::Resolve(Path);
+int FSoundManager::GetMasterHandle(const FPath& Path) {
+  const std::string ResolvedPath = PathResolver::Resolve(Path.String());
   const auto Cached = ImplPtr->MasterSoundPaths.find(ResolvedPath);
   if (Cached != ImplPtr->MasterSoundPaths.end()) return Cached->second;
   if (!IsAudioDeviceReady()) return InvalidSoundHandle;
@@ -66,7 +66,7 @@ int FSoundManager::GetMasterHandle(const std::string& Path) {
   return Handle;
 }
 
-int FSoundManager::PlaySE(const std::string& Path, bool Loop) {
+int FSoundManager::PlaySE(const FPath& Path, bool Loop) {
   const int MasterHandle = GetMasterHandle(Path);
   const auto MasterIt = ImplPtr->MasterSounds.find(MasterHandle);
   if (MasterIt == ImplPtr->MasterSounds.end()) return InvalidSoundHandle;
@@ -82,11 +82,11 @@ int FSoundManager::PlaySE(const std::string& Path, bool Loop) {
   return Handle;
 }
 
-int FSoundManager::PlayBGM(const std::string& Path, bool Loop) {
+int FSoundManager::PlayBGM(const FPath& Path, bool Loop) {
   if (!IsAudioDeviceReady()) return InvalidSoundHandle;
   if (ImplPtr->PlayingMusic.has_value()) Stop(ImplPtr->PlayingMusic->Handle);
 
-  const std::string ResolvedPath = PathResolver::Resolve(Path);
+  const std::string ResolvedPath = PathResolver::Resolve(Path.String());
   Music Stream = LoadMusicStream(ResolvedPath.c_str());
   if (!IsMusicValid(Stream)) return InvalidSoundHandle;
 

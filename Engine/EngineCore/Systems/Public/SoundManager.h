@@ -1,8 +1,7 @@
 #pragma once
 
-#include <string>
-
 #include "BroccoliEngineAPI.h"
+#include "FPath.h"
 
 class BROCCOLI_ENGINE_API FSoundManager {
  public:
@@ -12,9 +11,9 @@ class BROCCOLI_ENGINE_API FSoundManager {
   FSoundManager(const FSoundManager&) = delete;
   FSoundManager& operator=(const FSoundManager&) = delete;
 
-  int GetMasterHandle(const std::string& Path);
-  int PlaySE(const std::string& Path, bool Loop = false);
-  int PlayBGM(const std::string& Path, bool Loop = true);
+  int GetMasterHandle(const FPath& Path);
+  int PlaySE(const FPath& Path, bool Loop = false);
+  int PlayBGM(const FPath& Path, bool Loop = true);
 
   void Update();
   void SetVolume(int Handle, float Volume);
