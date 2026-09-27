@@ -1,7 +1,9 @@
 #include "Application.h"
 
 #define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #define Rectangle Win32Rectangle
 #define CloseWindow Win32CloseWindow
 #define ShowCursor Win32ShowCursor
