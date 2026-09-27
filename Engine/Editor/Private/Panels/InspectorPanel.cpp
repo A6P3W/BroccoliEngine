@@ -20,6 +20,15 @@
 #include "UMath.h"
 
 namespace {
+std::unordered_map<ImGuiID, std::vector<char>> PathBuffers;
+AActor* PathBufferActor = nullptr;
+
+void ResetPathBuffers(AActor* Actor) {
+  if (PathBufferActor == Actor) return;
+  PathBuffers.clear();
+  PathBufferActor = Actor;
+}
+
 bool IsSameRotation(const FQuaternion& Left, const FQuaternion& Right) {
   const FQuaternion NormalizedLeft = Left.Normalize();
   const FQuaternion NormalizedRight = Right.Normalize();
@@ -87,11 +96,11 @@ void DrawReflectedProperty(AActor* Actor, const FProperty& Property) {
     }
     case EPropertyType::Path: {
       const std::string& Current = std::get<FPath>(Value).String();
+      ImGui::PushID(Actor);
       ImGui::PushID(Label);
       ImGui::TextUnformatted(Label);
       ImGui::SameLine();
       ImGui::SetNextItemWidth(-90.0f);
-      static std::unordered_map<ImGuiID, std::vector<char>> PathBuffers;
       const ImGuiID InputId = ImGui::GetID("##Path");
       auto& Buffer = PathBuffers[InputId];
       if (Buffer.empty()) {
@@ -140,6 +149,7 @@ void DrawReflectedProperty(AActor* Actor, const FProperty& Property) {
         }
       }
       ImGui::PopID();
+      ImGui::PopID();
       break;
     }
     case EPropertyType::Vector2D: {
@@ -181,9 +191,11 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
   EditorMode* Mode = Context.Mode;
   AActor* SelectedActor = Mode->GetSelectedActor();
   if (SelectedActor == nullptr || SelectedActor->IsPendingDestroy()) {
+    ResetPathBuffers(nullptr);
     ImGui::Text("Select an actor in Outliner to view properties.");
     return;
   }
+  ResetPathBuffers(SelectedActor);
 
   ImGui::Text("Class: %s", SelectedActor->GetActorClassName().c_str());
   ImGui::Separator();
