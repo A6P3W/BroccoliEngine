@@ -1,6 +1,4 @@
 #pragma once
-#include <string>
-
 #include "Actor.h"
 #include "BroccoliEngineAPI.h"
 
@@ -13,8 +11,8 @@ class BROCCOLI_ENGINE_API ASpriteActor : public AActor {
   ASpriteActor();
   ~ASpriteActor() override;
 
-  void SetImagePath(const std::string& Path);
-  const std::string& GetImagePath() const;
+  void SetImagePath(const FPath& Path);
+  const FPath& GetImagePath() const;
 
  protected:
   void BeginPlay() override;

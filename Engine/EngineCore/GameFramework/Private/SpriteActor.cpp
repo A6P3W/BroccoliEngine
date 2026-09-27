@@ -1,9 +1,5 @@
 #include "SpriteActor.h"
 
-#include <stdexcept>
-
-#include "Log.h"
-#include "PathResolver.h"
 #include "ResourceManager.h"
 #include "SpriteComponent.h"
 
@@ -19,21 +15,11 @@ ASpriteActor::ASpriteActor() {
 
 ASpriteActor::~ASpriteActor() = default;
 
-const std::string& ASpriteActor::GetImagePath() const { return ImagePath.String(); }
+const FPath& ASpriteActor::GetImagePath() const { return ImagePath; }
 
-void ASpriteActor::SetImagePath(const std::string& Path) {
-  const auto VirtualPath = PathResolver::MakeVirtualPath(Path);
-  if (!VirtualPath) {
-    M_LOG(Warning, "Invalid image resource path: {}", Path);
-    return;
-  }
+void ASpriteActor::SetImagePath(const FPath& Path) {
   const FPath OldValue = ImagePath;
-  try {
-    ImagePath = FPath(*VirtualPath);
-  } catch (const std::invalid_argument&) {
-    M_LOG(Warning, "Invalid image resource path: {}", Path);
-    return;
-  }
+  ImagePath = Path;
   if (ImagePath == OldValue) return;
   OnImagePathChanged(OldValue);
 }
@@ -52,7 +38,7 @@ void ASpriteActor::BeginPlay() {
   AActor::BeginPlay();
 
   if (ImagePath.Empty()) {
-    SetImagePath("/Engine/texture_Checker_64px.png");
+    SetImagePath(FPath("/Engine/texture_Checker_64px.png"));
   } else {
     OnImagePathChanged(ImagePath);
   }

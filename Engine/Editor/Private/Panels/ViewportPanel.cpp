@@ -2,11 +2,15 @@
 
 #include <imgui.h>
 
+#include <optional>
+#include <stdexcept>
+
 #include "BroccoliRaylib.h"
 #include "EditorContext.h"
 #include "EditorMode.h"
 #include "EditorViewportState.h"
 #include "FileDialog.h"
+#include "Log.h"
 #include "PathResolver.h"
 #include "RenderSystem.h"
 #include "StaticMeshActor.h"
@@ -44,12 +48,20 @@ void ViewportPanel::DrawContents(EditorContext& Context) {
             "3D Model Files (*.glb;*.gltf)\0*.glb;*.gltf\0All Files (*.*)\0*.*\0",
             PathResolver::GetGameResourceDir()
         );
+        std::optional<FPath> SelectedPath;
         if (!FilePath.empty()) {
+          try {
+            SelectedPath.emplace(FilePath);
+          } catch (const std::invalid_argument&) {
+            M_LOG(Warning, "Selected model is outside the resource roots: {}", FilePath);
+          }
+        }
+        if (SelectedPath) {
           AActor* Actor =
               Context.Mode->PlaceActorAtViewportCenter(AStaticMeshActor::StaticClassName());
           auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(Actor);
           if (StaticMeshActor != nullptr) {
-            StaticMeshActor->SetModelPath(FilePath);
+            StaticMeshActor->SetModelPath(*SelectedPath);
           }
         }
       }

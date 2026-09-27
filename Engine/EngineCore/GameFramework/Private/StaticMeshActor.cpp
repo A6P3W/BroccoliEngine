@@ -1,9 +1,5 @@
 #include "StaticMeshActor.h"
 
-#include <stdexcept>
-
-#include "Log.h"
-#include "PathResolver.h"
 #include "ResourceManager.h"
 #include "StaticMeshComponent.h"
 
@@ -19,19 +15,9 @@ AStaticMeshActor::AStaticMeshActor() {
 
 AStaticMeshActor::~AStaticMeshActor() = default;
 
-void AStaticMeshActor::SetModelPath(const std::string& Path) {
-  const auto VirtualPath = PathResolver::MakeVirtualPath(Path);
-  if (!VirtualPath) {
-    M_LOG(Warning, "Invalid model resource path: {}", Path);
-    return;
-  }
+void AStaticMeshActor::SetModelPath(const FPath& Path) {
   const FPath OldValue = ModelPath;
-  try {
-    ModelPath = FPath(*VirtualPath);
-  } catch (const std::invalid_argument&) {
-    M_LOG(Warning, "Invalid model resource path: {}", Path);
-    return;
-  }
+  ModelPath = Path;
   if (ModelPath == OldValue) return;
   OnModelPathChanged(OldValue);
 }
@@ -55,7 +41,7 @@ void AStaticMeshActor::OnModelPathChanged(FPath OldValue) {
   }
 }
 
-const std::string& AStaticMeshActor::GetModelPath() const { return ModelPath.String(); }
+const FPath& AStaticMeshActor::GetModelPath() const { return ModelPath; }
 
 void AStaticMeshActor::BeginPlay() {
   AActor::BeginPlay();

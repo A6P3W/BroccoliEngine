@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include "Actor.h"
 #include "ActorRegistry.h"
@@ -16,10 +17,25 @@
 #include "PathResolver.h"
 #include "PluginHost.h"
 #include "ReflectionGenerator.h"
+#include "SpriteActor.h"
+#include "StaticMeshActor.h"
 #include "World.h"
 #include "nlohmann/json.hpp"
 
 namespace {
+static_assert(
+    std::is_same_v<decltype(&ASpriteActor::SetImagePath), void (ASpriteActor::*)(const FPath&)>
+);
+static_assert(
+    std::is_same_v<decltype(&ASpriteActor::GetImagePath), const FPath& (ASpriteActor::*)() const>
+);
+static_assert(std::is_same_v<
+              decltype(&AStaticMeshActor::SetModelPath),
+              void (AStaticMeshActor::*)(const FPath&)>);
+static_assert(std::is_same_v<
+              decltype(&AStaticMeshActor::GetModelPath),
+              const FPath& (AStaticMeshActor::*)() const>);
+
 void Check(bool Condition, std::string_view Message) {
   if (!Condition) throw std::runtime_error(std::string(Message));
 }

@@ -49,6 +49,7 @@ FPath ImagePath;
 ```
 
 `PathFilter` は `EPathFilter::AnyFile`、`EPathFilter::Image`（png、jpg、jpeg、bmp）、`EPathFilter::Model`（glb、gltf）から選びます。Level JSON では仮想パスを文字列として保存します。旧データのプレフィックスなし相対パスは読み込み時に `/Game/` へ正規化されます。
+`ASpriteActor::SetImagePath` / `GetImagePath` と `AStaticMeshActor::SetModelPath` / `GetModelPath` の公開 API も `FPath` を使用します。文字列から渡す場合は `FPath("Textures/A.png")` を生成してください。
 
 Editor Property は `private` を標準とします。派生クラスから直接アクセスする必要があれば `protected`、外部コードからの直接アクセスが必要なら `public` を選びます。どのアクセス修飾子でも `EDITOR_PROPERTY` があれば Inspector と Level JSON の対象になり、付けなければ対象になりません。Annotation は通常の C++ アクセス制御を変更しません。Inspector と LevelSerializer は `FProperty::Get/Set` から値を操作します。
 
