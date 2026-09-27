@@ -28,6 +28,11 @@ const FProperty& RequireProperty(const FClass& Class, std::string_view Name) {
   return *Property;
 }
 
+template <class V>
+V ReadProperty(const FClass& Class, std::string_view Name, const void* Object) {
+  return std::get<V>(RequireProperty(Class, Name).Get(Object));
+}
+
 class FReflectionTestSubject {
  public:
   const FProperty* ClampedValueProperty = nullptr;
@@ -64,7 +69,7 @@ class FReflectionTestSubject {
 };
 
 class FBaseReflectionSubject {
- public:
+ private:
   EDITOR_PROPERTY()
   bool BaseEnabled = false;
 };
@@ -73,6 +78,30 @@ class FDerivedReflectionSubject : public FBaseReflectionSubject {
  public:
   EDITOR_PROPERTY(.Min = 0, .Max = 4)
   int DerivedValue = 2;
+};
+
+class FPrivateReflectionSubject {
+ public:
+  int CallbackCount = 0;
+  int LastOldValue = -1;
+
+ protected:
+  void OnLevelChanged(int OldValue) {
+    ++CallbackCount;
+    LastOldValue = OldValue;
+  }
+
+  EDITOR_PROPERTY(.SliderMin = 0, .SliderMax = 1)
+  float Gain = 0.5F;
+
+ private:
+  EDITOR_PROPERTY(.OnChanged = ^^FPrivateReflectionSubject::OnLevelChanged, .Min = 0, .Max = 10)
+  int Level = 5;
+
+  EDITOR_PROPERTY(.MaxLength = 3)
+  std::string Name = "abc";
+
+  int Hidden = 1;
 };
 
 class AReflectionSerializerTestActor final : public AActor {
@@ -84,6 +113,10 @@ class AReflectionSerializerTestActor final : public AActor {
     LastOldCount = OldValue;
   }
 
+  int CallbackCount = 0;
+  int LastOldCount = -1;
+
+ private:
   EDITOR_PROPERTY()
   bool Enabled = false;
   EDITOR_PROPERTY(
@@ -98,9 +131,6 @@ class AReflectionSerializerTestActor final : public AActor {
   FVector2D Offset{1.0F, 2.0F};
   EDITOR_PROPERTY()
   FVector3D Position{3.0F, 4.0F, 5.0F};
-
-  int CallbackCount = 0;
-  int LastOldCount = -1;
 };
 
 class AReflectionPluginTestActor final : public AActor {
@@ -111,12 +141,23 @@ class AReflectionPluginTestActor final : public AActor {
 class AReflectionStaticBase : public AActor {
  public:
   DEFINE_ACTOR_CLASS(AReflectionStaticBase)
-  EDITOR_PROPERTY()
-  bool BaseEnabled = false;
+  int CallbackCount = 0;
+  int LastOldValue = -1;
+
+ protected:
+  virtual void OnBaseValueChanged(int OldValue) {
+    ++CallbackCount;
+    LastOldValue = OldValue;
+  }
+
+ private:
+  EDITOR_PROPERTY(.OnChanged = ^^AReflectionStaticBase::OnBaseValueChanged, .Min = 0, .Max = 10)
+  int BaseValue = 2;
+  int HiddenValue = 0;
 };
 
 class AReflectionIntermediate : public AReflectionStaticBase {
- public:
+ protected:
   EDITOR_PROPERTY()
   int IntermediateValue = 1;
 };
@@ -124,21 +165,78 @@ class AReflectionIntermediate : public AReflectionStaticBase {
 class AReflectionStaticDerived final : public AReflectionIntermediate {
  public:
   DEFINE_ACTOR_CLASS(AReflectionStaticDerived)
+  bool OverrideCalled = false;
   EDITOR_PROPERTY()
   float DerivedValue = 2.0F;
+
+ protected:
+  void OnBaseValueChanged(int OldValue) override {
+    OverrideCalled = true;
+    AReflectionStaticBase::OnBaseValueChanged(OldValue);
+  }
 };
 
 REGISTER_ACTOR(AReflectionStaticDerived)
 REGISTER_ACTOR(AReflectionStaticBase)
+
+void TestNonPublicProperties() {
+  FClass Class = ReflectionGenerator::MakeClass<FPrivateReflectionSubject>("PrivateSubject");
+  Check(Class.GetProperties().size() == 3, "Non-public property enumeration is incorrect.");
+  Check(Class.FindProperty("Hidden") == nullptr, "Unannotated private member was exposed.");
+  FPrivateReflectionSubject Subject;
+
+  const FProperty& Level = RequireProperty(Class, "Level");
+  Check(
+      Level.EditorMetadata.IntMin == 0 && Level.EditorMetadata.IntMax == 10,
+      "Private int metadata is missing."
+  );
+  Check(Level.Set(&Subject, 20), "Private int setter failed.");
+  Check(std::get<int>(Level.Get(&Subject)) == 10, "Private int setter did not clamp.");
+  Check(
+      Subject.CallbackCount == 1 && Subject.LastOldValue == 5,
+      "Private callback received the wrong old value."
+  );
+  Check(
+      Level.Set(&Subject, 10) && Subject.CallbackCount == 1,
+      "Private callback ran for an unchanged value."
+  );
+
+  const FProperty& Gain = RequireProperty(Class, "Gain");
+  Check(
+      Gain.EditorMetadata.FloatSliderMin == 0.0F && Gain.EditorMetadata.FloatSliderMax == 1.0F,
+      "Protected float slider metadata is missing."
+  );
+  Check(Gain.Set(&Subject, 2.0F), "Protected float setter failed.");
+  Check(
+      std::get<float>(Gain.Get(&Subject)) == 2.0F, "Slider limits incorrectly clamped the value."
+  );
+
+  const FProperty& Name = RequireProperty(Class, "Name");
+  Check(Name.EditorMetadata.MaxLength == 3, "Private string MaxLength is missing.");
+  Check(!Name.Set(&Subject, std::string("long")), "Private string setter ignored MaxLength.");
+  Check(Name.Set(&Subject, std::string("new")), "Private string setter rejected a valid value.");
+  Check(std::get<std::string>(Name.Get(&Subject)) == "new", "Private string getter failed.");
+}
 
 void TestStaticActorReflectionRegistration() {
   const FClass* Derived =
       FReflectionRegistry::GetInstance().FindClass(AReflectionStaticDerived::StaticClassName());
   Check(Derived != nullptr, "Static derived Actor has no Reflection class.");
   Check(Derived->GetProperties().size() == 3, "Static Actor Reflection inheritance is incomplete.");
-  Check(Derived->FindProperty("BaseEnabled") != nullptr, "Static base property is missing.");
+  const FProperty& BaseValue = RequireProperty(*Derived, "BaseValue");
   Check(Derived->FindProperty("IntermediateValue") != nullptr, "Intermediate property is missing.");
   Check(Derived->FindProperty("DerivedValue") != nullptr, "Derived property is missing.");
+  Check(Derived->FindProperty("HiddenValue") == nullptr, "Unannotated private member was exposed.");
+  AReflectionStaticDerived Subject;
+  Check(BaseValue.Set(&Subject, 20), "Base private property could not be set on a derived Actor.");
+  Check(
+      std::get<int>(BaseValue.Get(&Subject)) == 10,
+      "Base private property did not clamp on a derived Actor."
+  );
+  Check(
+      Subject.OverrideCalled && Subject.CallbackCount == 1 && Subject.LastOldValue == 2,
+      "Base private property did not invoke the virtual override with its old value."
+  );
   Check(
       ActorRegistry::GetInstance().Contains(AReflectionStaticDerived::StaticClassName()),
       "Static derived Actor factory is missing."
@@ -277,7 +375,7 @@ void TestInheritanceAndRegistry() {
   const FProperty& BaseEnabled = RequireProperty(Derived, "BaseEnabled");
   const FProperty& DerivedValue = RequireProperty(Derived, "DerivedValue");
   Check(
-      BaseEnabled.Set(&Subject, true) && Subject.BaseEnabled,
+      BaseEnabled.Set(&Subject, true) && std::get<bool>(BaseEnabled.Get(&Subject)),
       "Inherited property could not be set on the derived object."
   );
   Check(
@@ -487,6 +585,9 @@ void TestWorldLevelSerializerReflectionRoundTrip() {
       ) != 0,
       "Could not register reflected properties for the serializer test actor."
   );
+  const FClass* ActorClass =
+      Reflections.FindClass(AReflectionSerializerTestActor::StaticClassName());
+  Check(ActorClass != nullptr, "Could not find reflected serializer test actor.");
 
   const fs::path TempDirectory =
       fs::temp_directory_path() /
@@ -505,12 +606,27 @@ void TestWorldLevelSerializerReflectionRoundTrip() {
         "Could not assign the test actor instance name."
     );
 
-    SourceActor->Enabled = true;
-    SourceActor->Count = 42;
-    SourceActor->Weight = 0.625F;
-    SourceActor->Label = "round-trip";
-    SourceActor->Offset = {8.0F, -9.0F};
-    SourceActor->Position = {10.0F, 11.0F, -12.0F};
+    Check(
+        RequireProperty(*ActorClass, "Enabled").Set(SourceActor, true),
+        "Could not set private bool."
+    );
+    Check(RequireProperty(*ActorClass, "Count").Set(SourceActor, 42), "Could not set private int.");
+    Check(
+        RequireProperty(*ActorClass, "Weight").Set(SourceActor, 0.625F),
+        "Could not set private float."
+    );
+    Check(
+        RequireProperty(*ActorClass, "Label").Set(SourceActor, std::string("round-trip")),
+        "Could not set private string."
+    );
+    Check(
+        RequireProperty(*ActorClass, "Offset").Set(SourceActor, FVector2D{8.0F, -9.0F}),
+        "Could not set private Vector2D."
+    );
+    Check(
+        RequireProperty(*ActorClass, "Position").Set(SourceActor, FVector3D{10.0F, 11.0F, -12.0F}),
+        "Could not set private Vector3D."
+    );
     Check(SourceActor->SetActorLocation3D({13.0F, 14.0F, 15.0F}), "Could not set actor location.");
     Check(
         SourceActor->SetActorRotation3D({0.0F, 0.3826834F, 0.0F, 0.9238795F}),
@@ -538,14 +654,18 @@ void TestWorldLevelSerializerReflectionRoundTrip() {
         "Loaded metadata or actor name did not round trip."
     );
     Check(
-        LoadedActor->Enabled && LoadedActor->Count == 42 && LoadedActor->Weight == 0.625F &&
-            LoadedActor->Label == "round-trip",
+        ReadProperty<bool>(*ActorClass, "Enabled", LoadedActor) &&
+            ReadProperty<int>(*ActorClass, "Count", LoadedActor) == 42 &&
+            ReadProperty<float>(*ActorClass, "Weight", LoadedActor) == 0.625F &&
+            ReadProperty<std::string>(*ActorClass, "Label", LoadedActor) == "round-trip",
         "Annotated scalar properties did not round trip through World and LevelSerializer."
     );
     Check(
-        LoadedActor->Offset.X == 8.0F && LoadedActor->Offset.Y == -9.0F &&
-            LoadedActor->Position.X == 10.0F && LoadedActor->Position.Y == 11.0F &&
-            LoadedActor->Position.Z == -12.0F,
+        ReadProperty<FVector2D>(*ActorClass, "Offset", LoadedActor).X == 8.0F &&
+            ReadProperty<FVector2D>(*ActorClass, "Offset", LoadedActor).Y == -9.0F &&
+            ReadProperty<FVector3D>(*ActorClass, "Position", LoadedActor).X == 10.0F &&
+            ReadProperty<FVector3D>(*ActorClass, "Position", LoadedActor).Y == 11.0F &&
+            ReadProperty<FVector3D>(*ActorClass, "Position", LoadedActor).Z == -12.0F,
         "Annotated vector properties did not round trip through World and LevelSerializer."
     );
     Check(
@@ -567,6 +687,10 @@ void TestWorldLevelSerializerReflectionRoundTrip() {
     Check(Input.is_open(), "Could not reopen the saved world level.");
     nlohmann::json Saved = nlohmann::json::parse(Input);
     Input.close();
+    Check(
+        Saved["actors"][0]["properties"]["Count"] == 42 && !Saved["actors"][0].contains("access"),
+        "Private property changed the Level JSON schema."
+    );
     Saved["actors"][0]["properties"]["Count"] = "invalid-int";
     WriteJson(LevelPath, Saved);
   }
@@ -580,13 +704,16 @@ void TestWorldLevelSerializerReflectionRoundTrip() {
         FindSerializerTestActor(LoadWorldWithInvalidProperty);
     Check(LoadedActor != nullptr, "Invalid property prevented the actor from loading.");
     Check(
-        LoadedActor->Count == 7 && LoadedActor->CallbackCount == 0,
+        ReadProperty<int>(*ActorClass, "Count", LoadedActor) == 7 &&
+            LoadedActor->CallbackCount == 0,
         "Invalid property failed to preserve only its C++ initial value."
     );
     Check(
-        LoadedActor->Enabled && LoadedActor->Weight == 0.625F &&
-            LoadedActor->Label == "round-trip" && LoadedActor->Offset.X == 8.0F &&
-            LoadedActor->Position.Z == -12.0F,
+        ReadProperty<bool>(*ActorClass, "Enabled", LoadedActor) &&
+            ReadProperty<float>(*ActorClass, "Weight", LoadedActor) == 0.625F &&
+            ReadProperty<std::string>(*ActorClass, "Label", LoadedActor) == "round-trip" &&
+            ReadProperty<FVector2D>(*ActorClass, "Offset", LoadedActor).X == 8.0F &&
+            ReadProperty<FVector3D>(*ActorClass, "Position", LoadedActor).Z == -12.0F,
         "One invalid property prevented other reflected properties from loading."
     );
   }
@@ -675,6 +802,7 @@ int main(int ArgCount, char** Arguments) {
     if (ArgCount == 2 && std::string_view(Arguments[1]) == "--live-actor-exit") {
       TestPluginHostExitWithLiveActor();
     } else {
+      TestNonPublicProperties();
       TestStaticActorReflectionRegistration();
       TestSixPropertyTypesAndMetadata();
       TestTypeMismatchAndCallbackFailure();

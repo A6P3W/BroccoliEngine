@@ -83,6 +83,10 @@ try {
     [pscustomobject]@{
       Source = "ReversedSliderRange.cpp"
       Expected = "Reversed SliderMin/SliderMax"
+    },
+    [pscustomobject]@{
+      Source = "PrivateDirectAccess.cpp"
+      Expected = "is private within this context"
     }
   )
   foreach ($Case in $CompileFailureCases) {

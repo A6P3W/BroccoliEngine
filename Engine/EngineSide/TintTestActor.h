@@ -14,7 +14,7 @@ class ATintTestActor : public AActor {
  protected:
   virtual void OnSpeedChanged(float OldValue);
 
- public:
+ private:
   EDITOR_PROPERTY(
           .OnChanged = ^^ATintTestActor::OnSpeedChanged,
           .Min = 0.0f,

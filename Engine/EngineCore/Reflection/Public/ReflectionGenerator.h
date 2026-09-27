@@ -283,7 +283,6 @@ void AppendTyped(FClass& Class, EPropertyType Type) {
 template <class T, std::meta::info Member>
 void Append(FClass& Class) {
   if constexpr (HasAnnotation<Member, FEditorPropertyAnnotation>()) {
-    static_assert(std::meta::is_public(Member), "Editor property must be public");
     using V = std::remove_cvref_t<decltype(std::declval<T>().[:Member:])>;
     if constexpr (std::is_same_v<V, bool>)
       AppendTyped<T, Member, V>(Class, EPropertyType::Bool);
