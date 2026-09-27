@@ -232,6 +232,50 @@ std::string PathResolver::SanitizeResourcePath(const std::string& Path) {
   return CleanPath;
 }
 
+std::optional<std::string> PathResolver::MakeVirtualPath(const std::string& Path) {
+  if (Path.empty()) return std::string{};
+  std::string CleanPath = NormalizePath(Path);
+  const bool IsWindowsAbsolute = CleanPath.size() >= 3 &&
+                                 std::isalpha(static_cast<unsigned char>(CleanPath[0])) &&
+                                 CleanPath[1] == ':' && CleanPath[2] == '/';
+  if (IsWindowsAbsolute || (CleanPath[0] == '/' && !CleanPath.starts_with("/Game/") &&
+                            !CleanPath.starts_with("/Engine/"))) {
+    std::error_code Error;
+    const auto Absolute = std::filesystem::absolute(FileUtils::Utf8ToPath(CleanPath), Error);
+    if (Error) return std::nullopt;
+    const std::string AbsolutePath =
+        NormalizePath(FileUtils::PathToUtf8(Absolute.lexically_normal()));
+    const auto WithinRoot = [&](const std::string& Directory,
+                                const std::string& VirtualRoot) -> std::optional<std::string> {
+      std::error_code RootError;
+      const auto AbsoluteRoot =
+          std::filesystem::absolute(FileUtils::Utf8ToPath(Directory), RootError);
+      if (RootError) return std::nullopt;
+      std::string RootPath = NormalizePath(FileUtils::PathToUtf8(AbsoluteRoot.lexically_normal()));
+      if (!RootPath.ends_with('/')) RootPath += '/';
+      if (!StartsWithCaseInsensitive(AbsolutePath, RootPath)) return std::nullopt;
+      return VirtualRoot + AbsolutePath.substr(RootPath.size());
+    };
+    auto Virtual = WithinRoot(GetEngineResourceDir(), "/Engine/");
+    if (!Virtual) Virtual = WithinRoot(GetGameResourceDir(), "/Game/");
+    if (!Virtual) return std::nullopt;
+    CleanPath = *Virtual;
+  } else if (CleanPath.starts_with("Game/") || CleanPath.starts_with("Engine/")) {
+    CleanPath.insert(CleanPath.begin(), '/');
+  } else if (!CleanPath.starts_with("/Game/") && !CleanPath.starts_with("/Engine/")) {
+    CleanPath = "/Game/" + CleanPath;
+  }
+
+  const std::string Root = CleanPath.starts_with("/Engine/") ? "/Engine/" : "/Game/";
+  const std::filesystem::path Relative =
+      FileUtils::Utf8ToPath(CleanPath.substr(Root.size())).lexically_normal();
+  if (Relative.is_absolute() || !IsInsideBase(Relative)) return std::nullopt;
+  for (const auto& Part : Relative) {
+    if (Part == "..") return std::nullopt;
+  }
+  return Root + NormalizePath(FileUtils::PathToUtf8Generic(Relative));
+}
+
 std::string PathResolver::Resolve(const std::string& Path) {
   if (Path.empty()) return "";
 
