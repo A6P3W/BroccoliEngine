@@ -1,0 +1,114 @@
+$ErrorActionPreference = "Stop"
+
+$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
+$Compiler = "C:/msys64/mingw64/bin/g++.exe"
+$DebugDirectory = Join-Path $RepositoryRoot "Bin/x64/Debug"
+$TestExecutable = Join-Path $DebugDirectory "ReflectionTests.exe"
+$TestTempDirectory = Join-Path ([System.IO.Path]::GetTempPath()) `
+  ("BroccoliReflectionCompileTests-" + [guid]::NewGuid().ToString("N"))
+$TemporaryFiles = [System.Collections.Generic.List[string]]::new()
+$IncludeDirectories = @(
+  "Engine/EngineCore",
+  "Engine/EngineCore/Core/Public",
+  "Engine/EngineCore/Plugin/Public",
+  "Engine/EngineCore/Systems/Public",
+  "Engine/EngineCore/Reflection/Public",
+  "Engine/EngineCore/Components/Public",
+  "Engine/EngineCore/Network/Public",
+  "Engine/EngineCore/GameFramework/Public",
+  "Engine/EngineCore/Utils/Public",
+  "Engine/EngineCore/Online/Public",
+  "Engine/EngineSide",
+  "Engine/EngineSide/Default/Public",
+  "Engine/Editor/Public",
+  "Engine/ThirdParty"
+)
+$CompilerArguments = @("-std=c++26", "-freflection")
+foreach ($IncludeDirectory in $IncludeDirectories) {
+  $CompilerArguments += "-I$IncludeDirectory"
+}
+
+if (-not (Test-Path -LiteralPath $Compiler)) {
+  throw "GCC 16 compiler was not found: $Compiler"
+}
+if (-not (Test-Path -LiteralPath (Join-Path $DebugDirectory "BroccoliEngine.dll"))) {
+  throw "Build Debug first so Bin/x64/Debug/BroccoliEngine.dll exists."
+}
+
+$env:PATH = "C:/msys64/mingw64/bin;$DebugDirectory;$env:PATH"
+New-Item -ItemType Directory -Path $TestTempDirectory | Out-Null
+Push-Location $RepositoryRoot
+try {
+  & $Compiler @CompilerArguments "Tests/Reflection/ReflectionTests.cpp" `
+    "-L$DebugDirectory" "-lBroccoliEngine" "-o$TestExecutable"
+  if ($LASTEXITCODE -ne 0) {
+    throw "Reflection test compilation failed with exit code $LASTEXITCODE."
+  }
+
+  & $TestExecutable
+  if ($LASTEXITCODE -ne 0) {
+    throw "Reflection runtime tests failed with exit code $LASTEXITCODE."
+  }
+
+  & $TestExecutable --live-actor-exit
+  if ($LASTEXITCODE -ne 0) {
+    throw "Plugin live-actor process-exit regression failed with exit code $LASTEXITCODE."
+  }
+
+  $CompileFailureCases = @(
+    [pscustomobject]@{
+      Source = "AnnotationTypeMismatch.cpp"
+      Expected = "Editor annotation does not match member type"
+    },
+    [pscustomobject]@{
+      Source = "CallbackArgumentMismatch.cpp"
+      Expected = "OnChanged must be void(T OldValue)"
+    },
+    [pscustomobject]@{
+      Source = "ReversedRange.cpp"
+      Expected = "Reversed Min/Max"
+    }
+  )
+  foreach ($Case in $CompileFailureCases) {
+    $SourcePath = "Tests/Reflection/CompileFailures/$($Case.Source)"
+    $ObjectPath = Join-Path $TestTempDirectory "$($Case.Source).o"
+    $LogPath = Join-Path $TestTempDirectory "$($Case.Source).log"
+    $TemporaryFiles.Add($ObjectPath)
+    $TemporaryFiles.Add($LogPath)
+    & $Compiler @CompilerArguments -c $SourcePath "-o$ObjectPath" *> $LogPath
+    $CompileExitCode = $LASTEXITCODE
+    $Diagnostics = Get-Content -LiteralPath $LogPath -Raw
+    Remove-Item -LiteralPath $ObjectPath, $LogPath -Force -ErrorAction SilentlyContinue
+    if ($CompileExitCode -eq 0) {
+      throw "$SourcePath unexpectedly compiled successfully."
+    }
+    if ($Diagnostics -notmatch [regex]::Escape($Case.Expected)) {
+      throw "$SourcePath failed for an unexpected reason. Expected diagnostic: $($Case.Expected)"
+    }
+    Write-Output "Expected compile failure verified: $($Case.Source)"
+  }
+} finally {
+  Pop-Location
+  foreach ($TemporaryFile in $TemporaryFiles) {
+    Remove-Item -LiteralPath $TemporaryFile -Force -ErrorAction SilentlyContinue
+  }
+  $CanonicalTempDirectory = (Resolve-Path -LiteralPath $TestTempDirectory).Path
+  $CanonicalTempParent = (Resolve-Path -LiteralPath (Split-Path -Parent $TestTempDirectory)).Path
+  if (
+    [System.IO.Path]::GetFullPath($CanonicalTempDirectory).Equals(
+      [System.IO.Path]::GetFullPath($TestTempDirectory),
+      [System.StringComparison]::OrdinalIgnoreCase
+    ) -and
+    [System.IO.Path]::GetFullPath((Split-Path -Parent $CanonicalTempDirectory)).Equals(
+      [System.IO.Path]::GetFullPath($CanonicalTempParent),
+      [System.StringComparison]::OrdinalIgnoreCase
+    ) -and
+    (Split-Path -Leaf $CanonicalTempDirectory).StartsWith(
+      "BroccoliReflectionCompileTests-", [System.StringComparison]::Ordinal
+    )
+  ) {
+    Remove-Item -LiteralPath $CanonicalTempDirectory -Force
+  } else {
+    throw "Refusing to remove an unexpected reflection compile-test temp directory."
+  }
+}
