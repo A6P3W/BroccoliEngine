@@ -11,6 +11,8 @@ function(broccoli_configure_plugin)
     message(FATAL_ERROR "broccoli_configure_plugin requires TARGET.")
   endif()
 
+  broccoli_enable_reflection("${BroccoliPlugin_TARGET}")
+
   set_property(TARGET "${BroccoliPlugin_TARGET}" PROPERTY EXCLUDE_FROM_ALL TRUE)
   foreach(Configuration IN ITEMS Debug Editor Release)
     string(TOUPPER "${Configuration}" ConfigurationUpper)

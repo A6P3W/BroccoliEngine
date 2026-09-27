@@ -8,6 +8,10 @@
 
 REGISTER_ACTOR(ATintTestActor)
 
+void ATintTestActor::OnSpeedChanged(float OldValue) {
+  M_LOG(Log, "Tint test speed changed from {} to {}.", OldValue, Speed);
+}
+
 ATintTestActor::ATintTestActor() {
   SpriteComponent = NewObject<MSpriteComponent>(this);
   SetRootComponent(SpriteComponent);

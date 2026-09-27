@@ -1,0 +1,10 @@
+include_guard(GLOBAL)
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-std=c++26 -freflection" BROCCOLI_HAS_FREFLECTION)
+
+function(broccoli_enable_reflection Target)
+  if(NOT BROCCOLI_HAS_FREFLECTION)
+    message(FATAL_ERROR "C++26 Reflection requires a compiler that accepts -freflection (e.g. GCC 16).")
+  endif()
+  target_compile_options("${Target}" PRIVATE -freflection)
+endfunction()

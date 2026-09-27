@@ -4,13 +4,18 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstring>
+#include <limits>
 #include <string>
+#include <vector>
 
 #include "Actor.h"
 #include "EditorContext.h"
 #include "EditorMode.h"
 #include "FileDialog.h"
+#include "Log.h"
 #include "PathResolver.h"
+#include "Reflection.h"
 #include "SpriteActor.h"
 #include "StaticMeshActor.h"
 #include "UMath.h"
@@ -22,6 +27,84 @@ bool IsSameRotation(const FQuaternion& Left, const FQuaternion& Right) {
   const float Dot = NormalizedLeft.X * NormalizedRight.X + NormalizedLeft.Y * NormalizedRight.Y +
                     NormalizedLeft.Z * NormalizedRight.Z + NormalizedLeft.W * NormalizedRight.W;
   return std::abs(Dot) > 0.999999f;
+}
+
+int ResizeStringBuffer(ImGuiInputTextCallbackData* Data) {
+  auto* Buffer = static_cast<std::vector<char>*>(Data->UserData);
+  Buffer->resize(static_cast<std::size_t>(Data->BufSize) * 2);
+  Data->Buf = Buffer->data();
+  return 0;
+}
+
+void DrawReflectedProperty(AActor* Actor, const FProperty& Property) {
+  FPropertyValue Value = Property.Get(Actor);
+  const char* Label = Property.Name.c_str();
+  bool Changed = false;
+  switch (Property.Type) {
+    case EPropertyType::Bool: {
+      bool Edited = std::get<bool>(Value);
+      Changed = ImGui::Checkbox(Label, &Edited);
+      if (Changed) Value = Edited;
+      break;
+    }
+    case EPropertyType::Int: {
+      int Edited = std::get<int>(Value);
+      const int Min = Property.EditorMetadata.IntSliderMin.value_or(
+          Property.EditorMetadata.IntMin.value_or(std::numeric_limits<int>::min())
+      );
+      const int Max = Property.EditorMetadata.IntSliderMax.value_or(
+          Property.EditorMetadata.IntMax.value_or(std::numeric_limits<int>::max())
+      );
+      Changed = ImGui::DragInt(Label, &Edited, 1.0f, Min, Max);
+      if (Changed) Value = Edited;
+      break;
+    }
+    case EPropertyType::Float: {
+      float Edited = std::get<float>(Value);
+      const float Min = Property.EditorMetadata.FloatSliderMin.value_or(
+          Property.EditorMetadata.FloatMin.value_or(-std::numeric_limits<float>::max())
+      );
+      const float Max = Property.EditorMetadata.FloatSliderMax.value_or(
+          Property.EditorMetadata.FloatMax.value_or(std::numeric_limits<float>::max())
+      );
+      Changed = ImGui::DragFloat(Label, &Edited, 0.1f, Min, Max);
+      if (Changed) Value = Edited;
+      break;
+    }
+    case EPropertyType::String: {
+      const std::string& Current = std::get<std::string>(Value);
+      std::vector<char> Buffer(std::max<std::size_t>(Current.size() + 1, 64), '\0');
+      std::memcpy(Buffer.data(), Current.c_str(), Current.size());
+      Changed = ImGui::InputText(
+          Label,
+          Buffer.data(),
+          Buffer.size(),
+          ImGuiInputTextFlags_CallbackResize,
+          ResizeStringBuffer,
+          &Buffer
+      );
+      if (Changed) Value = std::string(Buffer.data());
+      break;
+    }
+    case EPropertyType::Vector2D: {
+      const auto& Current = std::get<FVector2D>(Value);
+      float Edited[2] = {Current.X, Current.Y};
+      Changed = ImGui::DragFloat2(Label, Edited, 0.1f);
+      if (Changed) Value = FVector2D{Edited[0], Edited[1]};
+      break;
+    }
+    case EPropertyType::Vector3D: {
+      const auto& Current = std::get<FVector3D>(Value);
+      float Edited[3] = {Current.X, Current.Y, Current.Z};
+      Changed = ImGui::DragFloat3(Label, Edited, 0.1f);
+      if (Changed) Value = FVector3D{Edited[0], Edited[1], Edited[2]};
+      break;
+    }
+  }
+  if (Changed && !Property.Set(Actor, Value)) {
+    M_LOG(Warning, "Inspector rejected reflected property '{}'.", Property.Name);
+    Value = Property.Get(Actor);
+  }
 }
 }  // namespace
 
@@ -127,6 +210,23 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
             DialogDirectory
         );
         if (!FilePath.empty()) SpriteActor->SetImagePath(FilePath);
+      }
+    }
+  }
+
+  if (const FClass* Class =
+          FReflectionRegistry::GetInstance().FindClass(SelectedActor->GetActorClassName())) {
+    const auto Properties = Class->GetProperties();
+    if (!Properties.empty()) {
+      ImGui::Separator();
+      if (ImGui::CollapsingHeader("Properties", ImGuiTreeNodeFlags_DefaultOpen)) {
+        for (const FProperty* Property : Properties) {
+          if (Property->Name == "ImagePath" || Property->Name == "ModelPath" ||
+              Property->Name == "Location" || Property->Name == "Rotation" ||
+              Property->Name == "Scale")
+            continue;
+          DrawReflectedProperty(SelectedActor, *Property);
+        }
       }
     }
   }

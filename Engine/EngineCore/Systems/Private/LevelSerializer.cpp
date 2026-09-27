@@ -2,8 +2,11 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <limits>
+#include <type_traits>
 
 #include "Actor.h"
 #include "ActorManager.h"
@@ -12,6 +15,7 @@
 #include "GameModeBase.h"
 #include "Log.h"
 #include "PathResolver.h"
+#include "Reflection.h"
 #include "SimpleCrypto.h"
 #include "SpriteActor.h"
 #include "StaticMeshActor.h"
@@ -37,6 +41,74 @@ std::string GetLowercaseFileName(const std::string& FilePath) {
     return static_cast<char>(std::tolower(Character));
   });
   return FileName;
+}
+
+json ValueToJson(const FPropertyValue& Value) {
+  return std::visit(
+      [](const auto& Item) -> json {
+        using T = std::decay_t<decltype(Item)>;
+        if constexpr (std::is_same_v<T, FVector2D>) {
+          return {{"x", Item.X}, {"y", Item.Y}};
+        } else if constexpr (std::is_same_v<T, FVector3D>) {
+          return {{"x", Item.X}, {"y", Item.Y}, {"z", Item.Z}};
+        } else {
+          return Item;
+        }
+      },
+      Value
+  );
+}
+
+bool JsonToValue(const json& JsonValue, EPropertyType Type, FPropertyValue& Value) {
+  try {
+    switch (Type) {
+      case EPropertyType::Bool:
+        if (!JsonValue.is_boolean()) return false;
+        Value = JsonValue.get<bool>();
+        return true;
+      case EPropertyType::Int:
+        if (!JsonValue.is_number_integer()) return false;
+        if (JsonValue.is_number_unsigned()) {
+          if (JsonValue.get<std::uint64_t>() >
+              static_cast<std::uint64_t>(std::numeric_limits<int>::max()))
+            return false;
+        } else {
+          const std::int64_t Number = JsonValue.get<std::int64_t>();
+          if (Number < std::numeric_limits<int>::min() || Number > std::numeric_limits<int>::max())
+            return false;
+        }
+        Value = JsonValue.get<int>();
+        return true;
+      case EPropertyType::Float:
+        if (!JsonValue.is_number_float()) return false;
+        Value = JsonValue.get<float>();
+        return true;
+      case EPropertyType::String:
+        if (!JsonValue.is_string()) return false;
+        Value = JsonValue.get<std::string>();
+        return true;
+      case EPropertyType::Vector2D:
+        if (!JsonValue.is_object() || !JsonValue.contains("x") || !JsonValue.contains("y") ||
+            JsonValue.size() != 2 || !JsonValue["x"].is_number_float() ||
+            !JsonValue["y"].is_number_float())
+          return false;
+        Value = FVector2D{JsonValue["x"].get<float>(), JsonValue["y"].get<float>()};
+        return true;
+      case EPropertyType::Vector3D:
+        if (!JsonValue.is_object() || !JsonValue.contains("x") || !JsonValue.contains("y") ||
+            !JsonValue.contains("z") || JsonValue.size() != 3 ||
+            !JsonValue["x"].is_number_float() || !JsonValue["y"].is_number_float() ||
+            !JsonValue["z"].is_number_float())
+          return false;
+        Value = FVector3D{
+            JsonValue["x"].get<float>(), JsonValue["y"].get<float>(), JsonValue["z"].get<float>()
+        };
+        return true;
+    }
+  } catch (const json::exception&) {
+    return false;
+  }
+  return false;
 }
 }  // namespace
 
@@ -70,6 +142,12 @@ bool LevelSerializer::Save(
     if (auto staticMeshActor = dynamic_cast<AStaticMeshActor*>(actor)) {
       data.CustomProperties["ModelPath"] =
           PathResolver::SanitizeResourcePath(staticMeshActor->GetModelPath());
+    }
+    if (const FClass* Class = FReflectionRegistry::GetInstance().FindClass(name)) {
+      for (const FProperty* Property : Class->GetProperties()) {
+        if (Property->Name == "ImagePath" || Property->Name == "ModelPath") continue;
+        data.CustomProperties[Property->Name] = ValueToJson(Property->Get(actor));
+      }
     }
     actors.push_back(data);
   }
@@ -135,13 +213,26 @@ bool LevelSerializer::Load(
     if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor)) {
       auto it = data.CustomProperties.find("ImagePath");
       if (it != data.CustomProperties.end()) {
-        spriteActor->SetImagePath(it->second);
+        if (it->second.is_string()) spriteActor->SetImagePath(it->second.get<std::string>());
       }
     }
     if (auto staticMeshActor = dynamic_cast<AStaticMeshActor*>(actor)) {
       auto it = data.CustomProperties.find("ModelPath");
       if (it != data.CustomProperties.end()) {
-        staticMeshActor->SetModelPath(it->second);
+        if (it->second.is_string()) staticMeshActor->SetModelPath(it->second.get<std::string>());
+      }
+    }
+    const FClass* Class = FReflectionRegistry::GetInstance().FindClass(data.ClassName);
+    for (const auto& [Name, JsonValue] : data.CustomProperties) {
+      if (Name == "ImagePath" || Name == "ModelPath") continue;
+      const FProperty* Property = Class != nullptr ? Class->FindProperty(Name) : nullptr;
+      if (Property == nullptr) {
+        M_LOG(Warning, "Unknown level property '{}' on actor '{}'.", Name, data.ClassName);
+        continue;
+      }
+      FPropertyValue Value;
+      if (!JsonToValue(JsonValue, Property->Type, Value) || !Property->Set(actor, Value)) {
+        M_LOG(Warning, "Invalid level property '{}' on actor '{}'.", Name, data.ClassName);
       }
     }
     spawnedActors.push_back(actor);
@@ -163,7 +254,7 @@ bool LevelSerializer::SaveData(
 ) {
   json root;
   root["meta"] = json::object();
-  root["meta"]["format_version"] = 2;
+  root["meta"]["format_version"] = 3;
   root["meta"]["game_mode"] = meta.GameModeClassName;
   json arr = json::array();
   for (const auto& d : actors) {
@@ -264,7 +355,7 @@ bool LevelSerializer::LoadData(
       FormatVersion = Meta["format_version"].get<int>();
     }
   }
-  if (FormatVersion != 1 && FormatVersion != 2) {
+  if (FormatVersion != 1 && FormatVersion != 2 && FormatVersion != 3) {
     M_LOG(Error, "Level data load failed: unsupported format version {}.", FormatVersion);
     return false;
   }
@@ -280,7 +371,7 @@ bool LevelSerializer::LoadData(
         data.Transform.Location.Y = t["location"].value("y", 0.0f);
         data.Transform.Location.Z = t["location"].value("z", 0.0f);
       }
-      if (FormatVersion == 2 && t.contains("rotation") && t["rotation"].is_object()) {
+      if (FormatVersion >= 2 && t.contains("rotation") && t["rotation"].is_object()) {
         data.Transform.Rotation = {
             t["rotation"].value("x", 0.0f),
             t["rotation"].value("y", 0.0f),
@@ -300,9 +391,7 @@ bool LevelSerializer::LoadData(
     }
     if (obj.contains("properties")) {
       for (auto& [key, val] : obj["properties"].items()) {
-        if (val.is_string()) {
-          data.CustomProperties[key] = val.get<std::string>();
-        }
+        data.CustomProperties[key] = val;
       }
     }
     outActors.push_back(data);

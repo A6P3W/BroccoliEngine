@@ -6,12 +6,14 @@
 #include <system_error>
 #include <utility>
 
+#include "ActorRegistry.h"
 #include "IPlugin.h"
 #include "Log.h"
 #include "NativeLibrary.h"
 #include "PluginAPI.h"
 #include "PluginContext.h"
 #include "PluginManifest.h"
+#include "Reflection.h"
 
 struct FLoadedPlugin {
   std::filesystem::path ManifestPath;
@@ -21,6 +23,8 @@ struct FLoadedPlugin {
   FDestroyBroccoliPluginFunction DestroyFunction = nullptr;
   EPluginState State = EPluginState::Discovered;
   std::string LastError;
+  std::string ModuleOwner;
+  bool UnloadCallbackPending = false;
 };
 
 namespace {
@@ -38,10 +42,18 @@ PluginHost& PluginHost::GetInstance() {
 
 PluginHost::PluginHost() = default;
 
-PluginHost::~PluginHost() { Shutdown(); }
+PluginHost::~PluginHost() {
+  Shutdown();
+  // Keep deferred DLL handles pinned until process exit if actors outlive the host.
+  for (auto& Plugin : Plugins) Plugin.release();
+}
 
 bool PluginHost::Initialize(const std::filesystem::path& InPluginsDirectory) {
   Shutdown();
+  if (!Plugins.empty()) {
+    M_LOG(Error, "Plugin host cannot reinitialize while plugin actors are alive.");
+    return false;
+  }
 
   PluginsDirectory = InPluginsDirectory;
   Initialized = true;
@@ -67,12 +79,13 @@ void PluginHost::Update(float DeltaTime) {
 }
 
 void PluginHost::Shutdown() {
-  for (auto Iterator = Plugins.rbegin(); Iterator != Plugins.rend(); ++Iterator) {
-    DeactivatePlugin(**Iterator);
+  for (std::size_t Index = Plugins.size(); Index > 0; --Index) {
+    if (DeactivatePlugin(*Plugins[Index - 1])) Plugins.erase(Plugins.begin() + Index - 1);
   }
-  Plugins.clear();
-  Initialized = false;
-  PluginsDirectory.clear();
+  if (Plugins.empty()) {
+    Initialized = false;
+    PluginsDirectory.clear();
+  }
 }
 
 bool PluginHost::LoadPlugin(const std::filesystem::path& ManifestPath) {
@@ -98,6 +111,8 @@ bool PluginHost::LoadPlugin(const std::filesystem::path& ManifestPath) {
     Plugins.push_back(std::move(Plugin));
     return true;
   }
+
+  Plugin->ModuleOwner = "Plugin:" + Plugin->Manifest.Name;
 
   const bool Activated = ActivatePlugin(*Plugin);
   Plugins.push_back(std::move(Plugin));
@@ -230,7 +245,7 @@ bool PluginHost::ActivatePlugin(FLoadedPlugin& Plugin) {
     return false;
   }
 
-  PluginContext Context;
+  PluginContext Context(Plugin.ModuleOwner);
   try {
     if (!Plugin.Instance->OnLoad(Context)) {
       SetPluginError(Plugin, "OnLoad returned false.");
@@ -247,13 +262,18 @@ bool PluginHost::ActivatePlugin(FLoadedPlugin& Plugin) {
     return false;
   }
 
+  Plugin.UnloadCallbackPending = true;
   Plugin.State = EPluginState::Active;
   M_LOG(Log, "Plugin '{}' activated.", Plugin.Manifest.Name);
   return true;
 }
 
-void PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
-  if (Plugin.State == EPluginState::Active && Plugin.Instance != nullptr) {
+bool PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
+  if (ActorRegistry::GetInstance().HasLiveActors(Plugin.ModuleOwner)) {
+    M_LOG(Warning, "Plugin '{}' unload delayed: actors are still alive.", Plugin.Manifest.Name);
+    return false;
+  }
+  if (Plugin.UnloadCallbackPending && Plugin.Instance != nullptr) {
     try {
       Plugin.Instance->OnUnload();
     } catch (const std::exception& Exception) {
@@ -265,6 +285,14 @@ void PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
       );
     } catch (...) {
       M_LOG(Error, "Plugin '{}' OnUnload threw an unknown exception.", Plugin.Manifest.Name);
+    }
+    Plugin.UnloadCallbackPending = false;
+    Plugin.State = EPluginState::Loaded;
+    if (ActorRegistry::GetInstance().HasLiveActors(Plugin.ModuleOwner)) {
+      M_LOG(
+          Warning, "Plugin '{}' unload delayed: OnUnload left actors alive.", Plugin.Manifest.Name
+      );
+      return false;
     }
   }
 
@@ -288,7 +316,10 @@ void PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
     Plugin.Instance = nullptr;
   }
 
+  if (!FReflectionRegistry::GetInstance().UnregisterModule(Plugin.ModuleOwner)) return false;
+  ActorRegistry::GetInstance().UnregisterModule(Plugin.ModuleOwner);
   Plugin.DestroyFunction = nullptr;
   Plugin.Library.Unload();
   if (Plugin.State != EPluginState::Failed) Plugin.State = EPluginState::Unloaded;
+  return true;
 }
