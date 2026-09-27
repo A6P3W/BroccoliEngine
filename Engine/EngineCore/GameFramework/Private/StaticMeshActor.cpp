@@ -1,6 +1,5 @@
 #include "StaticMeshActor.h"
 
-#include "PathResolver.h"
 #include "ResourceManager.h"
 #include "StaticMeshComponent.h"
 
@@ -16,13 +15,13 @@ AStaticMeshActor::AStaticMeshActor() {
 
 AStaticMeshActor::~AStaticMeshActor() = default;
 
-void AStaticMeshActor::SetModelPath(const std::string& Path) {
-  ModelPath = PathResolver::SanitizeResourcePath(Path);
+void AStaticMeshActor::SetModelPath(const FPath& Path) {
+  ModelPath = Path;
   if (StaticMeshComponent == nullptr) {
     return;
   }
 
-  if (ModelPath.empty()) {
+  if (ModelPath.Empty()) {
     StaticMeshComponent->SetModel(0);
     return;
   }
@@ -35,11 +34,14 @@ void AStaticMeshActor::SetModelPath(const std::string& Path) {
   }
 }
 
-const std::string& AStaticMeshActor::GetModelPath() const { return ModelPath; }
+void AStaticMeshActor::OnModelPathChanged(FPath OldValue) {
+  (void)OldValue;
+  SetModelPath(ModelPath);
+}
+
+const FPath& AStaticMeshActor::GetModelPath() const { return ModelPath; }
 
 void AStaticMeshActor::BeginPlay() {
   AActor::BeginPlay();
-  if (!ModelPath.empty()) {
-    SetModelPath(ModelPath);
-  }
+  if (!ModelPath.Empty()) SetModelPath(ModelPath);
 }

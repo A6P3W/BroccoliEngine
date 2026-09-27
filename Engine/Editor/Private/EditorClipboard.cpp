@@ -8,8 +8,6 @@
 #include "ActorRegistry.h"
 #include "Log.h"
 #include "Reflection.h"
-#include "SpriteActor.h"
-#include "StaticMeshActor.h"
 #include "World.h"
 #include "nlohmann/json.hpp"
 
@@ -24,6 +22,8 @@ json ValueToJson(const FPropertyValue& Value) {
           return {{"x", Item.X}, {"y", Item.Y}};
         } else if constexpr (std::is_same_v<T, FVector3D>) {
           return {{"x", Item.X}, {"y", Item.Y}, {"z", Item.Z}};
+        } else if constexpr (std::is_same_v<T, FPath>) {
+          return Item.String();
         } else {
           return Item;
         }
@@ -60,6 +60,10 @@ bool JsonToValue(const json& JsonValue, EPropertyType Type, FPropertyValue& Valu
         if (!JsonValue.is_string()) return false;
         Value = JsonValue.get<std::string>();
         return true;
+      case EPropertyType::Path:
+        if (!JsonValue.is_string()) return false;
+        Value = FPath(JsonValue.get<std::string>());
+        return true;
       case EPropertyType::Vector2D:
         if (!JsonValue.is_object() || !JsonValue.contains("x") || !JsonValue.contains("y") ||
             JsonValue.size() != 2 || !JsonValue["x"].is_number_float() ||
@@ -78,7 +82,7 @@ bool JsonToValue(const json& JsonValue, EPropertyType Type, FPropertyValue& Valu
         };
         return true;
     }
-  } catch (const json::exception&) {
+  } catch (const std::exception&) {
     return false;
   }
   return false;
@@ -95,15 +99,8 @@ bool EditorClipboard::Copy(AActor* Actor) {
   ClipboardData.Transform = Actor->GetActorTransform3D();
   ClipboardData.CustomProperties.clear();
 
-  if (auto* SpriteActor = dynamic_cast<ASpriteActor*>(Actor)) {
-    ClipboardData.CustomProperties["ImagePath"] = SpriteActor->GetImagePath();
-  }
-  if (auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(Actor)) {
-    ClipboardData.CustomProperties["ModelPath"] = StaticMeshActor->GetModelPath();
-  }
   if (const FClass* Class = FReflectionRegistry::GetInstance().FindClass(ClipboardData.ClassName)) {
     for (const FProperty* Property : Class->GetProperties()) {
-      if (Property->Name == "ImagePath" || Property->Name == "ModelPath") continue;
       ClipboardData.CustomProperties[Property->Name] = ValueToJson(Property->Get(Actor));
     }
   }
@@ -146,22 +143,8 @@ AActor* EditorClipboard::Paste(World* WorldPtr, const FVector3D& PasteLocation) 
   NewActor->SetActorRotation3D(ClipboardData.Transform.Rotation);
   NewActor->SetActorScale3D(ClipboardData.Transform.Scale);
 
-  if (auto* SpriteActor = dynamic_cast<ASpriteActor*>(NewActor)) {
-    auto It = ClipboardData.CustomProperties.find("ImagePath");
-    if (It != ClipboardData.CustomProperties.end()) {
-      if (It->second.is_string()) SpriteActor->SetImagePath(It->second.get<std::string>());
-    }
-  }
-  if (auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(NewActor)) {
-    auto It = ClipboardData.CustomProperties.find("ModelPath");
-    if (It != ClipboardData.CustomProperties.end()) {
-      if (It->second.is_string()) StaticMeshActor->SetModelPath(It->second.get<std::string>());
-    }
-  }
-
   const FClass* Class = FReflectionRegistry::GetInstance().FindClass(ClipboardData.ClassName);
   for (const auto& [Name, JsonValue] : ClipboardData.CustomProperties) {
-    if (Name == "ImagePath" || Name == "ModelPath") continue;
     const FProperty* Property = Class != nullptr ? Class->FindProperty(Name) : nullptr;
     if (Property == nullptr) {
       M_LOG(

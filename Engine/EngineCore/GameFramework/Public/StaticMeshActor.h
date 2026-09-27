@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include "Actor.h"
 
 class MStaticMeshComponent;
@@ -13,13 +11,18 @@ class BROCCOLI_ENGINE_API AStaticMeshActor : public AActor {
   AStaticMeshActor();
   ~AStaticMeshActor() override;
 
-  void SetModelPath(const std::string& Path);
-  const std::string& GetModelPath() const;
+  void SetModelPath(const FPath& Path);
+  const FPath& GetModelPath() const;
 
  protected:
   void BeginPlay() override;
 
  private:
   MStaticMeshComponent* StaticMeshComponent = nullptr;
-  std::string ModelPath;
+  void OnModelPathChanged(FPath OldValue);
+  EDITOR_PROPERTY(
+          .OnEditorChanged = ^^AStaticMeshActor::OnModelPathChanged,
+          .PathFilter = EPathFilter::Model
+  )
+  FPath ModelPath;
 };

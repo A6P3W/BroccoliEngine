@@ -15,28 +15,28 @@ MSoundComponent::MSoundComponent() : ImplPtr(new Impl()) {}
 
 MSoundComponent::~MSoundComponent() { delete ImplPtr; }
 
-int MSoundComponent::PlaySE(const std::string& path, bool loop) {
-  FSoundManager* soundManager = GetSoundManager();
-  if (!soundManager) return -1;
+int MSoundComponent::PlaySE(const FPath& Path, bool Loop) {
+  FSoundManager* SoundManager = GetSoundManager();
+  if (!SoundManager) return -1;
 
-  int handle = soundManager->PlaySE(path, loop);
-  if (handle != -1) {
-    ImplPtr->PlayingHandles.push_back(handle);
+  int Handle = SoundManager->PlaySE(Path, Loop);
+  if (Handle != -1) {
+    ImplPtr->PlayingHandles.push_back(Handle);
   }
 
-  return handle;
+  return Handle;
 }
 
-int MSoundComponent::PlayBGM(const std::string& path, bool loop) {
-  FSoundManager* soundManager = GetSoundManager();
-  if (!soundManager) return -1;
+int MSoundComponent::PlayBGM(const FPath& Path, bool Loop) {
+  FSoundManager* SoundManager = GetSoundManager();
+  if (!SoundManager) return -1;
 
-  int handle = soundManager->PlayBGM(path, loop);
-  if (handle != -1) {
-    ImplPtr->PlayingHandles.push_back(handle);
+  int Handle = SoundManager->PlayBGM(Path, Loop);
+  if (Handle != -1) {
+    ImplPtr->PlayingHandles.push_back(Handle);
   }
 
-  return handle;
+  return Handle;
 }
 
 void MSoundComponent::SetVolume(int handle, float volume) {

@@ -1,17 +1,11 @@
 #include "SpriteActor.h"
 
-#include "FileUtils.h"
-#include "PathResolver.h"
 #include "ResourceManager.h"
 #include "SpriteComponent.h"
 
 REGISTER_ACTOR(ASpriteActor);
 
-struct ASpriteActor::Impl {
-  std::string ImagePath;
-};
-
-ASpriteActor::ASpriteActor() : ImplPtr(new Impl()) {
+ASpriteActor::ASpriteActor() {
   SpriteComponent = NewObject<MSpriteComponent>(this);
   SetRootComponent(SpriteComponent);
   if (SpriteComponent) {
@@ -19,30 +13,30 @@ ASpriteActor::ASpriteActor() : ImplPtr(new Impl()) {
   }
 }
 
-ASpriteActor::~ASpriteActor() {
-  delete ImplPtr;
-}
+ASpriteActor::~ASpriteActor() = default;
 
-const std::string& ASpriteActor::GetImagePath() const {
-  return ImplPtr->ImagePath;
-}
+const FPath& ASpriteActor::GetImagePath() const { return ImagePath; }
 
-void ASpriteActor::SetImagePath(const std::string& path) {
-  ImplPtr->ImagePath = PathResolver::SanitizeResourcePath(path);
+void ASpriteActor::SetImagePath(const FPath& Path) {
+  ImagePath = Path;
   if (SpriteComponent) {
-    int handle = ResourceManager::GetInstance().LoadResourceGraph(ImplPtr->ImagePath);
-    if (handle != -1) {
-      SpriteComponent->SubmitGraph(handle, FScale(1.0f), 255);
-    }
+    const int Handle =
+        ImagePath.Empty() ? -1 : ResourceManager::GetInstance().LoadResourceGraph(ImagePath);
+    SpriteComponent->SubmitGraph(Handle, FScale(1.0f), 255);
   }
+}
+
+void ASpriteActor::OnImagePathChanged(FPath OldValue) {
+  (void)OldValue;
+  SetImagePath(ImagePath);
 }
 
 void ASpriteActor::BeginPlay() {
   AActor::BeginPlay();
 
-  if (ImplPtr->ImagePath.empty()) {
-    SetImagePath("/Engine/texture_Checker_64px.png");
+  if (ImagePath.Empty()) {
+    SetImagePath(FPath("/Engine/texture_Checker_64px.png"));
   } else {
-    SetImagePath(ImplPtr->ImagePath);
+    SetImagePath(ImagePath);
   }
 }

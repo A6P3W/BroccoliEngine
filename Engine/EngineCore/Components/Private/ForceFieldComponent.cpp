@@ -175,7 +175,7 @@ void MForceFieldComponent::UpdateDebugSprite() {
     ArrowPath = Strength < 0.0f ? PointPullArrowPath : PointPushArrowPath;
   }
 
-  DebugSprite->SubmitGraph(ResourceManager::GetInstance().LoadResourceGraph(ArrowPath));
+  DebugSprite->SubmitGraph(ResourceManager::GetInstance().LoadResourceGraph(FPath(ArrowPath)));
   DebugSprite->SetWorldLocation(GetForceOrigin());
 
   if (ForceType == EForceFieldType::Directional && Direction.SizeSquared() > 0.0001f) {

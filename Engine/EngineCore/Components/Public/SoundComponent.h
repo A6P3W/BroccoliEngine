@@ -1,8 +1,7 @@
 #pragma once
-#include <string>
-
 #include "ActorComponent.h"
 #include "BroccoliEngineAPI.h"
+#include "FPath.h"
 
 class FSoundManager;
 
@@ -12,8 +11,8 @@ class BROCCOLI_ENGINE_API MSoundComponent : public MActorComponent {
   MSoundComponent();
   ~MSoundComponent() override;
 
-  int PlaySE(const std::string& path, bool loop = false);
-  int PlayBGM(const std::string& path, bool loop = true);
+  int PlaySE(const FPath& Path, bool Loop = false);
+  int PlayBGM(const FPath& Path, bool Loop = true);
 
   void SetVolume(int handle, float volume);
   void Stop(int handle);

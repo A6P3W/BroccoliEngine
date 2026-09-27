@@ -7,17 +7,35 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include "Actor.h"
 #include "ActorRegistry.h"
+#include "EditorClipboard.h"
 #include "LevelSerializer.h"
 #include "Log.h"
+#include "PathResolver.h"
 #include "PluginHost.h"
 #include "ReflectionGenerator.h"
+#include "SpriteActor.h"
+#include "StaticMeshActor.h"
 #include "World.h"
 #include "nlohmann/json.hpp"
 
 namespace {
+static_assert(
+    std::is_same_v<decltype(&ASpriteActor::SetImagePath), void (ASpriteActor::*)(const FPath&)>
+);
+static_assert(
+    std::is_same_v<decltype(&ASpriteActor::GetImagePath), const FPath& (ASpriteActor::*)() const>
+);
+static_assert(std::is_same_v<
+              decltype(&AStaticMeshActor::SetModelPath),
+              void (AStaticMeshActor::*)(const FPath&)>);
+static_assert(std::is_same_v<
+              decltype(&AStaticMeshActor::GetModelPath),
+              const FPath& (AStaticMeshActor::*)() const>);
+
 void Check(bool Condition, std::string_view Message) {
   if (!Condition) throw std::runtime_error(std::string(Message));
 }
@@ -95,7 +113,9 @@ class FPrivateReflectionSubject {
   float Gain = 0.5F;
 
  private:
-  EDITOR_PROPERTY(.OnEditorChanged = ^^FPrivateReflectionSubject::OnLevelChanged, .Min = 0, .Max = 10)
+  EDITOR_PROPERTY(
+          .OnEditorChanged = ^^FPrivateReflectionSubject::OnLevelChanged, .Min = 0, .Max = 10
+  )
   int Level = 5;
 
   EDITOR_PROPERTY(.MaxLength = 3)
@@ -103,6 +123,59 @@ class FPrivateReflectionSubject {
 
   int Hidden = 1;
 };
+
+class FPrivatePathSubject {
+ public:
+  int CallbackCount = 0;
+  FPath LastOldValue;
+
+ private:
+  void OnPathChanged(FPath OldValue) {
+    ++CallbackCount;
+    LastOldValue = OldValue;
+  }
+  EDITOR_PROPERTY(
+          .OnEditorChanged = ^^FPrivatePathSubject::OnPathChanged, .PathFilter = EPathFilter::Image
+  )
+  FPath ImagePath;
+};
+
+void TestPathValueAndReflection() {
+  Check(FPath("Textures/A.png").String() == "/Game/Textures/A.png", "Relative path root failed.");
+  Check(FPath("Engine/Fonts/A.ttf").String() == "/Engine/Fonts/A.ttf", "Engine root failed.");
+  Check(FPath().Empty(), "Empty path should be valid.");
+  Check(!PathResolver::MakeVirtualPath("C:/Outside/A.png"), "External absolute path accepted.");
+  Check(!PathResolver::MakeVirtualPath("../Outside/A.png"), "Path traversal accepted.");
+  const auto GameFile = std::filesystem::absolute(
+      std::filesystem::path(PathResolver::GetGameResourceDir()) / "Textures/A.png"
+  );
+  const auto EngineFile = std::filesystem::absolute(
+      std::filesystem::path(PathResolver::GetEngineResourceDir()) / "Fonts/A.ttf"
+  );
+  Check(
+      FPath(GameFile.string()).String() == "/Game/Textures/A.png",
+      "Game resource absolute path was not virtualized."
+  );
+  Check(
+      FPath(EngineFile.string()).String() == "/Engine/Fonts/A.ttf",
+      "Engine resource absolute path was not virtualized."
+  );
+
+  FClass Class = ReflectionGenerator::MakeClass<FPrivatePathSubject>("PrivatePathSubject");
+  const FProperty& Property = RequireProperty(Class, "ImagePath");
+  Check(Property.Type == EPropertyType::Path, "FPath type was not inferred.");
+  Check(Property.EditorMetadata.PathFilter == EPathFilter::Image, "Path filter was lost.");
+  FPrivatePathSubject Subject;
+  Check(Property.Set(&Subject, FPath("Textures/A.png")), "Path Set failed.");
+  Check(
+      std::get<FPath>(Property.Get(&Subject)).String() == "/Game/Textures/A.png", "Path Get failed."
+  );
+  Check(Subject.CallbackCount == 1 && Subject.LastOldValue.Empty(), "Path callback failed.");
+  Check(
+      Property.Set(&Subject, FPath("/Game/Textures/A.png")) && Subject.CallbackCount == 1,
+      "Unchanged path invoked callback."
+  );
+}
 
 class AReflectionSerializerTestActor final : public AActor {
  public:
@@ -113,8 +186,15 @@ class AReflectionSerializerTestActor final : public AActor {
     LastOldCount = OldValue;
   }
 
+  void OnAssetChanged(FPath OldValue) {
+    ++PathCallbackCount;
+    LastOldPath = OldValue;
+  }
+
   int CallbackCount = 0;
   int LastOldCount = -1;
+  int PathCallbackCount = 0;
+  FPath LastOldPath;
 
  private:
   EDITOR_PROPERTY()
@@ -131,6 +211,8 @@ class AReflectionSerializerTestActor final : public AActor {
   FVector2D Offset{1.0F, 2.0F};
   EDITOR_PROPERTY()
   FVector3D Position{3.0F, 4.0F, 5.0F};
+  EDITOR_PROPERTY(.OnEditorChanged = ^^AReflectionSerializerTestActor::OnAssetChanged)
+  FPath AssetPath;
 };
 
 class AReflectionPluginTestActor final : public AActor {
@@ -151,7 +233,9 @@ class AReflectionStaticBase : public AActor {
   }
 
  private:
-  EDITOR_PROPERTY(.OnEditorChanged = ^^AReflectionStaticBase::OnBaseValueChanged, .Min = 0, .Max = 10)
+  EDITOR_PROPERTY(
+          .OnEditorChanged = ^^AReflectionStaticBase::OnBaseValueChanged, .Min = 0, .Max = 10
+  )
   int BaseValue = 2;
   int HiddenValue = 0;
 };
@@ -627,6 +711,10 @@ void TestWorldLevelSerializerReflectionRoundTrip() {
         RequireProperty(*ActorClass, "Position").Set(SourceActor, FVector3D{10.0F, 11.0F, -12.0F}),
         "Could not set private Vector3D."
     );
+    Check(
+        RequireProperty(*ActorClass, "AssetPath").Set(SourceActor, FPath("Textures/A.png")),
+        "Could not set private Path."
+    );
     Check(SourceActor->SetActorLocation3D({13.0F, 14.0F, 15.0F}), "Could not set actor location.");
     Check(
         SourceActor->SetActorRotation3D({0.0F, 0.3826834F, 0.0F, 0.9238795F}),
@@ -636,6 +724,15 @@ void TestWorldLevelSerializerReflectionRoundTrip() {
     Check(
         LevelSerializer::Save(&SaveWorld, LevelPath.string(), ""),
         "LevelSerializer::Save failed for the annotated actor."
+    );
+    EditorClipboard Clipboard;
+    Check(Clipboard.Copy(SourceActor), "Could not copy reflected actor.");
+    World PasteWorld;
+    AActor* Pasted = Clipboard.Paste(&PasteWorld, FVector3D{1.0F, 2.0F, 3.0F});
+    Check(
+        Pasted != nullptr && ReadProperty<FPath>(*ActorClass, "AssetPath", Pasted).String() ==
+                                 "/Game/Textures/A.png",
+        "Path did not round trip through EditorClipboard."
     );
   }
 
@@ -672,6 +769,12 @@ void TestWorldLevelSerializerReflectionRoundTrip() {
         LoadedActor->CallbackCount == 1 && LoadedActor->LastOldCount == 7,
         "Loading a valid reflected value did not invoke its callback with the C++ initial value."
     );
+    Check(
+        ReadProperty<FPath>(*ActorClass, "AssetPath", LoadedActor).String() ==
+                "/Game/Textures/A.png" &&
+            LoadedActor->PathCallbackCount == 1 && LoadedActor->LastOldPath.Empty(),
+        "Path did not round trip or invoke its callback."
+    );
     const FTransform3D Transform = LoadedActor->GetActorTransform3D();
     Check(
         Transform.Location.X == 13.0F && Transform.Location.Y == 14.0F &&
@@ -691,7 +794,12 @@ void TestWorldLevelSerializerReflectionRoundTrip() {
         Saved["actors"][0]["properties"]["Count"] == 42 && !Saved["actors"][0].contains("access"),
         "Private property changed the Level JSON schema."
     );
+    Check(
+        Saved["actors"][0]["properties"]["AssetPath"] == "/Game/Textures/A.png",
+        "Path was not saved as a virtual path string."
+    );
     Saved["actors"][0]["properties"]["Count"] = "invalid-int";
+    Saved["actors"][0]["properties"]["AssetPath"] = "Textures/Legacy.png";
     WriteJson(LevelPath, Saved);
   }
   {
@@ -715,6 +823,11 @@ void TestWorldLevelSerializerReflectionRoundTrip() {
             ReadProperty<FVector2D>(*ActorClass, "Offset", LoadedActor).X == 8.0F &&
             ReadProperty<FVector3D>(*ActorClass, "Position", LoadedActor).Z == -12.0F,
         "One invalid property prevented other reflected properties from loading."
+    );
+    Check(
+        ReadProperty<FPath>(*ActorClass, "AssetPath", LoadedActor).String() ==
+            "/Game/Textures/Legacy.png",
+        "Legacy relative path was not normalized on load."
     );
   }
 
@@ -804,6 +917,7 @@ int main(int ArgCount, char** Arguments) {
     } else {
       TestNonPublicProperties();
       TestStaticActorReflectionRegistration();
+      TestPathValueAndReflection();
       TestSixPropertyTypesAndMetadata();
       TestTypeMismatchAndCallbackFailure();
       TestInheritanceAndRegistry();

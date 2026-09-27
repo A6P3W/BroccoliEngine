@@ -3,10 +3,11 @@
 #include <imgui.h>
 
 #include <cmath>
-#include <cstdio>
 #include <cstring>
+#include <exception>
 #include <limits>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "Actor.h"
@@ -16,11 +17,18 @@
 #include "Log.h"
 #include "PathResolver.h"
 #include "Reflection.h"
-#include "SpriteActor.h"
-#include "StaticMeshActor.h"
 #include "UMath.h"
 
 namespace {
+std::unordered_map<ImGuiID, std::vector<char>> PathBuffers;
+AActor* PathBufferActor = nullptr;
+
+void ResetPathBuffers(AActor* Actor) {
+  if (PathBufferActor == Actor) return;
+  PathBuffers.clear();
+  PathBufferActor = Actor;
+}
+
 bool IsSameRotation(const FQuaternion& Left, const FQuaternion& Right) {
   const FQuaternion NormalizedLeft = Left.Normalize();
   const FQuaternion NormalizedRight = Right.Normalize();
@@ -86,6 +94,64 @@ void DrawReflectedProperty(AActor* Actor, const FProperty& Property) {
       if (Changed) Value = std::string(Buffer.data());
       break;
     }
+    case EPropertyType::Path: {
+      const std::string& Current = std::get<FPath>(Value).String();
+      ImGui::PushID(Actor);
+      ImGui::PushID(Label);
+      ImGui::TextUnformatted(Label);
+      ImGui::SameLine();
+      ImGui::SetNextItemWidth(-90.0f);
+      const ImGuiID InputId = ImGui::GetID("##Path");
+      auto& Buffer = PathBuffers[InputId];
+      if (Buffer.empty()) {
+        Buffer.resize(std::max<std::size_t>(Current.size() + 1, 64), '\0');
+        std::memcpy(Buffer.data(), Current.c_str(), Current.size());
+      }
+      ImGui::InputText(
+          "##Path",
+          Buffer.data(),
+          Buffer.size(),
+          ImGuiInputTextFlags_CallbackResize,
+          ResizeStringBuffer,
+          &Buffer
+      );
+      if (ImGui::IsItemDeactivatedAfterEdit()) {
+        try {
+          Value = FPath(std::string(Buffer.data()));
+          Changed = true;
+        } catch (const std::exception&) {
+          M_LOG(Warning, "Inspector rejected invalid path for '{}'.", Property.Name);
+        }
+        Buffer.clear();
+      } else if (!ImGui::IsItemActive()) {
+        Buffer.clear();
+      }
+      ImGui::SameLine();
+      if (ImGui::Button("Select...")) {
+        const char* Filter = "All Files (*.*)\0*.*\0";
+        if (Property.EditorMetadata.PathFilter == EPathFilter::Image)
+          Filter =
+              "Image Files (*.png;*.jpg;*.jpeg;*.bmp)\0*.png;*.jpg;*.jpeg;*.bmp\0All Files "
+              "(*.*)\0*.*\0";
+        else if (Property.EditorMetadata.PathFilter == EPathFilter::Model)
+          Filter = "3D Model Files (*.glb;*.gltf)\0*.glb;*.gltf\0All Files (*.*)\0*.*\0";
+        const std::string Directory = Current.starts_with("/Engine/")
+                                          ? PathResolver::GetEngineResourceDir()
+                                          : PathResolver::GetGameResourceDir();
+        const std::string Selected = FileDialog::OpenFile(Filter, Directory);
+        if (!Selected.empty()) {
+          try {
+            Value = FPath(Selected);
+            Changed = true;
+          } catch (const std::exception&) {
+            M_LOG(Warning, "Selected file is outside the resource roots: {}", Selected);
+          }
+        }
+      }
+      ImGui::PopID();
+      ImGui::PopID();
+      break;
+    }
     case EPropertyType::Vector2D: {
       const auto& Current = std::get<FVector2D>(Value);
       float Edited[2] = {Current.X, Current.Y};
@@ -125,9 +191,11 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
   EditorMode* Mode = Context.Mode;
   AActor* SelectedActor = Mode->GetSelectedActor();
   if (SelectedActor == nullptr || SelectedActor->IsPendingDestroy()) {
+    ResetPathBuffers(nullptr);
     ImGui::Text("Select an actor in Outliner to view properties.");
     return;
   }
+  ResetPathBuffers(SelectedActor);
 
   ImGui::Text("Class: %s", SelectedActor->GetActorClassName().c_str());
   ImGui::Separator();
@@ -176,44 +244,6 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
     }
   }
 
-  if (auto* StaticMeshActor = dynamic_cast<AStaticMeshActor*>(SelectedActor)) {
-    ImGui::Separator();
-    if (ImGui::CollapsingHeader("Static Mesh", ImGuiTreeNodeFlags_DefaultOpen)) {
-      char PathBuffer[512] = {};
-      std::snprintf(PathBuffer, sizeof(PathBuffer), "%s", StaticMeshActor->GetModelPath().c_str());
-      if (ImGui::InputText("Model Path", PathBuffer, sizeof(PathBuffer))) {
-        StaticMeshActor->SetModelPath(PathBuffer);
-      }
-      if (ImGui::Button("Select Model...")) {
-        const std::string FilePath = FileDialog::OpenFile(
-            "3D Model Files (*.glb;*.gltf)\0*.glb;*.gltf\0All Files (*.*)\0*.*\0",
-            PathResolver::GetGameResourceDir()
-        );
-        if (!FilePath.empty()) StaticMeshActor->SetModelPath(FilePath);
-      }
-    }
-  }
-
-  if (auto* SpriteActor = dynamic_cast<ASpriteActor*>(SelectedActor)) {
-    ImGui::Separator();
-    if (ImGui::CollapsingHeader("Sprite Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
-      char PathBuffer[512] = {};
-      std::snprintf(PathBuffer, sizeof(PathBuffer), "%s", SpriteActor->GetImagePath().c_str());
-      if (ImGui::InputText("Image Path", PathBuffer, sizeof(PathBuffer))) {
-        SpriteActor->SetImagePath(PathBuffer);
-      }
-
-      if (ImGui::Button("Select Image...")) {
-        const std::string DialogDirectory = PathResolver::GetGameResourceDir();
-        const std::string FilePath = FileDialog::OpenFile(
-            "Image Files (*.png;*.jpg;*.bmp)\0*.png;*.jpg;*.bmp\0All Files (*.*)\0*.*\0",
-            DialogDirectory
-        );
-        if (!FilePath.empty()) SpriteActor->SetImagePath(FilePath);
-      }
-    }
-  }
-
   if (const FClass* Class =
           FReflectionRegistry::GetInstance().FindClass(SelectedActor->GetActorClassName())) {
     const auto Properties = Class->GetProperties();
@@ -221,8 +251,7 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
       ImGui::Separator();
       if (ImGui::CollapsingHeader("Properties", ImGuiTreeNodeFlags_DefaultOpen)) {
         for (const FProperty* Property : Properties) {
-          if (Property->Name == "ImagePath" || Property->Name == "ModelPath" ||
-              Property->Name == "Location" || Property->Name == "Rotation" ||
+          if (Property->Name == "Location" || Property->Name == "Rotation" ||
               Property->Name == "Scale")
             continue;
           DrawReflectedProperty(SelectedActor, *Property);

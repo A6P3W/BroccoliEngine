@@ -33,9 +33,10 @@ AThreeDTestActor::AThreeDTestActor() {
   DepthCube->RegisterComponent();
 
   const int GlbModel =
-      ResourceManager::GetInstance().LoadResourceModel("/Engine/Model/SampleBox/Box.glb");
-  const int GltfModel =
-      ResourceManager::GetInstance().LoadResourceModel("/Engine/Model/SampleBox/BoxGLTF/box.gltf");
+      ResourceManager::GetInstance().LoadResourceModel(FPath("/Engine/Model/SampleBox/Box.glb"));
+  const int GltfModel = ResourceManager::GetInstance().LoadResourceModel(
+      FPath("/Engine/Model/SampleBox/BoxGLTF/box.gltf")
+  );
 
   StaticMeshA = NewObject<MStaticMeshComponent>(this);
   StaticMeshA->SetModel(GlbModel);

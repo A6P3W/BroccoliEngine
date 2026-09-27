@@ -51,6 +51,7 @@ struct FEditorPropertyAnnotation {
   std::meta::info OnEditorChanged{};
   FAnnotationNumber Min, Max, SliderMin, SliderMax;
   TAnnotationOptional<std::size_t> MaxLength;
+  EPathFilter PathFilter = EPathFilter::AnyFile;
 };
 
 namespace ReflectionGenerator {
@@ -123,6 +124,9 @@ bool Set(void* Object, const FPropertyValue& Value) {
         Annotation.MaxLength.value_or(std::numeric_limits<std::size_t>::max());
     if (!IsValidUnicodeScalarString(Input, MaxLength))
       return Reject<Member>("invalid UTF-8 or length limit");
+  } else if constexpr (std::is_same_v<V, FPath>) {
+    if (!IsValidUnicodeScalarString(Input.String(), std::numeric_limits<std::size_t>::max()))
+      return Reject<Member>("invalid UTF-8 path");
   } else if constexpr (std::is_same_v<V, FVector2D>) {
     if (!std::isfinite(Input.X) || !std::isfinite(Input.Y))
       return Reject<Member>("non-finite vector");
@@ -174,11 +178,10 @@ bool Set(void* Object, const FPropertyValue& Value) {
 }
 
 constexpr bool ValidIntNumber(FAnnotationNumber Number) {
-  return !Number.Present ||
-         (std::isfinite(Number.Value) &&
-          Number.Value >= static_cast<double>(std::numeric_limits<int>::min()) &&
-          Number.Value <= static_cast<double>(std::numeric_limits<int>::max()) &&
-          std::trunc(Number.Value) == Number.Value);
+  return !Number.Present || (std::isfinite(Number.Value) &&
+                             Number.Value >= static_cast<double>(std::numeric_limits<int>::min()) &&
+                             Number.Value <= static_cast<double>(std::numeric_limits<int>::max()) &&
+                             std::trunc(Number.Value) == Number.Value);
 }
 
 constexpr bool ValidFloatNumber(FAnnotationNumber Number) {
@@ -199,6 +202,10 @@ void AppendTyped(FClass& Class, EPropertyType Type) {
     );
   }
   FProperty Property;
+  static_assert(
+      std::is_same_v<V, FPath> || Value.PathFilter == EPathFilter::AnyFile,
+      "PathFilter is only valid for FPath properties"
+  );
   Property.Name = std::string(std::meta::identifier_of(Member));
   Property.Type = Type;
   Property.Get = &Get<T, Member, V>;
@@ -206,8 +213,8 @@ void AppendTyped(FClass& Class, EPropertyType Type) {
   if constexpr (std::is_same_v<V, int>) {
     static_assert(!Value.MaxLength.Present, "MaxLength is only valid for string properties");
     static_assert(
-        ValidIntNumber(Value.Min) && ValidIntNumber(Value.Max) &&
-            ValidIntNumber(Value.SliderMin) && ValidIntNumber(Value.SliderMax),
+        ValidIntNumber(Value.Min) && ValidIntNumber(Value.Max) && ValidIntNumber(Value.SliderMin) &&
+            ValidIntNumber(Value.SliderMax),
         "Integer property metadata must be finite, integral, and within int range"
     );
     static_assert(!Value.Min || !Value.Max || *Value.Min <= *Value.Max, "Reversed Min/Max");
@@ -276,6 +283,10 @@ void AppendTyped(FClass& Class, EPropertyType Type) {
         "Numeric metadata is only valid for int and float properties"
     );
     static_assert(!Value.MaxLength.Present, "MaxLength is only valid for string properties");
+    if constexpr (std::is_same_v<V, FPath>) {
+      constexpr EPathFilter Filter = Value.PathFilter;
+      Property.EditorMetadata.PathFilter = Filter;
+    }
   }
   Class.OwnProperties.push_back(std::move(Property));
 }
@@ -296,6 +307,8 @@ void Append(FClass& Class) {
       AppendTyped<T, Member, V>(Class, EPropertyType::Vector2D);
     else if constexpr (std::is_same_v<V, FVector3D>)
       AppendTyped<T, Member, V>(Class, EPropertyType::Vector3D);
+    else if constexpr (std::is_same_v<V, FPath>)
+      AppendTyped<T, Member, V>(Class, EPropertyType::Path);
     else
       static_assert(!std::is_same_v<V, V>, "Unsupported editor property member type");
   }
