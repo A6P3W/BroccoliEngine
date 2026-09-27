@@ -1,17 +1,15 @@
 #include "SpriteActor.h"
 
-#include "FileUtils.h"
+#include <stdexcept>
+
+#include "Log.h"
 #include "PathResolver.h"
 #include "ResourceManager.h"
 #include "SpriteComponent.h"
 
 REGISTER_ACTOR(ASpriteActor);
 
-struct ASpriteActor::Impl {
-  std::string ImagePath;
-};
-
-ASpriteActor::ASpriteActor() : ImplPtr(new Impl()) {
+ASpriteActor::ASpriteActor() {
   SpriteComponent = NewObject<MSpriteComponent>(this);
   SetRootComponent(SpriteComponent);
   if (SpriteComponent) {
@@ -19,30 +17,43 @@ ASpriteActor::ASpriteActor() : ImplPtr(new Impl()) {
   }
 }
 
-ASpriteActor::~ASpriteActor() {
-  delete ImplPtr;
+ASpriteActor::~ASpriteActor() = default;
+
+const std::string& ASpriteActor::GetImagePath() const { return ImagePath.String(); }
+
+void ASpriteActor::SetImagePath(const std::string& Path) {
+  const auto VirtualPath = PathResolver::MakeVirtualPath(Path);
+  if (!VirtualPath) {
+    M_LOG(Warning, "Invalid image resource path: {}", Path);
+    return;
+  }
+  const FPath OldValue = ImagePath;
+  try {
+    ImagePath = FPath(*VirtualPath);
+  } catch (const std::invalid_argument&) {
+    M_LOG(Warning, "Invalid image resource path: {}", Path);
+    return;
+  }
+  if (ImagePath == OldValue) return;
+  OnImagePathChanged(OldValue);
 }
 
-const std::string& ASpriteActor::GetImagePath() const {
-  return ImplPtr->ImagePath;
-}
-
-void ASpriteActor::SetImagePath(const std::string& path) {
-  ImplPtr->ImagePath = PathResolver::SanitizeResourcePath(path);
+void ASpriteActor::OnImagePathChanged(FPath OldValue) {
+  (void)OldValue;
   if (SpriteComponent) {
-    int handle = ResourceManager::GetInstance().LoadResourceGraph(ImplPtr->ImagePath);
-    if (handle != -1) {
-      SpriteComponent->SubmitGraph(handle, FScale(1.0f), 255);
-    }
+    const int Handle = ImagePath.Empty()
+                           ? -1
+                           : ResourceManager::GetInstance().LoadResourceGraph(ImagePath.String());
+    SpriteComponent->SubmitGraph(Handle, FScale(1.0f), 255);
   }
 }
 
 void ASpriteActor::BeginPlay() {
   AActor::BeginPlay();
 
-  if (ImplPtr->ImagePath.empty()) {
+  if (ImagePath.Empty()) {
     SetImagePath("/Engine/texture_Checker_64px.png");
   } else {
-    SetImagePath(ImplPtr->ImagePath);
+    OnImagePathChanged(ImagePath);
   }
 }

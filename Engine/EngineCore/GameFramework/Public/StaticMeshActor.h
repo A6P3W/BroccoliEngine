@@ -21,5 +21,10 @@ class BROCCOLI_ENGINE_API AStaticMeshActor : public AActor {
 
  private:
   MStaticMeshComponent* StaticMeshComponent = nullptr;
-  std::string ModelPath;
+  void OnModelPathChanged(FPath OldValue);
+  EDITOR_PROPERTY(
+          .OnEditorChanged = ^^AStaticMeshActor::OnModelPathChanged,
+          .PathFilter = EPathFilter::Model
+  )
+  FPath ModelPath;
 };

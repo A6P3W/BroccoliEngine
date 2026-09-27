@@ -1,12 +1,13 @@
 #pragma once
 
+#include "BroccoliEngineAPI.h"
 #include "LevelSerializer.h"
 #include "UMath.h"
 
 class AActor;
 class World;
 
-class EditorClipboard {
+class BROCCOLI_ENGINE_API EditorClipboard {
  public:
   bool Copy(AActor* Actor);
   AActor* Paste(World* WorldPtr, const FVector2D& PasteLocation);

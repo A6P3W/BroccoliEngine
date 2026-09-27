@@ -14,11 +14,8 @@
 #include "EditorSelectPointComponent.h"
 #include "GameModeBase.h"
 #include "Log.h"
-#include "PathResolver.h"
 #include "Reflection.h"
 #include "SimpleCrypto.h"
-#include "SpriteActor.h"
-#include "StaticMeshActor.h"
 #include "World.h"
 #include "nlohmann/json.hpp"
 
@@ -51,6 +48,8 @@ json ValueToJson(const FPropertyValue& Value) {
           return {{"x", Item.X}, {"y", Item.Y}};
         } else if constexpr (std::is_same_v<T, FVector3D>) {
           return {{"x", Item.X}, {"y", Item.Y}, {"z", Item.Z}};
+        } else if constexpr (std::is_same_v<T, FPath>) {
+          return Item.String();
         } else {
           return Item;
         }
@@ -87,6 +86,10 @@ bool JsonToValue(const json& JsonValue, EPropertyType Type, FPropertyValue& Valu
         if (!JsonValue.is_string()) return false;
         Value = JsonValue.get<std::string>();
         return true;
+      case EPropertyType::Path:
+        if (!JsonValue.is_string()) return false;
+        Value = FPath(JsonValue.get<std::string>());
+        return true;
       case EPropertyType::Vector2D:
         if (!JsonValue.is_object() || !JsonValue.contains("x") || !JsonValue.contains("y") ||
             JsonValue.size() != 2 || !JsonValue["x"].is_number_float() ||
@@ -105,7 +108,7 @@ bool JsonToValue(const json& JsonValue, EPropertyType Type, FPropertyValue& Valu
         };
         return true;
     }
-  } catch (const json::exception&) {
+  } catch (const std::exception&) {
     return false;
   }
   return false;
@@ -135,17 +138,8 @@ bool LevelSerializer::Save(
     data.ClassName = name;
     data.InstanceName = actor->GetInstanceName();
     data.Transform = actor->GetActorTransform3D();
-    if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor)) {
-      data.CustomProperties["ImagePath"] =
-          PathResolver::SanitizeResourcePath(spriteActor->GetImagePath());
-    }
-    if (auto staticMeshActor = dynamic_cast<AStaticMeshActor*>(actor)) {
-      data.CustomProperties["ModelPath"] =
-          PathResolver::SanitizeResourcePath(staticMeshActor->GetModelPath());
-    }
     if (const FClass* Class = FReflectionRegistry::GetInstance().FindClass(name)) {
       for (const FProperty* Property : Class->GetProperties()) {
-        if (Property->Name == "ImagePath" || Property->Name == "ModelPath") continue;
         data.CustomProperties[Property->Name] = ValueToJson(Property->Get(actor));
       }
     }
@@ -210,21 +204,8 @@ bool LevelSerializer::Load(
     actor->SetActorLocation3D(data.Transform.Location);
     actor->SetActorRotation3D(data.Transform.Rotation);
     actor->SetActorScale3D(data.Transform.Scale);
-    if (auto spriteActor = dynamic_cast<ASpriteActor*>(actor)) {
-      auto it = data.CustomProperties.find("ImagePath");
-      if (it != data.CustomProperties.end()) {
-        if (it->second.is_string()) spriteActor->SetImagePath(it->second.get<std::string>());
-      }
-    }
-    if (auto staticMeshActor = dynamic_cast<AStaticMeshActor*>(actor)) {
-      auto it = data.CustomProperties.find("ModelPath");
-      if (it != data.CustomProperties.end()) {
-        if (it->second.is_string()) staticMeshActor->SetModelPath(it->second.get<std::string>());
-      }
-    }
     const FClass* Class = FReflectionRegistry::GetInstance().FindClass(data.ClassName);
     for (const auto& [Name, JsonValue] : data.CustomProperties) {
-      if (Name == "ImagePath" || Name == "ModelPath") continue;
       const FProperty* Property = Class != nullptr ? Class->FindProperty(Name) : nullptr;
       if (Property == nullptr) {
         M_LOG(Warning, "Unknown level property '{}' on actor '{}'.", Name, data.ClassName);
