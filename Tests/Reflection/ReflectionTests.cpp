@@ -51,10 +51,10 @@ class FReflectionTestSubject {
   EDITOR_PROPERTY()
   bool Enabled = false;
   EDITOR_PROPERTY(
-          .OnChanged = ^^FReflectionTestSubject::OnClampedValueChanged, .Min = 0, .Max = 10,
+          .OnEditorChanged = ^^FReflectionTestSubject::OnClampedValueChanged, .Min = 0, .Max = 10,
   )
   int ClampedValue = 5;
-  EDITOR_PROPERTY(.OnChanged = ^^FReflectionTestSubject::OnThrowingValueChanged)
+  EDITOR_PROPERTY(.OnEditorChanged = ^^FReflectionTestSubject::OnThrowingValueChanged)
   int ThrowingValue = 1;
   EDITOR_PROPERTY(.Min = -1.0F, .Max = 1.0F)
   float Weight = 0.0F;
@@ -95,7 +95,7 @@ class FPrivateReflectionSubject {
   float Gain = 0.5F;
 
  private:
-  EDITOR_PROPERTY(.OnChanged = ^^FPrivateReflectionSubject::OnLevelChanged, .Min = 0, .Max = 10)
+  EDITOR_PROPERTY(.OnEditorChanged = ^^FPrivateReflectionSubject::OnLevelChanged, .Min = 0, .Max = 10)
   int Level = 5;
 
   EDITOR_PROPERTY(.MaxLength = 3)
@@ -120,7 +120,7 @@ class AReflectionSerializerTestActor final : public AActor {
   EDITOR_PROPERTY()
   bool Enabled = false;
   EDITOR_PROPERTY(
-          .OnChanged = ^^AReflectionSerializerTestActor::OnCountChanged, .Min = 0, .Max = 100,
+          .OnEditorChanged = ^^AReflectionSerializerTestActor::OnCountChanged, .Min = 0, .Max = 100,
   )
   int Count = 7;
   EDITOR_PROPERTY()
@@ -151,7 +151,7 @@ class AReflectionStaticBase : public AActor {
   }
 
  private:
-  EDITOR_PROPERTY(.OnChanged = ^^AReflectionStaticBase::OnBaseValueChanged, .Min = 0, .Max = 10)
+  EDITOR_PROPERTY(.OnEditorChanged = ^^AReflectionStaticBase::OnBaseValueChanged, .Min = 0, .Max = 10)
   int BaseValue = 2;
   int HiddenValue = 0;
 };

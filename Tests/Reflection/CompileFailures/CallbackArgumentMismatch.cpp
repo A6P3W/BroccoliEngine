@@ -2,7 +2,7 @@
 
 struct FInvalidCallbackArgument {
   void OnValueChanged(float) {}
-  EDITOR_PROPERTY(.OnChanged = ^^FInvalidCallbackArgument::OnValueChanged)
+  EDITOR_PROPERTY(.OnEditorChanged = ^^FInvalidCallbackArgument::OnValueChanged)
   int Value = 0;
 };
 

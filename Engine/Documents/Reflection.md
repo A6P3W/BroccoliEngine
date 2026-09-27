@@ -13,7 +13,7 @@ class AEnemy : public AActor {
 
  private:
   EDITOR_PROPERTY(
-      .OnChanged = ^^AEnemy::OnSpeedChanged,
+      .OnEditorChanged = ^^AEnemy::OnSpeedChanged,
       .Min = 0.0f,
       .Max = 1000.0f,
       .SliderMin = 0.0f,
@@ -43,9 +43,9 @@ Editor Property は `private` を標準とします。派生クラスから直�
 
 | メンバ型 | 指定できる Metadata |
 | --- | --- |
-| `bool`、`FVector2D`、`FVector3D` | `OnChanged` |
-| `int`、`float` | `OnChanged`、`Min`、`Max`、`SliderMin`、`SliderMax` |
-| `std::string` | `OnChanged`、`MaxLength` |
+| `bool`、`FVector2D`、`FVector3D` | `OnEditorChanged` |
+| `int`、`float` | `OnEditorChanged`、`Min`、`Max`、`SliderMin`、`SliderMax` |
+| `std::string` | `OnEditorChanged`、`MaxLength` |
 
 数値 Metadata は `int` と `float` のどちらにも指定できます。`int` では整数かつ表現範囲内の有限値、`float` では表現範囲内の有限値が必要です。未対応のメンバ型、不適切な Metadata、逆転した範囲、Callback の引数型不一致はコンパイル時に拒否されます。
 

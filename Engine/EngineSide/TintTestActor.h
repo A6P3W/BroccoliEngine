@@ -16,7 +16,7 @@ class ATintTestActor : public AActor {
 
  private:
   EDITOR_PROPERTY(
-          .OnChanged = ^^ATintTestActor::OnSpeedChanged,
+          .OnEditorChanged = ^^ATintTestActor::OnSpeedChanged,
           .Min = 0.0f,
           .Max = 1000.0f,
           .SliderMin = 0.0f,

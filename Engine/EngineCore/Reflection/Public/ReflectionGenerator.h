@@ -48,7 +48,7 @@ struct FAnnotationNumber {
 };
 
 struct FEditorPropertyAnnotation {
-  std::meta::info OnChanged{};
+  std::meta::info OnEditorChanged{};
   FAnnotationNumber Min, Max, SliderMin, SliderMax;
   TAnnotationOptional<std::size_t> MaxLength;
 };
@@ -155,7 +155,7 @@ bool Set(void* Object, const FPropertyValue& Value) {
   try {
     Target = std::move(NewValue);
     constexpr std::meta::info Callback =
-        GetAnnotation<Member, FEditorPropertyAnnotation>().OnChanged;
+        GetAnnotation<Member, FEditorPropertyAnnotation>().OnEditorChanged;
     if constexpr (Callback != std::meta::info{}) {
       constexpr auto Method = std::meta::extract<void (T::*)(V)>(Callback);
       (TypedObject->*Method)(OldValue);
@@ -191,11 +191,11 @@ constexpr bool ValidFloatNumber(FAnnotationNumber Number) {
 template <class T, std::meta::info Member, class V>
 void AppendTyped(FClass& Class, EPropertyType Type) {
   constexpr auto Value = GetAnnotation<Member, FEditorPropertyAnnotation>();
-  constexpr std::meta::info Callback = Value.OnChanged;
+  constexpr std::meta::info Callback = Value.OnEditorChanged;
   if constexpr (Callback != std::meta::info{}) {
     static_assert(
         std::is_same_v<decltype(&[:Callback:]), void (T::*)(V)>,
-        "OnChanged must be void(T OldValue) on the declaring class"
+        "OnEditorChanged must be void(T OldValue) on the declaring class"
     );
   }
   FProperty Property;

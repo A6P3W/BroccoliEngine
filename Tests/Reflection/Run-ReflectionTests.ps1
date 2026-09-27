@@ -74,7 +74,7 @@ try {
     },
     [pscustomobject]@{
       Source = "CallbackArgumentMismatch.cpp"
-      Expected = "OnChanged must be void(T OldValue)"
+      Expected = "OnEditorChanged must be void(T OldValue)"
     },
     [pscustomobject]@{
       Source = "ReversedRange.cpp"
