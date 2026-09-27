@@ -16,14 +16,7 @@ AStaticMeshActor::AStaticMeshActor() {
 AStaticMeshActor::~AStaticMeshActor() = default;
 
 void AStaticMeshActor::SetModelPath(const FPath& Path) {
-  const FPath OldValue = ModelPath;
   ModelPath = Path;
-  if (ModelPath == OldValue) return;
-  OnModelPathChanged(OldValue);
-}
-
-void AStaticMeshActor::OnModelPathChanged(FPath OldValue) {
-  (void)OldValue;
   if (StaticMeshComponent == nullptr) {
     return;
   }
@@ -41,9 +34,14 @@ void AStaticMeshActor::OnModelPathChanged(FPath OldValue) {
   }
 }
 
+void AStaticMeshActor::OnModelPathChanged(FPath OldValue) {
+  (void)OldValue;
+  SetModelPath(ModelPath);
+}
+
 const FPath& AStaticMeshActor::GetModelPath() const { return ModelPath; }
 
 void AStaticMeshActor::BeginPlay() {
   AActor::BeginPlay();
-  if (!ModelPath.Empty()) OnModelPathChanged(ModelPath);
+  if (!ModelPath.Empty()) SetModelPath(ModelPath);
 }

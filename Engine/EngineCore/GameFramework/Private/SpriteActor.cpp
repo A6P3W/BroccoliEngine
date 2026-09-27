@@ -18,14 +18,7 @@ ASpriteActor::~ASpriteActor() = default;
 const FPath& ASpriteActor::GetImagePath() const { return ImagePath; }
 
 void ASpriteActor::SetImagePath(const FPath& Path) {
-  const FPath OldValue = ImagePath;
   ImagePath = Path;
-  if (ImagePath == OldValue) return;
-  OnImagePathChanged(OldValue);
-}
-
-void ASpriteActor::OnImagePathChanged(FPath OldValue) {
-  (void)OldValue;
   if (SpriteComponent) {
     const int Handle = ImagePath.Empty()
                            ? -1
@@ -34,12 +27,17 @@ void ASpriteActor::OnImagePathChanged(FPath OldValue) {
   }
 }
 
+void ASpriteActor::OnImagePathChanged(FPath OldValue) {
+  (void)OldValue;
+  SetImagePath(ImagePath);
+}
+
 void ASpriteActor::BeginPlay() {
   AActor::BeginPlay();
 
   if (ImagePath.Empty()) {
     SetImagePath(FPath("/Engine/texture_Checker_64px.png"));
   } else {
-    OnImagePathChanged(ImagePath);
+    SetImagePath(ImagePath);
   }
 }
