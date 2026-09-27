@@ -20,9 +20,8 @@ const FPath& ASpriteActor::GetImagePath() const { return ImagePath; }
 void ASpriteActor::SetImagePath(const FPath& Path) {
   ImagePath = Path;
   if (SpriteComponent) {
-    const int Handle = ImagePath.Empty()
-                           ? -1
-                           : ResourceManager::GetInstance().LoadResourceGraph(ImagePath.String());
+    const int Handle =
+        ImagePath.Empty() ? -1 : ResourceManager::GetInstance().LoadResourceGraph(ImagePath);
     SpriteComponent->SubmitGraph(Handle, FScale(1.0f), 255);
   }
 }

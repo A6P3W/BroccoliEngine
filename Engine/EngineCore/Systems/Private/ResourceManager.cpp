@@ -373,8 +373,8 @@ ResourceManager& ResourceManager::GetInstance() {
   return Instance;
 }
 
-int ResourceManager::LoadResourceGraph(const std::string& Path) {
-  const std::string ResolvedPath = PathResolver::Resolve(Path);
+int ResourceManager::LoadResourceGraph(const FPath& Path) {
+  const std::string ResolvedPath = PathResolver::Resolve(Path.String());
   int Handle = GetResourceStore().LoadTextureResource(ResolvedPath);
   if (Handle == InvalidResourceHandle) {
     M_LOG(Log, "Texture load failed: {}. Using the default texture.", ResolvedPath);
@@ -384,8 +384,8 @@ int ResourceManager::LoadResourceGraph(const std::string& Path) {
   return Handle;
 }
 
-int ResourceManager::LoadResourceModel(const std::string& Path) {
-  const std::string ResolvedPath = PathResolver::Resolve(Path);
+int ResourceManager::LoadResourceModel(const FPath& Path) {
+  const std::string ResolvedPath = PathResolver::Resolve(Path.String());
   return GetResourceStore().LoadModelResource(ResolvedPath);
 }
 

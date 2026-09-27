@@ -20,7 +20,7 @@ ATintTestActor::ATintTestActor() {
   }
 
   const int TextureHandle =
-      ResourceManager::GetInstance().LoadResourceGraph("/Engine/texture_Checker_64px.png");
+      ResourceManager::GetInstance().LoadResourceGraph(FPath("/Engine/texture_Checker_64px.png"));
   SpriteComponent->SubmitGraph(TextureHandle);
   SpriteComponent->RegisterComponent();
 }

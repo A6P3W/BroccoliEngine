@@ -26,7 +26,7 @@ void AStaticMeshActor::SetModelPath(const FPath& Path) {
     return;
   }
 
-  const int ModelHandle = ResourceManager::GetInstance().LoadResourceModel(ModelPath.String());
+  const int ModelHandle = ResourceManager::GetInstance().LoadResourceModel(ModelPath);
   if (ResourceManager::GetInstance().IsModelValid(ModelHandle)) {
     StaticMeshComponent->SetModel(ModelHandle);
   } else {

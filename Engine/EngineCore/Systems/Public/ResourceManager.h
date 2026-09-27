@@ -3,6 +3,7 @@
 #include <string>
 
 #include "BroccoliEngineAPI.h"
+#include "FPath.h"
 #include "UMath.h"
 
 class BROCCOLI_ENGINE_API ResourceManager {
@@ -19,8 +20,8 @@ class BROCCOLI_ENGINE_API ResourceManager {
 
   static ResourceManager& GetInstance();
 
-  int LoadResourceGraph(const std::string& Path);
-  int LoadResourceModel(const std::string& Path);
+  int LoadResourceGraph(const FPath& Path);
+  int LoadResourceModel(const FPath& Path);
   bool IsModelValid(int Handle) const;
   bool GetModelBounds(int Handle, FBox3D& OutBounds) const;
   static int NormalizeFontWeight(int Weight);
