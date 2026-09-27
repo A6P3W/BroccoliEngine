@@ -7,6 +7,11 @@
 #include "SpriteComponent.h"
 
 REGISTER_ACTOR(ATintTestActor)
+REGISTER_REFLECTION(ATintTestActor, AActor, "Engine")
+
+void ATintTestActor::OnSpeedChanged(float OldValue) {
+  M_LOG(Log, "Tint test speed changed from {} to {}.", OldValue, Speed);
+}
 
 ATintTestActor::ATintTestActor() {
   SpriteComponent = NewObject<MSpriteComponent>(this);

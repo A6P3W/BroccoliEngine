@@ -43,6 +43,8 @@ add_library(BroccoliEngine SHARED ${BROCCOLI_ENGINE_FILES})
 add_library(Broccoli::Engine ALIAS BroccoliEngine)
 
 target_compile_features(BroccoliEngine PUBLIC cxx_std_26)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/BroccoliReflection.cmake")
+broccoli_enable_reflection(BroccoliEngine)
 target_compile_definitions(BroccoliEngine
   PRIVATE
     BROCCOLI_ENGINE_BUILD
@@ -61,6 +63,7 @@ target_include_directories(BroccoliEngine
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Automation/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Core/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Systems/Public>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Reflection/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Components/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Network/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/GameFramework/Public>
