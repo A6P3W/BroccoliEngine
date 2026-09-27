@@ -1,6 +1,6 @@
 # Actor Reflection
 
-GCC 16 以上の C++26 Reflection (`-freflection`) を使用します。公開されるのは、`[[=...]]` を付けた public の非 static データメンバだけです。未注釈メンバと Transform は従来の経路を使います。
+GCC 16 以上の C++26 Reflection (`-freflection`) を使用します。公開されるのは、`EDITOR_PROPERTY(...)` を付けた public の非 static データメンバだけです。通常ビルドでは `[[= ...]]` に展開され、IntelliSense 時には annotation 全体が除外されます。未注釈メンバと Transform は従来の経路を使います。
 
 ```cpp
 #include "ReflectionGenerator.h"
@@ -12,12 +12,12 @@ class AEnemy : public AActor {
   virtual void OnSpeedChanged(float OldValue);
 
  public:
-  [[=FFloatEditorProperty{
+  EDITOR_PROPERTY(FFloatEditorProperty{
       .Base = {.OnChanged = ^^AEnemy::OnSpeedChanged},
       .Min = 0.0f,
       .Max = 1000.0f,
       .SliderMin = 0.0f,
-      .SliderMax = 100.0f}]]
+      .SliderMax = 100.0f})
   float Speed = 0.0f;
 };
 

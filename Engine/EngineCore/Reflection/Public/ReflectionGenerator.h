@@ -14,6 +14,12 @@
 #include "Log.h"
 #include "Reflection.h"
 
+#ifdef __INTELLISENSE__
+#define EDITOR_PROPERTY(...)
+#else
+#define EDITOR_PROPERTY(...) [[= __VA_ARGS__]]
+#endif
+
 struct FEditorProperty {
   std::meta::info OnChanged{};
 };
