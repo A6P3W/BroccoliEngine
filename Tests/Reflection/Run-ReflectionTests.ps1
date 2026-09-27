@@ -69,6 +69,10 @@ try {
       Expected = "Numeric metadata is only valid for int and float properties"
     },
     [pscustomobject]@{
+      Source = "InvalidPathFilterForString.cpp"
+      Expected = "PathFilter is only valid for FPath properties"
+    },
+    [pscustomobject]@{
       Source = "FractionalIntRange.cpp"
       Expected = "Integer property metadata must be finite, integral, and within int range"
     },

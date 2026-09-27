@@ -37,7 +37,18 @@ REGISTER_ACTOR(AEnemy)
 
 実際の利用例として `Engine/EngineSide/MovingPlatformActor.h` の `AMovingPlatformActor` があります。Inspector で `Speed`、`Distance`、`Direction`、`Enabled` を編集でき、開始位置から指定方向へ指定距離だけ進み、`Speed` に従って往復します。4つの値は private のまま `EDITOR_PROPERTY` で公開しています。`ATintTestActor` は6種類の対応型を確認する例として残しています。
 
-Callback は Annotation より前に宣言してください。Metadata が不要なら `EDITOR_PROPERTY()` と書きます。対応するメンバ型は `bool`、`int`、`float`、`std::string`、`FVector2D`、`FVector3D` です。
+Callback は Annotation より前に宣言してください。Metadata が不要なら `EDITOR_PROPERTY()` と書きます。対応するメンバ型は `bool`、`int`、`float`、`std::string`、`FVector2D`、`FVector3D`、`FPath` です。
+
+`FPath` は UTF-8 の Resource 仮想パスを表します。`Textures/A.png` は `/Game/Textures/A.png` に正規化され、`/Engine/...` も利用できます。Resource Root 外の絶対パスは拒否されます。Inspector には入力欄とファイル選択ボタンが表示されます。フィルタ未指定時は Any File です。
+
+```cpp
+void OnImagePathChanged(FPath OldValue);
+EDITOR_PROPERTY(.OnEditorChanged = ^^ASpriteActor::OnImagePathChanged,
+                .PathFilter = EPathFilter::Image)
+FPath ImagePath;
+```
+
+`PathFilter` は `EPathFilter::AnyFile`、`EPathFilter::Image`（png、jpg、jpeg、bmp）、`EPathFilter::Model`（glb、gltf）から選びます。Level JSON では仮想パスを文字列として保存します。旧データのプレフィックスなし相対パスは読み込み時に `/Game/` へ正規化されます。
 
 Editor Property は `private` を標準とします。派生クラスから直接アクセスする必要があれば `protected`、外部コードからの直接アクセスが必要なら `public` を選びます。どのアクセス修飾子でも `EDITOR_PROPERTY` があれば Inspector と Level JSON の対象になり、付けなければ対象になりません。Annotation は通常の C++ アクセス制御を変更しません。Inspector と LevelSerializer は `FProperty::Get/Set` から値を操作します。
 
@@ -46,6 +57,7 @@ Editor Property は `private` を標準とします。派生クラスから直�
 | `bool`、`FVector2D`、`FVector3D` | `OnEditorChanged` |
 | `int`、`float` | `OnEditorChanged`、`Min`、`Max`、`SliderMin`、`SliderMax` |
 | `std::string` | `OnEditorChanged`、`MaxLength` |
+| `FPath` | `OnEditorChanged`、`PathFilter` |
 
 数値 Metadata は `int` と `float` のどちらにも指定できます。`int` では整数かつ表現範囲内の有限値、`float` では表現範囲内の有限値が必要です。未対応のメンバ型、不適切な Metadata、逆転した範囲、Callback の引数型不一致はコンパイル時に拒否されます。
 
