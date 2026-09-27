@@ -7,3 +7,6 @@ BinPackParameters: false
 LineEnding: LF
 IndentWidth: 2
 ReflowComments: false
+
+StatementMacros:
+  - EDITOR_PROPERTY

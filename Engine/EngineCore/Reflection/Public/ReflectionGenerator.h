@@ -17,12 +17,8 @@
 #ifdef __INTELLISENSE__
 #define EDITOR_PROPERTY(...)
 #else
-#define EDITOR_PROPERTY(...) [[= __VA_ARGS__]]
+#define EDITOR_PROPERTY(...) [[= FEditorPropertyAnnotation{__VA_ARGS__}]]
 #endif
-
-struct FEditorProperty {
-  std::meta::info OnChanged{};
-};
 
 // Annotation values must be structural; std::optional is not structural in GCC 16.
 template <class T>
@@ -37,26 +33,24 @@ struct TAnnotationOptional {
   constexpr T value_or(T Fallback) const { return Present ? Value : Fallback; }
 };
 
-struct FFloatEditorProperty {
-  FEditorProperty Base{};
-  TAnnotationOptional<float> Min, Max, SliderMin, SliderMax;
+struct FAnnotationNumber {
+  double Value = 0.0;
+  bool Present = false;
+
+  constexpr FAnnotationNumber() = default;
+
+  template <class T>
+    requires(std::is_arithmetic_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool>)
+  constexpr FAnnotationNumber(T InValue) : Value(static_cast<double>(InValue)), Present(true) {}
+
+  constexpr explicit operator bool() const { return Present; }
+  constexpr double operator*() const { return Value; }
 };
-struct FIntEditorProperty {
-  FEditorProperty Base{};
-  TAnnotationOptional<int> Min, Max, SliderMin, SliderMax;
-};
-struct FBoolEditorProperty {
-  FEditorProperty Base{};
-};
-struct FStringEditorProperty {
-  FEditorProperty Base{};
+
+struct FEditorPropertyAnnotation {
+  std::meta::info OnChanged{};
+  FAnnotationNumber Min, Max, SliderMin, SliderMax;
   TAnnotationOptional<std::size_t> MaxLength;
-};
-struct FVector2DEditorProperty {
-  FEditorProperty Base{};
-};
-struct FVector3DEditorProperty {
-  FEditorProperty Base{};
 };
 
 namespace ReflectionGenerator {
@@ -81,16 +75,6 @@ consteval std::meta::info MemberAt() {
   return std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::unchecked())[Index];
 }
 
-template <std::meta::info Member>
-consteval int AnnotationCount() {
-  return int(HasAnnotation<Member, FBoolEditorProperty>()) +
-         int(HasAnnotation<Member, FIntEditorProperty>()) +
-         int(HasAnnotation<Member, FFloatEditorProperty>()) +
-         int(HasAnnotation<Member, FStringEditorProperty>()) +
-         int(HasAnnotation<Member, FVector2DEditorProperty>()) +
-         int(HasAnnotation<Member, FVector3DEditorProperty>());
-}
-
 template <class T, std::meta::info Member, class V>
 FPropertyValue Get(const void* Object) {
   if constexpr (std::is_base_of_v<AActor, T>) {
@@ -113,28 +97,28 @@ bool Set(void* Object, const FPropertyValue& Value) {
   const V& Input = std::get<V>(Value);
   V NewValue = Input;
   if constexpr (std::is_same_v<V, int>) {
-    constexpr auto Annotation = GetAnnotation<Member, FIntEditorProperty>();
+    constexpr auto Annotation = GetAnnotation<Member, FEditorPropertyAnnotation>();
     if constexpr (Annotation.Min.Present) {
-      constexpr int Min = Annotation.Min.Value;
+      constexpr int Min = static_cast<int>(Annotation.Min.Value);
       NewValue = std::max(NewValue, Min);
     }
     if constexpr (Annotation.Max.Present) {
-      constexpr int Max = Annotation.Max.Value;
+      constexpr int Max = static_cast<int>(Annotation.Max.Value);
       NewValue = std::min(NewValue, Max);
     }
   } else if constexpr (std::is_same_v<V, float>) {
-    constexpr auto Annotation = GetAnnotation<Member, FFloatEditorProperty>();
+    constexpr auto Annotation = GetAnnotation<Member, FEditorPropertyAnnotation>();
     if (!std::isfinite(Input)) return Reject<Member>("non-finite float");
     if constexpr (Annotation.Min.Present) {
-      constexpr float Min = Annotation.Min.Value;
+      constexpr float Min = static_cast<float>(Annotation.Min.Value);
       NewValue = std::max(NewValue, Min);
     }
     if constexpr (Annotation.Max.Present) {
-      constexpr float Max = Annotation.Max.Value;
+      constexpr float Max = static_cast<float>(Annotation.Max.Value);
       NewValue = std::min(NewValue, Max);
     }
   } else if constexpr (std::is_same_v<V, std::string>) {
-    constexpr auto Annotation = GetAnnotation<Member, FStringEditorProperty>();
+    constexpr auto Annotation = GetAnnotation<Member, FEditorPropertyAnnotation>();
     constexpr std::size_t MaxLength =
         Annotation.MaxLength.value_or(std::numeric_limits<std::size_t>::max());
     if (!IsValidUnicodeScalarString(Input, MaxLength))
@@ -170,20 +154,8 @@ bool Set(void* Object, const FPropertyValue& Value) {
   ActiveObject = Object;
   try {
     Target = std::move(NewValue);
-    constexpr std::meta::info Callback = []() consteval {
-      if constexpr (std::is_same_v<V, bool>)
-        return GetAnnotation<Member, FBoolEditorProperty>().Base.OnChanged;
-      else if constexpr (std::is_same_v<V, int>)
-        return GetAnnotation<Member, FIntEditorProperty>().Base.OnChanged;
-      else if constexpr (std::is_same_v<V, float>)
-        return GetAnnotation<Member, FFloatEditorProperty>().Base.OnChanged;
-      else if constexpr (std::is_same_v<V, std::string>)
-        return GetAnnotation<Member, FStringEditorProperty>().Base.OnChanged;
-      else if constexpr (std::is_same_v<V, FVector2D>)
-        return GetAnnotation<Member, FVector2DEditorProperty>().Base.OnChanged;
-      else
-        return GetAnnotation<Member, FVector3DEditorProperty>().Base.OnChanged;
-    }();
+    constexpr std::meta::info Callback =
+        GetAnnotation<Member, FEditorPropertyAnnotation>().OnChanged;
     if constexpr (Callback != std::meta::info{}) {
       constexpr auto Method = std::meta::extract<void (T::*)(V)>(Callback);
       (TypedObject->*Method)(OldValue);
@@ -201,14 +173,25 @@ bool Set(void* Object, const FPropertyValue& Value) {
   return true;
 }
 
-template <class T, std::meta::info Member, class V, class Annotation>
+constexpr bool ValidIntNumber(FAnnotationNumber Number) {
+  return !Number.Present ||
+         (std::isfinite(Number.Value) &&
+          Number.Value >= static_cast<double>(std::numeric_limits<int>::min()) &&
+          Number.Value <= static_cast<double>(std::numeric_limits<int>::max()) &&
+          std::trunc(Number.Value) == Number.Value);
+}
+
+constexpr bool ValidFloatNumber(FAnnotationNumber Number) {
+  return !Number.Present ||
+         (std::isfinite(Number.Value) &&
+          Number.Value >= -static_cast<double>(std::numeric_limits<float>::max()) &&
+          Number.Value <= static_cast<double>(std::numeric_limits<float>::max()));
+}
+
+template <class T, std::meta::info Member, class V>
 void AppendTyped(FClass& Class, EPropertyType Type) {
-  static_assert(
-      std::is_same_v<std::remove_cvref_t<decltype(std::declval<T>().[:Member:])>, V>,
-      "Editor annotation does not match member type"
-  );
-  constexpr auto Value = GetAnnotation<Member, Annotation>();
-  constexpr std::meta::info Callback = Value.Base.OnChanged;
+  constexpr auto Value = GetAnnotation<Member, FEditorPropertyAnnotation>();
+  constexpr std::meta::info Callback = Value.OnChanged;
   if constexpr (Callback != std::meta::info{}) {
     static_assert(
         std::is_same_v<decltype(&[:Callback:]), void (T::*)(V)>,
@@ -221,80 +204,101 @@ void AppendTyped(FClass& Class, EPropertyType Type) {
   Property.Get = &Get<T, Member, V>;
   Property.Set = &Set<T, Member, V>;
   if constexpr (std::is_same_v<V, int>) {
+    static_assert(!Value.MaxLength.Present, "MaxLength is only valid for string properties");
+    static_assert(
+        ValidIntNumber(Value.Min) && ValidIntNumber(Value.Max) &&
+            ValidIntNumber(Value.SliderMin) && ValidIntNumber(Value.SliderMax),
+        "Integer property metadata must be finite, integral, and within int range"
+    );
     static_assert(!Value.Min || !Value.Max || *Value.Min <= *Value.Max, "Reversed Min/Max");
     static_assert(
         !Value.SliderMin || !Value.SliderMax || *Value.SliderMin <= *Value.SliderMax,
         "Reversed SliderMin/SliderMax"
     );
     if constexpr (Value.Min.Present) {
-      constexpr int Min = Value.Min.Value;
+      constexpr int Min = static_cast<int>(Value.Min.Value);
       Property.EditorMetadata.IntMin = Min;
     }
     if constexpr (Value.Max.Present) {
-      constexpr int Max = Value.Max.Value;
+      constexpr int Max = static_cast<int>(Value.Max.Value);
       Property.EditorMetadata.IntMax = Max;
     }
     if constexpr (Value.SliderMin.Present) {
-      constexpr int SliderMin = Value.SliderMin.Value;
+      constexpr int SliderMin = static_cast<int>(Value.SliderMin.Value);
       Property.EditorMetadata.IntSliderMin = SliderMin;
     }
     if constexpr (Value.SliderMax.Present) {
-      constexpr int SliderMax = Value.SliderMax.Value;
+      constexpr int SliderMax = static_cast<int>(Value.SliderMax.Value);
       Property.EditorMetadata.IntSliderMax = SliderMax;
     }
   } else if constexpr (std::is_same_v<V, float>) {
-    static_assert(!Value.Min || std::isfinite(*Value.Min), "Non-finite Min");
-    static_assert(!Value.Max || std::isfinite(*Value.Max), "Non-finite Max");
-    static_assert(!Value.SliderMin || std::isfinite(*Value.SliderMin), "Non-finite SliderMin");
-    static_assert(!Value.SliderMax || std::isfinite(*Value.SliderMax), "Non-finite SliderMax");
+    static_assert(!Value.MaxLength.Present, "MaxLength is only valid for string properties");
+    static_assert(
+        ValidFloatNumber(Value.Min) && ValidFloatNumber(Value.Max) &&
+            ValidFloatNumber(Value.SliderMin) && ValidFloatNumber(Value.SliderMax),
+        "Float property metadata must be finite and within float range"
+    );
     static_assert(!Value.Min || !Value.Max || *Value.Min <= *Value.Max, "Reversed Min/Max");
     static_assert(
         !Value.SliderMin || !Value.SliderMax || *Value.SliderMin <= *Value.SliderMax,
         "Reversed SliderMin/SliderMax"
     );
     if constexpr (Value.Min.Present) {
-      constexpr float Min = Value.Min.Value;
+      constexpr float Min = static_cast<float>(Value.Min.Value);
       Property.EditorMetadata.FloatMin = Min;
     }
     if constexpr (Value.Max.Present) {
-      constexpr float Max = Value.Max.Value;
+      constexpr float Max = static_cast<float>(Value.Max.Value);
       Property.EditorMetadata.FloatMax = Max;
     }
     if constexpr (Value.SliderMin.Present) {
-      constexpr float SliderMin = Value.SliderMin.Value;
+      constexpr float SliderMin = static_cast<float>(Value.SliderMin.Value);
       Property.EditorMetadata.FloatSliderMin = SliderMin;
     }
     if constexpr (Value.SliderMax.Present) {
-      constexpr float SliderMax = Value.SliderMax.Value;
+      constexpr float SliderMax = static_cast<float>(Value.SliderMax.Value);
       Property.EditorMetadata.FloatSliderMax = SliderMax;
     }
   } else if constexpr (std::is_same_v<V, std::string>) {
+    static_assert(
+        !Value.Min.Present && !Value.Max.Present && !Value.SliderMin.Present &&
+            !Value.SliderMax.Present,
+        "Numeric metadata is only valid for int and float properties"
+    );
     if constexpr (Value.MaxLength.Present) {
       constexpr std::size_t MaxLength = Value.MaxLength.Value;
       Property.EditorMetadata.MaxLength = MaxLength;
     }
+  } else {
+    static_assert(
+        !Value.Min.Present && !Value.Max.Present && !Value.SliderMin.Present &&
+            !Value.SliderMax.Present,
+        "Numeric metadata is only valid for int and float properties"
+    );
+    static_assert(!Value.MaxLength.Present, "MaxLength is only valid for string properties");
   }
   Class.OwnProperties.push_back(std::move(Property));
 }
 
 template <class T, std::meta::info Member>
 void Append(FClass& Class) {
-  constexpr int Count = AnnotationCount<Member>();
-  static_assert(Count <= 1, "Multiple editor annotations on one member");
-  if constexpr (Count > 0) {
+  if constexpr (HasAnnotation<Member, FEditorPropertyAnnotation>()) {
     static_assert(std::meta::is_public(Member), "Editor property must be public");
-    if constexpr (HasAnnotation<Member, FBoolEditorProperty>())
-      AppendTyped<T, Member, bool, FBoolEditorProperty>(Class, EPropertyType::Bool);
-    else if constexpr (HasAnnotation<Member, FIntEditorProperty>())
-      AppendTyped<T, Member, int, FIntEditorProperty>(Class, EPropertyType::Int);
-    else if constexpr (HasAnnotation<Member, FFloatEditorProperty>())
-      AppendTyped<T, Member, float, FFloatEditorProperty>(Class, EPropertyType::Float);
-    else if constexpr (HasAnnotation<Member, FStringEditorProperty>())
-      AppendTyped<T, Member, std::string, FStringEditorProperty>(Class, EPropertyType::String);
-    else if constexpr (HasAnnotation<Member, FVector2DEditorProperty>())
-      AppendTyped<T, Member, FVector2D, FVector2DEditorProperty>(Class, EPropertyType::Vector2D);
-    else if constexpr (HasAnnotation<Member, FVector3DEditorProperty>())
-      AppendTyped<T, Member, FVector3D, FVector3DEditorProperty>(Class, EPropertyType::Vector3D);
+    using V = std::remove_cvref_t<decltype(std::declval<T>().[:Member:])>;
+    if constexpr (std::is_same_v<V, bool>)
+      AppendTyped<T, Member, V>(Class, EPropertyType::Bool);
+    else if constexpr (std::is_same_v<V, int>)
+      AppendTyped<T, Member, V>(Class, EPropertyType::Int);
+    else if constexpr (std::is_same_v<V, float>)
+      AppendTyped<T, Member, V>(Class, EPropertyType::Float);
+    else if constexpr (std::is_same_v<V, std::string>)
+      AppendTyped<T, Member, V>(Class, EPropertyType::String);
+    else if constexpr (std::is_same_v<V, FVector2D>)
+      AppendTyped<T, Member, V>(Class, EPropertyType::Vector2D);
+    else if constexpr (std::is_same_v<V, FVector3D>)
+      AppendTyped<T, Member, V>(Class, EPropertyType::Vector3D);
+    else
+      static_assert(!std::is_same_v<V, V>, "Unsupported editor property member type");
   }
 }
 

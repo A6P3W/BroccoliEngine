@@ -58,7 +58,19 @@ try {
   $CompileFailureCases = @(
     [pscustomobject]@{
       Source = "AnnotationTypeMismatch.cpp"
-      Expected = "Editor annotation does not match member type"
+      Expected = "Unsupported editor property member type"
+    },
+    [pscustomobject]@{
+      Source = "InvalidMetadataForInt.cpp"
+      Expected = "MaxLength is only valid for string properties"
+    },
+    [pscustomobject]@{
+      Source = "InvalidMetadataForBool.cpp"
+      Expected = "Numeric metadata is only valid for int and float properties"
+    },
+    [pscustomobject]@{
+      Source = "FractionalIntRange.cpp"
+      Expected = "Integer property metadata must be finite, integral, and within int range"
     },
     [pscustomobject]@{
       Source = "CallbackArgumentMismatch.cpp"
@@ -67,6 +79,10 @@ try {
     [pscustomobject]@{
       Source = "ReversedRange.cpp"
       Expected = "Reversed Min/Max"
+    },
+    [pscustomobject]@{
+      Source = "ReversedSliderRange.cpp"
+      Expected = "Reversed SliderMin/SliderMax"
     }
   )
   foreach ($Case in $CompileFailureCases) {

@@ -1,7 +1,8 @@
 #include "ReflectionGenerator.h"
 
 struct FInvalidAnnotationType {
-  [[= FIntEditorProperty{}]] bool Value = false;
+  EDITOR_PROPERTY()
+  double Value = 0.0;
 };
 
 const FClass InvalidClass = ReflectionGenerator::MakeClass<FInvalidAnnotationType>("InvalidType");

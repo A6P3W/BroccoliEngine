@@ -43,29 +43,36 @@ class FReflectionTestSubject {
 
   void OnThrowingValueChanged(int) { throw std::runtime_error("expected callback failure"); }
 
-  [[= FBoolEditorProperty{}]] bool Enabled = false;
-  [[= FIntEditorProperty{
-      .Base = {.OnChanged = ^^FReflectionTestSubject::OnClampedValueChanged},
-      .Min = 0,
-      .Max = 10,
-  }]] int ClampedValue = 5;
-  [[= FIntEditorProperty{
-      .Base = {.OnChanged = ^^FReflectionTestSubject::OnThrowingValueChanged},
-  }]] int ThrowingValue = 1;
-  [[= FFloatEditorProperty{.Min = -1.0F, .Max = 1.0F}]] float Weight = 0.0F;
-  [[= FStringEditorProperty{.MaxLength = 3}]] std::string Label = "initial";
-  [[= FVector2DEditorProperty{}]] FVector2D Offset{};
-  [[= FVector3DEditorProperty{}]] FVector3D Position{};
+  EDITOR_PROPERTY()
+  bool Enabled = false;
+  EDITOR_PROPERTY(
+          .OnChanged = ^^FReflectionTestSubject::OnClampedValueChanged, .Min = 0, .Max = 10,
+  )
+  int ClampedValue = 5;
+  EDITOR_PROPERTY(.OnChanged = ^^FReflectionTestSubject::OnThrowingValueChanged)
+  int ThrowingValue = 1;
+  EDITOR_PROPERTY(.Min = -1.0F, .Max = 1.0F)
+  float Weight = 0.0F;
+  EDITOR_PROPERTY(.Min = 0)
+  float ZeroBasedWeight = 1.0F;
+  EDITOR_PROPERTY(.MaxLength = 3)
+  std::string Label = "initial";
+  EDITOR_PROPERTY()
+  FVector2D Offset{};
+  EDITOR_PROPERTY()
+  FVector3D Position{};
 };
 
 class FBaseReflectionSubject {
  public:
-  [[= FBoolEditorProperty{}]] bool BaseEnabled = false;
+  EDITOR_PROPERTY()
+  bool BaseEnabled = false;
 };
 
 class FDerivedReflectionSubject : public FBaseReflectionSubject {
  public:
-  [[= FIntEditorProperty{.Min = 0, .Max = 4}]] int DerivedValue = 2;
+  EDITOR_PROPERTY(.Min = 0, .Max = 4)
+  int DerivedValue = 2;
 };
 
 class AReflectionSerializerTestActor final : public AActor {
@@ -77,16 +84,20 @@ class AReflectionSerializerTestActor final : public AActor {
     LastOldCount = OldValue;
   }
 
-  [[= FBoolEditorProperty{}]] bool Enabled = false;
-  [[= FIntEditorProperty{
-      .Base = {.OnChanged = ^^AReflectionSerializerTestActor::OnCountChanged},
-      .Min = 0,
-      .Max = 100,
-  }]] int Count = 7;
-  [[= FFloatEditorProperty{}]] float Weight = 1.25F;
-  [[= FStringEditorProperty{}]] std::string Label = "cpp-initial";
-  [[= FVector2DEditorProperty{}]] FVector2D Offset{1.0F, 2.0F};
-  [[= FVector3DEditorProperty{}]] FVector3D Position{3.0F, 4.0F, 5.0F};
+  EDITOR_PROPERTY()
+  bool Enabled = false;
+  EDITOR_PROPERTY(
+          .OnChanged = ^^AReflectionSerializerTestActor::OnCountChanged, .Min = 0, .Max = 100,
+  )
+  int Count = 7;
+  EDITOR_PROPERTY()
+  float Weight = 1.25F;
+  EDITOR_PROPERTY()
+  std::string Label = "cpp-initial";
+  EDITOR_PROPERTY()
+  FVector2D Offset{1.0F, 2.0F};
+  EDITOR_PROPERTY()
+  FVector3D Position{3.0F, 4.0F, 5.0F};
 
   int CallbackCount = 0;
   int LastOldCount = -1;
@@ -100,18 +111,21 @@ class AReflectionPluginTestActor final : public AActor {
 class AReflectionStaticBase : public AActor {
  public:
   DEFINE_ACTOR_CLASS(AReflectionStaticBase)
-  [[= FBoolEditorProperty{}]] bool BaseEnabled = false;
+  EDITOR_PROPERTY()
+  bool BaseEnabled = false;
 };
 
 class AReflectionIntermediate : public AReflectionStaticBase {
  public:
-  [[= FIntEditorProperty{}]] int IntermediateValue = 1;
+  EDITOR_PROPERTY()
+  int IntermediateValue = 1;
 };
 
 class AReflectionStaticDerived final : public AReflectionIntermediate {
  public:
   DEFINE_ACTOR_CLASS(AReflectionStaticDerived)
-  [[= FFloatEditorProperty{}]] float DerivedValue = 2.0F;
+  EDITOR_PROPERTY()
+  float DerivedValue = 2.0F;
 };
 
 REGISTER_ACTOR(AReflectionStaticDerived)
@@ -133,7 +147,7 @@ void TestStaticActorReflectionRegistration() {
 
 void TestSixPropertyTypesAndMetadata() {
   FClass Class = ReflectionGenerator::MakeClass<FReflectionTestSubject>("ReflectionTestSubject");
-  Check(Class.OwnProperties.size() == 7, "Unannotated data members were reflected as properties.");
+  Check(Class.OwnProperties.size() == 8, "Unannotated data members were reflected as properties.");
   FReflectionTestSubject Subject;
 
   const FProperty& Enabled = RequireProperty(Class, "Enabled");
@@ -165,6 +179,12 @@ void TestSixPropertyTypesAndMetadata() {
   Check(Weight.Set(&Subject, 4.0F) && Subject.Weight == 1.0F, "Float setter did not clamp to Max.");
   Check(
       !Weight.Set(&Subject, std::numeric_limits<float>::quiet_NaN()), "Float setter accepted NaN."
+  );
+
+  const FProperty& ZeroBasedWeight = RequireProperty(Class, "ZeroBasedWeight");
+  Check(
+      ZeroBasedWeight.EditorMetadata.FloatMin == 0.0F,
+      "Integer metadata was not converted for a float property."
   );
 
   const FProperty& Label = RequireProperty(Class, "Label");
