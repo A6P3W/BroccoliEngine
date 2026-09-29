@@ -17,18 +17,27 @@
 #include "PathResolver.h"
 #include "PluginHost.h"
 #include "ReflectionGenerator.h"
-#include "SpriteActor.h"
+#include "Sprite2DActor.h"
+#include "Sprite2DComponent.h"
+#include "Sprite3DActor.h"
+#include "Sprite3DComponent.h"
 #include "StaticMeshActor.h"
 #include "World.h"
 #include "nlohmann/json.hpp"
 
 namespace {
-static_assert(
-    std::is_same_v<decltype(&ASpriteActor::SetImagePath), void (ASpriteActor::*)(const FPath&)>
-);
-static_assert(
-    std::is_same_v<decltype(&ASpriteActor::GetImagePath), const FPath& (ASpriteActor::*)() const>
-);
+static_assert(std::is_same_v<
+              decltype(&ASprite2DActor::SetImagePath),
+              void (ASprite2DActor::*)(const FPath&)>);
+static_assert(std::is_same_v<
+              decltype(&ASprite2DActor::GetImagePath),
+              const FPath& (ASprite2DActor::*)() const>);
+static_assert(std::is_same_v<
+              decltype(&ASprite3DActor::SetImagePath),
+              void (ASprite3DActor::*)(const FPath&)>);
+static_assert(std::is_same_v<
+              decltype(&ASprite3DActor::GetImagePath),
+              const FPath& (ASprite3DActor::*)() const>);
 static_assert(std::is_same_v<
               decltype(&AStaticMeshActor::SetModelPath),
               void (AStaticMeshActor::*)(const FPath&)>);
@@ -844,6 +853,120 @@ void TestWorldLevelSerializerReflectionRoundTrip() {
   ActorClasses.UnregisterModule(ModuleOwner);
 }
 
+void TestSpriteActorImagePathRoundTrip() {
+  namespace fs = std::filesystem;
+  ActorRegistry& Actors = ActorRegistry::GetInstance();
+  FReflectionRegistry& Reflections = FReflectionRegistry::GetInstance();
+  Check(Actors.Contains(ASprite2DActor::StaticClassName()), "2D Sprite Actor is not registered.");
+  Check(Actors.Contains(ASprite3DActor::StaticClassName()), "3D Sprite Actor is not registered.");
+  Check(!Actors.Contains("ASpriteActor"), "Legacy Sprite Actor is still registered.");
+
+  const FClass* Class2D = Reflections.FindClass(ASprite2DActor::StaticClassName());
+  const FClass* Class3D = Reflections.FindClass(ASprite3DActor::StaticClassName());
+  Check(Class2D != nullptr && Class3D != nullptr, "Sprite Actor Reflection is missing.");
+  const FProperty& Image2D = RequireProperty(*Class2D, "ImagePath");
+  const FProperty& Image3D = RequireProperty(*Class3D, "ImagePath");
+  Check(
+      Image2D.Type == EPropertyType::Path && Image3D.Type == EPropertyType::Path &&
+          Image2D.EditorMetadata.PathFilter == EPathFilter::Image &&
+          Image3D.EditorMetadata.PathFilter == EPathFilter::Image,
+      "Sprite ImagePath metadata is incorrect."
+  );
+
+  const fs::path TempDirectory =
+      fs::temp_directory_path() /
+      ("BroccoliReflectionTests-Sprites-" +
+       std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  fs::create_directories(TempDirectory);
+  const fs::path LevelPath = TempDirectory / "Sprites.BLevel.json";
+  {
+    World SaveWorld;
+    ASprite2DActor* Sprite2D = SaveWorld.SpawnActor<ASprite2DActor>({}, FRotator(0.0F), true);
+    ASprite3DActor* Sprite3D = SaveWorld.SpawnActor<ASprite3DActor>({}, FRotator(0.0F), true);
+    Check(Sprite2D != nullptr && Sprite3D != nullptr, "Could not spawn Sprite Actors.");
+    SaveWorld.GetActorManager()->FlushPendingActors();
+    Check(
+        dynamic_cast<MSprite2DComponent*>(Sprite2D->GetRootComponent()) != nullptr,
+        "2D Sprite Actor has the wrong root component."
+    );
+    Check(
+        dynamic_cast<MSprite3DComponent*>(Sprite3D->GetRootComponent()) != nullptr,
+        "3D Sprite Actor has the wrong root component."
+    );
+    Check(
+        Image2D.Set(Sprite2D, FPath("Textures/A.png")) &&
+            Image3D.Set(Sprite3D, FPath("Textures/B.png")),
+        "Sprite ImagePath Reflection setter failed."
+    );
+    Check(
+        Sprite2D->GetImagePath().String() == "/Game/Textures/A.png" &&
+            Sprite3D->GetImagePath().String() == "/Game/Textures/B.png",
+        "Sprite ImagePath getter did not return the reflected value."
+    );
+    Check(
+        LevelSerializer::Save(&SaveWorld, LevelPath.string(), ""),
+        "Could not save Sprite Actors to a level."
+    );
+    auto* Sprite3DRoot = dynamic_cast<MSprite3DComponent*>(Sprite3D->GetRootComponent());
+    Sprite3DRoot->SetTexture(123);
+    Check(
+        Image3D.Set(Sprite3D, FPath()) && Sprite3DRoot->GetTexture() == 0,
+        "Empty ImagePath did not clear the 3D Sprite texture handle."
+    );
+  }
+
+  {
+    std::ifstream Input(LevelPath, std::ios::binary);
+    Check(Input.is_open(), "Could not read the Sprite Actor level.");
+    const nlohmann::json Saved = nlohmann::json::parse(Input);
+    Check(Saved.at("actors").size() == 2, "Sprite Actor count was not saved.");
+    for (const auto& Entry : Saved.at("actors")) {
+      const std::string ClassName = Entry.at("class").get<std::string>();
+      if (ClassName == ASprite2DActor::StaticClassName()) {
+        Check(
+            Entry.at("properties").at("ImagePath") == "/Game/Textures/A.png",
+            "2D Sprite ImagePath was not saved as a virtual path."
+        );
+      } else if (ClassName == ASprite3DActor::StaticClassName()) {
+        Check(
+            Entry.at("properties").at("ImagePath") == "/Game/Textures/B.png",
+            "3D Sprite ImagePath was not saved as a virtual path."
+        );
+      } else {
+        Check(false, "Unexpected Sprite Actor class in the saved level.");
+      }
+    }
+  }
+
+  {
+    World LoadWorld;
+    Check(
+        LevelSerializer::Load(&LoadWorld, LevelPath.string(), false),
+        "Could not reload the Sprite Actor level."
+    );
+    bool Found2D = false;
+    bool Found3D = false;
+    for (const std::unique_ptr<AActor>& Actor : LoadWorld.GetActorManager()->GetAllActors()) {
+      if (auto* Sprite2D = dynamic_cast<ASprite2DActor*>(Actor.get())) {
+        Found2D = Sprite2D->GetImagePath().String() == "/Game/Textures/A.png";
+      } else if (auto* Sprite3D = dynamic_cast<ASprite3DActor*>(Actor.get())) {
+        Found3D = Sprite3D->GetImagePath().String() == "/Game/Textures/B.png";
+      }
+    }
+    Check(Found2D && Found3D, "Sprite Actor ImagePath did not round trip through the level.");
+  }
+
+  const fs::path TempRoot = fs::weakly_canonical(fs::temp_directory_path());
+  const fs::path CanonicalTempDirectory = fs::weakly_canonical(TempDirectory);
+  Check(
+      CanonicalTempDirectory.is_absolute() && CanonicalTempDirectory.parent_path() == TempRoot &&
+          CanonicalTempDirectory.filename().string().starts_with("BroccoliReflectionTests-Sprites-"
+          ),
+      "Refusing to remove a Sprite test directory outside its dedicated temp root."
+  );
+  fs::remove_all(CanonicalTempDirectory);
+}
+
 void TestPluginLoadUnloadAndLiveActorDelay() {
   namespace fs = std::filesystem;
   PluginHost& Host = PluginHost::GetInstance();
@@ -923,6 +1046,7 @@ int main(int ArgCount, char** Arguments) {
       TestInheritanceAndRegistry();
       TestLevelSerializerRoundTripAndLegacyVersions();
       TestWorldLevelSerializerReflectionRoundTrip();
+      TestSpriteActorImagePathRoundTrip();
       TestPluginLoadUnloadAndLiveActorDelay();
     }
   } catch (const std::exception& Error) {

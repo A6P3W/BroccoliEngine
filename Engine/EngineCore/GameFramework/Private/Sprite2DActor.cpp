@@ -1,11 +1,11 @@
-#include "SpriteActor.h"
+#include "Sprite2DActor.h"
 
 #include "ResourceManager.h"
 #include "Sprite2DComponent.h"
 
-REGISTER_ACTOR(ASpriteActor);
+REGISTER_ACTOR(ASprite2DActor);
 
-ASpriteActor::ASpriteActor() {
+ASprite2DActor::ASprite2DActor() {
   SpriteComponent = NewObject<MSprite2DComponent>(this);
   SetRootComponent(SpriteComponent);
   if (SpriteComponent) {
@@ -13,25 +13,25 @@ ASpriteActor::ASpriteActor() {
   }
 }
 
-ASpriteActor::~ASpriteActor() = default;
+ASprite2DActor::~ASprite2DActor() = default;
 
-const FPath& ASpriteActor::GetImagePath() const { return ImagePath; }
+const FPath& ASprite2DActor::GetImagePath() const { return ImagePath; }
 
-void ASpriteActor::SetImagePath(const FPath& Path) {
+void ASprite2DActor::SetImagePath(const FPath& Path) {
   ImagePath = Path;
   if (SpriteComponent) {
     const int Handle =
-        ImagePath.Empty() ? -1 : ResourceManager::GetInstance().LoadResourceGraph(ImagePath);
+        ImagePath.Empty() ? 0 : ResourceManager::GetInstance().LoadResourceGraph(ImagePath);
     SpriteComponent->SubmitGraph(Handle, FScale(1.0f), 255);
   }
 }
 
-void ASpriteActor::OnImagePathChanged(FPath OldValue) {
+void ASprite2DActor::OnImagePathChanged(FPath OldValue) {
   (void)OldValue;
   SetImagePath(ImagePath);
 }
 
-void ASpriteActor::BeginPlay() {
+void ASprite2DActor::BeginPlay() {
   AActor::BeginPlay();
 
   if (ImagePath.Empty()) {
