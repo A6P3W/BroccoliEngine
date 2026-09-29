@@ -168,13 +168,13 @@ FSpriteBasis MakeSpriteBasis(
     }
     if (Facing.SizeSquared() <= 1e-12f) Facing = {0.0f, 0.0f, -1.0f};
     Facing = Facing.Normalize();
-    return {Facing.Cross({0.0f, 1.0f, 0.0f}).Normalize(), {0.0f, 1.0f, 0.0f}};
+    return {FVector3D{0.0f, 1.0f, 0.0f}.Cross(Facing).Normalize(), {0.0f, 1.0f, 0.0f}};
   }
   Facing = Facing.Normalize();
   if (Facing.SizeSquared() <= 1e-12f) return Plane;
-  const FVector3D Right = Facing.Cross(CameraUp).Normalize();
+  const FVector3D Right = CameraUp.Cross(Facing).Normalize();
   if (Right.SizeSquared() <= 1e-12f) return Plane;
-  return {Right, Right.Cross(Facing).Normalize()};
+  return {Right, Facing.Cross(Right).Normalize()};
 }
 
 void DrawSprite3DCommand(
