@@ -9,6 +9,7 @@
 #include "BroccoliEngineAPI.h"
 #include "Color.h"
 #include "Geometry2D.h"
+#include "SpriteBillboardMode.h"
 #include "UMath.h"
 
 enum class RenderType { Graph, Box, Text, Line, RectGraph, Circle };
@@ -80,6 +81,15 @@ struct StaticMeshRenderData {
   int ModelHandle = 0;
   FColor Tint = FColor::White;
 };
+struct Sprite3DRenderData {
+  FTransform3D Transform;
+  FVector2D Size;
+  FVector2D Pivot;
+  float RotationDegrees = 0.0f;
+  int TextureHandle = 0;
+  FColor Tint = FColor::White;
+  ESpriteBillboardMode BillboardMode = ESpriteBillboardMode::None;
+};
 enum class EGridPlane { XZ, XY, YZ };
 
 struct GridRenderData {
@@ -92,7 +102,8 @@ using RenderCommand3DData = std::variant<
     SphereRenderData,
     Line3DRenderData,
     StaticMeshRenderData,
-    GridRenderData>;
+    GridRenderData,
+    Sprite3DRenderData>;
 struct RenderCommand3D {
   ERenderLayer3D Layer = ERenderLayer3D::World;
   RenderCommand3DData Data;
@@ -195,6 +206,15 @@ class BROCCOLI_ENGINE_API RenderSystem {
   );
   void SubmitStaticMesh(
       const FTransform3D& Transform, int ModelHandle, const FColor& Tint = FColor::White
+  );
+  void SubmitSprite3D(
+      const FTransform3D& Transform,
+      int TextureHandle,
+      const FVector2D& Size,
+      const FVector2D& Pivot,
+      float RotationDegrees,
+      ESpriteBillboardMode BillboardMode,
+      const FColor& Tint = FColor::White
   );
   void SubmitGrid3D(int Slices, float Spacing, EGridPlane Plane = EGridPlane::XZ);
 
