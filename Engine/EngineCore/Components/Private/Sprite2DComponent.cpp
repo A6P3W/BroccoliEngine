@@ -1,4 +1,4 @@
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 #include "Actor.h"
 #include "ResourceManager.h"
@@ -11,7 +11,7 @@ class SpriteRenderState {
   FColor Tint = FColor::White;
 };
 
-MSpriteComponent::MSpriteComponent() : RenderState(new SpriteRenderState()) {
+MSprite2DComponent::MSprite2DComponent() : RenderState(new SpriteRenderState()) {
   RenderState->CommonData.priority = 0;
   RenderState->CommonData.space = RenderSpace::World;
   RenderState->CommonData.alpha = 255;
@@ -19,51 +19,51 @@ MSpriteComponent::MSpriteComponent() : RenderState(new SpriteRenderState()) {
   RenderState->FeatureData = GraphData{};
 }
 
-MSpriteComponent::~MSpriteComponent() { delete RenderState; }
+MSprite2DComponent::~MSprite2DComponent() { delete RenderState; }
 
-void MSpriteComponent::SetRenderSettings(int Priority, RenderSpace Space) {
+void MSprite2DComponent::SetRenderSettings(int Priority, RenderSpace Space) {
   RenderState->CommonData.priority = Priority;
   RenderState->CommonData.space = Space;
 }
 
-void MSpriteComponent::SetTint(const FColor& Tint) { RenderState->Tint = Tint; }
+void MSprite2DComponent::SetTint(const FColor& Tint) { RenderState->Tint = Tint; }
 
-const FColor& MSpriteComponent::GetTint() const { return RenderState->Tint; }
+const FColor& MSprite2DComponent::GetTint() const { return RenderState->Tint; }
 
-void MSpriteComponent::SubmitGraph(int handle, FScale scale, int alpha) {
+void MSprite2DComponent::SubmitGraph(int handle, FScale scale, int alpha) {
   RenderState->FeatureData = GraphData{{0, 0}, FRotator(0), scale, handle};
   RenderState->CommonData.alpha = alpha;
 }
 
-void MSpriteComponent::SubmitBox(float width, float height, const FColor& color, bool fill) {
+void MSprite2DComponent::SubmitBox(float width, float height, const FColor& color, bool fill) {
   RenderState->FeatureData = BoxData{{0, 0}, {width, height}, FRotator(0), color, fill};
   RenderState->CommonData.alpha = static_cast<int>(color.A);
 }
 
-void MSpriteComponent::SubmitText(const std::string& text, const FColor& color, int handle) {
+void MSprite2DComponent::SubmitText(const std::string& text, const FColor& color, int handle) {
   int fontHandle = (handle != -1) ? handle : ResourceManager::GetInstance().GetFont(120);
   RenderState->FeatureData = TextData{{0, 0}, text, color, fontHandle};
   RenderState->CommonData.alpha = static_cast<int>(color.A);
 }
 
-void MSpriteComponent::SubmitLine(const FVector2D& relativeEnd, const FColor& color) {
+void MSprite2DComponent::SubmitLine(const FVector2D& relativeEnd, const FColor& color) {
   RenderState->FeatureData = LineData{{0, 0}, relativeEnd, color};
   RenderState->CommonData.alpha = static_cast<int>(color.A);
 }
 
-void MSpriteComponent::SubmitRectGraph(
+void MSprite2DComponent::SubmitRectGraph(
     float srcX, float srcY, float srcW, float srcH, int handle, int alpha
 ) {
   RenderState->FeatureData = RectGraphData{{0, 0}, {srcX, srcY}, {srcW, srcH}, handle};
   RenderState->CommonData.alpha = alpha;
 }
 
-void MSpriteComponent::SubmitCircle(float radius, const FColor& color, bool fill) {
+void MSprite2DComponent::SubmitCircle(float radius, const FColor& color, bool fill) {
   RenderState->FeatureData = CircleData{{0, 0}, radius, color, fill};
   RenderState->CommonData.alpha = static_cast<int>(color.A);
 }
 
-void MSpriteComponent::Draw() {
+void MSprite2DComponent::Draw() {
   if (!IsVisible()) return;
 
   // 現在のワールドトランスフォームを取得

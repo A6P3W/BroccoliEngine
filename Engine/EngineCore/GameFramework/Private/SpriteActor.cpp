@@ -1,12 +1,12 @@
 #include "SpriteActor.h"
 
 #include "ResourceManager.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 REGISTER_ACTOR(ASpriteActor);
 
 ASpriteActor::ASpriteActor() {
-  SpriteComponent = NewObject<MSpriteComponent>(this);
+  SpriteComponent = NewObject<MSprite2DComponent>(this);
   SetRootComponent(SpriteComponent);
   if (SpriteComponent) {
     SpriteComponent->RegisterComponent();

@@ -3,14 +3,14 @@
 #include "EnhancedInputComponent.h"
 #include "Log.h"
 #include "MovementComponent.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 // このアクタークラスを ActorRegistry に一般アクターとして自動登録するマクロ
 REGISTER_ACTOR(ABasicGameplayPawn)
 
 ABasicGameplayPawn::ABasicGameplayPawn() {
-  // 指定したアクター（this）を所有者として、描画用の MSpriteComponent を動的に作成
-  auto* Body = NewObject<MSpriteComponent>(this);
+  // 指定したアクター（this）を所有者として、描画用の MSprite2DComponent を動的に作成
+  auto* Body = NewObject<MSprite2DComponent>(this);
   // 描画順の優先度（10）と、描画空間をワールド座標（RenderSpace::World）に設定
   Body->SetRenderSettings(10, RenderSpace::World);
   // 半径 24.0f、水色（R:80, G:190, B:255）、塗りつぶしあり(true) の円形描画データを登録

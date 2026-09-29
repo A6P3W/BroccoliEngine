@@ -5,11 +5,11 @@
 
 class SpriteRenderState;
 
-class BROCCOLI_ENGINE_API MSpriteComponent : public MSceneComponent {
+class BROCCOLI_ENGINE_API MSprite2DComponent : public MSceneComponent {
  public:
-  DEFINE_ACTOR_COMPONENT_CLASS(MSpriteComponent)
-  MSpriteComponent();
-  ~MSpriteComponent() override;
+  DEFINE_ACTOR_COMPONENT_CLASS(MSprite2DComponent)
+  MSprite2DComponent();
+  ~MSprite2DComponent() override;
   void SetRenderSettings(int Priority, RenderSpace Space);
 
   void SetTint(const FColor& Tint);

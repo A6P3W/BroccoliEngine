@@ -1,7 +1,7 @@
 #pragma once
 #include "SceneComponent.h"
 
-class MSpriteComponent;
+class MSprite2DComponent;
 class EditorSelectPointComponent : public MSceneComponent {
  public:
   EditorSelectPointComponent();
@@ -11,5 +11,5 @@ class EditorSelectPointComponent : public MSceneComponent {
 
  private:
   void OnRegister() override;
-  MSpriteComponent* SelectPointSprite = nullptr;
+  MSprite2DComponent* SelectPointSprite = nullptr;
 };

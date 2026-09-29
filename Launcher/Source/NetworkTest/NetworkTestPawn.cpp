@@ -8,7 +8,7 @@
 #include "NetworkTestGameMode.h"
 #include "NetworkTestRepComponent.h"
 #include "NetworkTestUI.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 // このアクタークラスを アクター登録システム (ActorRegistry) に一般アクターとして自動登録するマクロ。
 REGISTER_ACTOR(ANetworkTestPawn)
@@ -25,8 +25,8 @@ ANetworkTestPawn::ANetworkTestPawn() {
   // デバッグ用のネットワーク接続 UI インスタンスを作成
   NetworkTestUI = std::make_unique<FNetworkTestUI>(*this);
 
-  // 指定したアクター（this）を所有者として、描画用の MSpriteComponent を動的に作成するエンジンの関数。
-  BodySprite = NewObject<MSpriteComponent>(this);
+  // 指定したアクター（this）を所有者として、描画用の MSprite2DComponent を動的に作成するエンジンの関数。
+  BodySprite = NewObject<MSprite2DComponent>(this);
 
   // スプライトの描画優先順位（ソートキー: 10）と、描画を行う座標空間（RenderSpace::World）を設定する関数。
   BodySprite->SetRenderSettings(10, RenderSpace::World);

@@ -4,7 +4,7 @@
 #include <cmath>
 
 #include "ResourceManager.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 REGISTER_ACTOR(ATintTestActor)
 
@@ -13,7 +13,7 @@ void ATintTestActor::OnSpeedChanged(float OldValue) {
 }
 
 ATintTestActor::ATintTestActor() {
-  SpriteComponent = NewObject<MSpriteComponent>(this);
+  SpriteComponent = NewObject<MSprite2DComponent>(this);
   SetRootComponent(SpriteComponent);
   if (SpriteComponent == nullptr) {
     return;
@@ -35,11 +35,9 @@ void ATintTestActor::OnUpdate(float DeltaTime) {
     return static_cast<uint8_t>(std::clamp((std::sin(Phase) * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f));
   };
 
-  SpriteComponent->SetTint(
-      FColor{
-          ToColorChannel(ElapsedTime),
-          ToColorChannel(ElapsedTime + 2.0943951f),
-          ToColorChannel(ElapsedTime + 4.1887902f)
-      }
-  );
+  SpriteComponent->SetTint(FColor{
+      ToColorChannel(ElapsedTime),
+      ToColorChannel(ElapsedTime + 2.0943951f),
+      ToColorChannel(ElapsedTime + 4.1887902f)
+  });
 }

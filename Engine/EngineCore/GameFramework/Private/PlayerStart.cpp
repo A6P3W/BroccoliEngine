@@ -2,7 +2,7 @@
 
 #include "SceneComponent.h"
 #ifdef _EDITOR
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 #endif
 
 #include <memory>
@@ -17,7 +17,7 @@ APlayerStart::APlayerStart() {
   }
 
 #ifdef _EDITOR
-  auto* Sprite = NewObject<MSpriteComponent>(this);
+  auto* Sprite = NewObject<MSprite2DComponent>(this);
   if (Sprite) {
     Sprite->SubmitCircle(12.0f, FColor{0, 255, 128, 200}, false);
     Sprite->RegisterComponent();

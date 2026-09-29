@@ -2,7 +2,7 @@
 
 #include "Actor.h"
 
-class MSpriteComponent;
+class MSprite2DComponent;
 
 // ネットワーク同期検証用の破壊可能なテストアクター
 class ANetworkTestBreakableActor : public AActor {
@@ -16,5 +16,5 @@ class ANetworkTestBreakableActor : public AActor {
   // 他のアクターとの衝突（重なり）検知時に呼び出されるコールバック関数
   void BeginOverlap(AActor* OtherActor) override;
 
-  MSpriteComponent* BodySprite = nullptr;
+  MSprite2DComponent* BodySprite = nullptr;
 };

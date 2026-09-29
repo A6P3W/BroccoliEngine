@@ -3,7 +3,7 @@
 #include "Actor.h"
 #include "ReflectionGenerator.h"
 
-class MSpriteComponent;
+class MSprite2DComponent;
 
 class ATintTestActor : public AActor {
  public:
@@ -38,6 +38,6 @@ class ATintTestActor : public AActor {
   void OnUpdate(float DeltaTime) override;
 
  private:
-  MSpriteComponent* SpriteComponent = nullptr;
+  MSprite2DComponent* SpriteComponent = nullptr;
   float ElapsedTime = 0.0f;
 };

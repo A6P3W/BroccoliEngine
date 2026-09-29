@@ -7,7 +7,7 @@
 #include "EditorMode.h"
 #include "EnhancedInputComponent.h"
 #include "RenderSystem.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 #include "World.h"
 
 REGISTER_ACTOR(EditorPawn2D);
@@ -18,7 +18,7 @@ constexpr float MaxEditorFOV = 1000.0f;
 }  // namespace
 
 EditorPawn2D::EditorPawn2D() {
-  GameScreenView = NewObject<MSpriteComponent>(this);
+  GameScreenView = NewObject<MSprite2DComponent>(this);
   if (GameScreenView != nullptr) {
     GameScreenView->SetRenderSettings(999, RenderSpace::World);
     GameScreenView->SubmitBox(1920, 1080, FColor{255, 255, 255}, 0);
@@ -95,8 +95,7 @@ void EditorPawn2D::OnMouseLeftPress(const FInputActionValue&) {
 
   FVector2D MouseRenderTargetPosition;
   if (EditorModePtr->TryGetViewportRenderTargetMousePosition(MouseRenderTargetPosition)) {
-    EditorModePtr->OnMousePress(
-        RenderSystem::GetInstance().ScreenToWorld(MouseRenderTargetPosition)
+    EditorModePtr->OnMousePress(RenderSystem::GetInstance().ScreenToWorld(MouseRenderTargetPosition)
     );
   }
 }

@@ -11,7 +11,7 @@
 class AActor;
 class MCollision2DComponent;
 #if !defined(_RELEASE)
-class MSpriteComponent;
+class MSprite2DComponent;
 #endif
 
 enum class EForceFieldType : uint8_t {
@@ -67,6 +67,6 @@ class BROCCOLI_ENGINE_API MForceFieldComponent : public MSceneComponent {
   std::vector<std::string> AffectedActorTags;
   std::vector<std::string> IgnoredActorTags;
 #if !defined(_RELEASE)
-  MSpriteComponent* DebugSprite = nullptr;
+  MSprite2DComponent* DebugSprite = nullptr;
 #endif
 };

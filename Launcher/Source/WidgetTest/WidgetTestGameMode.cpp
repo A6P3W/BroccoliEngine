@@ -1,7 +1,7 @@
 #include "WidgetTestGameMode.h"
 
 #include <PlayerController.h>
-#include <SpriteComponent.h>
+#include <Sprite2DComponent.h>
 
 #include "../Common/LauncherPlayerController.h"
 #include "ActorManager.h"
@@ -32,7 +32,9 @@ void AWidgetTestGameMode::BeginPlay() {
   UIManager::GetInstance()->AddWidget(mainMenuWidget);
   UIManager::GetInstance()->SetFocusedWidget(mainMenuWidget);
 
-  M_LOG(Log, "WidgetTestGameMode: MUIVerticalBoxComponent sample is available in WidgetTestUIMain.");
+  M_LOG(
+      Log, "WidgetTestGameMode: MUIVerticalBoxComponent sample is available in WidgetTestUIMain."
+  );
 
   // キャンバステストアクターを動的にスポーン
   GetWorld()->GetActorManager()->SpawnObject<ACanvasTestActor>();

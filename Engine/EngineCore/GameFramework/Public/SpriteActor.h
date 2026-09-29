@@ -2,7 +2,7 @@
 #include "Actor.h"
 #include "BroccoliEngineAPI.h"
 
-class MSpriteComponent;
+class MSprite2DComponent;
 
 class BROCCOLI_ENGINE_API ASpriteActor : public AActor {
  public:
@@ -18,7 +18,7 @@ class BROCCOLI_ENGINE_API ASpriteActor : public AActor {
   void BeginPlay() override;
 
  private:
-  MSpriteComponent* SpriteComponent = nullptr;
+  MSprite2DComponent* SpriteComponent = nullptr;
   void OnImagePathChanged(FPath OldValue);
   EDITOR_PROPERTY(
           .OnEditorChanged = ^^ASpriteActor::OnImagePathChanged, .PathFilter = EPathFilter::Image

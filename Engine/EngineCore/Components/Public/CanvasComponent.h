@@ -2,14 +2,14 @@
 
 #include "BroccoliEngineAPI.h"
 #include "Color.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 #include "UMath.h"
 
 /**
  * 実行時に動的なテクスチャの生成と直接描画を行うキャンバスコンポーネント。
  * raylibのRenderTextureは内部ハンドルで管理し、公開APIには露出させない。
  */
-class BROCCOLI_ENGINE_API MCanvasComponent : public MSpriteComponent {
+class BROCCOLI_ENGINE_API MCanvasComponent : public MSprite2DComponent {
  public:
   DEFINE_ACTOR_COMPONENT_CLASS(MCanvasComponent)
   MCanvasComponent();

@@ -9,7 +9,7 @@
 #include "InputMapper.h"
 #include "Log.h"
 #include "ResourceManager.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 #include "World.h"
 
 // このアクタークラスを ActorRegistry に一般アクターとして自動登録するマクロ

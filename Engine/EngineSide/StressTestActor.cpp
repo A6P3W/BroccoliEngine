@@ -2,7 +2,7 @@
 
 #include "RectangleCollision2DComponent.h"
 #include "ResourceManager.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 REGISTER_ACTOR(AStressTestActor)
 
@@ -23,7 +23,7 @@ AStressTestActor::AStressTestActor() {
       float posX = x * size - offsetX;
       float posY = y * size - offsetY;
 
-      auto* Sprite = NewObject<MSpriteComponent>(this);
+      auto* Sprite = NewObject<MSprite2DComponent>(this);
       if (Sprite) {
         Sprite->SubmitGraph(texHandle);
         Sprite->SetRelativeLocation({posX, posY});
