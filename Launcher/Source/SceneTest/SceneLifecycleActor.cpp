@@ -1,7 +1,7 @@
 #include "SceneLifecycleActor.h"
 
 #include "Log.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 #include "World.h"
 
 // 各アクタークラスを ActorRegistry に一般アクターとして自動登録するマクロ
@@ -47,8 +47,8 @@ void ASceneLifecycleActor::ToggleSpawnedActor() {
 }
 
 ASceneSpawnedMarkerActor::ASceneSpawnedMarkerActor() {
-  // 指定したアクター（this）を所有者として、描画用のスプライトコンポーネント（MSpriteComponent）を動的に作成するエンジンの関数
-  auto* Sprite = NewObject<MSpriteComponent>(this);
+  // 指定したアクター（this）を所有者として、描画用のスプライトコンポーネント（MSprite2DComponent）を動的に作成するエンジンの関数
+  auto* Sprite = NewObject<MSprite2DComponent>(this);
   Sprite->SetRenderSettings(20, RenderSpace::World);
   Sprite->SubmitCircle(18.0f, FColor{255, 180, 60}, true);
   // このコンポーネントをアクターのルートコンポーネントにアタッチ（親子関係を構築）する関数

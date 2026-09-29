@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "Actor.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 UIBoxButtonComponent::UIBoxButtonComponent() { SetWidgetSize({Width, Height}); }
 
@@ -11,7 +11,7 @@ void UIBoxButtonComponent::OnRegister() {
   if (BoxSprite != nullptr || GetOwner() == nullptr) {
     return;
   }
-  BoxSprite = NewObject<MSpriteComponent>(GetOwner());
+  BoxSprite = NewObject<MSprite2DComponent>(GetOwner());
   if (BoxSprite == nullptr) {
     return;
   }

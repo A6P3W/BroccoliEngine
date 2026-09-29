@@ -3,7 +3,7 @@
 #include "Color.h"
 #include "UIButtonComponent.h"
 
-class MSpriteComponent;
+class MSprite2DComponent;
 
 class BROCCOLI_ENGINE_API UIBoxButtonComponent : public MUIButtonComponent {
  public:
@@ -20,7 +20,7 @@ class BROCCOLI_ENGINE_API UIBoxButtonComponent : public MUIButtonComponent {
   void UpdateBox();
   FColor GetColorForState(EButtonState State) const;
 
-  MSpriteComponent* BoxSprite = nullptr;
+  MSprite2DComponent* BoxSprite = nullptr;
   float Width = 0.0f;
   float Height = 0.0f;
   FColor NormalColor = FColor::Black;

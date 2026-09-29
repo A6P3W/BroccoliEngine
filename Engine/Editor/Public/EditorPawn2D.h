@@ -4,7 +4,7 @@
 
 class EditorMode;
 class MEnhancedInputComponent;
-class MSpriteComponent;
+class MSprite2DComponent;
 struct FInputActionValue;
 
 class EditorPawn2D : public APawn {
@@ -32,7 +32,7 @@ class EditorPawn2D : public APawn {
   void UpdateCameraDrag();
 
   EditorMode* EditorModePtr = nullptr;
-  MSpriteComponent* GameScreenView = nullptr;
+  MSprite2DComponent* GameScreenView = nullptr;
   bool CameraDragActive = false;
   bool DiscardNextCameraDelta = false;
   bool IsPossessed = false;

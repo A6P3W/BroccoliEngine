@@ -139,6 +139,93 @@ void DrawGridCommand(const GridRenderData& Data) {
   rlEnd();
 }
 
+struct FSpriteBasis {
+  FVector3D Right;
+  FVector3D Up;
+};
+
+FSpriteBasis MakeSpriteBasis(
+    const Sprite3DRenderData& Data,
+    const FVector3D& CameraPosition,
+    const FVector3D& CameraForward,
+    const FVector3D& CameraUp
+) {
+  const FVector3D PlaneRight = CameraForward.Cross(CameraUp).Normalize();
+  const FSpriteBasis Plane{PlaneRight, CameraUp.Normalize()};
+  if (Data.BillboardMode == ESpriteBillboardMode::None) {
+    return {
+        Data.Transform.Rotation.RotateVector({1.0f, 0.0f, 0.0f}),
+        Data.Transform.Rotation.RotateVector({0.0f, 1.0f, 0.0f})
+    };
+  }
+  if (Data.BillboardMode == ESpriteBillboardMode::FaceCameraPlane) return Plane;
+
+  FVector3D Facing = CameraPosition - Data.Transform.Location;
+  if (Data.BillboardMode == ESpriteBillboardMode::FaceCameraYAxis) {
+    Facing.Y = 0.0f;
+    if (Facing.SizeSquared() <= 1e-12f) {
+      Facing = {-CameraForward.X, 0.0f, -CameraForward.Z};
+    }
+    if (Facing.SizeSquared() <= 1e-12f) Facing = {0.0f, 0.0f, -1.0f};
+    Facing = Facing.Normalize();
+    return {FVector3D{0.0f, 1.0f, 0.0f}.Cross(Facing).Normalize(), {0.0f, 1.0f, 0.0f}};
+  }
+  Facing = Facing.Normalize();
+  if (Facing.SizeSquared() <= 1e-12f) return Plane;
+  const FVector3D Right = CameraUp.Cross(Facing).Normalize();
+  if (Right.SizeSquared() <= 1e-12f) return Plane;
+  return {Right, Facing.Cross(Right).Normalize()};
+}
+
+void DrawSprite3DCommand(
+    const Sprite3DRenderData& Data,
+    const FVector3D& CameraPosition,
+    const FVector3D& CameraForward,
+    const FVector3D& CameraUp
+) {
+  const Texture2D* Texture = GetRaylibTexture(Data.TextureHandle);
+  if (Texture == nullptr || Data.Size.X <= 0.0f || Data.Size.Y <= 0.0f) return;
+  FSpriteBasis Basis = MakeSpriteBasis(Data, CameraPosition, CameraForward, CameraUp);
+  const float Angle = UMath::DegToRad(Data.RotationDegrees);
+  const FVector3D Right = Basis.Right * std::cos(Angle) + Basis.Up * std::sin(Angle);
+  const FVector3D Up = Basis.Up * std::cos(Angle) - Basis.Right * std::sin(Angle);
+  const float Width = Data.Size.X * Data.Transform.Scale.X;
+  const float Height = Data.Size.Y * Data.Transform.Scale.Y;
+  const float Left = -Data.Pivot.X * Width;
+  const float Top = Data.Pivot.Y * Height;
+  const FVector3D TopLeft = Data.Transform.Location + Right * Left + Up * Top;
+  const FVector3D TopRight = TopLeft + Right * Width;
+  const FVector3D BottomRight = TopRight - Up * Height;
+  const FVector3D BottomLeft = TopLeft - Up * Height;
+  const Rectangle Source = GetRaylibTextureSource(Data.TextureHandle);
+  const float U0 = Source.x / Texture->width;
+  const float U1 = (Source.x + Source.width) / Texture->width;
+  const float V0 = Source.y / Texture->height;
+  const float V1 = (Source.y + Source.height) / Texture->height;
+  const bool IsRenderTexture = IsRaylibRenderTexture(Data.TextureHandle);
+  const Color Tint = MakeTextureTint(Data.Tint, 255, IsRenderTexture);
+
+  rlDrawRenderBatchActive();
+  rlDisableBackfaceCulling();
+  if (IsRenderTexture) BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
+  rlSetTexture(Texture->id);
+  rlBegin(RL_QUADS);
+  rlColor4ub(Tint.r, Tint.g, Tint.b, Tint.a);
+  rlTexCoord2f(U0, V0);
+  rlVertex3f(TopLeft.X, TopLeft.Y, TopLeft.Z);
+  rlTexCoord2f(U0, V1);
+  rlVertex3f(BottomLeft.X, BottomLeft.Y, BottomLeft.Z);
+  rlTexCoord2f(U1, V1);
+  rlVertex3f(BottomRight.X, BottomRight.Y, BottomRight.Z);
+  rlTexCoord2f(U1, V0);
+  rlVertex3f(TopRight.X, TopRight.Y, TopRight.Z);
+  rlEnd();
+  rlSetTexture(0);
+  rlDrawRenderBatchActive();
+  if (IsRenderTexture) BeginBlendMode(BLEND_CUSTOM_SEPARATE);
+  rlEnableBackfaceCulling();
+}
+
 void DrawRenderCommand3D(const RenderCommand3D& Command) {
   std::visit(
       [](const auto& Data) {
@@ -199,8 +286,10 @@ bool LineIntersects(const FVector2D& Start, const FVector2D& End, const FScreenB
 }
 
 FScreenRenderArea BuildScreenRenderArea(const FVector2D& RenderTargetSize) {
-  const float Scale = (std::min)(RenderTargetSize.X / static_cast<float>(VirtualWidth),
-                                 RenderTargetSize.Y / static_cast<float>(VirtualHeight));
+  const float Scale = (std::min)(
+      RenderTargetSize.X / static_cast<float>(VirtualWidth),
+      RenderTargetSize.Y / static_cast<float>(VirtualHeight)
+  );
   const FVector2D Size = {
       static_cast<float>(VirtualWidth) * Scale, static_cast<float>(VirtualHeight) * Scale
   };
@@ -586,6 +675,23 @@ void RenderSystem::SubmitStaticMesh(
   );
 }
 
+void RenderSystem::SubmitSprite3D(
+    const FTransform3D& Transform,
+    int TextureHandle,
+    const FVector2D& Size,
+    const FVector2D& Pivot,
+    float RotationDegrees,
+    ESpriteBillboardMode BillboardMode,
+    const FColor& Tint
+) {
+  Impl->CommandBuffer3D.push_back(
+      {ERenderLayer3D::World,
+       Sprite3DRenderData{
+           Transform, Size, Pivot, RotationDegrees, TextureHandle, Tint, BillboardMode
+       }}
+  );
+}
+
 void RenderSystem::SubmitGrid3D(int Slices, float Spacing, EGridPlane Plane) {
   Impl->CommandBuffer3D.push_back({ERenderLayer3D::World, GridRenderData{Slices, Spacing, Plane}});
 }
@@ -683,9 +789,8 @@ FRenderContext RenderSystem::BuildRenderContext() const {
   };
 }
 
-bool RenderSystem::IsCommandVisible(
-    const RenderCommand& Command, const FRenderContext& Context
-) const {
+bool RenderSystem::IsCommandVisible(const RenderCommand& Command, const FRenderContext& Context)
+    const {
   return std::visit(FVisibilityVisitor{Command.common, Context}, Command.data);
 }
 
@@ -881,8 +986,21 @@ void RenderSystem::Draw() {
             : CAMERA_ORTHOGRAPHIC
     };
     BeginMode3D(Camera);
+    std::vector<const Sprite3DRenderData*> Sprites;
     for (const RenderCommand3D& Command : Impl->CommandBuffer3D) {
-      if (Command.Layer == ERenderLayer3D::World) DrawRenderCommand3D(Command);
+      if (Command.Layer != ERenderLayer3D::World) continue;
+      if (const auto* Sprite = std::get_if<Sprite3DRenderData>(&Command.Data)) {
+        Sprites.push_back(Sprite);
+      } else {
+        DrawRenderCommand3D(Command);
+      }
+    }
+    std::stable_sort(Sprites.begin(), Sprites.end(), [&](const auto* A, const auto* B) {
+      return (A->Transform.Location - Position).Dot(Forward) >
+             (B->Transform.Location - Position).Dot(Forward);
+    });
+    for (const Sprite3DRenderData* Sprite : Sprites) {
+      DrawSprite3DCommand(*Sprite, Position, Forward, Up);
     }
     rlDrawRenderBatchActive();
     const bool HasOverlay = std::any_of(

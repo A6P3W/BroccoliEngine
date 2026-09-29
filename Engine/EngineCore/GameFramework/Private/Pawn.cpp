@@ -10,7 +10,7 @@
 #include "Log.h"
 #include "PlayerController.h"
 #include "ResourceManager.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 #include "World.h"
 
 REGISTER_ACTOR(APawn)

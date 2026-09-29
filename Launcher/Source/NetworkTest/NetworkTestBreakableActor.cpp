@@ -6,7 +6,7 @@
 #include "Log.h"
 #include "NetworkTestPawn.h"
 #include "RectangleCollision2DComponent.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 // このアクタークラスを ActorRegistry に一般アクターとして自動登録するマクロ
 REGISTER_ACTOR(ANetworkTestBreakableActor)
@@ -16,8 +16,8 @@ ANetworkTestBreakableActor::ANetworkTestBreakableActor() {
   // これによりサーバーとクライアント間でアクターの生成・破棄やプロパティの同期が行われます
   bReplicates = true;
 
-  // 指定したアクター（this）を所有者として、描画用のスプライトコンポーネント（MSpriteComponent）を動的に作成するエンジンの関数
-  BodySprite = NewObject<MSpriteComponent>(this);
+  // 指定したアクター（this）を所有者として、描画用のスプライトコンポーネント（MSprite2DComponent）を動的に作成するエンジンの関数
+  BodySprite = NewObject<MSprite2DComponent>(this);
   // 描画順の優先度（9）と、描画空間をワールド座標（RenderSpace::World）に設定する関数
   BodySprite->SetRenderSettings(9, RenderSpace::World);
   // 指定されたサイズ（幅・高さ: 40.0f）、色（FColor）、および塗りつぶし設定で矩形（ボックス）の描画データを登録する関数

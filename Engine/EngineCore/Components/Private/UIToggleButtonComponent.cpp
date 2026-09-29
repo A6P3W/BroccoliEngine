@@ -3,10 +3,10 @@
 #include <memory>
 
 #include "Actor.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 struct UIToggleButtonComponent::Impl {
-  MSpriteComponent* BoxSprite = nullptr;
+  MSprite2DComponent* BoxSprite = nullptr;
   bool bIsOn = false;
   float Width = 0.0f;
   float Height = 0.0f;
@@ -34,7 +34,7 @@ void UIToggleButtonComponent::OnRegister() {
     return;
   }
 
-  ImplPtr->BoxSprite = NewObject<MSpriteComponent>(GetOwner());
+  ImplPtr->BoxSprite = NewObject<MSprite2DComponent>(GetOwner());
   if (ImplPtr->BoxSprite == nullptr) {
     return;
   }

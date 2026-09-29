@@ -3,7 +3,7 @@
 #include "Actor.h"
 
 class MSceneComponent;
-class MSpriteComponent;
+class MSprite2DComponent;
 
 // コンポーネントのアタッチ規則（アタッチ時の座標・回転・スケールの扱い）をテストするためのアクター
 class AAttachmentRuleTestActor : public AActor {
@@ -20,9 +20,9 @@ class AAttachmentRuleTestActor : public AActor {
   MSceneComponent* RotatingParent = nullptr;
 
   // 各アタッチルール検証用のスプライトコンポーネント
-  MSpriteComponent* KeepRelativeSprite = nullptr;
-  MSpriteComponent* KeepWorldSprite = nullptr;
-  MSpriteComponent* SnapSprite = nullptr;
+  MSprite2DComponent* KeepRelativeSprite = nullptr;
+  MSprite2DComponent* KeepWorldSprite = nullptr;
+  MSprite2DComponent* SnapSprite = nullptr;
 
   float RotationSpeed = 45.0f;
 };

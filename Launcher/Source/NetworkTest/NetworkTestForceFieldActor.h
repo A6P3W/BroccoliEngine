@@ -2,7 +2,7 @@
 
 #include "ForceFieldActor.h"
 
-class MSpriteComponent;
+class MSprite2DComponent;
 
 // 他のアクターに対して物理的な力を及ぼす力場アクター AForceFieldActor を継承
 class ANetworkTestForceFieldActor : public AForceFieldActor {
@@ -12,5 +12,5 @@ class ANetworkTestForceFieldActor : public AForceFieldActor {
   ANetworkTestForceFieldActor();
 
  private:
-  MSpriteComponent* FieldMarker = nullptr;
+  MSprite2DComponent* FieldMarker = nullptr;
 };

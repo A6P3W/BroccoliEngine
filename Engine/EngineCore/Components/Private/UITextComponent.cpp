@@ -2,10 +2,10 @@
 
 #include "Actor.h"
 #include "ResourceManager.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 struct UITextComponent::Impl {
-  MSpriteComponent* TextSprite = nullptr;
+  MSprite2DComponent* TextSprite = nullptr;
   std::string Text;
   FColor Color = FColor::White;
   int FontSize = 24;
@@ -23,7 +23,7 @@ void UITextComponent::OnRegister() {
   }
 
   // 描画空間をScreenにし、親(ボタン等)よりもZオーダーを1つ上に設定
-  ImplPtr->TextSprite = NewObject<MSpriteComponent>(GetOwner());
+  ImplPtr->TextSprite = NewObject<MSprite2DComponent>(GetOwner());
   if (ImplPtr->TextSprite == nullptr) {
     return;
   }

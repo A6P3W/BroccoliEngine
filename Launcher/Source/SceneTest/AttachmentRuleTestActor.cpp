@@ -1,7 +1,7 @@
 #include "AttachmentRuleTestActor.h"
 
 #include "SceneComponent.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 // このアクタークラスを ActorRegistry に一般アクターとして自動登録するマクロ
 REGISTER_ACTOR(AAttachmentRuleTestActor)
@@ -20,7 +20,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
   RotatingParent->RegisterComponent();
 
   // 親の中心を示す黄色い円
-  auto* ParentMarker = NewObject<MSpriteComponent>(this);
+  auto* ParentMarker = NewObject<MSprite2DComponent>(this);
   ParentMarker->SetRenderSettings(10, RenderSpace::World);
   ParentMarker->SubmitCircle(18.0f, FColor{255, 220, 60}, true);
   ParentMarker->AttachToComponent(RotatingParent);
@@ -35,7 +35,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
   // 親が回転すると、青い円は親の周囲を回転する。
   // ============================================================
 
-  KeepRelativeSprite = NewObject<MSpriteComponent>(this);
+  KeepRelativeSprite = NewObject<MSprite2DComponent>(this);
   KeepRelativeSprite->SetRenderSettings(11, RenderSpace::World);
   KeepRelativeSprite->SubmitCircle(12.0f, FColor{80, 170, 255}, true);
 
@@ -62,7 +62,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
   const FVector2D KeepWorldStartLocation{170.0f, 240.0f};
 
   // アタッチ前の位置を示す灰色の円
-  auto* KeepWorldStartMarker = NewObject<MSpriteComponent>(this);
+  auto* KeepWorldStartMarker = NewObject<MSprite2DComponent>(this);
 
   KeepWorldStartMarker->SetRenderSettings(5, RenderSpace::World);
 
@@ -72,7 +72,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
 
   KeepWorldStartMarker->RegisterComponent();
 
-  KeepWorldSprite = NewObject<MSpriteComponent>(this);
+  KeepWorldSprite = NewObject<MSprite2DComponent>(this);
   KeepWorldSprite->SetRenderSettings(11, RenderSpace::World);
   KeepWorldSprite->SubmitCircle(12.0f, FColor{80, 255, 140}, true);
 
@@ -98,7 +98,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
   const FVector2D SnapBeforeLocation{500.0f, 100.0f};
 
   // Snap前の位置を示す灰色の円
-  auto* SnapBeforeMarker = NewObject<MSpriteComponent>(this);
+  auto* SnapBeforeMarker = NewObject<MSprite2DComponent>(this);
 
   SnapBeforeMarker->SetRenderSettings(5, RenderSpace::World);
 
@@ -108,7 +108,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
 
   SnapBeforeMarker->RegisterComponent();
 
-  SnapSprite = NewObject<MSpriteComponent>(this);
+  SnapSprite = NewObject<MSprite2DComponent>(this);
   SnapSprite->SetRenderSettings(12, RenderSpace::World);
   SnapSprite->SubmitCircle(10.0f, FColor{255, 80, 110}, true);
 

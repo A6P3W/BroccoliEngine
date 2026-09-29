@@ -5,7 +5,7 @@
 #include "LineCollision2DComponent.h"
 #include "Log.h"
 #include "RectangleCollision2DComponent.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 // 各アクタークラスを ActorRegistry にアクターとして自動登録するマクロ
 REGISTER_ACTOR(ACollisionTestRectangleActor)

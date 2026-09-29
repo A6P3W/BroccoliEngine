@@ -11,7 +11,7 @@
 #include "UMath.h"
 
 class MEnhancedInputComponent;
-class MSpriteComponent;
+class MSprite2DComponent;
 struct FInputActionValue;
 class MNetMovementComponent;
 class FNetworkTestUI;
@@ -49,7 +49,7 @@ class ANetworkTestPawn : public APawn {
   void BeginOverlap(AActor* OtherActor) override;
   FColor GetDisplayColor() const;
 
-  MSpriteComponent* BodySprite = nullptr;
+  MSprite2DComponent* BodySprite = nullptr;
   MNetMovementComponent* Movement = nullptr;
   MNetworkTestRepComponent* ReplicationTest = nullptr;
   std::unique_ptr<FNetworkTestUI> NetworkTestUI;

@@ -1,7 +1,7 @@
 #include "EditorSelectPointComponent.h"
 
 #include "Actor.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 EditorSelectPointComponent::EditorSelectPointComponent() {}
 
 void EditorSelectPointComponent::Draw() { SelectPointSprite->SetWorldScale(FScale(1.0f)); }
@@ -12,7 +12,7 @@ void EditorSelectPointComponent::Selected(bool bSelected) {
 }
 
 void EditorSelectPointComponent::OnRegister() {
-  SelectPointSprite = NewObject<MSpriteComponent>(GetOwner());
+  SelectPointSprite = NewObject<MSprite2DComponent>(GetOwner());
   if (SelectPointSprite == nullptr) {
     return;
   }

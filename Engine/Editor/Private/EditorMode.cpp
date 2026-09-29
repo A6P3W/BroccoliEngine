@@ -20,7 +20,7 @@
 #include "RenderSystem.h"
 #include "ResourceManager.h"
 #include "SceneManager.h"
-#include "SpriteActor.h"
+#include "Sprite2DActor.h"
 #include "StaticMeshActor.h"
 #include "StaticMeshComponent.h"
 #include "World.h"
@@ -259,9 +259,10 @@ bool EditorMode::QuickSaveLevel() {
     std::string PathStr = FilePath;
     std::string LowerPath = PathStr;
     std::transform(
-        LowerPath.begin(), LowerPath.end(), LowerPath.begin(), [](unsigned char Character) {
-          return static_cast<char>(std::tolower(Character));
-        }
+        LowerPath.begin(),
+        LowerPath.end(),
+        LowerPath.begin(),
+        [](unsigned char Character) { return static_cast<char>(std::tolower(Character)); }
     );
     const std::string JsonSuffix = ".blevel.json";
     const std::string BLevelSuffix = ".blevel";
@@ -269,12 +270,10 @@ bool EditorMode::QuickSaveLevel() {
         LowerPath.compare(LowerPath.size() - JsonSuffix.size(), JsonSuffix.size(), JsonSuffix) ==
             0) {
       PathStr = PathStr.substr(0, PathStr.size() - JsonSuffix.size()) + ".BLevel.json";
-    } else if (
-        LowerPath.size() >= BLevelSuffix.size() &&
-        LowerPath.compare(
-            LowerPath.size() - BLevelSuffix.size(), BLevelSuffix.size(), BLevelSuffix
-        ) == 0
-    ) {
+    } else if (LowerPath.size() >= BLevelSuffix.size() &&
+               LowerPath.compare(
+                   LowerPath.size() - BLevelSuffix.size(), BLevelSuffix.size(), BLevelSuffix
+               ) == 0) {
       PathStr = PathStr.substr(0, PathStr.size() - BLevelSuffix.size()) + ".BLevel.json";
     } else {
       PathStr += ".BLevel.json";
@@ -406,9 +405,8 @@ bool EditorMode::IsViewportInputAvailable() const {
   return ViewportState.Hovered && ViewportState.ContainsScreenPoint(ScreenPosition);
 }
 
-bool EditorMode::TryGetViewportRenderTargetMousePosition(
-    FVector2D& OutPosition, bool RequireInside
-) const {
+bool EditorMode::TryGetViewportRenderTargetMousePosition(FVector2D& OutPosition, bool RequireInside)
+    const {
   const Vector2 MousePosition = GetMousePosition();
   return ViewportState.ScreenToRenderTarget(
       {MousePosition.x, MousePosition.y}, OutPosition, RequireInside

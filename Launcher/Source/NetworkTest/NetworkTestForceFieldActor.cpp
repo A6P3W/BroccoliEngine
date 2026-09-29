@@ -2,7 +2,7 @@
 
 #include "CircleCollision2DComponent.h"
 #include "ForceFieldComponent.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 
 // このアクタークラスを ActorRegistry に一般アクターとして自動登録するマクロ
 REGISTER_ACTOR(ANetworkTestForceFieldActor)
@@ -31,8 +31,8 @@ ANetworkTestForceFieldActor::ANetworkTestForceFieldActor() {
     Range->SetRadius(160.0f);
   }
 
-  // 指定したアクター（this）を所有者として、描画用のスプライトコンポーネント（MSpriteComponent）を動的に作成するエンジンの関数
-  FieldMarker = NewObject<MSpriteComponent>(this);
+  // 指定したアクター（this）を所有者として、描画用のスプライトコンポーネント（MSprite2DComponent）を動的に作成するエンジンの関数
+  FieldMarker = NewObject<MSprite2DComponent>(this);
   if (FieldMarker) {
     // 描画順の優先度（8）と、描画空間をワールド座標（RenderSpace::World）に設定する関数
     FieldMarker->SetRenderSettings(8, RenderSpace::World);

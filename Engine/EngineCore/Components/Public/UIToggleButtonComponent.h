@@ -5,7 +5,7 @@
 #include "Color.h"
 #include "UIButtonComponent.h"
 
-class MSpriteComponent;
+class MSprite2DComponent;
 
 class BROCCOLI_ENGINE_API UIToggleButtonComponent : public MUIButtonComponent {
  public:

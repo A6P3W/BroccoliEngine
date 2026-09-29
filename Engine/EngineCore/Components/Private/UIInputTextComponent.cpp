@@ -10,7 +10,7 @@
 #include "InputManager.h"
 #include "KeyboardDevice.h"
 #include "ResourceManager.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 #include "UIManager.h"
 
 namespace {
@@ -28,10 +28,10 @@ bool IsAlphaNumeric(char Character) {
 }  // namespace
 
 struct UIInputTextComponent::Impl {
-  MSpriteComponent* BoxSprite = nullptr;
-  MSpriteComponent* TextSprite = nullptr;
-  MSpriteComponent* BorderSprite = nullptr;
-  MSpriteComponent* ActionHintSprite = nullptr;
+  MSprite2DComponent* BoxSprite = nullptr;
+  MSprite2DComponent* TextSprite = nullptr;
+  MSprite2DComponent* BorderSprite = nullptr;
+  MSprite2DComponent* ActionHintSprite = nullptr;
 
   std::string Text;
   std::string HintText;
@@ -79,10 +79,10 @@ void UIInputTextComponent::OnRegister() {
     return;
   }
 
-  ImplPtr->BoxSprite = NewObject<MSpriteComponent>(GetOwner());
-  ImplPtr->TextSprite = NewObject<MSpriteComponent>(GetOwner());
-  ImplPtr->BorderSprite = NewObject<MSpriteComponent>(GetOwner());
-  ImplPtr->ActionHintSprite = NewObject<MSpriteComponent>(GetOwner());
+  ImplPtr->BoxSprite = NewObject<MSprite2DComponent>(GetOwner());
+  ImplPtr->TextSprite = NewObject<MSprite2DComponent>(GetOwner());
+  ImplPtr->BorderSprite = NewObject<MSprite2DComponent>(GetOwner());
+  ImplPtr->ActionHintSprite = NewObject<MSprite2DComponent>(GetOwner());
   if (ImplPtr->BoxSprite == nullptr || ImplPtr->TextSprite == nullptr ||
       ImplPtr->BorderSprite == nullptr || ImplPtr->ActionHintSprite == nullptr) {
     return;

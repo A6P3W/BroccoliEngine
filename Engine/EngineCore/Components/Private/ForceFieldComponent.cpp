@@ -11,7 +11,7 @@
 #include "MovementComponent.h"
 #if !defined(_RELEASE)
 #include "ResourceManager.h"
-#include "SpriteComponent.h"
+#include "Sprite2DComponent.h"
 #endif
 
 MForceFieldComponent::MForceFieldComponent() {
@@ -29,7 +29,7 @@ void MForceFieldComponent::OnRegister() {
     return;
   }
 
-  DebugSprite = NewObject<MSpriteComponent>(GetOwner());
+  DebugSprite = NewObject<MSprite2DComponent>(GetOwner());
   if (!DebugSprite) {
     return;
   }
@@ -126,9 +126,9 @@ bool MForceFieldComponent::IsValidTarget(AActor* Target) const {
   }
 
   const bool Ignored = std::any_of(
-      IgnoredActorTags.begin(), IgnoredActorTags.end(), [Target](const std::string& Tag) {
-        return Target->HasTag(Tag);
-      }
+      IgnoredActorTags.begin(),
+      IgnoredActorTags.end(),
+      [Target](const std::string& Tag) { return Target->HasTag(Tag); }
   );
   if (Ignored) {
     return false;
@@ -136,9 +136,9 @@ bool MForceFieldComponent::IsValidTarget(AActor* Target) const {
 
   return AffectedActorTags.empty() ||
          std::any_of(
-             AffectedActorTags.begin(), AffectedActorTags.end(), [Target](const std::string& Tag) {
-               return Target->HasTag(Tag);
-             }
+             AffectedActorTags.begin(),
+             AffectedActorTags.end(),
+             [Target](const std::string& Tag) { return Target->HasTag(Tag); }
          );
 }
 
