@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <exception>
 #include <limits>
@@ -52,6 +53,7 @@ struct FEditorPropertyAnnotation {
   FAnnotationNumber Min, Max, SliderMin, SliderMax;
   TAnnotationOptional<std::size_t> MaxLength;
   EPathFilter PathFilter = EPathFilter::AnyFile;
+  char EnumOptions[64] = {};
 };
 
 namespace ReflectionGenerator {
@@ -238,6 +240,23 @@ void AppendTyped(FClass& Class, EPropertyType Type) {
       constexpr int SliderMax = static_cast<int>(Value.SliderMax.Value);
       Property.EditorMetadata.IntSliderMax = SliderMax;
     }
+    if constexpr (Value.EnumOptions[0] != '\0') {
+      constexpr auto OptionCharacters = []() consteval {
+        constexpr auto Annotation = GetAnnotation<Member, FEditorPropertyAnnotation>();
+        std::array<char, 64> Characters{};
+        for (std::size_t Index = 0; Index < Characters.size(); ++Index)
+          Characters[Index] = Annotation.EnumOptions[Index];
+        return Characters;
+      }();
+      std::string Options = OptionCharacters.data();
+      std::size_t Start = 0;
+      while (Start <= Options.size()) {
+        const std::size_t End = Options.find('|', Start);
+        Property.EditorMetadata.EnumOptions.push_back(Options.substr(Start, End - Start));
+        if (End == std::string::npos) break;
+        Start = End + 1;
+      }
+    }
   } else if constexpr (std::is_same_v<V, float>) {
     static_assert(!Value.MaxLength.Present, "MaxLength is only valid for string properties");
     static_assert(
@@ -277,6 +296,7 @@ void AppendTyped(FClass& Class, EPropertyType Type) {
       Property.EditorMetadata.MaxLength = MaxLength;
     }
   } else {
+    static_assert(Value.EnumOptions[0] == '\0', "EnumOptions is only valid for int properties");
     static_assert(
         !Value.Min.Present && !Value.Max.Present && !Value.SliderMin.Present &&
             !Value.SliderMax.Present,
@@ -309,6 +329,8 @@ void Append(FClass& Class) {
       AppendTyped<T, Member, V>(Class, EPropertyType::Vector3D);
     else if constexpr (std::is_same_v<V, FPath>)
       AppendTyped<T, Member, V>(Class, EPropertyType::Path);
+    else if constexpr (std::is_same_v<V, FColor>)
+      AppendTyped<T, Member, V>(Class, EPropertyType::Color);
     else
       static_assert(!std::is_same_v<V, V>, "Unsupported editor property member type");
   }

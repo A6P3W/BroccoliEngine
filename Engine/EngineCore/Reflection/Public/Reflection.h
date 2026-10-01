@@ -8,12 +8,14 @@
 #include <vector>
 
 #include "BroccoliEngineAPI.h"
+#include "Color.h"
 #include "FPath.h"
 #include "UMath.h"
 
-using FPropertyValue = std::variant<bool, int, float, std::string, FVector2D, FVector3D, FPath>;
+using FPropertyValue =
+    std::variant<bool, int, float, std::string, FVector2D, FVector3D, FPath, FColor>;
 
-enum class EPropertyType { Bool, Int, Float, String, Vector2D, Vector3D, Path };
+enum class EPropertyType { Bool, Int, Float, String, Vector2D, Vector3D, Path, Color };
 
 enum class EPathFilter { AnyFile, Image, Model };
 
@@ -28,6 +30,7 @@ struct FEditorPropertyMetadata {
   std::optional<float> FloatSliderMax;
   std::optional<std::size_t> MaxLength;
   EPathFilter PathFilter = EPathFilter::AnyFile;
+  std::vector<std::string> EnumOptions;
 };
 
 struct FProperty {
