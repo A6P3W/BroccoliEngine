@@ -11,30 +11,34 @@
 
 #include "Actor.h"
 #include "ActorRegistry.h"
+#include "DirectionalLightActor.h"
+#include "DirectionalLightComponent.h"
 #include "EditorClipboard.h"
 #include "LevelSerializer.h"
 #include "Log.h"
 #include "PathResolver.h"
 #include "PluginHost.h"
 #include "ReflectionGenerator.h"
+#include "ResourceManager.h"
 #include "Sprite2DActor.h"
 #include "Sprite2DComponent.h"
 #include "Sprite3DActor.h"
 #include "Sprite3DComponent.h"
 #include "StaticMeshActor.h"
+#include "StaticMeshComponent.h"
 #include "World.h"
 #include "nlohmann/json.hpp"
 
 namespace {
-static_assert(std::is_same_v<
-              decltype(&ASprite2DActor::SetImagePath),
-              void (ASprite2DActor::*)(const FPath&)>);
+static_assert(
+    std::is_same_v<decltype(&ASprite2DActor::SetImagePath), void (ASprite2DActor::*)(const FPath&)>
+);
 static_assert(std::is_same_v<
               decltype(&ASprite2DActor::GetImagePath),
               const FPath& (ASprite2DActor::*)() const>);
-static_assert(std::is_same_v<
-              decltype(&ASprite3DActor::SetImagePath),
-              void (ASprite3DActor::*)(const FPath&)>);
+static_assert(
+    std::is_same_v<decltype(&ASprite3DActor::SetImagePath), void (ASprite3DActor::*)(const FPath&)>
+);
 static_assert(std::is_same_v<
               decltype(&ASprite3DActor::GetImagePath),
               const FPath& (ASprite3DActor::*)() const>);
@@ -960,11 +964,93 @@ void TestSpriteActorImagePathRoundTrip() {
   const fs::path CanonicalTempDirectory = fs::weakly_canonical(TempDirectory);
   Check(
       CanonicalTempDirectory.is_absolute() && CanonicalTempDirectory.parent_path() == TempRoot &&
-          CanonicalTempDirectory.filename().string().starts_with("BroccoliReflectionTests-Sprites-"
+          CanonicalTempDirectory.filename().string().starts_with(
+              "BroccoliReflectionTests-Sprites-"
           ),
       "Refusing to remove a Sprite test directory outside its dedicated temp root."
   );
   fs::remove_all(CanonicalTempDirectory);
+}
+
+void TestMaterialAndLightRoundTrip() {
+  namespace fs = std::filesystem;
+  const FClass* MeshClass =
+      FReflectionRegistry::GetInstance().FindClass(AStaticMeshActor::StaticClassName());
+  const FClass* LightClass =
+      FReflectionRegistry::GetInstance().FindClass(ADirectionalLightActor::StaticClassName());
+  Check(MeshClass != nullptr && LightClass != nullptr, "3D actor Reflection is missing.");
+  Check(
+      RequireProperty(*MeshClass, "ShadingModel").EditorMetadata.EnumOptions.size() == 2,
+      "Shading model options are missing."
+  );
+  Check(
+      RequireProperty(*MeshClass, "BaseColor").Type == EPropertyType::Color &&
+          RequireProperty(*MeshClass, "BaseColorTexturePath").EditorMetadata.PathFilter ==
+              EPathFilter::Image,
+      "Material editor metadata is incorrect."
+  );
+
+  const fs::path TempDirectory =
+      fs::temp_directory_path() /
+      ("BroccoliReflectionTests-Material-" +
+       std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  fs::create_directories(TempDirectory);
+  const fs::path LevelPath = TempDirectory / "Material.BLevel.json";
+  {
+    World SaveWorld;
+    auto* Mesh = SaveWorld.SpawnActor<AStaticMeshActor>({}, FRotator(0.0F), true);
+    auto* Light = SaveWorld.SpawnActor<ADirectionalLightActor>({}, FRotator(0.0F), true);
+    Check(Mesh != nullptr && Light != nullptr, "Could not spawn material test actors.");
+    SaveWorld.GetActorManager()->FlushPendingActors();
+    Check(RequireProperty(*MeshClass, "ShadingModel").Set(Mesh, 0), "Could not set Unlit.");
+    Check(
+        RequireProperty(*MeshClass, "BaseColor").Set(Mesh, FColor{25, 50, 75, 255}),
+        "Could not set base color."
+    );
+    Check(
+        RequireProperty(*LightClass, "Intensity").Set(Light, 2.5f) &&
+            RequireProperty(*LightClass, "Enabled").Set(Light, false),
+        "Could not set directional light."
+    );
+    auto* MeshComponent = dynamic_cast<MStaticMeshComponent*>(Mesh->GetRootComponent());
+    Check(MeshComponent != nullptr, "StaticMeshActor has the wrong root component.");
+    const FMaterial3DDesc* Material =
+        ResourceManager::GetInstance().GetMaterial3D(MeshComponent->GetMaterial());
+    Check(
+        Material != nullptr && Material->ShadingModel == EShadingModel3D::Unlit &&
+            Material->BaseColor == FColor{25, 50, 75, 255},
+        "Reflected values did not rebuild the runtime material."
+    );
+    Check(LevelSerializer::Save(&SaveWorld, LevelPath.string(), ""), "Could not save level.");
+  }
+  {
+    World LoadWorld;
+    Check(LevelSerializer::Load(&LoadWorld, LevelPath.string(), false), "Could not load level.");
+    bool MeshRestored = false;
+    bool LightRestored = false;
+    for (const auto& Actor : LoadWorld.GetActorManager()->GetAllActors()) {
+      if (auto* Mesh = dynamic_cast<AStaticMeshActor*>(Actor.get())) {
+        auto* Component = dynamic_cast<MStaticMeshComponent*>(Mesh->GetRootComponent());
+        const FMaterial3DDesc* Material = ResourceManager::GetInstance().GetMaterial3D(
+            Component != nullptr ? Component->GetMaterial() : 0
+        );
+        MeshRestored = Material != nullptr && Material->ShadingModel == EShadingModel3D::Unlit &&
+                       Material->BaseColor == FColor{25, 50, 75, 255};
+      } else if (auto* Light = dynamic_cast<ADirectionalLightActor*>(Actor.get())) {
+        auto* Component = dynamic_cast<MDirectionalLightComponent*>(Light->GetRootComponent());
+        LightRestored =
+            Component != nullptr && Component->GetIntensity() == 2.5f && !Component->IsEnabled();
+      }
+    }
+    Check(MeshRestored && LightRestored, "Material or light did not round trip.");
+  }
+  const fs::path Canonical = fs::weakly_canonical(TempDirectory);
+  Check(
+      Canonical.parent_path() == fs::weakly_canonical(fs::temp_directory_path()) &&
+          Canonical.filename().string().starts_with("BroccoliReflectionTests-Material-"),
+      "Refusing to remove a directory outside the material test root."
+  );
+  fs::remove_all(Canonical);
 }
 
 void TestPluginLoadUnloadAndLiveActorDelay() {
@@ -1047,6 +1133,7 @@ int main(int ArgCount, char** Arguments) {
       TestLevelSerializerRoundTripAndLegacyVersions();
       TestWorldLevelSerializerReflectionRoundTrip();
       TestSpriteActorImagePathRoundTrip();
+      TestMaterialAndLightRoundTrip();
       TestPluginLoadUnloadAndLiveActorDelay();
     }
   } catch (const std::exception& Error) {
