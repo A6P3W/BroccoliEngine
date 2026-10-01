@@ -1,6 +1,7 @@
 #include "RenderSystem.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <optional>
 #include <type_traits>
@@ -101,6 +102,14 @@ void DrawStaticMeshCommand(
   std::vector<Material> Materials;
   if (ModelData->materials != nullptr && ModelData->materialCount > 0)
     Materials.assign(ModelData->materials, ModelData->materials + ModelData->materialCount);
+  // raylib allocates 12 entries for each material, including its reserved map slot.
+  constexpr std::size_t MaterialMapCount = 12;
+  std::vector<std::array<MaterialMap, MaterialMapCount>> MaterialMaps(Materials.size());
+  for (std::size_t Index = 0; Index < Materials.size(); ++Index) {
+    if (Materials[Index].maps == nullptr) continue;
+    std::copy_n(Materials[Index].maps, MaterialMapCount, MaterialMaps[Index].begin());
+    Materials[Index].maps = MaterialMaps[Index].data();
+  }
   const Shader* MaterialShader = GetRaylibMaterialShader(
       Descriptor != nullptr && Descriptor->ShadingModel == EShadingModel3D::Lit
   );
@@ -160,6 +169,7 @@ void DrawStaticMeshCommand(
         SHADER_UNIFORM_INT
     );
     for (Material& Entry : Materials) {
+      if (Entry.maps == nullptr) continue;
       Entry.shader = *MaterialShader;
       const Color ImportedColor = Entry.maps[MATERIAL_MAP_DIFFUSE].color;
       Entry.maps[MATERIAL_MAP_DIFFUSE].color = {
