@@ -59,6 +59,8 @@ jobs:
         with:
           path: ${{ runner.temp }}/vcpkg-binary-cache
           key: vcpkg-${{ runner.os }}-gcc${{ steps.versions.outputs.gcc }}-cmake${{ steps.versions.outputs.cmake }}-${{ hashFiles('Engine/vcpkg.json', 'Engine/vcpkg-configuration.json', 'Engine/vcpkg-overlay-ports/**', 'CMakePresets.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-gcc${{ steps.versions.outputs.gcc }}-cmake${{ steps.versions.outputs.cmake }}-
       - name: Python tests
         shell: pwsh
         run: |
