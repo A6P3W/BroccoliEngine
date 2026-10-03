@@ -23,6 +23,7 @@ jobs:
         id: msys2
         with:
           msystem: MINGW64
+          update: true
           install: mingw-w64-x86_64-gcc
       - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
       - name: Install CMake and configure tools
@@ -43,7 +44,7 @@ jobs:
           uv --version
           $GccVersion = (& g++ -dumpfullversion).Trim()
           $CmakeVersion = ((& cmake --version | Select-Object -First 1) -split ' ')[2]
-          if ([int]($GccVersion -split '\.')[0] -ne 16) { throw "GCC 16 is required, found $GccVersion" }
+          if ($GccVersion -notmatch '^16\.2(\.|$)') { throw "GCC 16.2 is required, found $GccVersion" }
           if ([version]$CmakeVersion -lt [version]'4.2.0') { throw "CMake 4.2 is required, found $CmakeVersion" }
           "gcc=16" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "cmake=$(($CmakeVersion -split '\.')[0..1] -join '.')" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
@@ -79,7 +80,7 @@ jobs:
           .\broccoli.bat build Editor
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        if: success() && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        if: always() && steps.vcpkg-cache.outcome == 'success' && steps.vcpkg-cache.outputs.cache-hit != 'true'
         with:
           path: ${{ runner.temp }}/vcpkg-binary-cache
           key: vcpkg-${{ runner.os }}-gcc${{ steps.versions.outputs.gcc }}-cmake${{ steps.versions.outputs.cmake }}-${{ hashFiles('Engine/vcpkg.json', 'Engine/vcpkg-configuration.json', 'Engine/vcpkg-overlay-ports/**', 'CMakePresets.json') }}
