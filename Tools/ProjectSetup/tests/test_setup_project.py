@@ -106,6 +106,9 @@ def TestRenderTemplatesCreatesBasicGameplay(
     Preset["name"]: Preset for Preset in SharedPresetsData.get("configurePresets", [])
   }
   assert "windows-x64" in SharedConfigurePresets
+  assert "windows-x64-env" in SharedConfigurePresets
+  SharedBuildPresets = {Preset["name"] for Preset in SharedPresetsData.get("buildPresets", [])}
+  assert {"debug-env", "editor-env"} <= SharedBuildPresets
   assert (
     SharedConfigurePresets["windows-x64"]["cacheVariables"]["CMAKE_TOOLCHAIN_FILE"]
     == "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
@@ -123,8 +126,8 @@ def TestRenderTemplatesCreatesBasicGameplay(
   )
   assert "{PROJECT_NAME}" not in AllText
   assert "ABasicGameplayGameMode" in AllText
-  assert "TestGame-game.exe" in AllText
-  assert "Publish\\%TARGET%\\TestGame.exe" in AllText
+  assert "project(TestGameWorkspace LANGUAGES CXX)" in AllText
+  assert "BroccoliProjectBuild_${Configuration}" in AllText
 
 
 def TestRenderTemplatesRefusesOverwrite(

@@ -1,7 +1,30 @@
 $ErrorActionPreference = "Stop"
 
 $RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
-$Compiler = "C:/msys64/mingw64/bin/g++.exe"
+$CMakeCache = Join-Path $RepositoryRoot "build/windows-x64-gcc26/CMakeCache.txt"
+$Compiler = $null
+if (Test-Path -LiteralPath $CMakeCache) {
+  $CompilerEntry = Get-Content -LiteralPath $CMakeCache |
+    Where-Object { $_ -match '^CMAKE_CXX_COMPILER:[^=]+=(.+)$' } |
+    Select-Object -First 1
+  if ($CompilerEntry -match '^CMAKE_CXX_COMPILER:[^=]+=(.+)$') {
+    $Compiler = $Matches[1]
+  }
+}
+if (-not $Compiler) {
+  $CompilerCommand = Get-Command g++ -ErrorAction SilentlyContinue
+  if ($CompilerCommand) {
+    $Compiler = $CompilerCommand.Source
+  }
+}
+if (-not $Compiler) {
+  throw "GCC compiler was not found in CMakeCache.txt or PATH."
+}
+if (-not [System.IO.Path]::IsPathRooted($Compiler)) {
+  $Compiler = (Get-Command $Compiler -ErrorAction Stop).Source
+}
+$Compiler = [System.IO.Path]::GetFullPath($Compiler)
+$CompilerDirectory = Split-Path -Parent $Compiler
 $DebugDirectory = Join-Path $RepositoryRoot "Bin/x64/Debug"
 $TestExecutable = Join-Path $DebugDirectory "ReflectionTests.exe"
 $TestTempDirectory = Join-Path ([System.IO.Path]::GetTempPath()) `
@@ -35,7 +58,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $DebugDirectory "BroccoliEngine.dll"
   throw "Build Debug first so Bin/x64/Debug/BroccoliEngine.dll exists."
 }
 
-$env:PATH = "C:/msys64/mingw64/bin;$DebugDirectory;$env:PATH"
+$env:PATH = "$CompilerDirectory;$DebugDirectory;$env:PATH"
 New-Item -ItemType Directory -Path $TestTempDirectory | Out-Null
 Push-Location $RepositoryRoot
 try {

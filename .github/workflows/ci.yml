@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Python, Debug, Reflection, Editor
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
+        id: msys2
+        with:
+          msystem: MINGW64
+          install: mingw-w64-x86_64-gcc
+      - uses: astral-sh/setup-uv@1e862dfacbd1d6d858c55d9b792c756523627244 # v7.1.4
+      - name: Install CMake and configure tools
+        shell: pwsh
+        run: |
+          uv tool install 'cmake>=4.2,<4.3'
+          (uv tool dir --bin) | Out-File -FilePath $env:GITHUB_PATH -Append
+          "${{ steps.msys2.outputs.msys2-location }}\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+          if (-not $env:VCPKG_INSTALLATION_ROOT) { throw 'Runner vcpkg installation was not found.' }
+          "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Verify toolchain
+        id: versions
+        shell: pwsh
+        run: |
+          g++ --version
+          cmake --version
+          ninja --version
+          uv --version
+          $GccVersion = (& g++ -dumpfullversion).Trim()
+          $CmakeVersion = ((& cmake --version | Select-Object -First 1) -split ' ')[2]
+          if ([int]($GccVersion -split '\.')[0] -ne 16) { throw "GCC 16 is required, found $GccVersion" }
+          if ([version]$CmakeVersion -lt [version]'4.2.0') { throw "CMake 4.2 is required, found $CmakeVersion" }
+          "gcc=16" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "cmake=$(($CmakeVersion -split '\.')[0..1] -join '.')" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+      - name: Configure vcpkg binary cache
+        shell: pwsh
+        run: |
+          $CacheDirectory = Join-Path $env:RUNNER_TEMP 'vcpkg-binary-cache'
+          New-Item -ItemType Directory -Path $CacheDirectory -Force | Out-Null
+          "VCPKG_BINARY_SOURCES=clear;files,$CacheDirectory,readwrite" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        id: vcpkg-cache
+        with:
+          path: ${{ runner.temp }}/vcpkg-binary-cache
+          key: vcpkg-${{ runner.os }}-gcc${{ steps.versions.outputs.gcc }}-cmake${{ steps.versions.outputs.cmake }}-${{ hashFiles('Engine/vcpkg.json', 'Engine/vcpkg-configuration.json', 'Engine/vcpkg-overlay-ports/**', 'CMakePresets.json') }}
+      - name: Python tests
+        shell: pwsh
+        run: |
+          uv run --project Tools/Build --frozen pytest -c Tools/Build/pyproject.toml Tools/Build/tests Tools/ProjectSetup/tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          uv run --project Tools/Control --frozen --extra dev pytest Tools/Control/tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build Debug
+        shell: pwsh
+        run: |
+          .\broccoli.bat build Debug
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Reflection tests
+        shell: pwsh
+        run: pwsh -NoProfile -File Tests/Reflection/Run-ReflectionTests.ps1
+      - name: Build Editor
+        shell: pwsh
+        run: |
+          .\broccoli.bat build Editor
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        if: success() && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        with:
+          path: ${{ runner.temp }}/vcpkg-binary-cache
+          key: vcpkg-${{ runner.os }}-gcc${{ steps.versions.outputs.gcc }}-cmake${{ steps.versions.outputs.cmake }}-${{ hashFiles('Engine/vcpkg.json', 'Engine/vcpkg-configuration.json', 'Engine/vcpkg-overlay-ports/**', 'CMakePresets.json') }}
