@@ -45,8 +45,20 @@
       "configurePreset": "windows-x64",
       "configuration": "Release"
     },
-    { "name": "debug-env", "inherits": "debug", "configurePreset": "windows-x64-env" },
-    { "name": "editor-env", "inherits": "editor", "configurePreset": "windows-x64-env" },
-    { "name": "release-env", "inherits": "release", "configurePreset": "windows-x64-env" }
+    {
+      "name": "debug-env",
+      "inherits": "debug",
+      "configurePreset": "windows-x64-env"
+    },
+    {
+      "name": "editor-env",
+      "inherits": "editor",
+      "configurePreset": "windows-x64-env"
+    },
+    {
+      "name": "release-env",
+      "inherits": "release",
+      "configurePreset": "windows-x64-env"
+    }
   ]
 }
