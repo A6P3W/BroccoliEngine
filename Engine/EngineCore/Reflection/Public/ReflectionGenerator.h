@@ -196,8 +196,9 @@ void AppendTyped(FClass& Class, EPropertyType Type) {
   constexpr auto Value = GetAnnotation<Member, FEditorPropertyAnnotation>();
   constexpr std::meta::info Callback = Value.OnEditorChanged;
   if constexpr (Callback != std::meta::info{}) {
+    using CallbackType = [:std::meta::type_of(Callback):];
     static_assert(
-        std::is_same_v<decltype(&[:Callback:]), void (T::*)(V)>,
+        std::is_same_v<CallbackType, void(V)> && std::meta::parent_of(Callback) == ^^T,
         "OnEditorChanged must be void(T OldValue) on the declaring class"
     );
   }
