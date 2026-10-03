@@ -22,7 +22,7 @@
     },
     {
       "name": "windows-x64-env",
-      "displayName": "Windows x64 Environment",
+      "displayName": "Windows x64 Environment Cache Probe",
       "inherits": "windows-x64"
     }
   ],
