@@ -7,7 +7,6 @@
 
 #include "Actor.h"
 #include "Collision2DComponent.h"
-#include "ComponentRegistry.h"
 #include "DebugOverlay.h"
 #include "MovementComponent.h"
 #if !defined(_RELEASE)

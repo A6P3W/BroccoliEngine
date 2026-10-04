@@ -1,7 +1,5 @@
 #include "Sprite2DComponent.h"
 
-#include "ComponentRegistry.h"
-
 REGISTER_COMPONENT(MSprite2DComponent)
 
 #include "Actor.h"

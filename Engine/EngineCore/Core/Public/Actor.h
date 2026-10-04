@@ -42,6 +42,7 @@ struct TActorAutoRegister {
   virtual std::string GetActorClassName() const override { return #ClassName; }
 
 class MSceneComponent;
+class ComponentRegistry;
 class FTimerManager;
 class FActorManager;
 class World;
@@ -254,6 +255,7 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
 
  private:
   friend class FActorManager;
+  friend class ComponentRegistry;
 
   template <class T>
   friend T* NewObject(AActor* Owner);

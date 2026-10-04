@@ -55,6 +55,16 @@ try {
     throw "Plugin live-actor process-exit regression failed with exit code $LASTEXITCODE."
   }
 
+  $RegistrationCompileSource =
+    "Tests/Reflection/CompileSuccess/RegistrationOnlyIncludeComponent.cpp"
+  $RegistrationCompileObject = Join-Path $TestTempDirectory "RegistrationOnlyIncludeComponent.o"
+  $TemporaryFiles.Add($RegistrationCompileObject)
+  & $Compiler @CompilerArguments -c $RegistrationCompileSource "-o$RegistrationCompileObject"
+  if ($LASTEXITCODE -ne 0) {
+    throw "Component registration include-contract compilation failed with exit code $LASTEXITCODE."
+  }
+  Write-Output "Component registration include contract verified."
+
   $CompileFailureCases = @(
     [pscustomobject]@{
       Source = "AnnotationTypeMismatch.cpp"

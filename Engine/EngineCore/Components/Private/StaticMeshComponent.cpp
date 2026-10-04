@@ -1,7 +1,5 @@
 #include "StaticMeshComponent.h"
 
-#include "ComponentRegistry.h"
-
 REGISTER_COMPONENT(MStaticMeshComponent)
 
 #include "RenderSystem.h"

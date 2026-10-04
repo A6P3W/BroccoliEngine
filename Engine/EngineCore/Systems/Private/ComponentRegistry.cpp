@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <unordered_map>
 
+#include "Actor.h"
 #include "Log.h"
 
 struct ComponentRegistry::Impl {
@@ -48,7 +49,14 @@ MActorComponent* ComponentRegistry::Create(
           Component->GetComponentClassName() == ClassName)
         return nullptr;
   }
-  return Iterator->second.Factory(Owner, RequestedName);
+  std::unique_ptr<MActorComponent> Component = Iterator->second.Factory();
+  if (!Component) return nullptr;
+  return Owner->AcceptNewObjectComponent(
+      std::move(Component),
+      FComponentCreateParams{
+          .Name = std::string(RequestedName), .Source = EComponentCreationSource::Instance
+      }
+  );
 }
 
 bool ComponentRegistry::Contains(std::string_view ClassName) const {

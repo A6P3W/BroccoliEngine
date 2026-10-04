@@ -1,7 +1,5 @@
 #include "SoundComponent.h"
 
-#include "ComponentRegistry.h"
-
 REGISTER_COMPONENT(MSoundComponent)
 
 #include <algorithm>

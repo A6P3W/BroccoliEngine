@@ -1,12 +1,17 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
-#include "Actor.h"
 #include "BroccoliEngineAPI.h"
+
+class AActor;
+class MActorComponent;
 
 struct FComponentClassOptions {
   bool EditorAddable = true;
@@ -21,7 +26,7 @@ struct FComponentClassInfo {
 
 class BROCCOLI_ENGINE_API ComponentRegistry {
  public:
-  using FactoryFn = std::function<MActorComponent*(AActor*, std::string_view)>;
+  using FactoryFn = std::function<std::unique_ptr<MActorComponent>()>;
   static ComponentRegistry& GetInstance();
 
   template <class T>
@@ -30,14 +35,7 @@ class BROCCOLI_ENGINE_API ComponentRegistry {
     static_assert(std::is_default_constructible_v<T>);
     return RegisterFactory(
         T::StaticComponentClassName(),
-        [](AActor* Owner, std::string_view Name) -> MActorComponent* {
-          return NewObjectWithParams<T>(
-              Owner,
-              FComponentCreateParams{
-                  .Name = std::string(Name), .Source = EComponentCreationSource::Instance
-              }
-          );
-        },
+        []() -> std::unique_ptr<MActorComponent> { return std::make_unique<T>(); },
         std::move(ModuleOwner),
         Options
     );
@@ -66,15 +64,3 @@ class BROCCOLI_ENGINE_API ComponentRegistry {
   struct Impl;
   Impl* ImplPtr;
 };
-
-template <class T>
-struct TComponentAutoRegister {
-  explicit TComponentAutoRegister(FComponentClassOptions Options = {}) {
-    if (!ComponentRegistry::GetInstance().RegisterOwned<T>("Static", Options)) return;
-    if (!ReflectionGenerator::RegisterStaticComponentClass<T>())
-      ComponentRegistry::GetInstance().UnregisterClass(T::StaticComponentClassName());
-  }
-};
-
-#define REGISTER_COMPONENT(ClassName, ...) \
-  static TComponentAutoRegister<ClassName> AutoRegisterComponent_##ClassName({__VA_ARGS__});

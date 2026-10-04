@@ -1,7 +1,5 @@
 #include "RectangleCollision2DComponent.h"
 
-#include "ComponentRegistry.h"
-
 REGISTER_COMPONENT(MRectangleCollision2DComponent)
 
 #include <RenderSystem.h>

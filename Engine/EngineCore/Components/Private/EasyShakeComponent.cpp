@@ -1,7 +1,5 @@
 #include "EasyShakeComponent.h"
 
-#include "ComponentRegistry.h"
-
 REGISTER_COMPONENT(MEasyShakeComponent)
 
 #include <algorithm>

@@ -227,3 +227,5 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
     }
   }
 };
+
+#include "ComponentRegistration.h"

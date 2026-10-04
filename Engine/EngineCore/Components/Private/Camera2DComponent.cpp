@@ -1,7 +1,5 @@
 #include "Camera2DComponent.h"
 
-#include "ComponentRegistry.h"
-
 REGISTER_COMPONENT(MCamera2DComponent)
 
 #include "RenderSystem.h"
