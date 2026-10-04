@@ -7,10 +7,11 @@
 1. `main` ブランチから作業ブランチを作成
 2. 実装・修正
 3. テストを実施
-4. コミット
-5. Pull Requestを作成
+4. コミット (1つの目的を持ち、そのコミット単体で説明・レビュー・取り消しができる変更の単位)
+5. Draft Pull Requestを作成
 6. 機能単位ごとに2,3, 4を繰り返す
-7. レビュー・承認後にマージ
+7. PRの状態を `Ready for review` に変更
+8. レビュー・承認後にマージ
 
 ## ブランチ命名規則
 
@@ -54,13 +55,11 @@ feat(auth): ログイン機能を追加
 * `docs`: ドキュメント変更
 * `refactor`: リファクタリング
 
-コミットは、可能な限り1つの目的につき1コミットにしてください。
-
 ## Pull Request
 
 .github/pull_request_template.md を参照してください。
 
-行ったテストについては、.github/pr_test_comment_template.md を参照し、テスト結果をPull Requestにコメントしてください。
+GithubActions以外で行ったテストについては、.github/pr_test_comment_template.md を参照し、テスト結果をPull Requestにコメントしてください。
 
 ## マージ
 
