@@ -13,6 +13,7 @@
 #include "ActorRegistry.h"
 #include "ComponentRegistry.h"
 #include "EditorClipboard.h"
+#include "ForceFieldComponent.h"
 #include "LevelSerializer.h"
 #include "Log.h"
 #include "PathResolver.h"
@@ -1185,6 +1186,38 @@ void TestComponentRegistryAndPersistence() {
         "Destroyed instance component remained in the Actor vector."
     );
   }
+
+#if !defined(_RELEASE)
+  {
+    World ForceFieldWorld;
+    AReflectionComponentActor* ForceFieldActor =
+        ForceFieldWorld.SpawnActor<AReflectionComponentActor>({}, FRotator(0.0F), true);
+    Check(ForceFieldActor != nullptr, "Could not spawn ForceField test actor.");
+    const size_t InitialComponentCount = ForceFieldActor->GetComponents().size();
+    MForceFieldComponent* ForceField =
+        NewObject<MForceFieldComponent>(ForceFieldActor, "ForceField");
+    Check(ForceField != nullptr, "Could not create ForceField component.");
+    ForceField->AttachToComponent(ForceFieldActor->GetRootComponent());
+    ForceField->RegisterComponent();
+
+    MSprite2DComponent* DebugSprite = nullptr;
+    for (const auto& Component : ForceFieldActor->GetComponents()) {
+      auto* Sprite = dynamic_cast<MSprite2DComponent*>(Component.get());
+      if (Sprite != nullptr && Sprite->GetParentComponent() == ForceField) {
+        DebugSprite = Sprite;
+        break;
+      }
+    }
+    Check(DebugSprite != nullptr, "ForceField DebugSprite was not attached to ForceField.");
+
+    ForceField->DestroyComponent();
+    ForceFieldActor->Update(0.0F);
+    Check(
+        ForceFieldActor->GetComponents().size() == InitialComponentCount,
+        "ForceField DebugSprite remained after ForceField destruction."
+    );
+  }
+#endif
 
   Check(
       ActorRegistry::GetInstance().RegisterOwned<AReflectionComponentActor>(

@@ -36,6 +36,7 @@ void MForceFieldComponent::OnRegister() {
     return;
   }
 
+  DebugSprite->AttachToComponent(this);
   DebugSprite->SetRenderSettings(100, RenderSpace::World);
   UpdateDebugSprite();
   DebugSprite->RegisterComponent();
