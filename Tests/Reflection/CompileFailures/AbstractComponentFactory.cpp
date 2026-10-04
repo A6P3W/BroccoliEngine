@@ -1,5 +1,5 @@
+#include "ActorComponent.h"
 #include "ComponentRegistry.h"
-
 class MAbstractFactoryComponent : public MActorComponent {
  public:
   DEFINE_ACTOR_COMPONENT_CLASS(MAbstractFactoryComponent)

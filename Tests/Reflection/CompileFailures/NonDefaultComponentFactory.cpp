@@ -1,3 +1,4 @@
+#include "ActorComponent.h"
 #include "ComponentRegistry.h"
 
 class MNonDefaultFactoryComponent : public MActorComponent {
