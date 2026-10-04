@@ -1193,6 +1193,11 @@ void TestComponentRegistryAndPersistence() {
     AReflectionComponentActor* ForceFieldActor =
         ForceFieldWorld.SpawnActor<AReflectionComponentActor>({}, FRotator(0.0F), true);
     Check(ForceFieldActor != nullptr, "Could not spawn ForceField test actor.");
+    Check(
+        ForceFieldActor->GetRootComponent()->GetEditorVisibility() ==
+            EComponentEditorVisibility::Visible,
+        "Default component Editor visibility was not visible."
+    );
     const size_t InitialComponentCount = ForceFieldActor->GetComponents().size();
     MForceFieldComponent* ForceField =
         NewObject<MForceFieldComponent>(ForceFieldActor, "ForceField");
@@ -1209,6 +1214,10 @@ void TestComponentRegistryAndPersistence() {
       }
     }
     Check(DebugSprite != nullptr, "ForceField DebugSprite was not attached to ForceField.");
+    Check(
+        DebugSprite->GetEditorVisibility() == EComponentEditorVisibility::Hidden,
+        "ForceField DebugSprite was visible in the Editor."
+    );
 
     ForceField->DestroyComponent();
     ForceFieldActor->Update(0.0F);

@@ -31,7 +31,9 @@ void MForceFieldComponent::OnRegister() {
     return;
   }
 
-  DebugSprite = NewObject<MSprite2DComponent>(GetOwner());
+  DebugSprite = NewObjectWithParams<MSprite2DComponent>(
+      GetOwner(), FComponentCreateParams{.EditorVisibility = EComponentEditorVisibility::Hidden}
+  );
   if (!DebugSprite) {
     return;
   }

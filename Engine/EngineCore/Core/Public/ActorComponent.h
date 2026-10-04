@@ -20,6 +20,7 @@
 class AActor;
 
 enum class EComponentCreationSource { Native, Instance };
+enum class EComponentEditorVisibility { Visible, Hidden };
 
 #define DEFINE_ACTOR_COMPONENT_CLASS(ClassName)                        \
  public:                                                               \
@@ -50,6 +51,7 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   const std::string& GetComponentName() const { return ComponentName; }
   bool HasExplicitComponentName() const { return bExplicitComponentName; }
   EComponentCreationSource GetCreationSource() const { return CreationSource; }
+  EComponentEditorVisibility GetEditorVisibility() const { return EditorVisibility; }
 
   void DestroyComponent();
   bool IsPendingDestroy() const;
@@ -172,6 +174,7 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   std::string ComponentName;
   bool bExplicitComponentName = false;
   EComponentCreationSource CreationSource = EComponentCreationSource::Native;
+  EComponentEditorVisibility EditorVisibility = EComponentEditorVisibility::Visible;
   virtual void OnUpdate(float DeltaTime) {}
 
  private:

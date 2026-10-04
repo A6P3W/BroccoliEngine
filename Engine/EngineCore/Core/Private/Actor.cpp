@@ -140,6 +140,7 @@ MActorComponent* AActor::AcceptNewObjectComponent(
   NewComponentPtr->ComponentName = std::move(Name);
   NewComponentPtr->bExplicitComponentName = !Params.Name.empty();
   NewComponentPtr->CreationSource = Params.Source;
+  NewComponentPtr->EditorVisibility = Params.EditorVisibility;
 
   NewComponentPtr->SetOwner(this);
   NewComponentPtr->SetComponentId(ImplPtr->NextComponentId++);

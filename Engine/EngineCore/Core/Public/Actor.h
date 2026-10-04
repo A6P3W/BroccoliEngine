@@ -49,6 +49,7 @@ class World;
 struct FComponentCreateParams {
   std::string Name;
   EComponentCreationSource Source = EComponentCreationSource::Native;
+  EComponentEditorVisibility EditorVisibility = EComponentEditorVisibility::Visible;
 };
 class BROCCOLI_ENGINE_API AActor : public MBaseObject
 
