@@ -15,6 +15,9 @@ struct FLevelMetaData {
 struct FComponentSaveData {
   std::string Name;
   std::string ClassName;
+  std::string ParentName;
+  FTransform3D RelativeTransform;
+  bool HasSceneAttachmentData = false;
   EComponentCreationSource Source = EComponentCreationSource::Native;
   std::unordered_map<std::string, nlohmann::json> CustomProperties;
 };

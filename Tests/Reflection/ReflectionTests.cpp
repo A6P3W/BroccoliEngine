@@ -257,6 +257,11 @@ class MReflectionInstanceComponent final : public MActorComponent {
   float Strength = 1.0F;
 };
 
+class MReflectionSceneComponent final : public MSceneComponent {
+ public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MReflectionSceneComponent)
+};
+
 class AReflectionComponentActor final : public AActor {
  public:
   DEFINE_ACTOR_CLASS(AReflectionComponentActor)
@@ -565,7 +570,7 @@ void TestLevelSerializerRoundTripAndLegacyVersions() {
   Check(SavedInput.is_open(), "Could not read the saved level file.");
   const json Saved = json::parse(SavedInput);
   SavedInput.close();
-  Check(Saved.at("meta").at("format_version") == 4, "SaveData did not emit format version 4.");
+  Check(Saved.at("meta").at("format_version") == 5, "SaveData did not emit format version 5.");
   const json& SavedProperties = Saved.at("actors").at(0).at("properties");
   Check(
       SavedProperties.at("Enabled").is_boolean() && SavedProperties.at("Enabled") == true,
@@ -597,15 +602,15 @@ void TestLevelSerializerRoundTripAndLegacyVersions() {
   std::vector<FActorSaveData> LoadedActors;
   Check(
       LevelSerializer::LoadData(RoundTripPath.string(), LoadedMeta, LoadedActors),
-      "LoadData failed for a version 4 file."
+      "LoadData failed for a version 5 file."
   );
   Check(
       LoadedMeta.GameModeClassName == Meta.GameModeClassName && LoadedActors.size() == 1,
-      "Version 4 metadata or actor count changed after loading."
+      "Version 5 metadata or actor count changed after loading."
   );
   Check(
       LoadedActors[0].CustomProperties == Actor.CustomProperties,
-      "Version 4 custom property JSON values did not round trip."
+      "Version 5 custom property JSON values did not round trip."
   );
 
   const fs::path Version3Path = TempDirectory / "LegacyV3.BLevel.json";
@@ -1043,6 +1048,18 @@ void TestPluginLoadUnloadAndLiveActorDelay() {
       Context.RegisterComponent<MReflectionInstanceComponent>(),
       "Could not register plugin-owned component and Reflection."
   );
+  Check(
+      Context.RegisterComponent<MReflectionSceneComponent>(),
+      "Could not register plugin-owned Scene component and Reflection."
+  );
+  const FClass* PluginSceneClass = FReflectionRegistry::GetInstance().FindClass(
+      MReflectionSceneComponent::StaticComponentClassName()
+  );
+  Check(
+      PluginSceneClass && PluginSceneClass->BaseClass &&
+          PluginSceneClass->BaseClass->Name == MSceneComponent::StaticComponentClassName(),
+      "Plugin Scene component lost its Reflection base class."
+  );
   AReflectionPluginTestActor LiveActor;
   Actors.NotifySpawned(&LiveActor, AReflectionPluginTestActor::StaticClassName());
   MActorComponent* LiveComponent =
@@ -1083,8 +1100,12 @@ void TestPluginLoadUnloadAndLiveActorDelay() {
   );
   Check(
       !Components.Contains(MReflectionInstanceComponent::StaticComponentClassName()) &&
+          !Components.Contains(MReflectionSceneComponent::StaticComponentClassName()) &&
           FReflectionRegistry::GetInstance().FindClass(
               MReflectionInstanceComponent::StaticComponentClassName()
+          ) == nullptr &&
+          FReflectionRegistry::GetInstance().FindClass(
+              MReflectionSceneComponent::StaticComponentClassName()
           ) == nullptr,
       "Plugin unload left component or Reflection registration behind."
   );
@@ -1137,6 +1158,10 @@ void TestComponentRegistryAndPersistence() {
       "Could not register instance component."
   );
   Check(
+      Components.RegisterOwned<MReflectionSceneComponent>(std::string(ModuleOwner)),
+      "Could not register Scene component."
+  );
+  Check(
       ReflectionGenerator::RegisterClass<MReflectionBaseComponent, MActorComponent>(
           std::string(ModuleOwner), false
       ) != 0 &&
@@ -1150,6 +1175,12 @@ void TestComponentRegistryAndPersistence() {
           std::string(ModuleOwner), false
       ) != 0,
       "Instance component reflection did not register."
+  );
+  Check(
+      ReflectionGenerator::RegisterClass<MReflectionSceneComponent, MSceneComponent>(
+          std::string(ModuleOwner), false
+      ) != 0,
+      "Scene component reflection did not register."
   );
   const FClass* Class =
       Reflections.FindClass(MReflectionDerivedComponent::StaticComponentClassName());
@@ -1202,6 +1233,12 @@ void TestComponentRegistryAndPersistence() {
     MForceFieldComponent* ForceField =
         NewObject<MForceFieldComponent>(ForceFieldActor, "ForceField");
     Check(ForceField != nullptr, "Could not create ForceField component.");
+    const FProperty* StrengthProperty = StaticClass->FindProperty("Strength");
+    Check(
+        StrengthProperty && StrengthProperty->Set(ForceField, -2.5F) &&
+            ForceField->GetStrength() == -2.5F,
+        "ForceField rejected a negative Strength."
+    );
     ForceField->AttachToComponent(ForceFieldActor->GetRootComponent());
     ForceField->RegisterComponent();
 
@@ -1282,9 +1319,25 @@ void TestComponentRegistryAndPersistence() {
         InstanceClass && RequireProperty(*InstanceClass, "Strength").Set(Instance, 5.5F),
         "Instance component property Set failed."
     );
+    auto* ParentScene = dynamic_cast<MReflectionSceneComponent*>(Components.Create(
+        Actor, MReflectionSceneComponent::StaticComponentClassName(), "ParentScene"
+    ));
+    auto* ChildScene = dynamic_cast<MReflectionSceneComponent*>(Components.Create(
+        Actor, MReflectionSceneComponent::StaticComponentClassName(), "ChildScene"
+    ));
+    Check(ParentScene && ChildScene, "Could not create Scene component hierarchy.");
+    ParentScene->RegisterComponent();
+    Check(
+        ChildScene->AttachToComponent(
+            ParentScene, FAttachmentTransformRules::KeepRelativeTransform
+        ) && ChildScene->SetRelativeLocation3D({7.0F, 8.0F, 9.0F}) &&
+            ChildScene->SetRelativeScale3D({2.0F, 3.0F, 4.0F}),
+        "Could not configure Scene component hierarchy."
+    );
+    ChildScene->RegisterComponent();
     FActorSaveData Captured = LevelSerializer::CaptureActor(Actor);
     Check(
-        Captured.Components.size() == 2 &&
+        Captured.Components.size() == 4 &&
             Captured.Components[0].Source == EComponentCreationSource::Native,
         "Named native component was not captured."
     );
@@ -1300,11 +1353,23 @@ void TestComponentRegistryAndPersistence() {
     auto* PastedInstance =
         Pasted ? dynamic_cast<MReflectionInstanceComponent*>(Pasted->FindComponentByName("Extra"))
                : nullptr;
+    auto* PastedParent =
+        Pasted ? dynamic_cast<MSceneComponent*>(Pasted->FindComponentByName("ParentScene"))
+               : nullptr;
+    auto* PastedChild =
+        Pasted ? dynamic_cast<MSceneComponent*>(Pasted->FindComponentByName("ChildScene"))
+               : nullptr;
     Check(
         Pasted && ReadProperty<int>(*Class, "Health", Pasted->NativeComponent) == 42 &&
             PastedInstance &&
             ReadProperty<float>(*InstanceClass, "Strength", PastedInstance) == 5.5F,
         "Clipboard did not restore named native component property."
+    );
+    Check(
+        PastedParent && PastedChild && PastedChild->GetParentComponent() == PastedParent &&
+            PastedChild->GetRelativeLocation3D().X == 7.0F &&
+            PastedChild->GetRelativeScale3D().Y == 3.0F,
+        "Clipboard did not restore the Scene component hierarchy."
     );
   }
   {
@@ -1315,7 +1380,7 @@ void TestComponentRegistryAndPersistence() {
         "Could not load component data."
     );
     Check(
-        Actors[0].Components.size() == 2 && Actors[0].Components[0].Name == "NativeHealth",
+        Actors[0].Components.size() == 4 && Actors[0].Components[0].Name == "NativeHealth",
         "Native component name did not round trip."
     );
     World LoadWorld;
@@ -1323,6 +1388,8 @@ void TestComponentRegistryAndPersistence() {
     LevelSerializer::ApplyActor(Actor, Actors[0]);
     auto* Instance =
         dynamic_cast<MReflectionInstanceComponent*>(Actor->FindComponentByName("Extra"));
+    auto* ParentScene = dynamic_cast<MSceneComponent*>(Actor->FindComponentByName("ParentScene"));
+    auto* ChildScene = dynamic_cast<MSceneComponent*>(Actor->FindComponentByName("ChildScene"));
     const FClass* InstanceClass =
         Reflections.FindClass(MReflectionInstanceComponent::StaticComponentClassName());
     Check(
@@ -1333,6 +1400,12 @@ void TestComponentRegistryAndPersistence() {
         Instance && InstanceClass &&
             ReadProperty<float>(*InstanceClass, "Strength", Instance) == 5.5F,
         "Instance component did not restore."
+    );
+    Check(
+        ParentScene && ChildScene && ChildScene->GetParentComponent() == ParentScene &&
+            ChildScene->GetRelativeLocation3D().Z == 9.0F &&
+            ChildScene->GetRelativeScale3D().X == 2.0F,
+        "Level load did not restore the Scene component hierarchy."
     );
     FActorSaveData WithUnknown = Actors[0];
     WithUnknown.Components[1].ClassName = "MissingComponent";

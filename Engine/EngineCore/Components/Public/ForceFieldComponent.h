@@ -63,7 +63,7 @@ class BROCCOLI_ENGINE_API MForceFieldComponent : public MSceneComponent {
   EForceFieldType ForceType = EForceFieldType::Directional;
   EDITOR_PROPERTY()
   FVector2D Direction = {1.0f, 0.0f};
-  EDITOR_PROPERTY(.Min = 0.0f)
+  EDITOR_PROPERTY()
   float Strength = 1.0f;
   bool bActive = false;
   MCollision2DComponent* RangeComponent = nullptr;
