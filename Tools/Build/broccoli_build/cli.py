@@ -24,11 +24,10 @@ from .verify_runtime import VerifyRuntime
 from .worktree import SetupWorktree
 
 CONFIGURATION_PRESETS = {
-  "debug": ("Debug", "debug-local"),
-  "editor": ("Editor", "editor-local"),
-  "release": ("Release", "release-local"),
+  "debug": "Debug",
+  "editor": "Editor",
+  "release": "Release",
 }
-CONFIGURE_PRESET = "windows-x64-local"
 CMAKE_CACHE_FILE = Path("build") / "windows-x64-gcc26" / "CMakeCache.txt"
 LATEST_BUILD_CONFIGURATION_FILE = Path("Intermediate") / "LastBuildConfiguration.txt"
 
@@ -41,7 +40,15 @@ def ConfigurationArgument(Value: str) -> str:
   Configuration = Value.casefold()
   if Configuration not in CONFIGURATION_PRESETS:
     raise argparse.ArgumentTypeError(f"Unsupported configuration: {Value}")
-  return CONFIGURATION_PRESETS[Configuration][0]
+  return CONFIGURATION_PRESETS[Configuration]
+
+
+def PresetSuffix(ProjectDirectory: Path) -> str:
+  return "local" if (ProjectDirectory / "CMakeUserPresets.json").is_file() else "env"
+
+
+def BuildPreset(ProjectDirectory: Path, Configuration: str) -> str:
+  return f"{Configuration.casefold()}-{PresetSuffix(ProjectDirectory)}"
 
 
 def ResolveConfiguration(Value: str) -> str:
@@ -101,7 +108,11 @@ def ValidateUserPresets(ProjectDirectory: Path) -> None:
 def Regenerate(ProjectDirectory: Path, CmakeCommand: str | None = None) -> None:
   ValidateUserPresets(ProjectDirectory)
   subprocess.run(
-    [CmakeCommand or FindCmakeCommand(), "--preset", CONFIGURE_PRESET],
+    [
+      CmakeCommand or FindCmakeCommand(),
+      "--preset",
+      f"windows-x64-{PresetSuffix(ProjectDirectory)}",
+    ],
     cwd=ProjectDirectory,
     check=True,
   )
@@ -112,13 +123,13 @@ def Build(ProjectDirectory: Path, Configuration: str, Reconfigure: bool) -> None
   if Reconfigure or not (ProjectDirectory / CMAKE_CACHE_FILE).is_file():
     Regenerate(ProjectDirectory, CmakeCommand)
 
-  BuildPreset = CONFIGURATION_PRESETS[Configuration.casefold()][1]
+  SelectedBuildPreset = BuildPreset(ProjectDirectory, Configuration)
   subprocess.run(
     [
       CmakeCommand,
       "--build",
       "--preset",
-      BuildPreset,
+      SelectedBuildPreset,
       "--target",
       f"BroccoliProjectBuild_{Configuration}",
     ],
@@ -211,9 +222,9 @@ def Clean(ProjectDirectory: Path, Configuration: str | None, CleanAll: bool) -> 
     raise ValueError("Specify a configuration or --all.")
   CachePath = ProjectDirectory / CMAKE_CACHE_FILE
   if CachePath.is_file():
-    BuildPreset = CONFIGURATION_PRESETS[Configuration.casefold()][1]
+    SelectedBuildPreset = BuildPreset(ProjectDirectory, Configuration)
     subprocess.run(
-      [FindCmakeCommand(), "--build", "--preset", BuildPreset, "--target", "clean"],
+      [FindCmakeCommand(), "--build", "--preset", SelectedBuildPreset, "--target", "clean"],
       cwd=ProjectDirectory,
       check=True,
     )

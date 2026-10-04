@@ -67,6 +67,7 @@ def TestBuildLeavesPluginGenerationToCmakeConfigure(
   TmpPath: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   WritePluginSettings(TmpPath, [])
+  (TmpPath / "CMakeUserPresets.json").write_text("{}", encoding="utf-8")
   CacheFile = TmpPath / "build" / "windows-x64-gcc26" / "CMakeCache.txt"
   CacheFile.parent.mkdir(parents=True)
   CacheFile.write_text("cache", encoding="utf-8")
@@ -81,12 +82,16 @@ def TestBuildLeavesPluginGenerationToCmakeConfigure(
   cli.Build(TmpPath, "Debug", False)
 
   assert Commands == [
-    (["cmake", "--build", "--preset", "debug-local", "--target", "BroccoliProjectBuild_Debug"], TmpPath)
+    (
+      ["cmake", "--build", "--preset", "debug-local", "--target", "BroccoliProjectBuild_Debug"],
+      TmpPath,
+    )
   ]
 
 
 def TestRegenerateDoesNotBuild(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
   WritePluginSettings(TmpPath, [])
+  (TmpPath / "CMakeUserPresets.json").write_text("{}", encoding="utf-8")
   Commands: list[list[str]] = []
 
   def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
@@ -98,6 +103,42 @@ def TestRegenerateDoesNotBuild(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -
   cli.Regenerate(TmpPath)
 
   assert Commands == [["cmake", "--preset", "windows-x64-local"]]
+
+
+@pytest.mark.parametrize("HasUserPresets", [False, True])
+@pytest.mark.parametrize("Configuration", ["Debug", "Editor"])
+def TestBuildSelectsEnvironmentOrLocalPresets(
+  TmpPath: Path,
+  monkeypatch: pytest.MonkeyPatch,
+  HasUserPresets: bool,
+  Configuration: str,
+) -> None:
+  if HasUserPresets:
+    (TmpPath / "CMakeUserPresets.json").write_text("{}", encoding="utf-8")
+  Commands: list[list[str]] = []
+
+  def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
+    assert cwd == TmpPath
+    assert check
+    Commands.append(Command)
+
+  monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
+  monkeypatch.setattr(cli.subprocess, "run", RecordRun)
+
+  cli.Build(TmpPath, Configuration, False)
+
+  Suffix = "local" if HasUserPresets else "env"
+  assert Commands == [
+    ["cmake", "--preset", f"windows-x64-{Suffix}"],
+    [
+      "cmake",
+      "--build",
+      "--preset",
+      f"{Configuration.casefold()}-{Suffix}",
+      "--target",
+      f"BroccoliProjectBuild_{Configuration}",
+    ],
+  ]
 
 
 def TestBuildRecordsLatestConfiguration(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -122,9 +163,7 @@ def TestRunUsesLatestConfigurationAndForwardsArguments(
   ExecutablePath.parent.mkdir(parents=True)
   ExecutablePath.write_bytes(b"launcher")
   (TmpPath / "Intermediate").mkdir()
-  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
-    "Debug\n", encoding="utf-8"
-  )
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text("Debug\n", encoding="utf-8")
   Commands: list[tuple[list[str], Path]] = []
 
   def RecordPopen(Command: list[str], cwd: Path) -> None:
@@ -155,9 +194,7 @@ def TestRunRejectsMissingLatestConfiguration(TmpPath: Path) -> None:
 
 def TestRunParserForwardsArgumentsAfterLatestSeparator(TmpPath: Path) -> None:
   (TmpPath / "Intermediate").mkdir()
-  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
-    "Editor\n", encoding="utf-8"
-  )
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text("Editor\n", encoding="utf-8")
   CliArguments, ApplicationArguments = cli.SplitRunApplicationArguments(
     ["run", "--latest", "--project-dir", str(TmpPath), "--", "--control"]
   )
@@ -206,12 +243,12 @@ def TestMainForwardsSeparatedArgumentsWithoutReinterpretingThem(
   TmpPath: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   (TmpPath / "Intermediate").mkdir()
-  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
-    "Editor\n", encoding="utf-8"
-  )
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text("Editor\n", encoding="utf-8")
   Calls: list[tuple[Path, str, list[str]]] = []
 
-  def RecordRun(ProjectDirectory: Path, Configuration: str, ApplicationArguments: list[str]) -> None:
+  def RecordRun(
+    ProjectDirectory: Path, Configuration: str, ApplicationArguments: list[str]
+  ) -> None:
     Calls.append((ProjectDirectory, Configuration, ApplicationArguments))
 
   monkeypatch.setattr(cli, "Run", RecordRun)
@@ -237,7 +274,9 @@ def TestMainForwardsSeparatedArgumentsWithoutReinterpretingThem(
 def TestMainAddsControlArgumentOnlyOnce(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
   Calls: list[list[str]] = []
 
-  def RecordRun(_ProjectDirectory: Path, _Configuration: str, ApplicationArguments: list[str]) -> None:
+  def RecordRun(
+    _ProjectDirectory: Path, _Configuration: str, ApplicationArguments: list[str]
+  ) -> None:
     Calls.append(ApplicationArguments)
 
   monkeypatch.setattr(cli, "Run", RecordRun)
@@ -257,6 +296,7 @@ def TestCleanOnlyRemovesTheRequestedConfiguration(
   for Configuration in ("Debug", "Editor"):
     (TmpPath / "Bin" / "x64" / Configuration).mkdir(parents=True)
     (TmpPath / "Publish" / Configuration).mkdir(parents=True)
+  (TmpPath / "CMakeUserPresets.json").write_text("{}", encoding="utf-8")
   CacheFile = TmpPath / "build" / "windows-x64-gcc26" / "CMakeCache.txt"
   CacheFile.parent.mkdir(parents=True)
   CacheFile.write_text("cache", encoding="utf-8")
@@ -372,18 +412,14 @@ def TestGeneratePluginsCmakeRemovesAllArtifactsWhenPluginIsUndefined(TmpPath: Pa
   assert GeneratePluginsCmake(TmpPath)
   RemoveDisabledExamplePluginArtifacts(TmpPath)
 
-  assert (TmpPath / "Intermediate" / "Generated" / "Plugins.cmake").read_text(
-    encoding="utf-8"
-  ) == (
+  assert (TmpPath / "Intermediate" / "Generated" / "Plugins.cmake").read_text(encoding="utf-8") == (
     "set(BROCCOLI_PLUGINS)\n\n"
     "set(BROCCOLI_PLUGINS_DEBUG)\n\n"
     "set(BROCCOLI_PLUGINS_EDITOR)\n\n"
     "set(BROCCOLI_PLUGINS_RELEASE)\n"
   )
   for Configuration in ("Debug", "Editor", "Release"):
-    assert not (
-      TmpPath / "Bin" / "x64" / Configuration / "Plugins" / "ExamplePlugin"
-    ).exists()
+    assert not (TmpPath / "Bin" / "x64" / Configuration / "Plugins" / "ExamplePlugin").exists()
 
 
 @pytest.mark.parametrize(
@@ -547,7 +583,9 @@ def TestPackageRuntimeCreatesVerifiedLayout(TmpPath: Path) -> None:
   VerifyRuntime(OutputDirectory, "Game", PublishDirectory, ["ExamplePlugin"])
   assert (PublishDirectory / "Game.exe").is_file()
   assert (PublishDirectory / "Binaries" / "Game.exe").is_file()
-  assert (PublishDirectory / "Binaries" / "Plugins" / "ExamplePlugin" / "ExamplePlugin.dll").is_file()
+  assert (
+    PublishDirectory / "Binaries" / "Plugins" / "ExamplePlugin" / "ExamplePlugin.dll"
+  ).is_file()
   assert (PublishDirectory / "Binaries" / "Plugins" / "ExamplePlugin" / "plugin.json").is_file()
   assert (PublishDirectory / "Resources-EOS" / "online.BLevel").is_file()
   assert not (PublishDirectory / "Resources-EOS" / "online.BLevel.json").exists()

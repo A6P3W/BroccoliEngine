@@ -27,7 +27,11 @@ def ValidateWorktreeTarget(SourceDirectory: Path, TargetDirectory: Path) -> None
     raise ValueError(f"Target worktree does not exist: {TargetDirectory}")
   if SourceDirectory == TargetDirectory:
     raise ValueError("Source and target worktree must be different directories.")
-  if ResolveGitPath(TargetDirectory, "--show-toplevel") != TargetDirectory:
+  try:
+    TargetRoot = ResolveGitPath(TargetDirectory, "--show-toplevel")
+  except subprocess.CalledProcessError as Error:
+    raise ValueError(f"Target path is not a Git worktree root: {TargetDirectory}") from Error
+  if TargetRoot != TargetDirectory:
     raise ValueError(f"Target path is not a Git worktree root: {TargetDirectory}")
   SourceCommonDirectory = ResolveGitPath(SourceDirectory, "--git-common-dir")
   TargetCommonDirectory = ResolveGitPath(TargetDirectory, "--git-common-dir")
