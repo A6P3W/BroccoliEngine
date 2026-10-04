@@ -4,6 +4,7 @@
 
 #include "BroccoliEngineAPI.h"
 #include "FPath.h"
+#include "Material3D.h"
 #include "UMath.h"
 
 class BROCCOLI_ENGINE_API ResourceManager {
@@ -24,6 +25,10 @@ class BROCCOLI_ENGINE_API ResourceManager {
   int LoadResourceModel(const FPath& Path);
   bool IsModelValid(int Handle) const;
   bool GetModelBounds(int Handle, FBox3D& OutBounds) const;
+  int CreateMaterial3D(const FMaterial3DDesc& Desc);
+  const FMaterial3DDesc* GetMaterial3D(int Handle) const;
+  int GetDefaultLitMaterial3D() const;
+  int GetDefaultUnlitMaterial3D() const;
   static int NormalizeFontWeight(int Weight);
 
   int GetFont(int Size, int Weight = DefaultFontWeight);

@@ -12,6 +12,7 @@ bool GetRaylibTextureSize(int Handle, int& OutWidth, int& OutHeight);
 
 const Model* GetRaylibModel(int Handle);
 const FTransform3D* GetRaylibModelImportTransform(int Handle);
+const Shader* GetRaylibMaterialShader(bool Lit);
 
 const Font* GetRaylibFont(int Handle, const std::string& Text = {});
 float GetRaylibFontSize(int Handle);

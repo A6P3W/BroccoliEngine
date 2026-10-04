@@ -19,9 +19,24 @@ broccoli_configure_project_plugins()
 add_subdirectory(Engine)
 add_subdirectory(Launcher)
 
+include(CTest)
+if(BUILD_TESTING)
+  add_executable(BroccoliReflectionTests Tests/Reflection/ReflectionTests.cpp)
+  target_link_libraries(BroccoliReflectionTests PRIVATE BroccoliEngine)
+  target_compile_features(BroccoliReflectionTests PRIVATE cxx_std_26)
+  target_compile_options(BroccoliReflectionTests PRIVATE -freflection)
+  add_test(NAME BroccoliReflectionTests COMMAND BroccoliReflectionTests)
+  set_tests_properties(BroccoliReflectionTests PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:BroccoliEngine>")
+endif()
+
 foreach(Configuration IN ITEMS Debug Editor Release)
   add_custom_target("BroccoliProjectBuild_${Configuration}")
   add_dependencies("BroccoliProjectBuild_${Configuration}" "${BROCCOLI_PROJECT_NAME}")
+  if(BUILD_TESTING AND Configuration STREQUAL "Debug")
+    add_dependencies("BroccoliProjectBuild_${Configuration}" BroccoliReflectionTests)
+  endif()
   broccoli_add_configured_plugins_to_target(
     TARGET "BroccoliProjectBuild_${Configuration}"
     CONFIGURATION "${Configuration}"

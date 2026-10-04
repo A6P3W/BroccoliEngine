@@ -50,6 +50,8 @@ json ValueToJson(const FPropertyValue& Value) {
           return {{"x", Item.X}, {"y", Item.Y}, {"z", Item.Z}};
         } else if constexpr (std::is_same_v<T, FPath>) {
           return Item.String();
+        } else if constexpr (std::is_same_v<T, FColor>) {
+          return {{"r", Item.R}, {"g", Item.G}, {"b", Item.B}, {"a", Item.A}};
         } else {
           return Item;
         }
@@ -105,6 +107,22 @@ bool JsonToValue(const json& JsonValue, EPropertyType Type, FPropertyValue& Valu
           return false;
         Value = FVector3D{
             JsonValue["x"].get<float>(), JsonValue["y"].get<float>(), JsonValue["z"].get<float>()
+        };
+        return true;
+      case EPropertyType::Color:
+        if (!JsonValue.is_object() || JsonValue.size() != 4 || !JsonValue.contains("r") ||
+            !JsonValue.contains("g") || !JsonValue.contains("b") || !JsonValue.contains("a"))
+          return false;
+        for (const char* Channel : {"r", "g", "b", "a"}) {
+          if (!JsonValue[Channel].is_number_integer()) return false;
+          const int Number = JsonValue[Channel].get<int>();
+          if (Number < 0 || Number > 255) return false;
+        }
+        Value = FColor{
+            JsonValue["r"].get<uint8_t>(),
+            JsonValue["g"].get<uint8_t>(),
+            JsonValue["b"].get<uint8_t>(),
+            JsonValue["a"].get<uint8_t>()
         };
         return true;
     }

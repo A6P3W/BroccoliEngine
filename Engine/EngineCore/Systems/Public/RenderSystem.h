@@ -80,6 +80,12 @@ struct StaticMeshRenderData {
   FTransform3D Transform;
   int ModelHandle = 0;
   FColor Tint = FColor::White;
+  int MaterialHandle = 0;
+};
+struct FDirectionalLightRenderData {
+  FVector3D Direction{0.0f, -1.0f, 0.0f};
+  FColor Color = FColor::White;
+  float Intensity = 1.0f;
 };
 struct Sprite3DRenderData {
   FTransform3D Transform;
@@ -205,8 +211,12 @@ class BROCCOLI_ENGINE_API RenderSystem {
       ERenderLayer3D Layer = ERenderLayer3D::World
   );
   void SubmitStaticMesh(
-      const FTransform3D& Transform, int ModelHandle, const FColor& Tint = FColor::White
+      const FTransform3D& Transform,
+      int ModelHandle,
+      const FColor& Tint = FColor::White,
+      int MaterialHandle = 0
   );
+  void SubmitDirectionalLight(const FDirectionalLightRenderData& Light);
   void SubmitSprite3D(
       const FTransform3D& Transform,
       int TextureHandle,
