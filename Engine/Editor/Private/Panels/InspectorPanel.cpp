@@ -8,9 +8,11 @@
 #include <limits>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "Actor.h"
+#include "ComponentRegistry.h"
 #include "EditorContext.h"
 #include "EditorMode.h"
 #include "FileDialog.h"
@@ -44,8 +46,8 @@ int ResizeStringBuffer(ImGuiInputTextCallbackData* Data) {
   return 0;
 }
 
-void DrawReflectedProperty(AActor* Actor, const FProperty& Property) {
-  FPropertyValue Value = Property.Get(Actor);
+void DrawReflectedProperty(void* Object, const FProperty& Property) {
+  FPropertyValue Value = Property.Get(Object);
   const char* Label = Property.Name.c_str();
   bool Changed = false;
   switch (Property.Type) {
@@ -96,7 +98,7 @@ void DrawReflectedProperty(AActor* Actor, const FProperty& Property) {
     }
     case EPropertyType::Path: {
       const std::string& Current = std::get<FPath>(Value).String();
-      ImGui::PushID(Actor);
+      ImGui::PushID(Object);
       ImGui::PushID(Label);
       ImGui::TextUnformatted(Label);
       ImGui::SameLine();
@@ -167,10 +169,137 @@ void DrawReflectedProperty(AActor* Actor, const FProperty& Property) {
       break;
     }
   }
-  if (Changed && !Property.Set(Actor, Value)) {
+  if (Changed && !Property.Set(Object, Value)) {
     M_LOG(Warning, "Inspector rejected reflected property '{}'.", Property.Name);
-    Value = Property.Get(Actor);
+    Value = Property.Get(Object);
   }
+}
+
+std::string GetComponentDisplayLabel(const MActorComponent* Component) {
+  const std::string& Name = Component->GetComponentName();
+  const char* Source =
+      Component->GetCreationSource() == EComponentCreationSource::Native ? "Native" : "Instance";
+  std::string Label = Name + " (" + Component->GetComponentClassName() + ") [" + Source + "]";
+  if (Component->GetEditorVisibility() == EComponentEditorVisibility::Hidden)
+    Label += " [Internal]";
+  return Label;
+}
+
+void DrawComponentContents(MActorComponent* Component) {
+  if (const FClass* Class =
+          FReflectionRegistry::GetInstance().FindClass(Component->GetComponentClassName()))
+    for (const FProperty* Property : Class->GetProperties())
+      DrawReflectedProperty(Component, *Property);
+}
+
+bool IsSceneComponentClass(std::string_view ClassName) {
+  const FClass* Class = FReflectionRegistry::GetInstance().FindClass(ClassName);
+  while (Class != nullptr) {
+    if (Class->Name == MSceneComponent::StaticComponentClassName()) return true;
+    Class = Class->BaseClass;
+  }
+  return false;
+}
+
+bool CanAddComponentClass(const AActor* Actor, const FComponentClassInfo& Info) {
+  if (!Info.Options.EditorAddable || !IsSceneComponentClass(Info.ClassName)) return false;
+  if (Info.Options.AllowMultiple) return true;
+  for (const auto& Existing : Actor->GetComponents())
+    if (Existing && !Existing->IsPendingDestroy() &&
+        Existing->GetComponentClassName() == Info.ClassName)
+      return false;
+  return true;
+}
+
+bool DrawComponentContextMenu(AActor* Actor, MActorComponent* Component) {
+  auto* Parent = dynamic_cast<MSceneComponent*>(Component);
+  const bool CanRemove = Component->GetCreationSource() == EComponentCreationSource::Instance;
+  if (Parent == nullptr && !CanRemove) return false;
+  bool Removed = false;
+  if (ImGui::BeginPopupContextItem("ComponentContextMenu")) {
+    if (Parent != nullptr && ImGui::BeginMenu("Add Child Component")) {
+      for (const FComponentClassInfo& Info : ComponentRegistry::GetInstance().GetClasses()) {
+        if (!CanAddComponentClass(Actor, Info)) continue;
+        if (ImGui::MenuItem(Info.ClassName.c_str())) {
+          MActorComponent* Created = ComponentRegistry::GetInstance().Create(Actor, Info.ClassName);
+          auto* Child = dynamic_cast<MSceneComponent*>(Created);
+          if (Child != nullptr &&
+              Child->AttachToComponent(Parent, FAttachmentTransformRules::KeepRelativeTransform))
+            Child->RegisterComponent();
+          else if (Created != nullptr)
+            Created->DestroyComponent();
+        }
+      }
+      ImGui::EndMenu();
+    }
+    if (CanRemove && ImGui::MenuItem("Remove Component")) {
+      Component->DestroyComponent();
+      Removed = true;
+    }
+    ImGui::EndPopup();
+  }
+  return Removed;
+}
+
+using FSceneChildren = std::unordered_map<MSceneComponent*, std::vector<MSceneComponent*>>;
+
+bool HasVisibleSceneBranch(
+    MSceneComponent* Component, const FSceneChildren& Children, bool ShowInternalComponents
+) {
+  if (!Component || Component->IsPendingDestroy()) return false;
+  if (ShowInternalComponents ||
+      Component->GetEditorVisibility() == EComponentEditorVisibility::Visible)
+    return true;
+  const auto Iterator = Children.find(Component);
+  if (Iterator == Children.end()) return false;
+  for (MSceneComponent* Child : Iterator->second)
+    if (HasVisibleSceneBranch(Child, Children, ShowInternalComponents)) return true;
+  return false;
+}
+
+void DrawSceneComponentNode(
+    AActor* Actor,
+    MSceneComponent* Component,
+    const FSceneChildren& Children,
+    bool ShowInternalComponents
+) {
+  if (!Component || Component->IsPendingDestroy()) return;
+  const auto Iterator = Children.find(Component);
+  const bool IsVisible = ShowInternalComponents ||
+                         Component->GetEditorVisibility() == EComponentEditorVisibility::Visible;
+  if (!IsVisible) {
+    if (Iterator != Children.end())
+      for (MSceneComponent* Child : Iterator->second)
+        DrawSceneComponentNode(Actor, Child, Children, ShowInternalComponents);
+    return;
+  }
+
+  ImGui::PushID(Component);
+  const std::string Label = GetComponentDisplayLabel(Component);
+  const bool IsOpen =
+      ImGui::TreeNodeEx("##Component", ImGuiTreeNodeFlags_SpanAvailWidth, "%s", Label.c_str());
+  const bool Removed = DrawComponentContextMenu(Actor, Component);
+  if (IsOpen) {
+    if (!Removed) DrawComponentContents(Component);
+    if (Iterator != Children.end())
+      for (MSceneComponent* Child : Iterator->second)
+        DrawSceneComponentNode(Actor, Child, Children, ShowInternalComponents);
+    ImGui::TreePop();
+  }
+  ImGui::PopID();
+}
+
+void DrawActorComponentNode(AActor* Actor, MActorComponent* Component) {
+  ImGui::PushID(Component);
+  const std::string Label = GetComponentDisplayLabel(Component);
+  const bool IsOpen =
+      ImGui::TreeNodeEx("##Component", ImGuiTreeNodeFlags_SpanAvailWidth, "%s", Label.c_str());
+  const bool Removed = DrawComponentContextMenu(Actor, Component);
+  if (IsOpen) {
+    if (!Removed) DrawComponentContents(Component);
+    ImGui::TreePop();
+  }
+  ImGui::PopID();
 }
 }  // namespace
 
@@ -257,6 +386,64 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
           DrawReflectedProperty(SelectedActor, *Property);
         }
       }
+    }
+  }
+
+  ImGui::Separator();
+  const bool ComponentsOpen = ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen);
+  if (ComponentsOpen) {
+    ImGui::Checkbox("Show Internal Components", &bShowInternalComponents);
+
+    MSceneComponent* RootComponent = SelectedActor->GetRootComponent();
+    FSceneChildren SceneChildren;
+    std::unordered_set<MSceneComponent*> OwnedSceneComponents;
+    std::vector<MSceneComponent*> SceneComponents;
+    std::vector<MSceneComponent*> UnattachedSceneComponents;
+    std::vector<MActorComponent*> ActorComponents;
+    for (const auto& Owned : SelectedActor->GetComponents()) {
+      MActorComponent* Component = Owned.get();
+      if (!Component || Component->IsPendingDestroy()) continue;
+      if (auto* SceneComponent = dynamic_cast<MSceneComponent*>(Component)) {
+        OwnedSceneComponents.insert(SceneComponent);
+        SceneComponents.push_back(SceneComponent);
+      } else
+        ActorComponents.push_back(Component);
+    }
+    for (MSceneComponent* SceneComponent : SceneComponents) {
+      if (SceneComponent == RootComponent) continue;
+      MSceneComponent* Parent = SceneComponent->GetParentComponent();
+      if (Parent != nullptr && OwnedSceneComponents.contains(Parent))
+        SceneChildren[Parent].push_back(SceneComponent);
+      else
+        UnattachedSceneComponents.push_back(SceneComponent);
+    }
+
+    if (ImGui::TreeNodeEx("Scene Components", ImGuiTreeNodeFlags_DefaultOpen)) {
+      const auto RootChildren = SceneChildren.find(RootComponent);
+      if (RootChildren != SceneChildren.end())
+        for (MSceneComponent* Component : RootChildren->second)
+          DrawSceneComponentNode(SelectedActor, Component, SceneChildren, bShowInternalComponents);
+      bool HasVisibleUnattached = false;
+      for (MSceneComponent* Component : UnattachedSceneComponents)
+        HasVisibleUnattached |=
+            HasVisibleSceneBranch(Component, SceneChildren, bShowInternalComponents);
+      if (HasVisibleUnattached &&
+          ImGui::TreeNodeEx("Unattached Scene Components", ImGuiTreeNodeFlags_DefaultOpen)) {
+        for (MSceneComponent* Component : UnattachedSceneComponents)
+          DrawSceneComponentNode(SelectedActor, Component, SceneChildren, bShowInternalComponents);
+        ImGui::TreePop();
+      }
+      ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx("Actor Components", ImGuiTreeNodeFlags_DefaultOpen)) {
+      for (MActorComponent* Component : ActorComponents) {
+        if (!bShowInternalComponents &&
+            Component->GetEditorVisibility() == EComponentEditorVisibility::Hidden)
+          continue;
+        DrawActorComponentNode(SelectedActor, Component);
+      }
+      ImGui::TreePop();
     }
   }
 

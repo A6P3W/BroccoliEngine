@@ -1,5 +1,7 @@
 #include "EasyShakeComponent.h"
 
+REGISTER_COMPONENT(MEasyShakeComponent)
+
 #include <algorithm>
 #include <cmath>
 #include <random>

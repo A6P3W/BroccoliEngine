@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "ActorComponent.h"
+#include "ComponentRegistry.h"
 #include "EngineDefine.h"
 #include "PhysicsSystem3D.h"
 #include "ReplicationSystem.h"
@@ -120,12 +121,26 @@ const std::vector<std::unique_ptr<MActorComponent>>& AActor::GetComponents() con
   return ImplPtr->Components;
 }
 
-MActorComponent* AActor::AcceptNewObjectComponent(std::unique_ptr<MActorComponent> NewComponent) {
+MActorComponent* AActor::AcceptNewObjectComponent(
+    std::unique_ptr<MActorComponent> NewComponent, const FComponentCreateParams& Params
+) {
   if (!NewComponent) {
     return nullptr;
   }
 
   MActorComponent* NewComponentPtr = NewComponent.get();
+  std::string Name = Params.Name;
+  if (!Name.empty() && FindComponentByName(Name) != nullptr) return nullptr;
+  if (Name.empty()) {
+    const std::string Base = NewComponentPtr->GetComponentClassName();
+    Name = Base;
+    for (unsigned Index = 1; FindComponentByName(Name) != nullptr; ++Index)
+      Name = Base + "_" + std::to_string(Index);
+  }
+  NewComponentPtr->ComponentName = std::move(Name);
+  NewComponentPtr->bExplicitComponentName = !Params.Name.empty();
+  NewComponentPtr->CreationSource = Params.Source;
+  NewComponentPtr->EditorVisibility = Params.EditorVisibility;
 
   NewComponentPtr->SetOwner(this);
   NewComponentPtr->SetComponentId(ImplPtr->NextComponentId++);
@@ -140,7 +155,18 @@ MActorComponent* AActor::AcceptNewObjectComponent(std::unique_ptr<MActorComponen
   }
 
   ImplPtr->Components.push_back(std::move(NewComponent));
+  ComponentRegistry::GetInstance().NotifyCreated(
+      NewComponentPtr, NewComponentPtr->GetComponentClassName()
+  );
   return NewComponentPtr;
+}
+
+MActorComponent* AActor::FindComponentByName(std::string_view ComponentName) const {
+  for (const auto& Component : ImplPtr->Components)
+    if (Component && !Component->IsPendingDestroy() &&
+        Component->GetComponentName() == ComponentName)
+      return Component.get();
+  return nullptr;
 }
 
 void AActor::CompletePendingComponentRegistrations() {

@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "ActorComponent.h"
 #include "ActorRegistry.h"
 #include "Log.h"
 #include "Reflection.h"
@@ -78,8 +79,13 @@ consteval std::meta::info MemberAt() {
 
 template <class T, std::meta::info Member, class V>
 FPropertyValue Get(const void* Object) {
+  if (Object == nullptr) return V{};
   if constexpr (std::is_base_of_v<AActor, T>) {
-    return dynamic_cast<const T*>(static_cast<const AActor*>(Object))->[:Member:];
+    const auto* Typed = dynamic_cast<const T*>(static_cast<const AActor*>(Object));
+    return Typed ? FPropertyValue(Typed->[:Member:]) : FPropertyValue(V{});
+  } else if constexpr (std::is_base_of_v<MActorComponent, T>) {
+    const auto* Typed = dynamic_cast<const T*>(static_cast<const MActorComponent*>(Object));
+    return Typed ? FPropertyValue(Typed->[:Member:]) : FPropertyValue(V{});
   } else {
     return static_cast<const T*>(Object)->[:Member:];
   }
@@ -138,6 +144,8 @@ bool Set(void* Object, const FPropertyValue& Value) {
   T* TypedObject = nullptr;
   if constexpr (std::is_base_of_v<AActor, T>) {
     TypedObject = dynamic_cast<T*>(static_cast<AActor*>(Object));
+  } else if constexpr (std::is_base_of_v<MActorComponent, T>) {
+    TypedObject = dynamic_cast<T*>(static_cast<MActorComponent*>(Object));
   } else {
     TypedObject = static_cast<T*>(Object);
   }
@@ -333,7 +341,7 @@ template <class T>
 consteval std::meta::info DirectBase() {
   static_assert(
       std::meta::bases_of(^^T, std::meta::access_context::unchecked()).size() == 1,
-      "Actor must have exactly one direct base class"
+      "Reflected class must have exactly one direct base class"
   );
   return std::meta::type_of(std::meta::bases_of(^^T, std::meta::access_context::unchecked())[0]);
 }
@@ -344,16 +352,10 @@ std::string ClassName() {
 }
 
 template <class T, class Base>
-FReflectionRegistry::FToken RegisterClass(
-    std::string ModuleOwner, bool RequireActorRegistration = true
-) {
+FReflectionRegistry::FToken RegisterTypeClass(std::string ModuleOwner) {
   static_assert(std::is_base_of_v<Base, T>);
-  if (RequireActorRegistration && !ActorRegistry::GetInstance().Contains(ClassName<T>())) {
-    M_LOG(Error, "Actor class '{}' must be registered before Reflection.", ClassName<T>());
-    return 0;
-  }
   const FClass* BaseClass = nullptr;
-  if constexpr (!std::is_same_v<Base, AActor>) {
+  if constexpr (!std::is_same_v<Base, AActor> && !std::is_same_v<Base, MActorComponent>) {
     BaseClass = FReflectionRegistry::GetInstance().FindClass(ClassName<Base>());
     if (BaseClass == nullptr) {
       M_LOG(Error, "Reflection base class '{}' is not registered.", ClassName<Base>());
@@ -365,6 +367,17 @@ FReflectionRegistry::FToken RegisterClass(
   );
 }
 
+template <class T, class Base>
+FReflectionRegistry::FToken RegisterClass(
+    std::string ModuleOwner, bool RequireActorRegistration = true
+) {
+  if (RequireActorRegistration && !ActorRegistry::GetInstance().Contains(ClassName<T>())) {
+    M_LOG(Error, "Actor class '{}' must be registered before Reflection.", ClassName<T>());
+    return 0;
+  }
+  return RegisterTypeClass<T, Base>(std::move(ModuleOwner));
+}
+
 template <class T>
 bool RegisterStaticClass() {
   using Base = [:DirectBase<T>():];
@@ -373,6 +386,17 @@ bool RegisterStaticClass() {
     if (!RegisterStaticClass<Base>()) return false;
   }
   if (FReflectionRegistry::GetInstance().FindClass(ClassName<T>()) != nullptr) return true;
-  return RegisterClass<T, Base>("Static", false) != 0;
+  return RegisterTypeClass<T, Base>("Static") != 0;
+}
+
+template <class T>
+bool RegisterStaticComponentClass() {
+  using Base = [:DirectBase<T>():];
+  static_assert(std::is_base_of_v<MActorComponent, Base>);
+  if constexpr (!std::is_same_v<Base, MActorComponent>) {
+    if (!RegisterStaticComponentClass<Base>()) return false;
+  }
+  if (FReflectionRegistry::GetInstance().FindClass(ClassName<T>()) != nullptr) return true;
+  return RegisterTypeClass<T, Base>("Static") != 0;
 }
 }  // namespace ReflectionGenerator

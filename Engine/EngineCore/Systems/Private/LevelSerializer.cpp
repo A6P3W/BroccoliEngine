@@ -11,6 +11,7 @@
 #include "Actor.h"
 #include "ActorManager.h"
 #include "ActorRegistry.h"
+#include "ComponentRegistry.h"
 #include "EditorSelectPointComponent.h"
 #include "GameModeBase.h"
 #include "Log.h"
@@ -115,6 +116,115 @@ bool JsonToValue(const json& JsonValue, EPropertyType Type, FPropertyValue& Valu
 }
 }  // namespace
 
+FActorSaveData LevelSerializer::CaptureActor(AActor* Actor) {
+  FActorSaveData Data;
+  if (Actor == nullptr) return Data;
+  Data.ClassName = Actor->GetActorClassName();
+  Data.InstanceName = Actor->GetInstanceName();
+  Data.Transform = Actor->GetActorTransform3D();
+  if (const FClass* Class = FReflectionRegistry::GetInstance().FindClass(Data.ClassName))
+    for (const FProperty* Property : Class->GetProperties())
+      Data.CustomProperties[Property->Name] = ValueToJson(Property->Get(Actor));
+  for (const auto& Owned : Actor->GetComponents()) {
+    MActorComponent* Component = Owned.get();
+    if (!Component || Component->IsPendingDestroy()) continue;
+    if (Component->GetCreationSource() == EComponentCreationSource::Native &&
+        !Component->HasExplicitComponentName())
+      continue;
+    FComponentSaveData Saved;
+    Saved.Name = Component->GetComponentName();
+    Saved.ClassName = Component->GetComponentClassName();
+    Saved.Source = Component->GetCreationSource();
+    if (auto* SceneComponent = dynamic_cast<MSceneComponent*>(Component)) {
+      Saved.HasSceneAttachmentData = true;
+      if (MSceneComponent* Parent = SceneComponent->GetParentComponent())
+        Saved.ParentName = Parent->GetComponentName();
+      Saved.RelativeTransform = SceneComponent->GetRelativeTransform3D();
+    }
+    if (const FClass* Class = FReflectionRegistry::GetInstance().FindClass(Saved.ClassName))
+      for (const FProperty* Property : Class->GetProperties())
+        Saved.CustomProperties[Property->Name] = ValueToJson(Property->Get(Component));
+    Data.Components.push_back(std::move(Saved));
+  }
+  return Data;
+}
+
+void LevelSerializer::ApplyActor(AActor* Actor, const FActorSaveData& Data) {
+  if (Actor == nullptr) return;
+  Actor->SetActorLocation3D(Data.Transform.Location);
+  Actor->SetActorRotation3D(Data.Transform.Rotation);
+  Actor->SetActorScale3D(Data.Transform.Scale);
+  auto ApplyProperties = [](void* Object, std::string_view ClassName, const auto& Properties) {
+    const FClass* Class = FReflectionRegistry::GetInstance().FindClass(ClassName);
+    for (const auto& [Name, JsonValue] : Properties) {
+      const FProperty* Property = Class ? Class->FindProperty(Name) : nullptr;
+      if (Property == nullptr) {
+        M_LOG(Warning, "Unknown property '{}' on '{}'.", Name, ClassName);
+        continue;
+      }
+      FPropertyValue Value;
+      if (!JsonToValue(JsonValue, Property->Type, Value) || !Property->Set(Object, Value))
+        M_LOG(Warning, "Invalid property '{}' on '{}'.", Name, ClassName);
+    }
+  };
+  ApplyProperties(Actor, Data.ClassName, Data.CustomProperties);
+  struct FPendingComponentRestore {
+    MActorComponent* Component = nullptr;
+    const FComponentSaveData* Saved = nullptr;
+  };
+  std::vector<FPendingComponentRestore> PendingComponents;
+  for (const FComponentSaveData& Saved : Data.Components) {
+    MActorComponent* Component = nullptr;
+    if (Saved.Source == EComponentCreationSource::Native) {
+      Component = Actor->FindComponentByName(Saved.Name);
+      if (!Component || !Component->HasExplicitComponentName() ||
+          Component->GetComponentClassName() != Saved.ClassName ||
+          Component->GetCreationSource() != EComponentCreationSource::Native) {
+        M_LOG(Warning, "Native component '{}' class mismatch or missing.", Saved.Name);
+        continue;
+      }
+    } else {
+      Component = ComponentRegistry::GetInstance().Create(Actor, Saved.ClassName, Saved.Name);
+      if (!Component) {
+        M_LOG(Warning, "Cannot create component '{}' of class '{}'.", Saved.Name, Saved.ClassName);
+        continue;
+      }
+    }
+    ApplyProperties(Component, Saved.ClassName, Saved.CustomProperties);
+    PendingComponents.push_back({Component, &Saved});
+  }
+  for (const FPendingComponentRestore& Pending : PendingComponents) {
+    MActorComponent* Component = Pending.Component;
+    const FComponentSaveData& Saved = *Pending.Saved;
+    bool AttachmentRestored = true;
+    if (Saved.HasSceneAttachmentData) {
+      auto* SceneComponent = dynamic_cast<MSceneComponent*>(Component);
+      MSceneComponent* Parent = nullptr;
+      if (!Saved.ParentName.empty())
+        Parent = dynamic_cast<MSceneComponent*>(Actor->FindComponentByName(Saved.ParentName));
+      if (SceneComponent == nullptr || (!Saved.ParentName.empty() && Parent == nullptr) ||
+          !SceneComponent->AttachToComponent(
+              Parent, FAttachmentTransformRules::KeepRelativeTransform
+          )) {
+        M_LOG(
+            Warning, "Cannot restore parent '{}' for component '{}'.", Saved.ParentName, Saved.Name
+        );
+        AttachmentRestored = false;
+      } else {
+        AttachmentRestored =
+            SceneComponent->SetRelativeLocation3D(Saved.RelativeTransform.Location) &&
+            SceneComponent->SetRelativeRotation3D(Saved.RelativeTransform.Rotation) &&
+            SceneComponent->SetRelativeScale3D(Saved.RelativeTransform.Scale);
+      }
+    }
+    if (!AttachmentRestored && Saved.Source == EComponentCreationSource::Instance) {
+      Component->DestroyComponent();
+      continue;
+    }
+    if (Saved.Source == EComponentCreationSource::Instance) Component->RegisterComponent();
+  }
+}
+
 bool LevelSerializer::Save(
     World* world, const std::string& filePath, const std::string& gameModeClassName
 ) {
@@ -134,16 +244,7 @@ bool LevelSerializer::Save(
     if (std::find(gameModeClassNames.begin(), gameModeClassNames.end(), name) !=
         gameModeClassNames.end())
       continue;
-    FActorSaveData data;
-    data.ClassName = name;
-    data.InstanceName = actor->GetInstanceName();
-    data.Transform = actor->GetActorTransform3D();
-    if (const FClass* Class = FReflectionRegistry::GetInstance().FindClass(name)) {
-      for (const FProperty* Property : Class->GetProperties()) {
-        data.CustomProperties[Property->Name] = ValueToJson(Property->Get(actor));
-      }
-    }
-    actors.push_back(data);
+    actors.push_back(CaptureActor(actor));
   }
   FLevelMetaData meta;
   meta.GameModeClassName = gameModeClassName;
@@ -201,21 +302,7 @@ bool LevelSerializer::Load(
       world->GetActorManager()->AssignInstanceName(*actor, data.InstanceName);
     }
 
-    actor->SetActorLocation3D(data.Transform.Location);
-    actor->SetActorRotation3D(data.Transform.Rotation);
-    actor->SetActorScale3D(data.Transform.Scale);
-    const FClass* Class = FReflectionRegistry::GetInstance().FindClass(data.ClassName);
-    for (const auto& [Name, JsonValue] : data.CustomProperties) {
-      const FProperty* Property = Class != nullptr ? Class->FindProperty(Name) : nullptr;
-      if (Property == nullptr) {
-        M_LOG(Warning, "Unknown level property '{}' on actor '{}'.", Name, data.ClassName);
-        continue;
-      }
-      FPropertyValue Value;
-      if (!JsonToValue(JsonValue, Property->Type, Value) || !Property->Set(actor, Value)) {
-        M_LOG(Warning, "Invalid level property '{}' on actor '{}'.", Name, data.ClassName);
-      }
-    }
+    ApplyActor(actor, data);
     spawnedActors.push_back(actor);
   }
   world->GetActorManager()->FlushPendingActors();
@@ -235,7 +322,7 @@ bool LevelSerializer::SaveData(
 ) {
   json root;
   root["meta"] = json::object();
-  root["meta"]["format_version"] = 3;
+  root["meta"]["format_version"] = 5;
   root["meta"]["game_mode"] = meta.GameModeClassName;
   json arr = json::array();
   for (const auto& d : actors) {
@@ -257,6 +344,35 @@ bool LevelSerializer::SaveData(
     };
     if (!d.CustomProperties.empty()) {
       obj["properties"] = d.CustomProperties;
+    }
+    obj["components"] = json::array();
+    for (const FComponentSaveData& Component : d.Components) {
+      json ComponentJson = {
+          {"name", Component.Name},
+          {"class", Component.ClassName},
+          {"source", Component.Source == EComponentCreationSource::Native ? "native" : "instance"},
+          {"properties", Component.CustomProperties}
+      };
+      if (Component.HasSceneAttachmentData) {
+        ComponentJson["attachment"] = {
+            {"parent", Component.ParentName},
+            {"relative_transform",
+             {{"location",
+               {{"x", Component.RelativeTransform.Location.X},
+                {"y", Component.RelativeTransform.Location.Y},
+                {"z", Component.RelativeTransform.Location.Z}}},
+              {"rotation",
+               {{"x", Component.RelativeTransform.Rotation.X},
+                {"y", Component.RelativeTransform.Rotation.Y},
+                {"z", Component.RelativeTransform.Rotation.Z},
+                {"w", Component.RelativeTransform.Rotation.W}}},
+              {"scale",
+               {{"x", Component.RelativeTransform.Scale.X},
+                {"y", Component.RelativeTransform.Scale.Y},
+                {"z", Component.RelativeTransform.Scale.Z}}}}}
+        };
+      }
+      obj["components"].push_back(std::move(ComponentJson));
     }
     arr.push_back(obj);
   }
@@ -336,7 +452,7 @@ bool LevelSerializer::LoadData(
       FormatVersion = Meta["format_version"].get<int>();
     }
   }
-  if (FormatVersion != 1 && FormatVersion != 2 && FormatVersion != 3) {
+  if (FormatVersion < 1 || FormatVersion > 5) {
     M_LOG(Error, "Level data load failed: unsupported format version {}.", FormatVersion);
     return false;
   }
@@ -373,6 +489,54 @@ bool LevelSerializer::LoadData(
     if (obj.contains("properties")) {
       for (auto& [key, val] : obj["properties"].items()) {
         data.CustomProperties[key] = val;
+      }
+    }
+    if (FormatVersion >= 4 && obj.contains("components") && obj["components"].is_array()) {
+      for (const auto& Entry : obj["components"]) {
+        if (!Entry.is_object()) continue;
+        FComponentSaveData Component;
+        Component.Name = Entry.value("name", "");
+        Component.ClassName = Entry.value("class", "");
+        const std::string Source = Entry.value("source", "");
+        if (Component.Name.empty() || Component.ClassName.empty() ||
+            (Source != "native" && Source != "instance"))
+          continue;
+        Component.Source = Source == "native" ? EComponentCreationSource::Native
+                                              : EComponentCreationSource::Instance;
+        if (Entry.contains("properties") && Entry["properties"].is_object())
+          for (const auto& [Name, Value] : Entry["properties"].items())
+            Component.CustomProperties[Name] = Value;
+        if (FormatVersion >= 5 && Entry.contains("attachment") && Entry["attachment"].is_object()) {
+          const auto& Attachment = Entry["attachment"];
+          const auto& Transform = Attachment.value("relative_transform", json::object());
+          Component.HasSceneAttachmentData = true;
+          Component.ParentName = Attachment.value("parent", "");
+          if (Transform.contains("location") && Transform["location"].is_object()) {
+            Component.RelativeTransform.Location = {
+                Transform["location"].value("x", 0.0f),
+                Transform["location"].value("y", 0.0f),
+                Transform["location"].value("z", 0.0f)
+            };
+          }
+          if (Transform.contains("rotation") && Transform["rotation"].is_object()) {
+            Component.RelativeTransform.Rotation =
+                FQuaternion{
+                    Transform["rotation"].value("x", 0.0f),
+                    Transform["rotation"].value("y", 0.0f),
+                    Transform["rotation"].value("z", 0.0f),
+                    Transform["rotation"].value("w", 1.0f)
+                }
+                    .Normalize();
+          }
+          if (Transform.contains("scale") && Transform["scale"].is_object()) {
+            Component.RelativeTransform.Scale = {
+                Transform["scale"].value("x", 1.0f),
+                Transform["scale"].value("y", 1.0f),
+                Transform["scale"].value("z", 1.0f)
+            };
+          }
+        }
+        data.Components.push_back(std::move(Component));
       }
     }
     outActors.push_back(data);
