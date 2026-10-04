@@ -91,6 +91,14 @@ try {
     [pscustomobject]@{
       Source = "PrivateDirectAccess.cpp"
       Expected = "is private within this context"
+    },
+    [pscustomobject]@{
+      Source = "AbstractComponentFactory.cpp"
+      Expected = "!std::is_abstract_v<T>"
+    },
+    [pscustomobject]@{
+      Source = "NonDefaultComponentFactory.cpp"
+      Expected = "std::is_default_constructible_v<T>"
     }
   )
   foreach ($Case in $CompileFailureCases) {

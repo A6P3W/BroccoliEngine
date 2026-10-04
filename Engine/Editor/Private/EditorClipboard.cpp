@@ -1,93 +1,9 @@
 #include "EditorClipboard.h"
 
-#include <cstdint>
-#include <limits>
-#include <type_traits>
-
 #include "Actor.h"
 #include "ActorRegistry.h"
 #include "Log.h"
-#include "Reflection.h"
 #include "World.h"
-#include "nlohmann/json.hpp"
-
-using json = nlohmann::json;
-
-namespace {
-json ValueToJson(const FPropertyValue& Value) {
-  return std::visit(
-      [](const auto& Item) -> json {
-        using T = std::decay_t<decltype(Item)>;
-        if constexpr (std::is_same_v<T, FVector2D>) {
-          return {{"x", Item.X}, {"y", Item.Y}};
-        } else if constexpr (std::is_same_v<T, FVector3D>) {
-          return {{"x", Item.X}, {"y", Item.Y}, {"z", Item.Z}};
-        } else if constexpr (std::is_same_v<T, FPath>) {
-          return Item.String();
-        } else {
-          return Item;
-        }
-      },
-      Value
-  );
-}
-
-bool JsonToValue(const json& JsonValue, EPropertyType Type, FPropertyValue& Value) {
-  try {
-    switch (Type) {
-      case EPropertyType::Bool:
-        if (!JsonValue.is_boolean()) return false;
-        Value = JsonValue.get<bool>();
-        return true;
-      case EPropertyType::Int:
-        if (!JsonValue.is_number_integer()) return false;
-        if (JsonValue.is_number_unsigned()) {
-          if (JsonValue.get<std::uint64_t>() >
-              static_cast<std::uint64_t>(std::numeric_limits<int>::max()))
-            return false;
-        } else {
-          const std::int64_t Number = JsonValue.get<std::int64_t>();
-          if (Number < std::numeric_limits<int>::min() || Number > std::numeric_limits<int>::max())
-            return false;
-        }
-        Value = JsonValue.get<int>();
-        return true;
-      case EPropertyType::Float:
-        if (!JsonValue.is_number_float()) return false;
-        Value = JsonValue.get<float>();
-        return true;
-      case EPropertyType::String:
-        if (!JsonValue.is_string()) return false;
-        Value = JsonValue.get<std::string>();
-        return true;
-      case EPropertyType::Path:
-        if (!JsonValue.is_string()) return false;
-        Value = FPath(JsonValue.get<std::string>());
-        return true;
-      case EPropertyType::Vector2D:
-        if (!JsonValue.is_object() || !JsonValue.contains("x") || !JsonValue.contains("y") ||
-            JsonValue.size() != 2 || !JsonValue["x"].is_number_float() ||
-            !JsonValue["y"].is_number_float())
-          return false;
-        Value = FVector2D{JsonValue["x"].get<float>(), JsonValue["y"].get<float>()};
-        return true;
-      case EPropertyType::Vector3D:
-        if (!JsonValue.is_object() || !JsonValue.contains("x") || !JsonValue.contains("y") ||
-            !JsonValue.contains("z") || JsonValue.size() != 3 ||
-            !JsonValue["x"].is_number_float() || !JsonValue["y"].is_number_float() ||
-            !JsonValue["z"].is_number_float())
-          return false;
-        Value = FVector3D{
-            JsonValue["x"].get<float>(), JsonValue["y"].get<float>(), JsonValue["z"].get<float>()
-        };
-        return true;
-    }
-  } catch (const std::exception&) {
-    return false;
-  }
-  return false;
-}
-}  // namespace
 
 bool EditorClipboard::Copy(AActor* Actor) {
   if (Actor == nullptr || Actor->IsPendingDestroy()) {
@@ -95,15 +11,7 @@ bool EditorClipboard::Copy(AActor* Actor) {
     return false;
   }
 
-  ClipboardData.ClassName = Actor->GetActorClassName();
-  ClipboardData.Transform = Actor->GetActorTransform3D();
-  ClipboardData.CustomProperties.clear();
-
-  if (const FClass* Class = FReflectionRegistry::GetInstance().FindClass(ClipboardData.ClassName)) {
-    for (const FProperty* Property : Class->GetProperties()) {
-      ClipboardData.CustomProperties[Property->Name] = ValueToJson(Property->Get(Actor));
-    }
-  }
+  ClipboardData = LevelSerializer::CaptureActor(Actor);
 
   bHasClipboard = true;
   M_LOG(
@@ -138,27 +46,9 @@ AActor* EditorClipboard::Paste(World* WorldPtr, const FVector3D& PasteLocation) 
     return nullptr;
   }
 
-  ClipboardData.Transform.Location = PasteLocation;
-  NewActor->SetActorLocation3D(ClipboardData.Transform.Location);
-  NewActor->SetActorRotation3D(ClipboardData.Transform.Rotation);
-  NewActor->SetActorScale3D(ClipboardData.Transform.Scale);
-
-  const FClass* Class = FReflectionRegistry::GetInstance().FindClass(ClipboardData.ClassName);
-  for (const auto& [Name, JsonValue] : ClipboardData.CustomProperties) {
-    const FProperty* Property = Class != nullptr ? Class->FindProperty(Name) : nullptr;
-    if (Property == nullptr) {
-      M_LOG(
-          Warning, "Unknown clipboard property '{}' on actor '{}'.", Name, ClipboardData.ClassName
-      );
-      continue;
-    }
-    FPropertyValue Value;
-    if (!JsonToValue(JsonValue, Property->Type, Value) || !Property->Set(NewActor, Value)) {
-      M_LOG(
-          Warning, "Invalid clipboard property '{}' on actor '{}'.", Name, ClipboardData.ClassName
-      );
-    }
-  }
+  FActorSaveData Data = ClipboardData;
+  Data.Transform.Location = PasteLocation;
+  LevelSerializer::ApplyActor(NewActor, Data);
 
   M_LOG(
       Log,

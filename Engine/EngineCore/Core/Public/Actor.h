@@ -45,6 +45,10 @@ class MSceneComponent;
 class FTimerManager;
 class FActorManager;
 class World;
+struct FComponentCreateParams {
+  std::string Name;
+  EComponentCreationSource Source = EComponentCreationSource::Native;
+};
 class BROCCOLI_ENGINE_API AActor : public MBaseObject
 
 {
@@ -78,6 +82,7 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
 
   MActorComponent* FindReplicatedComponent(FNetworkComponentId ComponentNetworkId) const;
   MActorComponent* FindComponentById(FComponentId ComponentId) const;
+  MActorComponent* FindComponentByName(std::string_view ComponentName) const;
   MActorComponent* FindReplicatedComponentByName(std::string_view NetComponentName) const;
   void AssignNetworkComponentIds();
 
@@ -252,13 +257,19 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
 
   template <class T>
   friend T* NewObject(AActor* Owner);
+  template <class T>
+  friend T* NewObject(AActor* Owner, std::string_view Name);
+  template <class T>
+  friend T* NewObjectWithParams(AActor* Owner, const FComponentCreateParams& Params);
 
   void SetActorIdInternal(FActorId InActorId);
   void InvalidateActorIdInternal();
   void SetInstanceNameInternal(std::string InInstanceName);
   void InvalidateInstanceNameInternal();
 
-  MActorComponent* AcceptNewObjectComponent(std::unique_ptr<MActorComponent> NewComponent);
+  MActorComponent* AcceptNewObjectComponent(
+      std::unique_ptr<MActorComponent> NewComponent, const FComponentCreateParams& Params = {}
+  );
   void CompletePendingComponentRegistrations();
 
   struct FRPCEntry {
@@ -317,7 +328,7 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   }
 };
 template <class T>
-T* NewObject(AActor* Owner) {
+T* NewObjectWithParams(AActor* Owner, const FComponentCreateParams& Params) {
   static_assert(std::is_base_of_v<MActorComponent, T>, "NewObject<T> requires MActorComponent.");
   static_assert(std::is_default_constructible_v<T>, "NewObject<T> requires default construction.");
 
@@ -327,6 +338,15 @@ T* NewObject(AActor* Owner) {
 
   auto NewComponent = std::make_unique<T>();
   T* Result = NewComponent.get();
-  Owner->AcceptNewObjectComponent(std::move(NewComponent));
-  return Result;
+  return Owner->AcceptNewObjectComponent(std::move(NewComponent), Params) ? Result : nullptr;
+}
+
+template <class T>
+T* NewObject(AActor* Owner) {
+  return NewObjectWithParams<T>(Owner, {});
+}
+
+template <class T>
+T* NewObject(AActor* Owner, std::string_view Name) {
+  return NewObjectWithParams<T>(Owner, FComponentCreateParams{.Name = std::string(Name)});
 }

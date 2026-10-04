@@ -7,12 +7,15 @@
 
 #include "Actor.h"
 #include "Collision2DComponent.h"
+#include "ComponentRegistry.h"
 #include "DebugOverlay.h"
 #include "MovementComponent.h"
 #if !defined(_RELEASE)
 #include "ResourceManager.h"
 #include "Sprite2DComponent.h"
 #endif
+
+REGISTER_COMPONENT(MForceFieldComponent)
 
 MForceFieldComponent::MForceFieldComponent() {
   bReplicates = true;
@@ -126,9 +129,9 @@ bool MForceFieldComponent::IsValidTarget(AActor* Target) const {
   }
 
   const bool Ignored = std::any_of(
-      IgnoredActorTags.begin(),
-      IgnoredActorTags.end(),
-      [Target](const std::string& Tag) { return Target->HasTag(Tag); }
+      IgnoredActorTags.begin(), IgnoredActorTags.end(), [Target](const std::string& Tag) {
+        return Target->HasTag(Tag);
+      }
   );
   if (Ignored) {
     return false;
@@ -136,9 +139,9 @@ bool MForceFieldComponent::IsValidTarget(AActor* Target) const {
 
   return AffectedActorTags.empty() ||
          std::any_of(
-             AffectedActorTags.begin(),
-             AffectedActorTags.end(),
-             [Target](const std::string& Tag) { return Target->HasTag(Tag); }
+             AffectedActorTags.begin(), AffectedActorTags.end(), [Target](const std::string& Tag) {
+               return Target->HasTag(Tag);
+             }
          );
 }
 

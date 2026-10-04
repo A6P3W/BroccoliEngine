@@ -1,5 +1,9 @@
 #include "SphereCollision3DComponent.h"
 
+#include "ComponentRegistry.h"
+
+REGISTER_COMPONENT(MSphereCollision3DComponent)
+
 #include <algorithm>
 #include <cmath>
 

@@ -3,12 +3,20 @@
 #include <unordered_map>
 #include <vector>
 
+#include "ActorComponent.h"
 #include "BroccoliEngineAPI.h"
 #include "UMath.h"
 #include "nlohmann/json.hpp"
 
 struct FLevelMetaData {
   std::string GameModeClassName;
+};
+
+struct FComponentSaveData {
+  std::string Name;
+  std::string ClassName;
+  EComponentCreationSource Source = EComponentCreationSource::Native;
+  std::unordered_map<std::string, nlohmann::json> CustomProperties;
 };
 
 // 1アクタ分のデータ
@@ -19,12 +27,16 @@ struct FActorSaveData {
 
   // アクタ固有のプロパティ保存用
   std::unordered_map<std::string, nlohmann::json> CustomProperties;
+  std::vector<FComponentSaveData> Components;
 };
 
 class World;
+class AActor;
 
 class BROCCOLI_ENGINE_API LevelSerializer {
  public:
+  static FActorSaveData CaptureActor(AActor* Actor);
+  static void ApplyActor(AActor* Actor, const FActorSaveData& Data);
   // 現在ActorManagerにいるActorRegistryに登録されている全アクタを保存
   static bool Save(World* world, const std::string& filePath, const std::string& gameModeClassName);
 

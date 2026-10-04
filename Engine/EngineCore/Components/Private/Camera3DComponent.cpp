@@ -1,6 +1,9 @@
 #include "Camera3DComponent.h"
 
+#include "ComponentRegistry.h"
 #include "RenderSystem.h"
+
+REGISTER_COMPONENT(MCamera3DComponent, .AllowMultiple = false)
 
 MCamera3DComponent::~MCamera3DComponent() {
   if (RenderSystem::GetInstance().GetCamera3D() == this)
