@@ -1,5 +1,7 @@
 #include "CircleCollision2DComponent.h"
 
+REGISTER_COMPONENT(MCircleCollision2DComponent)
+
 #include <RenderSystem.h>
 
 #include "EngineDefine.h"

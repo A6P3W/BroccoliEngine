@@ -1,5 +1,7 @@
 #include "Camera2DComponent.h"
 
+REGISTER_COMPONENT(MCamera2DComponent)
+
 #include "RenderSystem.h"
 MCamera2DComponent::~MCamera2DComponent() {
   if (RenderSystem::GetInstance().GetCamera() == this) {

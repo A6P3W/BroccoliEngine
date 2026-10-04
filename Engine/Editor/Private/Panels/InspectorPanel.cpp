@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "Actor.h"
+#include "ComponentRegistry.h"
 #include "EditorContext.h"
 #include "EditorMode.h"
 #include "FileDialog.h"
@@ -44,8 +45,8 @@ int ResizeStringBuffer(ImGuiInputTextCallbackData* Data) {
   return 0;
 }
 
-void DrawReflectedProperty(AActor* Actor, const FProperty& Property) {
-  FPropertyValue Value = Property.Get(Actor);
+void DrawReflectedProperty(void* Object, const FProperty& Property) {
+  FPropertyValue Value = Property.Get(Object);
   const char* Label = Property.Name.c_str();
   bool Changed = false;
   switch (Property.Type) {
@@ -96,7 +97,7 @@ void DrawReflectedProperty(AActor* Actor, const FProperty& Property) {
     }
     case EPropertyType::Path: {
       const std::string& Current = std::get<FPath>(Value).String();
-      ImGui::PushID(Actor);
+      ImGui::PushID(Object);
       ImGui::PushID(Label);
       ImGui::TextUnformatted(Label);
       ImGui::SameLine();
@@ -167,9 +168,9 @@ void DrawReflectedProperty(AActor* Actor, const FProperty& Property) {
       break;
     }
   }
-  if (Changed && !Property.Set(Actor, Value)) {
+  if (Changed && !Property.Set(Object, Value)) {
     M_LOG(Warning, "Inspector rejected reflected property '{}'.", Property.Name);
-    Value = Property.Get(Actor);
+    Value = Property.Get(Object);
   }
 }
 }  // namespace
@@ -258,6 +259,45 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
         }
       }
     }
+  }
+
+  ImGui::Separator();
+  if (ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen)) {
+    for (const auto& Owned : SelectedActor->GetComponents()) {
+      MActorComponent* Component = Owned.get();
+      if (!Component || Component->IsPendingDestroy()) continue;
+      ImGui::PushID(Component);
+      const std::string Label =
+          Component->GetComponentName() + " (" + Component->GetComponentClassName() + ")";
+      if (ImGui::CollapsingHeader(Label.c_str())) {
+        if (const FClass* Class =
+                FReflectionRegistry::GetInstance().FindClass(Component->GetComponentClassName()))
+          for (const FProperty* Property : Class->GetProperties())
+            DrawReflectedProperty(Component, *Property);
+        if (Component->GetCreationSource() == EComponentCreationSource::Instance &&
+            Component != SelectedActor->GetRootComponent() && ImGui::Button("Remove Component"))
+          Component->DestroyComponent();
+      }
+      ImGui::PopID();
+    }
+  }
+
+  if (ImGui::BeginCombo("Add Component", "Select class")) {
+    for (const FComponentClassInfo& Info : ComponentRegistry::GetInstance().GetClasses()) {
+      if (!Info.Options.EditorAddable) continue;
+      bool CanAdd = true;
+      if (!Info.Options.AllowMultiple)
+        for (const auto& Existing : SelectedActor->GetComponents())
+          if (Existing && !Existing->IsPendingDestroy() &&
+              Existing->GetComponentClassName() == Info.ClassName)
+            CanAdd = false;
+      if (CanAdd && ImGui::Selectable(Info.ClassName.c_str())) {
+        if (MActorComponent* Component =
+                ComponentRegistry::GetInstance().Create(SelectedActor, Info.ClassName))
+          Component->RegisterComponent();
+      }
+    }
+    ImGui::EndCombo();
   }
 
   ImGui::Separator();

@@ -11,6 +11,7 @@
 #include "Actor.h"
 #include "ActorManager.h"
 #include "ActorRegistry.h"
+#include "ComponentRegistry.h"
 #include "EditorSelectPointComponent.h"
 #include "GameModeBase.h"
 #include "Log.h"
@@ -115,6 +116,74 @@ bool JsonToValue(const json& JsonValue, EPropertyType Type, FPropertyValue& Valu
 }
 }  // namespace
 
+FActorSaveData LevelSerializer::CaptureActor(AActor* Actor) {
+  FActorSaveData Data;
+  if (Actor == nullptr) return Data;
+  Data.ClassName = Actor->GetActorClassName();
+  Data.InstanceName = Actor->GetInstanceName();
+  Data.Transform = Actor->GetActorTransform3D();
+  if (const FClass* Class = FReflectionRegistry::GetInstance().FindClass(Data.ClassName))
+    for (const FProperty* Property : Class->GetProperties())
+      Data.CustomProperties[Property->Name] = ValueToJson(Property->Get(Actor));
+  for (const auto& Owned : Actor->GetComponents()) {
+    MActorComponent* Component = Owned.get();
+    if (!Component || Component->IsPendingDestroy()) continue;
+    if (Component->GetCreationSource() == EComponentCreationSource::Native &&
+        !Component->HasExplicitComponentName())
+      continue;
+    FComponentSaveData Saved;
+    Saved.Name = Component->GetComponentName();
+    Saved.ClassName = Component->GetComponentClassName();
+    Saved.Source = Component->GetCreationSource();
+    if (const FClass* Class = FReflectionRegistry::GetInstance().FindClass(Saved.ClassName))
+      for (const FProperty* Property : Class->GetProperties())
+        Saved.CustomProperties[Property->Name] = ValueToJson(Property->Get(Component));
+    Data.Components.push_back(std::move(Saved));
+  }
+  return Data;
+}
+
+void LevelSerializer::ApplyActor(AActor* Actor, const FActorSaveData& Data) {
+  if (Actor == nullptr) return;
+  Actor->SetActorLocation3D(Data.Transform.Location);
+  Actor->SetActorRotation3D(Data.Transform.Rotation);
+  Actor->SetActorScale3D(Data.Transform.Scale);
+  auto ApplyProperties = [](void* Object, std::string_view ClassName, const auto& Properties) {
+    const FClass* Class = FReflectionRegistry::GetInstance().FindClass(ClassName);
+    for (const auto& [Name, JsonValue] : Properties) {
+      const FProperty* Property = Class ? Class->FindProperty(Name) : nullptr;
+      if (Property == nullptr) {
+        M_LOG(Warning, "Unknown property '{}' on '{}'.", Name, ClassName);
+        continue;
+      }
+      FPropertyValue Value;
+      if (!JsonToValue(JsonValue, Property->Type, Value) || !Property->Set(Object, Value))
+        M_LOG(Warning, "Invalid property '{}' on '{}'.", Name, ClassName);
+    }
+  };
+  ApplyProperties(Actor, Data.ClassName, Data.CustomProperties);
+  for (const FComponentSaveData& Saved : Data.Components) {
+    MActorComponent* Component = nullptr;
+    if (Saved.Source == EComponentCreationSource::Native) {
+      Component = Actor->FindComponentByName(Saved.Name);
+      if (!Component || !Component->HasExplicitComponentName() ||
+          Component->GetComponentClassName() != Saved.ClassName ||
+          Component->GetCreationSource() != EComponentCreationSource::Native) {
+        M_LOG(Warning, "Native component '{}' class mismatch or missing.", Saved.Name);
+        continue;
+      }
+    } else {
+      Component = ComponentRegistry::GetInstance().Create(Actor, Saved.ClassName, Saved.Name);
+      if (!Component) {
+        M_LOG(Warning, "Cannot create component '{}' of class '{}'.", Saved.Name, Saved.ClassName);
+        continue;
+      }
+    }
+    ApplyProperties(Component, Saved.ClassName, Saved.CustomProperties);
+    if (Saved.Source == EComponentCreationSource::Instance) Component->RegisterComponent();
+  }
+}
+
 bool LevelSerializer::Save(
     World* world, const std::string& filePath, const std::string& gameModeClassName
 ) {
@@ -134,16 +203,7 @@ bool LevelSerializer::Save(
     if (std::find(gameModeClassNames.begin(), gameModeClassNames.end(), name) !=
         gameModeClassNames.end())
       continue;
-    FActorSaveData data;
-    data.ClassName = name;
-    data.InstanceName = actor->GetInstanceName();
-    data.Transform = actor->GetActorTransform3D();
-    if (const FClass* Class = FReflectionRegistry::GetInstance().FindClass(name)) {
-      for (const FProperty* Property : Class->GetProperties()) {
-        data.CustomProperties[Property->Name] = ValueToJson(Property->Get(actor));
-      }
-    }
-    actors.push_back(data);
+    actors.push_back(CaptureActor(actor));
   }
   FLevelMetaData meta;
   meta.GameModeClassName = gameModeClassName;
@@ -201,21 +261,7 @@ bool LevelSerializer::Load(
       world->GetActorManager()->AssignInstanceName(*actor, data.InstanceName);
     }
 
-    actor->SetActorLocation3D(data.Transform.Location);
-    actor->SetActorRotation3D(data.Transform.Rotation);
-    actor->SetActorScale3D(data.Transform.Scale);
-    const FClass* Class = FReflectionRegistry::GetInstance().FindClass(data.ClassName);
-    for (const auto& [Name, JsonValue] : data.CustomProperties) {
-      const FProperty* Property = Class != nullptr ? Class->FindProperty(Name) : nullptr;
-      if (Property == nullptr) {
-        M_LOG(Warning, "Unknown level property '{}' on actor '{}'.", Name, data.ClassName);
-        continue;
-      }
-      FPropertyValue Value;
-      if (!JsonToValue(JsonValue, Property->Type, Value) || !Property->Set(actor, Value)) {
-        M_LOG(Warning, "Invalid level property '{}' on actor '{}'.", Name, data.ClassName);
-      }
-    }
+    ApplyActor(actor, data);
     spawnedActors.push_back(actor);
   }
   world->GetActorManager()->FlushPendingActors();
@@ -235,7 +281,7 @@ bool LevelSerializer::SaveData(
 ) {
   json root;
   root["meta"] = json::object();
-  root["meta"]["format_version"] = 3;
+  root["meta"]["format_version"] = 4;
   root["meta"]["game_mode"] = meta.GameModeClassName;
   json arr = json::array();
   for (const auto& d : actors) {
@@ -257,6 +303,15 @@ bool LevelSerializer::SaveData(
     };
     if (!d.CustomProperties.empty()) {
       obj["properties"] = d.CustomProperties;
+    }
+    obj["components"] = json::array();
+    for (const FComponentSaveData& Component : d.Components) {
+      obj["components"].push_back(
+          {{"name", Component.Name},
+           {"class", Component.ClassName},
+           {"source", Component.Source == EComponentCreationSource::Native ? "native" : "instance"},
+           {"properties", Component.CustomProperties}}
+      );
     }
     arr.push_back(obj);
   }
@@ -336,7 +391,7 @@ bool LevelSerializer::LoadData(
       FormatVersion = Meta["format_version"].get<int>();
     }
   }
-  if (FormatVersion != 1 && FormatVersion != 2 && FormatVersion != 3) {
+  if (FormatVersion != 1 && FormatVersion != 2 && FormatVersion != 3 && FormatVersion != 4) {
     M_LOG(Error, "Level data load failed: unsupported format version {}.", FormatVersion);
     return false;
   }
@@ -373,6 +428,24 @@ bool LevelSerializer::LoadData(
     if (obj.contains("properties")) {
       for (auto& [key, val] : obj["properties"].items()) {
         data.CustomProperties[key] = val;
+      }
+    }
+    if (FormatVersion >= 4 && obj.contains("components") && obj["components"].is_array()) {
+      for (const auto& Entry : obj["components"]) {
+        if (!Entry.is_object()) continue;
+        FComponentSaveData Component;
+        Component.Name = Entry.value("name", "");
+        Component.ClassName = Entry.value("class", "");
+        const std::string Source = Entry.value("source", "");
+        if (Component.Name.empty() || Component.ClassName.empty() ||
+            (Source != "native" && Source != "instance"))
+          continue;
+        Component.Source = Source == "native" ? EComponentCreationSource::Native
+                                              : EComponentCreationSource::Instance;
+        if (Entry.contains("properties") && Entry["properties"].is_object())
+          for (const auto& [Name, Value] : Entry["properties"].items())
+            Component.CustomProperties[Name] = Value;
+        data.Components.push_back(std::move(Component));
       }
     }
     outActors.push_back(data);
