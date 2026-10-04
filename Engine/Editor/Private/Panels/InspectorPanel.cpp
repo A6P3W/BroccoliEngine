@@ -175,11 +175,8 @@ void DrawReflectedProperty(void* Object, const FProperty& Property) {
   }
 }
 
-std::string GetComponentDisplayLabel(
-    const MActorComponent* Component, const MActorComponent* RootComponent
-) {
-  const std::string Name =
-      Component == RootComponent ? "RootComponent" : Component->GetComponentName();
+std::string GetComponentDisplayLabel(const MActorComponent* Component) {
+  const std::string& Name = Component->GetComponentName();
   const char* Source =
       Component->GetCreationSource() == EComponentCreationSource::Native ? "Native" : "Instance";
   std::string Label = Name + " (" + Component->GetComponentClassName() + ") [" + Source + "]";
@@ -188,14 +185,46 @@ std::string GetComponentDisplayLabel(
   return Label;
 }
 
-void DrawComponentContents(MActorComponent* Component, MActorComponent* RootComponent) {
+void DrawComponentContents(MActorComponent* Component) {
   if (const FClass* Class =
           FReflectionRegistry::GetInstance().FindClass(Component->GetComponentClassName()))
     for (const FProperty* Property : Class->GetProperties())
       DrawReflectedProperty(Component, *Property);
-  if (Component->GetCreationSource() == EComponentCreationSource::Instance &&
-      Component != RootComponent && ImGui::Button("Remove Component"))
-    Component->DestroyComponent();
+}
+
+bool DrawComponentContextMenu(MActorComponent* Component) {
+  if (Component->GetCreationSource() != EComponentCreationSource::Instance) return false;
+  bool Removed = false;
+  if (ImGui::BeginPopupContextItem("ComponentContextMenu")) {
+    if (ImGui::MenuItem("Remove Component")) {
+      Component->DestroyComponent();
+      Removed = true;
+    }
+    ImGui::EndPopup();
+  }
+  return Removed;
+}
+
+void DrawComponentsContextMenu(AActor* Actor) {
+  if (!ImGui::BeginPopupContextItem("ComponentsContextMenu")) return;
+  if (ImGui::BeginMenu("Add Component")) {
+    for (const FComponentClassInfo& Info : ComponentRegistry::GetInstance().GetClasses()) {
+      if (!Info.Options.EditorAddable) continue;
+      bool CanAdd = true;
+      if (!Info.Options.AllowMultiple)
+        for (const auto& Existing : Actor->GetComponents())
+          if (Existing && !Existing->IsPendingDestroy() &&
+              Existing->GetComponentClassName() == Info.ClassName)
+            CanAdd = false;
+      if (CanAdd && ImGui::MenuItem(Info.ClassName.c_str())) {
+        if (MActorComponent* Component =
+                ComponentRegistry::GetInstance().Create(Actor, Info.ClassName))
+          Component->RegisterComponent();
+      }
+    }
+    ImGui::EndMenu();
+  }
+  ImGui::EndPopup();
 }
 
 using FSceneChildren = std::unordered_map<MSceneComponent*, std::vector<MSceneComponent*>>;
@@ -215,10 +244,7 @@ bool HasVisibleSceneBranch(
 }
 
 void DrawSceneComponentNode(
-    MSceneComponent* Component,
-    MActorComponent* RootComponent,
-    const FSceneChildren& Children,
-    bool ShowInternalComponents
+    MSceneComponent* Component, const FSceneChildren& Children, bool ShowInternalComponents
 ) {
   if (!Component || Component->IsPendingDestroy()) return;
   const auto Iterator = Children.find(Component);
@@ -227,27 +253,33 @@ void DrawSceneComponentNode(
   if (!IsVisible) {
     if (Iterator != Children.end())
       for (MSceneComponent* Child : Iterator->second)
-        DrawSceneComponentNode(Child, RootComponent, Children, ShowInternalComponents);
+        DrawSceneComponentNode(Child, Children, ShowInternalComponents);
     return;
   }
 
   ImGui::PushID(Component);
-  const std::string Label = GetComponentDisplayLabel(Component, RootComponent);
-  if (ImGui::TreeNodeEx("##Component", ImGuiTreeNodeFlags_SpanAvailWidth, "%s", Label.c_str())) {
-    DrawComponentContents(Component, RootComponent);
+  const std::string Label = GetComponentDisplayLabel(Component);
+  const bool IsOpen =
+      ImGui::TreeNodeEx("##Component", ImGuiTreeNodeFlags_SpanAvailWidth, "%s", Label.c_str());
+  const bool Removed = DrawComponentContextMenu(Component);
+  if (IsOpen) {
+    if (!Removed) DrawComponentContents(Component);
     if (Iterator != Children.end())
       for (MSceneComponent* Child : Iterator->second)
-        DrawSceneComponentNode(Child, RootComponent, Children, ShowInternalComponents);
+        DrawSceneComponentNode(Child, Children, ShowInternalComponents);
     ImGui::TreePop();
   }
   ImGui::PopID();
 }
 
-void DrawActorComponentNode(MActorComponent* Component, MActorComponent* RootComponent) {
+void DrawActorComponentNode(MActorComponent* Component) {
   ImGui::PushID(Component);
-  const std::string Label = GetComponentDisplayLabel(Component, RootComponent);
-  if (ImGui::TreeNodeEx("##Component", ImGuiTreeNodeFlags_SpanAvailWidth, "%s", Label.c_str())) {
-    DrawComponentContents(Component, RootComponent);
+  const std::string Label = GetComponentDisplayLabel(Component);
+  const bool IsOpen =
+      ImGui::TreeNodeEx("##Component", ImGuiTreeNodeFlags_SpanAvailWidth, "%s", Label.c_str());
+  const bool Removed = DrawComponentContextMenu(Component);
+  if (IsOpen) {
+    if (!Removed) DrawComponentContents(Component);
     ImGui::TreePop();
   }
   ImGui::PopID();
@@ -341,7 +373,9 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
   }
 
   ImGui::Separator();
-  if (ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen)) {
+  const bool ComponentsOpen = ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen);
+  DrawComponentsContextMenu(SelectedActor);
+  if (ComponentsOpen) {
     ImGui::Checkbox("Show Internal Components", &bShowInternalComponents);
 
     MSceneComponent* RootComponent = SelectedActor->GetRootComponent();
@@ -369,7 +403,10 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
     }
 
     if (ImGui::TreeNodeEx("Scene Components", ImGuiTreeNodeFlags_DefaultOpen)) {
-      DrawSceneComponentNode(RootComponent, RootComponent, SceneChildren, bShowInternalComponents);
+      const auto RootChildren = SceneChildren.find(RootComponent);
+      if (RootChildren != SceneChildren.end())
+        for (MSceneComponent* Component : RootChildren->second)
+          DrawSceneComponentNode(Component, SceneChildren, bShowInternalComponents);
       bool HasVisibleUnattached = false;
       for (MSceneComponent* Component : UnattachedSceneComponents)
         HasVisibleUnattached |=
@@ -377,7 +414,7 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
       if (HasVisibleUnattached &&
           ImGui::TreeNodeEx("Unattached Scene Components", ImGuiTreeNodeFlags_DefaultOpen)) {
         for (MSceneComponent* Component : UnattachedSceneComponents)
-          DrawSceneComponentNode(Component, RootComponent, SceneChildren, bShowInternalComponents);
+          DrawSceneComponentNode(Component, SceneChildren, bShowInternalComponents);
         ImGui::TreePop();
       }
       ImGui::TreePop();
@@ -388,28 +425,10 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
         if (!bShowInternalComponents &&
             Component->GetEditorVisibility() == EComponentEditorVisibility::Hidden)
           continue;
-        DrawActorComponentNode(Component, RootComponent);
+        DrawActorComponentNode(Component);
       }
       ImGui::TreePop();
     }
-  }
-
-  if (ImGui::BeginCombo("Add Component", "Select class")) {
-    for (const FComponentClassInfo& Info : ComponentRegistry::GetInstance().GetClasses()) {
-      if (!Info.Options.EditorAddable) continue;
-      bool CanAdd = true;
-      if (!Info.Options.AllowMultiple)
-        for (const auto& Existing : SelectedActor->GetComponents())
-          if (Existing && !Existing->IsPendingDestroy() &&
-              Existing->GetComponentClassName() == Info.ClassName)
-            CanAdd = false;
-      if (CanAdd && ImGui::Selectable(Info.ClassName.c_str())) {
-        if (MActorComponent* Component =
-                ComponentRegistry::GetInstance().Create(SelectedActor, Info.ClassName))
-          Component->RegisterComponent();
-      }
-    }
-    ImGui::EndCombo();
   }
 
   ImGui::Separator();
