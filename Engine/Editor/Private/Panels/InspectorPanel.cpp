@@ -192,39 +192,53 @@ void DrawComponentContents(MActorComponent* Component) {
       DrawReflectedProperty(Component, *Property);
 }
 
-bool DrawComponentContextMenu(MActorComponent* Component) {
-  if (Component->GetCreationSource() != EComponentCreationSource::Instance) return false;
+bool IsSceneComponentClass(std::string_view ClassName) {
+  const FClass* Class = FReflectionRegistry::GetInstance().FindClass(ClassName);
+  while (Class != nullptr) {
+    if (Class->Name == MSceneComponent::StaticComponentClassName()) return true;
+    Class = Class->BaseClass;
+  }
+  return false;
+}
+
+bool CanAddComponentClass(const AActor* Actor, const FComponentClassInfo& Info) {
+  if (!Info.Options.EditorAddable || !IsSceneComponentClass(Info.ClassName)) return false;
+  if (Info.Options.AllowMultiple) return true;
+  for (const auto& Existing : Actor->GetComponents())
+    if (Existing && !Existing->IsPendingDestroy() &&
+        Existing->GetComponentClassName() == Info.ClassName)
+      return false;
+  return true;
+}
+
+bool DrawComponentContextMenu(AActor* Actor, MActorComponent* Component) {
+  auto* Parent = dynamic_cast<MSceneComponent*>(Component);
+  const bool CanRemove = Component->GetCreationSource() == EComponentCreationSource::Instance;
+  if (Parent == nullptr && !CanRemove) return false;
   bool Removed = false;
   if (ImGui::BeginPopupContextItem("ComponentContextMenu")) {
-    if (ImGui::MenuItem("Remove Component")) {
+    if (Parent != nullptr && ImGui::BeginMenu("Add Child Component")) {
+      for (const FComponentClassInfo& Info : ComponentRegistry::GetInstance().GetClasses()) {
+        if (!CanAddComponentClass(Actor, Info)) continue;
+        if (ImGui::MenuItem(Info.ClassName.c_str())) {
+          MActorComponent* Created = ComponentRegistry::GetInstance().Create(Actor, Info.ClassName);
+          auto* Child = dynamic_cast<MSceneComponent*>(Created);
+          if (Child != nullptr &&
+              Child->AttachToComponent(Parent, FAttachmentTransformRules::KeepRelativeTransform))
+            Child->RegisterComponent();
+          else if (Created != nullptr)
+            Created->DestroyComponent();
+        }
+      }
+      ImGui::EndMenu();
+    }
+    if (CanRemove && ImGui::MenuItem("Remove Component")) {
       Component->DestroyComponent();
       Removed = true;
     }
     ImGui::EndPopup();
   }
   return Removed;
-}
-
-void DrawComponentsContextMenu(AActor* Actor) {
-  if (!ImGui::BeginPopupContextItem("ComponentsContextMenu")) return;
-  if (ImGui::BeginMenu("Add Component")) {
-    for (const FComponentClassInfo& Info : ComponentRegistry::GetInstance().GetClasses()) {
-      if (!Info.Options.EditorAddable) continue;
-      bool CanAdd = true;
-      if (!Info.Options.AllowMultiple)
-        for (const auto& Existing : Actor->GetComponents())
-          if (Existing && !Existing->IsPendingDestroy() &&
-              Existing->GetComponentClassName() == Info.ClassName)
-            CanAdd = false;
-      if (CanAdd && ImGui::MenuItem(Info.ClassName.c_str())) {
-        if (MActorComponent* Component =
-                ComponentRegistry::GetInstance().Create(Actor, Info.ClassName))
-          Component->RegisterComponent();
-      }
-    }
-    ImGui::EndMenu();
-  }
-  ImGui::EndPopup();
 }
 
 using FSceneChildren = std::unordered_map<MSceneComponent*, std::vector<MSceneComponent*>>;
@@ -244,7 +258,10 @@ bool HasVisibleSceneBranch(
 }
 
 void DrawSceneComponentNode(
-    MSceneComponent* Component, const FSceneChildren& Children, bool ShowInternalComponents
+    AActor* Actor,
+    MSceneComponent* Component,
+    const FSceneChildren& Children,
+    bool ShowInternalComponents
 ) {
   if (!Component || Component->IsPendingDestroy()) return;
   const auto Iterator = Children.find(Component);
@@ -253,7 +270,7 @@ void DrawSceneComponentNode(
   if (!IsVisible) {
     if (Iterator != Children.end())
       for (MSceneComponent* Child : Iterator->second)
-        DrawSceneComponentNode(Child, Children, ShowInternalComponents);
+        DrawSceneComponentNode(Actor, Child, Children, ShowInternalComponents);
     return;
   }
 
@@ -261,23 +278,23 @@ void DrawSceneComponentNode(
   const std::string Label = GetComponentDisplayLabel(Component);
   const bool IsOpen =
       ImGui::TreeNodeEx("##Component", ImGuiTreeNodeFlags_SpanAvailWidth, "%s", Label.c_str());
-  const bool Removed = DrawComponentContextMenu(Component);
+  const bool Removed = DrawComponentContextMenu(Actor, Component);
   if (IsOpen) {
     if (!Removed) DrawComponentContents(Component);
     if (Iterator != Children.end())
       for (MSceneComponent* Child : Iterator->second)
-        DrawSceneComponentNode(Child, Children, ShowInternalComponents);
+        DrawSceneComponentNode(Actor, Child, Children, ShowInternalComponents);
     ImGui::TreePop();
   }
   ImGui::PopID();
 }
 
-void DrawActorComponentNode(MActorComponent* Component) {
+void DrawActorComponentNode(AActor* Actor, MActorComponent* Component) {
   ImGui::PushID(Component);
   const std::string Label = GetComponentDisplayLabel(Component);
   const bool IsOpen =
       ImGui::TreeNodeEx("##Component", ImGuiTreeNodeFlags_SpanAvailWidth, "%s", Label.c_str());
-  const bool Removed = DrawComponentContextMenu(Component);
+  const bool Removed = DrawComponentContextMenu(Actor, Component);
   if (IsOpen) {
     if (!Removed) DrawComponentContents(Component);
     ImGui::TreePop();
@@ -374,7 +391,6 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
 
   ImGui::Separator();
   const bool ComponentsOpen = ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen);
-  DrawComponentsContextMenu(SelectedActor);
   if (ComponentsOpen) {
     ImGui::Checkbox("Show Internal Components", &bShowInternalComponents);
 
@@ -406,7 +422,7 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
       const auto RootChildren = SceneChildren.find(RootComponent);
       if (RootChildren != SceneChildren.end())
         for (MSceneComponent* Component : RootChildren->second)
-          DrawSceneComponentNode(Component, SceneChildren, bShowInternalComponents);
+          DrawSceneComponentNode(SelectedActor, Component, SceneChildren, bShowInternalComponents);
       bool HasVisibleUnattached = false;
       for (MSceneComponent* Component : UnattachedSceneComponents)
         HasVisibleUnattached |=
@@ -414,7 +430,7 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
       if (HasVisibleUnattached &&
           ImGui::TreeNodeEx("Unattached Scene Components", ImGuiTreeNodeFlags_DefaultOpen)) {
         for (MSceneComponent* Component : UnattachedSceneComponents)
-          DrawSceneComponentNode(Component, SceneChildren, bShowInternalComponents);
+          DrawSceneComponentNode(SelectedActor, Component, SceneChildren, bShowInternalComponents);
         ImGui::TreePop();
       }
       ImGui::TreePop();
@@ -425,7 +441,7 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
         if (!bShowInternalComponents &&
             Component->GetEditorVisibility() == EComponentEditorVisibility::Hidden)
           continue;
-        DrawActorComponentNode(Component);
+        DrawActorComponentNode(SelectedActor, Component);
       }
       ImGui::TreePop();
     }
