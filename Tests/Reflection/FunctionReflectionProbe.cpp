@@ -15,9 +15,9 @@ class FControlReflectionProbe final : public FControlReflectionProbeBase {
 
  protected:
   CONTROL_METHOD(
-          .Name = "derived_method",
-          .Description = "Derived method.",
-          .ResultAdapter = ^^FControlReflectionProbe::Adapt
+      .Name = "derived_method",
+      .Description = "Derived method.",
+      .ResultAdapter = ^^FControlReflectionProbe::Adapt
   )
   CONTROL_PARAMETER(.Index = 0, .Name = "first", .Description = "First value.")
   CONTROL_PARAMETER(.Index = 1, .Name = "second", .Description = "Second value.")

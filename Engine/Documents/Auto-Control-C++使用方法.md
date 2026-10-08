@@ -21,6 +21,13 @@ REGISTER_ACTOR(ADoorActor)
 REGISTER_CONTROL_CLASS(ADoorActor)
 ```
 
+Component は `REGISTER_CONTROL_CLASS(T)` より前に `REGISTER_COMPONENT(T)` で型を登録する。Editor から追加させない Component には `.EditorAddable = false` を指定できる。
+
+```cpp
+REGISTER_COMPONENT(MDoorAutomationTestComponent, .EditorAddable = false)
+REGISTER_CONTROL_CLASS(MDoorAutomationTestComponent)
+```
+
 Parameter metadata は同じ関数宣言に複数付けられる。`Index` は 0 から始まる。省略した parameter は C++ の識別子を JSON field name に使い、description は空になる。名前のない parameter には metadata が必須である。`std::optional<T>` は従来どおり schema の `required` から除外される。
 
 標準の JSON return converter が扱わない型には、名前付き static / free function を Result Adapter として指定する。Adapter は JSON に変換できる値を返す。
