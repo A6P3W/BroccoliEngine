@@ -1,5 +1,7 @@
 #include "Sprite2DComponent.h"
 
+REGISTER_COMPONENT(MSprite2DComponent)
+
 #include "Actor.h"
 #include "ResourceManager.h"
 #include "UMath.h"

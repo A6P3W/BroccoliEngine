@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "ActorRegistry.h"
+#include "ComponentRegistry.h"
 #include "AutomationAnnotations.h"
 #include "Detail/AutomationJsonConverter.h"
 #include "Detail/AutomationRegistrationContext.h"
@@ -390,6 +391,8 @@ void RegisterClass(FAutomationRegistrationContext& Context) {
     if (!ActorRegistry::GetInstance().Contains(T::StaticClassName())) {
       throw std::runtime_error("Control actor class must be registered first.");
     }
+  } else if (!ComponentRegistry::GetInstance().Contains(T::StaticComponentClassName())) {
+    throw std::runtime_error("Control component class must be registered first.");
   }
   auto Visitor = [&Context]<std::meta::info Function>() {
     RegisterReflectedMethod<T, Function>(Context);

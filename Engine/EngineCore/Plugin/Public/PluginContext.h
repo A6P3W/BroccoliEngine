@@ -5,6 +5,7 @@
 
 #include "BroccoliEngineAPI.h"
 #include "ControlMacros.h"
+#include "ComponentRegistry.h"
 #include "ReflectionGenerator.h"
 
 class BROCCOLI_ENGINE_API PluginContext {
@@ -33,6 +34,24 @@ class BROCCOLI_ENGINE_API PluginContext {
         &BroccoliAutomationDetail::RegisterClass<T>, ModuleOwner
     );
     return true;
+  }
+
+  template <class T, class Base = [:ReflectionGenerator::DirectBase<T>():]>
+  bool RegisterComponent(FComponentClassOptions Options = {}) const {
+    using DirectBaseType = [:ReflectionGenerator::DirectBase<T>():];
+    static_assert(std::is_same_v<Base, DirectBaseType>, "Base must be the direct base class of T");
+    static_assert(std::is_base_of_v<MActorComponent, Base>);
+    if (ModuleOwner.empty()) return false;
+    if (!ComponentRegistry::GetInstance().RegisterOwned<T>(ModuleOwner, Options)) return false;
+    if constexpr (!std::is_same_v<Base, MActorComponent>) {
+      if (!ReflectionGenerator::RegisterStaticComponentClass<Base>()) {
+        ComponentRegistry::GetInstance().UnregisterClass(T::StaticComponentClassName());
+        return false;
+      }
+    }
+    if (ReflectionGenerator::RegisterTypeClass<T, Base>(ModuleOwner) != 0) return true;
+    ComponentRegistry::GetInstance().UnregisterClass(T::StaticComponentClassName());
+    return false;
   }
 
   void LogInfo(const char* Message) const;

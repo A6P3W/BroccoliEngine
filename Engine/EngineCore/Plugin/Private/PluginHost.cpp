@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "ActorRegistry.h"
+#include "ComponentRegistry.h"
 #include "Detail/AutomationRegistrationContext.h"
 #include "IPlugin.h"
 #include "Log.h"
@@ -270,8 +271,13 @@ bool PluginHost::ActivatePlugin(FLoadedPlugin& Plugin) {
 }
 
 bool PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
-  if (ActorRegistry::GetInstance().HasLiveActors(Plugin.ModuleOwner)) {
-    M_LOG(Warning, "Plugin '{}' unload delayed: actors are still alive.", Plugin.Manifest.Name);
+  if (ActorRegistry::GetInstance().HasLiveActors(Plugin.ModuleOwner) ||
+      ComponentRegistry::GetInstance().HasLiveComponents(Plugin.ModuleOwner)) {
+    M_LOG(
+        Warning,
+        "Plugin '{}' unload delayed: actors or components are still alive.",
+        Plugin.Manifest.Name
+    );
     return false;
   }
   if (Plugin.UnloadCallbackPending && Plugin.Instance != nullptr) {
@@ -289,9 +295,12 @@ bool PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
     }
     Plugin.UnloadCallbackPending = false;
     Plugin.State = EPluginState::Loaded;
-    if (ActorRegistry::GetInstance().HasLiveActors(Plugin.ModuleOwner)) {
+    if (ActorRegistry::GetInstance().HasLiveActors(Plugin.ModuleOwner) ||
+        ComponentRegistry::GetInstance().HasLiveComponents(Plugin.ModuleOwner)) {
       M_LOG(
-          Warning, "Plugin '{}' unload delayed: OnUnload left actors alive.", Plugin.Manifest.Name
+          Warning,
+          "Plugin '{}' unload delayed: OnUnload left actors or components alive.",
+          Plugin.Manifest.Name
       );
       return false;
     }
@@ -321,6 +330,7 @@ bool PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
 
   if (!FReflectionRegistry::GetInstance().UnregisterModule(Plugin.ModuleOwner)) return false;
   ActorRegistry::GetInstance().UnregisterModule(Plugin.ModuleOwner);
+  ComponentRegistry::GetInstance().UnregisterModule(Plugin.ModuleOwner);
   Plugin.DestroyFunction = nullptr;
   Plugin.Library.Unload();
   if (Plugin.State != EPluginState::Failed) Plugin.State = EPluginState::Unloaded;

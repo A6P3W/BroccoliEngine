@@ -14,6 +14,8 @@
 #include "Sprite2DComponent.h"
 #endif
 
+REGISTER_COMPONENT(MForceFieldComponent)
+
 MForceFieldComponent::MForceFieldComponent() {
   bReplicates = true;
   SetNetComponentName("ForceFieldComponent");
@@ -29,11 +31,14 @@ void MForceFieldComponent::OnRegister() {
     return;
   }
 
-  DebugSprite = NewObject<MSprite2DComponent>(GetOwner());
+  DebugSprite = NewObjectWithParams<MSprite2DComponent>(
+      GetOwner(), FComponentCreateParams{.EditorVisibility = EComponentEditorVisibility::Hidden}
+  );
   if (!DebugSprite) {
     return;
   }
 
+  DebugSprite->AttachToComponent(this);
   DebugSprite->SetRenderSettings(100, RenderSpace::World);
   UpdateDebugSprite();
   DebugSprite->RegisterComponent();
@@ -126,9 +131,9 @@ bool MForceFieldComponent::IsValidTarget(AActor* Target) const {
   }
 
   const bool Ignored = std::any_of(
-      IgnoredActorTags.begin(),
-      IgnoredActorTags.end(),
-      [Target](const std::string& Tag) { return Target->HasTag(Tag); }
+      IgnoredActorTags.begin(), IgnoredActorTags.end(), [Target](const std::string& Tag) {
+        return Target->HasTag(Tag);
+      }
   );
   if (Ignored) {
     return false;
@@ -136,9 +141,9 @@ bool MForceFieldComponent::IsValidTarget(AActor* Target) const {
 
   return AffectedActorTags.empty() ||
          std::any_of(
-             AffectedActorTags.begin(),
-             AffectedActorTags.end(),
-             [Target](const std::string& Tag) { return Target->HasTag(Tag); }
+             AffectedActorTags.begin(), AffectedActorTags.end(), [Target](const std::string& Tag) {
+               return Target->HasTag(Tag);
+             }
          );
 }
 

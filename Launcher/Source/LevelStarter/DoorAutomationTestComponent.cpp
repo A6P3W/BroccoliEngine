@@ -1,7 +1,9 @@
 #include "DoorAutomationTestComponent.h"
 
+#include "ComponentRegistration.h"
 #include "ControlMacros.h"
 
+REGISTER_COMPONENT(MDoorAutomationTestComponent, .EditorAddable = false)
 REGISTER_CONTROL_CLASS(MDoorAutomationTestComponent)
 
 nlohmann::json MDoorAutomationTestComponent::ActiveToJson(bool Active) {

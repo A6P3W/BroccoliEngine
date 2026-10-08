@@ -19,6 +19,9 @@
 
 class AActor;
 
+enum class EComponentCreationSource { Native, Instance };
+enum class EComponentEditorVisibility { Visible, Hidden };
+
 #define DEFINE_ACTOR_COMPONENT_CLASS(ClassName)                        \
  public:                                                               \
   static std::string StaticComponentClassName() { return #ClassName; } \
@@ -45,6 +48,10 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
   virtual std::string GetComponentClassName() const { return "MActorComponent"; }
   AActor* GetOwner() const { return Owner; }
   FComponentId GetComponentId() const { return ComponentId; }
+  const std::string& GetComponentName() const { return ComponentName; }
+  bool HasExplicitComponentName() const { return bExplicitComponentName; }
+  EComponentCreationSource GetCreationSource() const { return CreationSource; }
+  EComponentEditorVisibility GetEditorVisibility() const { return EditorVisibility; }
 
   void DestroyComponent();
   bool IsPendingDestroy() const;
@@ -164,6 +171,10 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
 
   AActor* Owner = nullptr;
   FComponentId ComponentId = InvalidComponentId;
+  std::string ComponentName;
+  bool bExplicitComponentName = false;
+  EComponentCreationSource CreationSource = EComponentCreationSource::Native;
+  EComponentEditorVisibility EditorVisibility = EComponentEditorVisibility::Visible;
   virtual void OnUpdate(float DeltaTime) {}
 
  private:
@@ -219,3 +230,5 @@ class BROCCOLI_ENGINE_API MActorComponent : public MBaseObject {
     }
   }
 };
+
+#include "ComponentRegistration.h"

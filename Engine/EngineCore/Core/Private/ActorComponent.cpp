@@ -2,6 +2,7 @@
 #include <utility>
 
 #include "Actor.h"
+#include "ComponentRegistry.h"
 #include "HttpManager.h"
 #include "Log.h"
 #include "SceneComponent.h"
@@ -22,6 +23,7 @@ struct MActorComponent::Impl {
 
 MActorComponent::MActorComponent() : ImplPtr(new Impl()) {}
 MActorComponent::~MActorComponent() {
+  ComponentRegistry::GetInstance().NotifyDestroyed(this);
   if (GetOwner() && GetOwner()->GetWorld() && GetOwner()->GetWorld()->GetTimerManager()) {
     GetOwner()->GetWorld()->GetTimerManager()->ClearAllTimersForObject(this);
   }

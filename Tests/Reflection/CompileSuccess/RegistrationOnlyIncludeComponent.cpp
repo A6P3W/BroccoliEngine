@@ -1,0 +1,3 @@
+#include "RegistrationOnlyIncludeComponent.h"
+
+REGISTER_COMPONENT(MRegistrationOnlyIncludeComponent)
