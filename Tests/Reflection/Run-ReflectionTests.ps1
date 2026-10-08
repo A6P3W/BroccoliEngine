@@ -38,6 +38,7 @@ $IncludeDirectories = @(
   "Engine/EngineCore/Reflection/Public",
   "Engine/EngineCore/Components/Public",
   "Engine/EngineCore/Network/Public",
+  "Engine/EngineCore/Automation/Public",
   "Engine/EngineCore/GameFramework/Public",
   "Engine/EngineCore/Utils/Public",
   "Engine/EngineCore/Online/Public",

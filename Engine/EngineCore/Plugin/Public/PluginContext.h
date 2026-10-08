@@ -4,8 +4,8 @@
 #include <utility>
 
 #include "BroccoliEngineAPI.h"
-#include "ControlMacros.h"
 #include "ComponentRegistry.h"
+#include "Detail/AutomationMethodBinding.h"
 #include "ReflectionGenerator.h"
 
 class BROCCOLI_ENGINE_API PluginContext {
