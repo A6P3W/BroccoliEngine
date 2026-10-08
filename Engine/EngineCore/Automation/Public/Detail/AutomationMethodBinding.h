@@ -9,8 +9,11 @@
 #include <type_traits>
 #include <utility>
 
+#include "ActorRegistry.h"
+#include "AutomationAnnotations.h"
 #include "Detail/AutomationJsonConverter.h"
 #include "Detail/AutomationRegistrationContext.h"
+#include "FunctionReflection.h"
 
 struct FAutomationParameterMetadata {
   std::string Name;
@@ -227,7 +230,8 @@ void RegisterMethod(
     std::string Description,
     TMethod Method,
     std::array<FAutomationParameterMetadata, N> Parameters = {},
-    TResultAdapter ResultAdapter = nullptr
+    TResultAdapter ResultAdapter = nullptr,
+    std::string RegisteredClassName = {}
 ) {
   static_assert(
       std::is_member_function_pointer_v<TMethod>,
@@ -263,7 +267,7 @@ void RegisterMethod(
           return InvokeMethod(*TypedActor, Method, Arguments, Parameters, ResultAdapter);
         };
     Context.RegisterActorMethod(
-        TOwner::StaticClassName(),
+        RegisteredClassName.empty() ? TOwner::StaticClassName() : std::move(RegisteredClassName),
         std::move(Name),
         std::move(Description),
         std::move(InputSchema),
@@ -281,13 +285,116 @@ void RegisterMethod(
           return InvokeMethod(*TypedComponent, Method, Arguments, Parameters, ResultAdapter);
         };
     Context.RegisterComponentMethod(
-        TOwner::StaticComponentClassName(),
+        RegisteredClassName.empty() ? TOwner::StaticComponentClassName()
+                                    : std::move(RegisteredClassName),
         std::move(Name),
         std::move(Description),
         std::move(InputSchema),
         std::move(Handler)
     );
   }
+}
+
+consteval bool IsValidControlName(std::string_view Name) {
+  if (Name.empty() || Name.size() > 128 || Name[0] < 'a' || Name[0] > 'z') return false;
+  for (const char Character : Name) {
+    if ((Character < 'a' || Character > 'z') && (Character < '0' || Character > '9') &&
+        Character != '_') {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <std::meta::info Function>
+consteval auto GetReflectedParameters() {
+  constexpr std::size_t Count = std::meta::parameters_of(Function).size();
+  std::array<FControlParameterAnnotation, Count> Result{};
+  auto Reflected = std::meta::parameters_of(Function);
+  for (std::size_t Index = 0; Index < Count; ++Index) {
+    if (!std::meta::has_identifier(Reflected[Index])) continue;
+    const std::string_view Identifier = std::meta::identifier_of(Reflected[Index]);
+    if (Identifier.size() > Result[Index].Name.Data.size()) {
+      throw "Control parameter name exceeds 128 bytes.";
+    }
+    Result[Index].Name.Size = Identifier.size();
+    for (std::size_t Character = 0; Character < Identifier.size(); ++Character) {
+      Result[Index].Name.Data[Character] = Identifier[Character];
+    }
+  }
+  auto Annotations = std::meta::annotations_of_with_type(Function, ^^FControlParameterAnnotation);
+  std::array<bool, Count> Seen{};
+  for (auto Metadata : Annotations) {
+    const auto Parameter = std::meta::extract<FControlParameterAnnotation>(Metadata);
+    if (Parameter.Index >= Count) throw "Control parameter index is out of range.";
+    if (Seen[Parameter.Index]) throw "Control parameter index is duplicated.";
+    Seen[Parameter.Index] = true;
+    Result[Parameter.Index] = Parameter;
+  }
+  for (const auto& Parameter : Result) {
+    if (!IsValidControlName(Parameter.Name.View())) {
+      throw "Control parameter name is invalid or unnamed.";
+    }
+  }
+  return Result;
+}
+
+template <class T, std::meta::info Function>
+void RegisterReflectedMethod(FAutomationRegistrationContext& Context) {
+  constexpr auto Annotation = [] consteval {
+    auto Annotations = std::meta::annotations_of_with_type(Function, ^^FControlMethodAnnotation);
+    if (Annotations.size() != 1) throw "Control method requires one method annotation.";
+    return std::meta::extract<FControlMethodAnnotation>(Annotations[0]);
+  }();
+  static_assert(IsValidControlName(Annotation.Name.View()), "Control method name is invalid.");
+  static_assert(!Annotation.Description.View().empty(), "Control method description is empty.");
+  constexpr auto NameText = Annotation.Name;
+  constexpr auto DescriptionText = Annotation.Description;
+  constexpr auto ReflectedParameters = GetReflectedParameters<Function>();
+  std::array<FAutomationParameterMetadata, ReflectedParameters.size()> Parameters{};
+  for (std::size_t Index = 0; Index < Parameters.size(); ++Index) {
+    Parameters[Index] = {
+        std::string(ReflectedParameters[Index].Name.View()),
+        std::string(ReflectedParameters[Index].Description.View())
+    };
+  }
+  std::string ClassName;
+  if constexpr (std::derived_from<T, AActor>) {
+    ClassName = T::StaticClassName();
+  } else {
+    ClassName = T::StaticComponentClassName();
+  }
+  if constexpr (Annotation.ResultAdapter == std::meta::info{}) {
+    RegisterMethod(
+        Context,
+        std::string(NameText.View()),
+        std::string(DescriptionText.View()),
+        &[:Function:], std::move(Parameters), nullptr, std::move(ClassName)
+    );
+  } else {
+    using TMethod = decltype(&[:Function:]);
+    static_assert(!std::is_void_v<typename TMethodTraits<TMethod>::ReturnType>);
+    RegisterMethod(
+        Context,
+        std::string(NameText.View()),
+        std::string(DescriptionText.View()),
+        &[:Function:], std::move(Parameters), &
+               [:Annotation.ResultAdapter:], std::move(ClassName)
+    );
+  }
+}
+
+template <class T>
+void RegisterClass(FAutomationRegistrationContext& Context) {
+  if constexpr (std::derived_from<T, AActor>) {
+    if (!ActorRegistry::GetInstance().Contains(T::StaticClassName())) {
+      throw std::runtime_error("Control actor class must be registered first.");
+    }
+  }
+  auto Visitor = [&Context]<std::meta::info Function>() {
+    RegisterReflectedMethod<T, Function>(Context);
+  };
+  FunctionReflection::ForEachAnnotatedFunction<T, FControlMethodAnnotation>(Visitor);
 }
 
 }  // namespace BroccoliAutomationDetail

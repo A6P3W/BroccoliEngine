@@ -12,6 +12,7 @@
 class MActorComponent;
 
 struct FAutomationComponentMethodDescriptor {
+  std::string ModuleOwner = "Static";
   std::string Name;
   std::string Description;
   nlohmann::json InputSchema = {
@@ -42,12 +43,10 @@ class FAutomationComponentMethodRegistry {
       std::string_view ClassName
   ) const;
 
-  void Freeze();
-  bool IsFrozen() const;
+  void UnregisterModule(std::string_view ModuleOwner);
 
  private:
   using FMethodMap = std::unordered_map<std::string, FAutomationComponentMethodDescriptor>;
 
   std::unordered_map<std::string, FMethodMap> MethodsByClass;
-  bool Frozen = false;
 };

@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "ActorRegistry.h"
+#include "Detail/AutomationRegistrationContext.h"
 #include "IPlugin.h"
 #include "Log.h"
 #include "NativeLibrary.h"
@@ -295,6 +296,8 @@ bool PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
       return false;
     }
   }
+
+  BroccoliAutomationDetail::UnregisterControlModule(Plugin.ModuleOwner);
 
   if (Plugin.Instance != nullptr && Plugin.DestroyFunction != nullptr) {
     try {
