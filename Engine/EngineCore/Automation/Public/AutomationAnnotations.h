@@ -34,9 +34,41 @@ struct FControlParameterAnnotation {
 };
 
 #ifdef __INTELLISENSE__
+
+/**
+ * @brief メンバ関数をControl APIに公開する。
+ *
+ * .Name : 公開名
+ *
+ * .Description : 説明
+ *
+ * .ResultAdapter : JSON変換関数（任意）
+ *
+ * @code
+ * CONTROL_METHOD(.Name = "open_door", .Description = "Opens the door.")
+ * void OpenDoor();
+ * @endcode
+ */
 #define CONTROL_METHOD(...)
+
+/**
+ * @brief Control APIに公開する引数情報を指定する。
+ *
+ * .Index : 引数位置（0から）
+ *
+ * .Name : JSON上の引数名
+ *
+ * .Description : 説明（任意）
+ *
+ * @code
+ * CONTROL_PARAMETER(.Index = 0, .Name = "locked")
+ * @endcode
+ */
 #define CONTROL_PARAMETER(...)
+
 #else
+
 #define CONTROL_METHOD(...) [[= FControlMethodAnnotation{__VA_ARGS__}]]
 #define CONTROL_PARAMETER(...) [[= FControlParameterAnnotation{__VA_ARGS__}]]
+
 #endif
