@@ -21,7 +21,12 @@ BroccoliEngine は、C++26 / raylib / vcpkg をベースとした2Dゲームエ�
 
 ## 初期セットアップ
 
-必要なツールのセットアップ手順については、[ToolSetup.md](Engine/Documents/ToolSetup.md) を参照してください。
+BroccoliEngine 本体の開発環境をセットアップする手順です。
+
+1. **ステップ 1: 開発ツールのインストール（未導入の場合）**  
+[ToolSetup.md](Engine/Documents/ToolSetup.md) を参照してインストールを行ってください。
+2. **ステップ 2: ビルド環境の準備（初期セットアップ）**  
+[BuildSetup.md](Engine/Documents/BuildSetup.md) を参照して初期セットアップを行ってください。
 
 ---
 
@@ -69,15 +74,18 @@ broccoli.bat run --latest
 
 ## エンジン開発用 Launcher
 
-エンジンリポジトリ単体でも、同梱の `Launcher` をゲームと同じ CMake 構成でビルド・実行できます。
+初期セットアップ完了後、エンジンリポジトリ単体でも同梱の `Launcher` をビルド・実行できます。
 
-`CMakeUserPresets.json` の vcpkg と MinGW のパスを設定した後、
-リポジトリルートで実行してください。
+### ビルドと実行
 
 ```cmd
 broccoli.bat build Debug
 broccoli.bat run Debug
 ```
+
+### VS Code でのデバッグ (F5)
+
+VS Code と GDB を使用したソースレベルデバッグの手順については、[.vscode/DEBUG.md](.vscode/DEBUG.md) を参照してください。
 
 ### Control CLI
 

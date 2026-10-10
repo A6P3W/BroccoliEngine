@@ -27,68 +27,15 @@ MinGW-w64 GCC、CMake、vcpkg、Python、uv などのツールのインストー
 
 ---
 
-## 3. BroccoliEngine の Python ツール環境を同期
+## 3. ビルド環境の準備（初期セットアップ）
 
-ゲームプロジェクトのルートから実行します。
+ツールの導入完了後、Python ツール環境の同期および `CMakeUserPresets.json` の設定が必要です。詳細な手順は以下のドキュメントを参照してください。
 
-```cmd
-cd BroccoliEngine\Tools\Build
-uv sync
-cd ..\..\..
-```
+* **[ビルド環境セットアップ手順 (BuildSetup)](BroccoliEngine/Engine/Documents/BuildSetup.md)**
 
 ---
 
-## 4. CMake User Preset の設定
-
-ローカル環境固有の vcpkg と MinGW-w64 GCC のパスは `CMakeUserPresets.json` に設定します。
-
-プロジェクトルートへ `CMakeUserPresets.json` を作成します。
-
-```json
-{
-  "version": 6,
-  "configurePresets": [
-    {
-      "name": "windows-x64-local",
-      "inherits": "windows-x64",
-      "environment": {
-        "VCPKG_ROOT": "C:/vcpkg",
-        "PATH": "C:/msys64/mingw64/bin;$penv{PATH}"
-      },
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "C:/msys64/mingw64/bin/gcc.exe",
-        "CMAKE_CXX_COMPILER": "C:/msys64/mingw64/bin/g++.exe"
-      }
-    }
-  ],
-  "buildPresets": [
-    {
-      "name": "debug-local",
-      "inherits": "debug",
-      "configurePreset": "windows-x64-local"
-    },
-    {
-      "name": "editor-local",
-      "inherits": "editor",
-      "configurePreset": "windows-x64-local"
-    },
-    {
-      "name": "release-local",
-      "inherits": "release",
-      "configurePreset": "windows-x64-local"
-    }
-  ]
-}
-```
-
-ご自身の環境に合わせて変更してください。
-
-> **Note:** `CMakeUserPresets.json` は個人環境設定のため、Git 管理対象外となっています。
-
----
-
-## 5. ビルドと実行
+## 4. ビルドと実行
 
 ### 統合 CLI を使用する場合
 
@@ -103,3 +50,9 @@ broccoli.bat run Editor
 ```
 
 詳細は `broccoli.bat --help` を参照してください。
+
+---
+
+## 5. VS Code でのデバッグ (F5)
+
+VS Code と GDB を使用したソースレベルデバッグの手順については、[.vscode/DEBUG.md](.vscode/DEBUG.md) を参照してください。
