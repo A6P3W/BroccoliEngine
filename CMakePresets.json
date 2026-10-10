@@ -15,7 +15,7 @@
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "CMAKE_C_COMPILER": "gcc",
-        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_CXX_COMPILER": "broccoli-cache-validation-missing-compiler",
         "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
         "VCPKG_MANIFEST_DIR": "${sourceDir}/Engine"
       }
