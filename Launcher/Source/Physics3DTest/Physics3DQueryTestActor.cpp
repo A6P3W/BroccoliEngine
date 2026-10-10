@@ -11,20 +11,11 @@
 
 REGISTER_ACTOR(APhysics3DQueryTestActor)
 REGISTER_ACTOR(APhysics3DQueryBoxActor)
-CONTROL_METHOD(
-    "observe_queries",
-    "Observe exact overlap queries against the query fixture.",
-    &APhysics3DQueryTestActor::ObserveQueries,
-    CONTROL_PARAMETERS(),
-    ([](const std::string& Result) { return nlohmann::json::parse(Result); })
-)
-CONTROL_METHOD(
-    "observe_rays",
-    "Observe exact raycasts against the query fixture.",
-    &APhysics3DQueryTestActor::ObserveRays,
-    CONTROL_PARAMETERS(),
-    ([](const std::string& Result) { return nlohmann::json::parse(Result); })
-)
+REGISTER_CONTROL_CLASS(APhysics3DQueryTestActor)
+
+nlohmann::json APhysics3DQueryTestActor::ParseResult(const std::string& Result) {
+  return nlohmann::json::parse(Result);
+}
 
 APhysics3DQueryTestActor::APhysics3DQueryTestActor() {
   auto* Body = NewObject<MRigidBody3DComponent>(this);

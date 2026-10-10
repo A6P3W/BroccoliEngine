@@ -12,32 +12,28 @@ REGISTER_ACTOR(APhysics3DStaticFloorActor)
 REGISTER_ACTOR(APhysics3DDynamicBoxActor)
 REGISTER_ACTOR(APhysics3DDynamicSphereActor)
 REGISTER_ACTOR(APhysics3DKinematicActor)
-CONTROL_METHOD(
-    "get_collision_observation",
-    "Returns 3D overlap event counts and current overlap actor IDs.",
-    &APhysics3DDynamicBoxActor::GetCollisionObservation,
-    CONTROL_PARAMETERS(),
-    ([](const FPhysics3DCollisionObservation& Observation) {
-      return nlohmann::json{
-          {"begin_overlap_count", Observation.BeginOverlapCount},
-          {"end_overlap_count", Observation.EndOverlapCount},
-          {"overlapping_actor_ids", Observation.OverlappingActorIds}
-      };
-    })
-)
-CONTROL_METHOD(
-    "get_collision_observation",
-    "Returns 3D overlap event counts and current overlap actor IDs.",
-    &APhysics3DDynamicSphereActor::GetCollisionObservation,
-    CONTROL_PARAMETERS(),
-    ([](const FPhysics3DCollisionObservation& Observation) {
-      return nlohmann::json{
-          {"begin_overlap_count", Observation.BeginOverlapCount},
-          {"end_overlap_count", Observation.EndOverlapCount},
-          {"overlapping_actor_ids", Observation.OverlappingActorIds}
-      };
-    })
-)
+REGISTER_CONTROL_CLASS(APhysics3DDynamicBoxActor)
+REGISTER_CONTROL_CLASS(APhysics3DDynamicSphereActor)
+
+nlohmann::json APhysics3DDynamicBoxActor::ObservationToJson(
+    const FPhysics3DCollisionObservation& Observation
+) {
+  return {
+      {"begin_overlap_count", Observation.BeginOverlapCount},
+      {"end_overlap_count", Observation.EndOverlapCount},
+      {"overlapping_actor_ids", Observation.OverlappingActorIds}
+  };
+}
+
+nlohmann::json APhysics3DDynamicSphereActor::ObservationToJson(
+    const FPhysics3DCollisionObservation& Observation
+) {
+  return {
+      {"begin_overlap_count", Observation.BeginOverlapCount},
+      {"end_overlap_count", Observation.EndOverlapCount},
+      {"overlapping_actor_ids", Observation.OverlappingActorIds}
+  };
+}
 
 namespace {
 void ConfigureBody(AActor& Actor, ERigidBody3DType Type) {

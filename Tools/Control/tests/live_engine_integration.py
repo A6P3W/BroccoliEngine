@@ -25,6 +25,41 @@ def run_integration() -> dict[str, object]:
 
     DiscoveryClassName = RegisteredClasses.Classes[0].ClassName
     ClassMethods = Engine.get_class_methods(DiscoveryClassName)
+    EmptyMethodSchema = {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": False,
+    }
+    ExpectedClassMethods = {
+      "ALevelStarterWidget": {
+        "get_status": "Return the LevelStarter widget status for automation verification."
+      },
+      "APhysics3DDynamicBoxActor": {
+        "get_collision_observation": (
+          "Returns 3D overlap event counts and current overlap actor IDs."
+        )
+      },
+      "APhysics3DDynamicSphereActor": {
+        "get_collision_observation": (
+          "Returns 3D overlap event counts and current overlap actor IDs."
+        )
+      },
+      "APhysics3DQueryTestActor": {
+        "observe_queries": "Observe exact overlap queries against the query fixture.",
+        "observe_rays": "Observe exact raycasts against the query fixture.",
+      },
+    }
+    for ClassName, ExpectedMethods in ExpectedClassMethods.items():
+      ActualMethods = {
+        Method["name"]: (Method["description"], Method["inputSchema"])
+        for Method in Engine.get_class_methods(ClassName).to_dict()["methods"]
+      }
+      ExpectedSnapshot = {
+        Name: (Description, EmptyMethodSchema)
+        for Name, Description in ExpectedMethods.items()
+      }
+      if ActualMethods != ExpectedSnapshot:
+        raise RuntimeError(f"{ClassName} method schema changed during migration.")
     ActorDetails = None
     ActorComponents = None
     if Actors.Actors:
@@ -72,6 +107,30 @@ def run_integration() -> dict[str, object]:
       DoorMethodNames = {Method["name"] for Method in DoorMethods["methods"]}
       if not {"open_door", "close_door", "get_door_state"}.issubset(DoorMethodNames):
         raise RuntimeError("ADoorActor method discovery is incomplete.")
+      ExpectedEmptySchema = EmptyMethodSchema
+      ExpectedDoorMethods = {
+        "open_door": ("Opens the door when it is unlocked.", ExpectedEmptySchema),
+        "close_door": ("Closes the door.", ExpectedEmptySchema),
+        "is_open": ("Returns whether the door is open.", ExpectedEmptySchema),
+        "get_door_state": ("Returns the current door state.", ExpectedEmptySchema),
+        "set_locked": (
+          "Sets the door lock state.",
+          {
+            "type": "object",
+            "properties": {
+              "locked": {"type": "boolean", "description": "New lock state."}
+            },
+            "required": ["locked"],
+            "additionalProperties": False,
+          },
+        ),
+      }
+      ActualDoorMethods = {
+        Method["name"]: (Method["description"], Method["inputSchema"])
+        for Method in DoorMethods["methods"]
+      }
+      if ActualDoorMethods != ExpectedDoorMethods:
+        raise RuntimeError("ADoorActor method schema changed during migration.")
       OpenDoorResult = Engine.invoke_actor_method(SpawnedActorId, "open_door").to_dict()
       DoorStateResult = Engine.invoke_actor_method(SpawnedActorId, "get_door_state").to_dict()
       if DoorStateResult["result"].get("is_open") is not True:
@@ -92,6 +151,27 @@ def run_integration() -> dict[str, object]:
       ComponentMethodNames = {Method["name"] for Method in ComponentMethods.get("methods", [])}
       if not {"set_active", "is_active"}.issubset(ComponentMethodNames):
         raise RuntimeError("Automation component method discovery is incomplete.")
+      ExpectedComponentMethods = {
+        "set_active": (
+          "Sets the DoorActor automation test component active state.",
+          {
+            "type": "object",
+            "properties": {"active": {"type": "boolean", "description": "New active state."}},
+            "required": ["active"],
+            "additionalProperties": False,
+          },
+        ),
+        "is_active": (
+          "Returns the DoorActor automation test component active state.",
+          ExpectedEmptySchema,
+        ),
+      }
+      ActualComponentMethods = {
+        Method["name"]: (Method["description"], Method["inputSchema"])
+        for Method in ComponentMethods["methods"]
+      }
+      if ActualComponentMethods != ExpectedComponentMethods:
+        raise RuntimeError("Door component method schema changed during migration.")
       SetActiveResult = Engine.invoke_component_method(
         SpawnedActorId,
         DoorComponent.ComponentId,

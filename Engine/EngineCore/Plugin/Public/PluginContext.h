@@ -5,6 +5,7 @@
 
 #include "BroccoliEngineAPI.h"
 #include "ComponentRegistry.h"
+#include "Detail/AutomationMethodBinding.h"
 #include "ReflectionGenerator.h"
 
 class BROCCOLI_ENGINE_API PluginContext {
@@ -20,6 +21,19 @@ class BROCCOLI_ENGINE_API PluginContext {
     if (ReflectionGenerator::RegisterClass<T, Base>(ModuleOwner) != 0) return true;
     ActorRegistry::GetInstance().UnregisterClass(T::StaticClassName());
     return false;
+  }
+
+  template <class T>
+  bool RegisterControlClass() const {
+    static_assert(
+        std::derived_from<T, AActor> || std::derived_from<T, MActorComponent>,
+        "Control classes must derive from AActor or MActorComponent."
+    );
+    if (ModuleOwner.empty()) return false;
+    BroccoliAutomationDetail::RegisterCallbackOwned(
+        &BroccoliAutomationDetail::RegisterClass<T>, ModuleOwner
+    );
+    return true;
   }
 
   template <class T, class Base = [:ReflectionGenerator::DirectBase<T>():]>

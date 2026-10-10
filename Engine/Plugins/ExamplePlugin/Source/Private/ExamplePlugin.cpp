@@ -2,6 +2,8 @@
 
 #include <random>
 
+#include "ActorComponent.h"
+#include "AutomationAnnotations.h"
 #include "IPlugin.h"
 #include "PluginAPI.h"
 #include "PluginContext.h"
@@ -14,6 +16,17 @@ int GetRandomNumber() {
 }
 }  // namespace ExamplePlugin
 
+class MExampleAutomationComponent final : public MActorComponent {
+ public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MExampleAutomationComponent)
+
+  CONTROL_METHOD(
+      .Name = "is_ready",
+      .Description = "Returns whether the ExamplePlugin automation component is ready."
+  )
+  bool IsReady() const { return true; }
+};
+
 class ExamplePluginInstance final : public IPlugin {
  public:
   const char* GetName() const override { return "ExamplePlugin"; }
@@ -22,6 +35,14 @@ class ExamplePluginInstance final : public IPlugin {
 
   bool OnLoad(PluginContext& InContext) override {
     Context = InContext;
+    if (!Context.RegisterComponent<MExampleAutomationComponent>({.EditorAddable = false})) {
+      Context.LogError("ExamplePlugin automation component registration failed.");
+      return false;
+    }
+    if (!Context.RegisterControlClass<MExampleAutomationComponent>()) {
+      Context.LogError("ExamplePlugin Control class registration failed.");
+      return false;
+    }
     Context.LogInfo("ExamplePlugin loaded.");
     return true;
   }

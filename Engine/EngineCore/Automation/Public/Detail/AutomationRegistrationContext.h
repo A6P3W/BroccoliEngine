@@ -3,6 +3,7 @@
 #include <functional>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <string_view>
 
 #include "AutomationTypes.h"
 #include "BroccoliEngineAPI.h"
@@ -17,7 +18,9 @@ using FAutomationComponentHandler =
 
 class BROCCOLI_ENGINE_API FAutomationRegistrationContext {
  public:
-  FAutomationRegistrationContext(void* InActorRegistry, void* InComponentRegistry);
+  FAutomationRegistrationContext(
+      void* InActorRegistry, void* InComponentRegistry, std::string InModuleOwner = "Static"
+  );
 
   void RegisterActorMethod(
       std::string ClassName,
@@ -37,9 +40,15 @@ class BROCCOLI_ENGINE_API FAutomationRegistrationContext {
  private:
   void* ActorRegistry = nullptr;
   void* ComponentRegistry = nullptr;
+  std::string ModuleOwner;
 };
 
 using FAutomationRegistrationCallback = void (*)(FAutomationRegistrationContext&);
+
+BROCCOLI_ENGINE_API void RegisterCallbackOwned(
+    FAutomationRegistrationCallback Callback, std::string ModuleOwner
+);
+BROCCOLI_ENGINE_API void UnregisterControlModule(std::string_view ModuleOwner);
 
 class BROCCOLI_ENGINE_API FAutomationRegistrationToken {
  public:

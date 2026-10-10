@@ -1035,6 +1035,10 @@ void TestPluginLoadUnloadAndLiveActorDelay() {
       Host.GetPluginCount() == 1 && Host.GetActivePluginCount() == 1,
       "ExamplePlugin did not load and activate."
   );
+  Check(
+      ComponentRegistry::GetInstance().Contains("MExampleAutomationComponent"),
+      "ExamplePlugin did not register its automation component."
+  );
   Host.Update(0.016F);
 
   constexpr std::string_view ModuleOwner = "Plugin:ExamplePlugin";
@@ -1101,6 +1105,7 @@ void TestPluginLoadUnloadAndLiveActorDelay() {
   Check(
       !Components.Contains(MReflectionInstanceComponent::StaticComponentClassName()) &&
           !Components.Contains(MReflectionSceneComponent::StaticComponentClassName()) &&
+          !Components.Contains("MExampleAutomationComponent") &&
           FReflectionRegistry::GetInstance().FindClass(
               MReflectionInstanceComponent::StaticComponentClassName()
           ) == nullptr &&

@@ -12,6 +12,7 @@
 class AActor;
 
 struct FAutomationMethodDescriptor {
+  std::string ModuleOwner = "Static";
   std::string Name;
   std::string Description;
   nlohmann::json InputSchema = {
@@ -37,12 +38,10 @@ class FAutomationActorMethodRegistry {
 
   std::vector<FAutomationMethodSnapshot> GetMethodsForClass(std::string_view ClassName) const;
 
-  void Freeze();
-  bool IsFrozen() const;
+  void UnregisterModule(std::string_view ModuleOwner);
 
  private:
   using FMethodMap = std::unordered_map<std::string, FAutomationMethodDescriptor>;
 
   std::unordered_map<std::string, FMethodMap> MethodsByClass;
-  bool Frozen = false;
 };

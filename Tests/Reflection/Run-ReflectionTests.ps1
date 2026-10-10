@@ -38,6 +38,7 @@ $IncludeDirectories = @(
   "Engine/EngineCore/Reflection/Public",
   "Engine/EngineCore/Components/Public",
   "Engine/EngineCore/Network/Public",
+  "Engine/EngineCore/Automation/Public",
   "Engine/EngineCore/GameFramework/Public",
   "Engine/EngineCore/Utils/Public",
   "Engine/EngineCore/Online/Public",
@@ -62,6 +63,18 @@ $env:PATH = "$CompilerDirectory;$DebugDirectory;$env:PATH"
 New-Item -ItemType Directory -Path $TestTempDirectory | Out-Null
 Push-Location $RepositoryRoot
 try {
+  & $Compiler @CompilerArguments `
+    "-IEngine/EngineCore/Automation/Public" `
+    "Tests/Reflection/FunctionReflectionProbe.cpp" `
+    "-o$(Join-Path $TestTempDirectory 'FunctionReflectionProbe.exe')"
+  if ($LASTEXITCODE -ne 0) {
+    throw "Function reflection probe compilation failed with exit code $LASTEXITCODE."
+  }
+  & (Join-Path $TestTempDirectory "FunctionReflectionProbe.exe")
+  if ($LASTEXITCODE -ne 0) {
+    throw "Function reflection probe failed with exit code $LASTEXITCODE."
+  }
+
   & $Compiler @CompilerArguments "Tests/Reflection/ReflectionTests.cpp" `
     "-L$DebugDirectory" "-lBroccoliEngine" "-o$TestExecutable"
   if ($LASTEXITCODE -ne 0) {
@@ -172,8 +185,10 @@ try {
       "BroccoliReflectionCompileTests-", [System.StringComparison]::Ordinal
     )
   ) {
-    Remove-Item -LiteralPath $CanonicalTempDirectory -Force
+    Remove-Item -LiteralPath $CanonicalTempDirectory -Force -Recurse
   } else {
     throw "Refusing to remove an unexpected reflection compile-test temp directory."
   }
 }
+
+exit 0
