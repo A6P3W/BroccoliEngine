@@ -1,39 +1,33 @@
-## 生成済みゲームプロジェクトをクローンした後のセットアップ
+# ゲームプロジェクト セットアップ手順
 
-`SetupProject.py --in-place` などで生成済みのゲームプロジェクトを別環境へクローンした場合は、以下の手順で開発環境をセットアップします。
+生成済みのゲームプロジェクトをクローンした後の開発環境セットアップ手順です。
 
-### 1. リポジトリとsubmoduleの取得
+---
+
+## 1. リポジトリと submodule の取得
 
 ```cmd
 git clone --recurse-submodules <Repository URL>
 cd <ProjectName>
 ```
 
-すでに通常の `git clone` を実行済みの場合は、submoduleを初期化します。
+すでに通常の `git clone` を実行済みの場合は、submodule を初期化します：
 
 ```cmd
 git submodule update --init --recursive
 ```
 
-### 2. vcpkg のセットアップ
+---
 
-vcpkg が未導入の場合は、任意の場所へクローンしてセットアップします。
+## 2. 開発ツールのインストール（未導入の場合）
 
-```cmd
-git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
-cd C:\vcpkg
-.\bootstrap-vcpkg.bat
-```
+MinGW-w64 GCC、CMake、vcpkg、Python、uv などのツールのインストールがまだお済みでない場合は、以下のドキュメントを参照して導入してください。
 
-### 3. uv のインストール
+* **[開発ツールセットアップ手順 (ToolSetup)](BroccoliEngine/Engine/Documents/ToolSetup.md)**
 
-`uv` が未導入の場合は、wingetからインストールできます。
+---
 
-```cmd
-winget install astral-sh.uv
-```
-
-### 4. BroccoliEngine のPythonツール環境を同期
+## 3. BroccoliEngine の Python ツール環境を同期
 
 ゲームプロジェクトのルートから実行します。
 
@@ -43,9 +37,11 @@ uv sync
 cd ..\..\..
 ```
 
-### 5. CMake User Preset の設定
+---
 
-ローカル環境固有のvcpkgとMinGW-w64 GCCのパスは`CMakeUserPresets.json` に設定します。
+## 4. CMake User Preset の設定
+
+ローカル環境固有の vcpkg と MinGW-w64 GCC のパスは `CMakeUserPresets.json` に設定します。
 
 プロジェクトルートへ `CMakeUserPresets.json` を作成します。
 
@@ -84,46 +80,26 @@ cd ..\..\..
     }
   ]
 }
-
 ```
 
-`C:\vcpkg` または `C:\msys64\mingw64\bin` 以外へ配置している場合は、自分の環境に合わせて変更してください。GCC 14 以上が必要です。
+ご自身の環境に合わせて変更してください。
 
-`CMakeUserPresets.json` は開発環境固有の設定なので、Git管理対象には含まれません。
+> **Note:** `CMakeUserPresets.json` は個人環境設定のため、Git 管理対象外となっています。
 
-### 6. CMake configure
+---
 
-CMakeを直接使用する場合は、設定したpresetでconfigureします。
+## 5. ビルドと実行
 
-```cmd
-cmake --preset windows-x64-local
-```
-
-### 7. ビルド
-
-CMakeから直接ビルドする場合:
+### 統合 CLI を使用する場合
 
 ```cmd
-cmake --build --preset debug-local
-```
-
-または、プロジェクトルートの統合CLIを使用します。
-
-```cmd
+# Debug ビルドと起動
 broccoli.bat build Debug
-```
-
-Editorビルドの場合:
-
-```cmd
-broccoli.bat build Editor
-```
-
-ビルド後は次のコマンドで起動できます。
-
-```cmd
 broccoli.bat run Debug
+
+# Editor ビルドと起動
+broccoli.bat build Editor
 broccoli.bat run Editor
 ```
 
-broccoli.bat --helpで詳細を確認してください。
+詳細は `broccoli.bat --help` を参照してください。

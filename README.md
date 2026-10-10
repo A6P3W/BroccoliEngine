@@ -10,33 +10,18 @@ BroccoliEngine は、C++26 / raylib / vcpkg をベースとした2Dゲームエ�
 ## 開発要件
 
 * **OS:** Windows 11 / 10 (x64)
-* **C++ コンパイラ:** MinGW-w64 GCC 14 以上（GCC 16 推奨）
+* **C++ コンパイラ:** MinGW-w64 GCC 16.2.0 以上
 * **ビルドツール:** CMake 4.2 以上、Ninja
 * **パッケージマネージャー:** [vcpkg](https://github.com/microsoft/vcpkg)
 * **Python 環境:** Python `>=3.11, <3.15` および [uv](https://github.com/astral-sh/uv)
+* **デバッガ（任意）:** MSYS2 GDB (`mingw-w64-x86_64-gdb`)
+* **VS Code 拡張（任意）:** `C/C++` (`ms-vscode.cpptools`), `CMake Tools` (`ms-vscode.cmake-tools`)
 
 ---
 
 ## 初期セットアップ
 
-### 1. vcpkg のセットアップ
-
-vcpkg をクローンしてセットアップします。
-
-```cmd
-git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
-cd C:\vcpkg
-.\bootstrap-vcpkg.bat
-```
-
-### 2. Python ツール環境の同期 (uv)
-
-ビルド・配布パッケージ用ツールの依存関係を同期します。
-
-```cmd
-cd Tools/Build
-uv sync
-```
+必要なツールのセットアップ手順については、[ToolSetup.md](Engine/Documents/ToolSetup.md) を参照してください。
 
 ---
 
@@ -74,7 +59,6 @@ copy CMakeUserPresets.json.template CMakeUserPresets.json
 
 `CMakeUserPresets.json` の `{YOUR_VCPKG_ROOT_DIRECTORY}` を vcpkg ルートへ、
 `{YOUR_MINGW_BIN_DIRECTORY}` を GCC と Ninja が入った `bin` ディレクトリへ置き換えてください。
-例: `C:/msys64/mingw64/bin`。GCC 13 以前では C++26 モードを使用できません。
 
 ```cmd
 broccoli.bat build
