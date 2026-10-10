@@ -76,8 +76,8 @@ jobs:
           }
           $CmakeVersion = ((& cmake --version | Select-Object -First 1) -split ' ')[2]
           if ($LASTEXITCODE -ne 0 -or $CmakeVersion -ne '4.2.3') { throw "CMake 4.2.3 is required: $CmakeVersion" }
-          $GccExe = (Get-Command gcc.exe -CommandType Application -ErrorAction Stop).Source
-          $GxxExe = (Get-Command g++.exe -CommandType Application -ErrorAction Stop).Source
+          $GccExe = (Get-Command gcc.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+          $GxxExe = (Get-Command g++.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
           $GccHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $GccExe -ErrorAction Stop).Hash.ToLowerInvariant()
           $GxxHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $GxxExe -ErrorAction Stop).Hash.ToLowerInvariant()
           $PwshVersion = $PSVersionTable.PSVersion.ToString()
