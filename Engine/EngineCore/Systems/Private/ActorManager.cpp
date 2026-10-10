@@ -10,8 +10,18 @@
 #include <vector>
 
 #include "Actor.h"
+#include "PhysicsSystem3D.h"
 namespace {
 std::atomic<FActorId> NextActorId = 1;
+
+void UnregisterPhysicsBodies(World* ActorWorld, AActor& Actor) {
+  if (ActorWorld) {
+    if (auto* Physics = ActorWorld->GetPhysicsSystem3D()) {
+      Physics->UnregisterActorBody(&Actor);
+      Physics->UnregisterEditorPickingBody(&Actor);
+    }
+  }
+}
 
 FActorId AllocateActorId() {
   FActorId Candidate = NextActorId.load(std::memory_order_relaxed);
@@ -202,6 +212,18 @@ void FActorManager::UnregisterInstanceName(AActor& Actor) {
 }
 
 void FActorManager::RemovePendingDestroy() {
+  // Unregister every body while all contact partners are still alive.
+  for (const auto& Actor : ImplPtr->Actors) {
+    if (Actor && Actor->IsPendingDestroy()) {
+      UnregisterPhysicsBodies(ImplPtr->World, *Actor);
+    }
+  }
+  for (const auto& Actor : ImplPtr->PendingActors) {
+    if (Actor && Actor->IsPendingDestroy()) {
+      UnregisterPhysicsBodies(ImplPtr->World, *Actor);
+    }
+  }
+
   auto ShouldRemove = [this](const std::unique_ptr<AActor>& Actor) {
     if (Actor && Actor->IsPendingDestroy()) {
       UnregisterInstanceName(*Actor);
@@ -243,12 +265,14 @@ void FActorManager::FlushPendingActors() {
 void FActorManager::ClearAllObjects() {
   for (auto& Actor : ImplPtr->Actors) {
     if (Actor) {
+      UnregisterPhysicsBodies(ImplPtr->World, *Actor);
       Actor->InvalidateActorIdInternal();
       Actor->InvalidateInstanceNameInternal();
     }
   }
   for (auto& Actor : ImplPtr->PendingActors) {
     if (Actor) {
+      UnregisterPhysicsBodies(ImplPtr->World, *Actor);
       Actor->InvalidateActorIdInternal();
       Actor->InvalidateInstanceNameInternal();
     }

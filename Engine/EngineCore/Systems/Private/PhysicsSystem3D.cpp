@@ -132,7 +132,7 @@ uint32_t FPhysicsSystem3D::GetBodyCount() const {
 float FPhysicsSystem3D::GetFixedTimeStep() const { return ImplPtr->FixedTimeStep; }
 
 void FPhysicsSystem3D::RefreshActorBody(AActor* Actor) {
-  if (!Actor || !IsInitialized()) {
+  if (!Actor || Actor->IsPendingDestroy() || !IsInitialized()) {
     return;
   }
   std::vector<MRigidBody3DComponent*> RigidBodies = Actor->GetComponents<MRigidBody3DComponent>();
@@ -188,7 +188,7 @@ void FPhysicsSystem3D::UnregisterActorBody(AActor* Actor) {
 }
 
 void FPhysicsSystem3D::RefreshEditorPickingBody(AActor* Actor, const FEditorPickingProxy3D& Proxy) {
-  if (!Actor || !IsInitialized()) return;
+  if (!Actor || Actor->IsPendingDestroy() || !IsInitialized()) return;
 
   UnregisterEditorPickingBody(Actor);
   FPhysicsBody3DDesc Description;

@@ -24,6 +24,12 @@ class APhysics3DQueryTestActor final : public AActor {
           .ResultAdapter = ^^APhysics3DQueryTestActor::ParseResult
   )
   std::string ObserveRays();
+  CONTROL_METHOD(
+          .Name = "test_actor_destruction",
+          .Description = "Run isolated worlds to verify physics cleanup before actor destruction.",
+          .ResultAdapter = ^^APhysics3DQueryTestActor::ParseResult
+  )
+  std::string TestActorDestruction();
 };
 
 class APhysics3DQueryBoxActor final : public AActor {
