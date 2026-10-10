@@ -3,11 +3,19 @@
 #include <limits>
 
 #include "BoxCollision3DComponent.h"
+#include "CircleCollision2DComponent.h"
 #include "ControlMacros.h"
 #include "PhysicsSystem3D.h"
 #include "RigidBody3DComponent.h"
 #include "SphereCollision3DComponent.h"
 #include "World.h"
+
+namespace {
+class APhysics3DDestructionFixtureActor final : public AActor {
+ public:
+  DEFINE_ACTOR_CLASS(APhysics3DDestructionFixtureActor)
+};
+}  // namespace
 
 REGISTER_ACTOR(APhysics3DQueryTestActor)
 REGISTER_ACTOR(APhysics3DQueryBoxActor)
@@ -112,4 +120,159 @@ std::string APhysics3DQueryTestActor::ObserveRays() {
   Record("ignore", Physics->RaycastAll(MainRay, {0xffff, this}));
   Record("miss", Physics->RaycastAll({{-2, 3, 0}, {1, 0, 0}, 20}, {}));
   return Result.dump();
+}
+
+std::string APhysics3DQueryTestActor::TestActorDestruction() {
+  nlohmann::json Results = nlohmann::json::object();
+  auto SpawnBody = [](World& TestWorld) {
+    auto* Actor = TestWorld.SpawnActor<APhysics3DDestructionFixtureActor>();
+    auto* Body = NewObject<MRigidBody3DComponent>(Actor);
+    Body->SetBodyType(ERigidBody3DType::Dynamic);
+    Body->RegisterComponent();
+    auto* Collider = NewObject<MSphereCollision3DComponent>(Actor);
+    Collider->SetRadius(0.5f);
+    Collider->SetCollisionType3D(ECollisionType3D::Overlap);
+    Collider->RegisterComponent();
+    return Actor;
+  };
+  auto Observe = [](FPhysicsSystem3D& Physics) {
+    const FPhysicsRay3D Ray{{-2, 0, 0}, {1, 0, 0}, 4};
+    const FPhysicsQueryFilter3D Picking{0xffff, nullptr, EPhysicsQueryLayer3D::EditorPicking};
+    return nlohmann::json{
+        {"bodies", Physics.GetBodyCount()},
+        {"ray_hits", Physics.RaycastAll(Ray, {}).size()},
+        {"overlap_hits", Physics.OverlapSphere({}, 2, {}).size()},
+        {"picking_hits", Physics.RaycastAll(Ray, Picking).size()}
+    };
+  };
+  for (const bool Pending : {false, true}) {
+    World TestWorld;
+    auto* Manager = TestWorld.GetActorManager();
+    auto* Physics = TestWorld.GetPhysicsSystem3D();
+    auto* Actor = SpawnBody(TestWorld);
+    Physics->RefreshEditorPickingBody(Actor, {});
+    const FActorId Id = Actor->GetActorId();
+    if (!Pending) Manager->FlushPendingActors();
+    const auto Before = Observe(*Physics);
+    Actor->Destroy();
+    Actor->Destroy();
+    const bool Deferred = Manager->FindActorByIdIncludingPendingDestroy(Id) == Actor;
+    Manager->RemovePendingDestroy();
+    Physics->Step(1.0f / 60.0f);
+    const auto After = Observe(*Physics);
+    Results[Pending ? "pending_actor" : "active_actor"] = {
+        {"before", Before},
+        {"after", After},
+        {"passed",
+         Before["ray_hits"] == 1 && Before["picking_hits"] == 1 && Deferred &&
+             After["bodies"] == 0 && After["ray_hits"] == 0 && After["overlap_hits"] == 0 &&
+             After["picking_hits"] == 0 &&
+             Manager->FindActorByIdIncludingPendingDestroy(Id) == nullptr}
+    };
+  }
+  {
+    World TestWorld;
+    auto* Physics = TestWorld.GetPhysicsSystem3D();
+    auto* Actor = SpawnBody(TestWorld);
+    Actor->Destroy();
+    Physics->UnregisterActorBody(Actor);
+    Physics->UnregisterEditorPickingBody(Actor);
+    Physics->UnregisterActorBody(Actor);
+    Physics->UnregisterEditorPickingBody(Actor);
+    Physics->RefreshActorBody(Actor);
+    Physics->RefreshEditorPickingBody(Actor, {});
+    Results["pending_refresh"] = {{"passed", Physics->GetBodyCount() == 0}};
+  }
+  for (const bool Clear : {false, true}) {
+    World TestWorld;
+    auto* Manager = TestWorld.GetActorManager();
+    auto* Physics = TestWorld.GetPhysicsSystem3D();
+    auto* First = SpawnBody(TestWorld);
+    auto* Survivor = SpawnBody(TestWorld);
+    Manager->FlushPendingActors();
+    auto* Pending = SpawnBody(TestWorld);
+    Physics->Step(1.0f / 60.0f);
+    auto* Collider = Survivor->GetComponents<MCollision3DComponent>().front();
+    const auto ContactsBefore = Collider->GetOverlappingActors().size();
+    if (Clear) {
+      Manager->ClearAllObjects();
+    } else {
+      First->Destroy();
+      Pending->Destroy();
+      Manager->RemovePendingDestroy();
+    }
+    const bool ContactsCleared = Clear || Collider->GetOverlappingActors().empty();
+    Physics->Step(1.0f / 60.0f);
+    const auto After = Observe(*Physics);
+    Results[Clear ? "clear_all_contacting" : "destroy_contacting"] = {
+        {"contacts_before", ContactsBefore},
+        {"after", After},
+        {"passed",
+         ContactsBefore == 2 && ContactsCleared && After["overlap_hits"] == (Clear ? 0 : 1)}
+    };
+    Manager->ClearAllObjects();
+    Results[Clear ? "clear_all_contacting" : "destroy_contacting"]["passed"] =
+        Results[Clear ? "clear_all_contacting" : "destroy_contacting"]["passed"].get<bool>() &&
+        Physics->GetBodyCount() == 0;
+  }
+  {
+    World TestWorld;
+    auto* Physics = TestWorld.GetPhysicsSystem3D();
+    auto* Manager = TestWorld.GetActorManager();
+    bool Passed = true;
+    for (int Index = 0; Index < 100; ++Index) {
+      auto* Actor = SpawnBody(TestWorld);
+      if (Index % 2 == 0) Manager->FlushPendingActors();
+      Actor->Destroy();
+      Manager->RemovePendingDestroy();
+      Physics->Step(1.0f / 60.0f);
+      Passed = Passed && Physics->GetBodyCount() == 0;
+    }
+    Results["spawn_destroy_100"] = {{"passed", Passed}};
+    for (const bool DestroyCollider : {false, true}) {
+      auto* Actor = SpawnBody(TestWorld);
+      if (DestroyCollider) {
+        Actor->GetComponents<MCollision3DComponent>().front()->DestroyComponent();
+      } else {
+        Actor->GetComponents<MRigidBody3DComponent>().front()->DestroyComponent();
+      }
+      Physics->Step(1.0f / 60.0f);
+      Results[DestroyCollider ? "destroy_collider_component" : "destroy_body_component"] = {
+          {"passed",
+           !Actor->IsPendingDestroy() && Physics->GetBodyCount() == 0 &&
+               Physics->OverlapSphere({}, 2, {}).empty()}
+      };
+      Manager->ClearAllObjects();
+    }
+  }
+  {
+    World TestWorld;
+    auto* First = TestWorld.SpawnActor<APhysics3DDestructionFixtureActor>();
+    auto* Second = TestWorld.SpawnActor<APhysics3DDestructionFixtureActor>();
+    auto* FirstCollider = NewObject<MCircleCollision2DComponent>(First);
+    auto* SecondCollider = NewObject<MCircleCollision2DComponent>(Second);
+    FirstCollider->RegisterComponent();
+    SecondCollider->RegisterComponent();
+    FirstCollider->UpdateOverlapState(Second, true);
+    SecondCollider->UpdateOverlapState(First, true);
+    TestWorld.GetActorManager()->FlushPendingActors();
+    const bool ContactBefore = SecondCollider->IsOverlappingActor(First);
+    First->Destroy();
+    TestWorld.GetActorManager()->RemovePendingDestroy();
+    TestWorld.GetCollisionSystem()->UpdateCollisionMap();
+    TestWorld.GetCollisionSystem()->CheckCollisions();
+    Results["destroy_2d"] = {
+        {"passed", ContactBefore && SecondCollider->GetOverlappingActors().empty()}
+    };
+  }
+  // Leave contacting active and pending actors for World::~World to clean up.
+  {
+    World TestWorld;
+    SpawnBody(TestWorld);
+    TestWorld.GetActorManager()->FlushPendingActors();
+    SpawnBody(TestWorld);
+    TestWorld.GetPhysicsSystem3D()->Step(1.0f / 60.0f);
+  }
+  Results["world_teardown"] = {{"passed", true}};
+  return Results.dump();
 }
