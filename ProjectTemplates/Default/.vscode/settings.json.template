@@ -3,6 +3,7 @@
     "cwd": "${command:cmake.launchTargetDirectory}"
   },
   "cmake.useCMakePresets": "always",
+  "cmake.buildBeforeRun": true,
   "cmake.sourceDirectory": "${workspaceFolder}",
   "cmake.configurePreset": "windows-x64-local",
   "cmake.buildPreset": "debug-local",

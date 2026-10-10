@@ -45,6 +45,7 @@ add_library(Broccoli::Engine ALIAS BroccoliEngine)
 target_compile_features(BroccoliEngine PUBLIC cxx_std_26)
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/BroccoliReflection.cmake")
 broccoli_enable_reflection(BroccoliEngine)
+broccoli_apply_gnu_debug_options(BroccoliEngine)
 target_compile_options(BroccoliEngine INTERFACE -freflection)
 target_compile_definitions(BroccoliEngine
   PRIVATE

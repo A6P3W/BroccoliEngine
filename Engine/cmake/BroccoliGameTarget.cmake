@@ -36,6 +36,7 @@ function(broccoli_add_game)
   add_executable(${GameName} WIN32 ${BroccoliGameFiles})
   target_compile_features(${GameName} PRIVATE cxx_std_26)
   broccoli_enable_reflection(${GameName})
+  broccoli_apply_gnu_debug_options(${GameName})
   target_compile_definitions(${GameName} PRIVATE
     $<$<CONFIG:Debug>:_DEBUG>
     $<$<CONFIG:Editor>:_EDITOR>
