@@ -21,6 +21,29 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+          fetch-depth: 2
+      - name: Checkout pinned vcpkg
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: microsoft/vcpkg
+          ref: aa40adda5352e87655b8583cfb2451d5e9e276fd
+          path: .ci/vcpkg
+          persist-credentials: false
+      - name: Bootstrap pinned vcpkg
+        shell: pwsh
+        run: |
+          $VcpkgRoot = Join-Path $env:GITHUB_WORKSPACE '.ci/vcpkg'
+          & (Join-Path $VcpkgRoot 'bootstrap-vcpkg.bat') -disableMetrics
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to bootstrap pinned vcpkg.' }
+          $VcpkgExe = Join-Path $VcpkgRoot 'vcpkg.exe'
+          if (-not (Test-Path -LiteralPath $VcpkgExe -PathType Leaf)) { throw 'Pinned vcpkg.exe not found.' }
+          Write-Output "vcpkg executable: $VcpkgExe"
+          & $VcpkgExe version
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned vcpkg.exe failed.' }
+          $VcpkgRevision = (git -C $VcpkgRoot rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $VcpkgRevision -ne 'aa40adda5352e87655b8583cfb2451d5e9e276fd') { throw 'Unexpected vcpkg revision.' }
+          Write-Output "vcpkg revision: $VcpkgRevision"
+          "VCPKG_ROOT=$VcpkgRoot" >> $env:GITHUB_ENV
       - uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
         id: msys2
         with:
@@ -31,38 +54,81 @@ jobs:
       - name: Install CMake and configure tools
         shell: pwsh
         run: |
-          uv tool install 'cmake>=4.2,<4.3'
+          uv tool install 'cmake==4.2.3'
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to install CMake 4.2.3.' }
           (uv tool dir --bin) | Out-File -FilePath $env:GITHUB_PATH -Append
           "${{ steps.msys2.outputs.msys2-location }}\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
-          if (-not $env:VCPKG_INSTALLATION_ROOT) { throw 'Runner vcpkg installation was not found.' }
-          "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
       - name: Verify toolchain
         id: versions
         shell: pwsh
         run: |
-          g++ --version
-          cmake --version
           ninja --version
           uv --version
           $GccVersion = (& g++ -dumpfullversion).Trim()
+          if ($LASTEXITCODE -ne 0 -or $GccVersion -ne '16.2.0') { throw "GCC 16.2.0 is required: $GccVersion" }
+          $GxxVersionOutput = @(& g++ --version)
+          if ($LASTEXITCODE -ne 0 -or -not $GxxVersionOutput[0]) { throw 'Could not read MSYS2 GCC revision.' }
+          $GxxVersionOutput | Write-Output
+          if ($GxxVersionOutput[0] -match '\(Rev(?<revision>\d+)[,\)]') {
+            $GccRevision = $Matches.revision
+          } else {
+            throw 'Could not detect MSYS2 GCC revision.'
+          }
           $CmakeVersion = ((& cmake --version | Select-Object -First 1) -split ' ')[2]
-          if ($GccVersion -notmatch '^16\.2(\.|$)') { throw "GCC 16.2 is required, found $GccVersion" }
-          if ([version]$CmakeVersion -lt [version]'4.2.0') { throw "CMake 4.2 is required, found $CmakeVersion" }
-          "gcc=16" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "cmake=$(($CmakeVersion -split '\.')[0..1] -join '.')" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          if ($LASTEXITCODE -ne 0 -or $CmakeVersion -ne '4.2.3') { throw "CMake 4.2.3 is required: $CmakeVersion" }
+          $GccExe = (Get-Command gcc.exe -CommandType Application -ErrorAction Stop).Source
+          $GxxExe = (Get-Command g++.exe -CommandType Application -ErrorAction Stop).Source
+          $GccHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $GccExe -ErrorAction Stop).Hash.ToLowerInvariant()
+          $GxxHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $GxxExe -ErrorAction Stop).Hash.ToLowerInvariant()
+          $PwshVersion = $PSVersionTable.PSVersion.ToString()
+          Write-Output "GCC: $GccVersion-rev$GccRevision; CMake: $CmakeVersion; PowerShell: $PwshVersion"
+          Write-Output "gcc.exe: $GccExe; SHA256: $GccHash"
+          Write-Output "g++.exe: $GxxExe; SHA256: $GxxHash"
+          "gcc=$($GccVersion)-rev$GccRevision" >> $env:GITHUB_OUTPUT
+          "cmake=$CmakeVersion" >> $env:GITHUB_OUTPUT
+          "pwsh=$PwshVersion" >> $env:GITHUB_OUTPUT
+          "gcc_hash=$GccHash" >> $env:GITHUB_OUTPUT
+          "gxx_hash=$GxxHash" >> $env:GITHUB_OUTPUT
       - name: Configure vcpkg binary cache
         shell: pwsh
         run: |
           $CacheDirectory = Join-Path $env:RUNNER_TEMP 'vcpkg-binary-cache'
           New-Item -ItemType Directory -Path $CacheDirectory -Force | Out-Null
           "VCPKG_BINARY_SOURCES=clear;files,$CacheDirectory,readwrite" | Out-File -FilePath $env:GITHUB_ENV -Append
-      - uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        id: vcpkg-cache
+      - name: Compute vcpkg cache key
+        id: vcpkg-key
+        shell: pwsh
+        run: |
+          $Prefix = "vcpkg-v3-${{ runner.os }}-vcpkg-aa40adda5352e87655b8583cfb2451d5e9e276fd-gcc${{ steps.versions.outputs.gcc }}-cmake${{ steps.versions.outputs.cmake }}-pwsh${{ steps.versions.outputs.pwsh }}-gccbin${{ steps.versions.outputs.gcc_hash }}-gxxbin${{ steps.versions.outputs.gxx_hash }}-"
+          $Hash = "${{ hashFiles('Engine/vcpkg.json', 'Engine/vcpkg-configuration.json', 'Engine/vcpkg-overlay-ports/**', 'CMakePresets.json') }}"
+          if ([string]::IsNullOrWhiteSpace($Hash)) { throw 'Dependency hash is empty.' }
+          Write-Output "vcpkg cache key: $Prefix$Hash"
+          "prefix=$Prefix" >> $env:GITHUB_OUTPUT
+          "key=$Prefix$Hash" >> $env:GITHUB_OUTPUT
+      - name: Restore vcpkg exact cache
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        id: cache-exact
         with:
           path: ${{ runner.temp }}/vcpkg-binary-cache
-          key: vcpkg-${{ runner.os }}-gcc${{ steps.versions.outputs.gcc }}-cmake${{ steps.versions.outputs.cmake }}-${{ hashFiles('Engine/vcpkg.json', 'Engine/vcpkg-configuration.json', 'Engine/vcpkg-overlay-ports/**', 'CMakePresets.json') }}
+          key: ${{ steps.vcpkg-key.outputs.key }}
+      - name: Restore vcpkg fallback cache
+        uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        id: cache-fallback
+        if: steps.cache-exact.outputs.cache-hit != 'true'
+        with:
+          path: ${{ runner.temp }}/vcpkg-binary-cache
+          key: ${{ steps.vcpkg-key.outputs.key }}
           restore-keys: |
-            vcpkg-${{ runner.os }}-gcc${{ steps.versions.outputs.gcc }}-cmake${{ steps.versions.outputs.cmake }}-
+            ${{ steps.vcpkg-key.outputs.prefix }}
+      - name: Detect PR dependency changes
+        id: pr-deps
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        run: |
+          $Changes = @(git diff --name-only HEAD^1 HEAD -- Engine/vcpkg.json Engine/vcpkg-configuration.json Engine/vcpkg-overlay-ports/ CMakePresets.json .github/workflows/ci.yml)
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to inspect PR changes.' }
+          $Changed = if ($Changes.Count -gt 0) { 'true' } else { 'false' }
+          "changed=$Changed" >> $env:GITHUB_OUTPUT
       - name: Python tests
         shell: pwsh
         run: |
@@ -78,8 +144,21 @@ jobs:
       - name: Reflection tests
         shell: pwsh
         run: pwsh -NoProfile -File Tests/Reflection/Run-ReflectionTests.ps1
-      - uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        if: always() && steps.vcpkg-cache.outcome == 'success' && steps.vcpkg-cache.outputs.cache-hit != 'true'
+      - name: Save vcpkg binary cache
+        uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        if: >-
+          ${{
+            success() &&
+            steps.cache-exact.outputs.cache-hit != 'true' &&
+            steps.cache-fallback.outputs.cache-hit != 'true' &&
+            (
+              github.ref == 'refs/heads/main' ||
+              (
+                github.event_name == 'pull_request' &&
+                steps.pr-deps.outputs.changed == 'true'
+              )
+            )
+          }}
         with:
           path: ${{ runner.temp }}/vcpkg-binary-cache
-          key: vcpkg-${{ runner.os }}-gcc${{ steps.versions.outputs.gcc }}-cmake${{ steps.versions.outputs.cmake }}-${{ hashFiles('Engine/vcpkg.json', 'Engine/vcpkg-configuration.json', 'Engine/vcpkg-overlay-ports/**', 'CMakePresets.json') }}
+          key: ${{ steps.vcpkg-key.outputs.key }}
