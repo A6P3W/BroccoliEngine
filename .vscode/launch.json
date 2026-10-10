@@ -2,17 +2,27 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch Game (Debug)",
-      "type": "cppvsdbg",
+      "name": "GDB: Launcher (active CMake preset)",
+      "type": "cppdbg",
       "request": "launch",
-      "program": "${input:launcherPath}",
-      "cwd": "${input:launcherDirectory}",
-      "console": "integratedTerminal"
+      "program": "${input:gameExe}",
+      "cwd": "${input:gameDir}",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "C:/msys64/mingw64/bin/gdb.exe",
+      "setupCommands": [
+        {
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
     }
   ],
   "inputs": [
     {
-      "id": "launcherPath",
+      "id": "gameExe",
       "type": "command",
       "command": "cmake.launchTargetPath",
       "args": {
@@ -20,7 +30,7 @@
       }
     },
     {
-      "id": "launcherDirectory",
+      "id": "gameDir",
       "type": "command",
       "command": "cmake.getLaunchTargetDirectory",
       "args": {
