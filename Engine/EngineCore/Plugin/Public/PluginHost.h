@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 #include "BroccoliEngineAPI.h"
@@ -26,11 +27,11 @@ class BROCCOLI_ENGINE_API PluginHost {
   PluginHost(const PluginHost&) = delete;
   PluginHost& operator=(const PluginHost&) = delete;
 
-  bool Initialize(const std::filesystem::path& PluginsDirectory);
+  bool Initialize(const std::filesystem::path& ConfigPath);
   void Update(float DeltaTime);
   void Shutdown();
 
-  bool LoadPlugin(const std::filesystem::path& ManifestPath);
+  bool IsPluginActive(std::string_view Name) const;
 
   bool IsInitialized() const;
   size_t GetPluginCount() const;
@@ -39,11 +40,10 @@ class BROCCOLI_ENGINE_API PluginHost {
  private:
   PluginHost();
 
-  bool DiscoverPlugins();
   bool ActivatePlugin(FLoadedPlugin& Plugin);
   bool DeactivatePlugin(FLoadedPlugin& Plugin);
 
-  std::filesystem::path PluginsDirectory;
+  std::filesystem::path ConfigPath;
   std::vector<std::unique_ptr<FLoadedPlugin>> Plugins;
   bool Initialized = false;
 };

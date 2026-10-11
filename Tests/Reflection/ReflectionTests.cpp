@@ -1025,12 +1025,13 @@ void TestPluginLoadUnloadAndLiveActorDelay() {
   namespace fs = std::filesystem;
   PluginHost& Host = PluginHost::GetInstance();
   ActorRegistry& Actors = ActorRegistry::GetInstance();
-  const fs::path PluginsDirectory = fs::current_path() / "Bin/x64/Debug/Plugins";
+  const fs::path ConfigPath = fs::current_path() / "Bin/x64/Debug/reflection-plugins.json";
+  std::ofstream(ConfigPath) << R"({"schema_version":1,"required_plugins":["ExamplePlugin"]})";
   Check(
-      fs::exists(PluginsDirectory / "ExamplePlugin/plugin.json"),
-      "Built ExamplePlugin manifest is missing."
+      fs::exists(ConfigPath.parent_path() / "ExamplePlugin.dll"),
+      "Built ExamplePlugin DLL is missing."
   );
-  Check(Host.Initialize(PluginsDirectory), "PluginHost failed to discover ExamplePlugin.");
+  Check(Host.Initialize(ConfigPath), "PluginHost failed to initialize ExamplePlugin.");
   Check(
       Host.GetPluginCount() == 1 && Host.GetActivePluginCount() == 1,
       "ExamplePlugin did not load and activate."
@@ -1120,8 +1121,9 @@ void TestPluginHostExitWithLiveActor() {
   namespace fs = std::filesystem;
   PluginHost& Host = PluginHost::GetInstance();
   ActorRegistry& Actors = ActorRegistry::GetInstance();
-  const fs::path PluginsDirectory = fs::current_path() / "Bin/x64/Debug/Plugins";
-  Check(Host.Initialize(PluginsDirectory), "PluginHost failed to discover ExamplePlugin.");
+  const fs::path ConfigPath = fs::current_path() / "Bin/x64/Debug/reflection-plugins.json";
+  std::ofstream(ConfigPath) << R"({"schema_version":1,"required_plugins":["ExamplePlugin"]})";
+  Check(Host.Initialize(ConfigPath), "PluginHost failed to initialize ExamplePlugin.");
   constexpr std::string_view ModuleOwner = "Plugin:ExamplePlugin";
   Check(
       Actors.RegisterOwned<AReflectionPluginTestActor>(std::string(ModuleOwner)),

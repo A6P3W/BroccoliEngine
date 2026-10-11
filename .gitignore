@@ -491,7 +491,7 @@ $RECYCLE.BIN/
 *..repoignore
 *Build/
 Build/ConvertedLevels/
-!Engine/ThirdParty/EOS/SDK/Bin/
+!Engine/Plugins/EOSPlugin/ThirdParty/EOS/SDK/Bin/
 /PrivateConfig
 
 **.repomixignore

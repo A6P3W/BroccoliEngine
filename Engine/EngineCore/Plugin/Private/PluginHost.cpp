@@ -2,6 +2,8 @@
 
 #include <exception>
 #include <filesystem>
+#include <fstream>
+#include <set>
 #include <string>
 #include <system_error>
 #include <utility>
@@ -12,14 +14,16 @@
 #include "IPlugin.h"
 #include "Log.h"
 #include "NativeLibrary.h"
+#include "NetworkManager.h"
+#include "NetworkTransportRegistry.h"
 #include "PluginAPI.h"
 #include "PluginContext.h"
-#include "PluginManifest.h"
 #include "Reflection.h"
+#include "nlohmann/json.hpp"
 
 struct FLoadedPlugin {
   std::filesystem::path ManifestPath;
-  PluginManifest Manifest;
+  std::string Name;
   NativeLibrary Library;
   IPlugin* Instance = nullptr;
   FDestroyBroccoliPluginFunction DestroyFunction = nullptr;
@@ -50,16 +54,52 @@ PluginHost::~PluginHost() {
   for (auto& Plugin : Plugins) Plugin.release();
 }
 
-bool PluginHost::Initialize(const std::filesystem::path& InPluginsDirectory) {
+bool PluginHost::Initialize(const std::filesystem::path& InConfigPath) {
   Shutdown();
   if (!Plugins.empty()) {
     M_LOG(Error, "Plugin host cannot reinitialize while plugin actors are alive.");
     return false;
   }
 
-  PluginsDirectory = InPluginsDirectory;
-  Initialized = true;
-  return DiscoverPlugins();
+  ConfigPath = InConfigPath;
+  NetworkTransportRegistry::GetInstance();
+  try {
+    std::ifstream File(ConfigPath);
+    if (!File) throw std::runtime_error("plugins.json could not be opened");
+    nlohmann::json Json;
+    File >> Json;
+    if (!Json.is_object() || !Json.contains("schema_version") ||
+        !Json["schema_version"].is_number_integer() || Json["schema_version"] != 1 ||
+        !Json.contains("required_plugins") || !Json["required_plugins"].is_array())
+      throw std::runtime_error("Invalid plugins.json schema");
+    std::set<std::string> Names;
+    for (const auto& Value : Json["required_plugins"]) {
+      if (!Value.is_string()) throw std::runtime_error("Plugin name must be a string");
+      const auto Name = Value.get<std::string>();
+      if (Name.empty() ||
+          Name.find_first_not_of(
+              "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+          ) != std::string::npos ||
+          !Names.insert(Name).second)
+        throw std::runtime_error("Invalid or duplicate plugin name");
+    }
+    for (const auto& Name : Names) {
+      auto Plugin = std::make_unique<FLoadedPlugin>();
+      Plugin->Name = Name;
+      Plugin->ManifestPath = ConfigPath.parent_path() / (Name + ".dll");
+      Plugin->ModuleOwner = "Plugin:" + Name;
+      const bool Activated = ActivatePlugin(*Plugin);
+      Plugins.push_back(std::move(Plugin));
+      if (!Activated) throw std::runtime_error("Required plugin failed: " + Name);
+    }
+    Initialized = true;
+    return true;
+  } catch (const std::exception& Exception) {
+    M_LOG(Error, "Plugin initialization failed: {}", Exception.what());
+    NetworkManager::GetInstance().Stop();
+    Shutdown();
+    return false;
+  }
 }
 
 void PluginHost::Update(float DeltaTime) {
@@ -71,10 +111,8 @@ void PluginHost::Update(float DeltaTime) {
     try {
       Plugin->Instance->OnUpdate(DeltaTime);
     } catch (const std::exception& Exception) {
-      DeactivatePlugin(*Plugin);
       SetPluginError(*Plugin, std::string("OnUpdate threw an exception: ") + Exception.what());
     } catch (...) {
-      DeactivatePlugin(*Plugin);
       SetPluginError(*Plugin, "OnUpdate threw an unknown exception.");
     }
   }
@@ -86,39 +124,14 @@ void PluginHost::Shutdown() {
   }
   if (Plugins.empty()) {
     Initialized = false;
-    PluginsDirectory.clear();
+    ConfigPath.clear();
   }
 }
 
-bool PluginHost::LoadPlugin(const std::filesystem::path& ManifestPath) {
-  auto Plugin = std::make_unique<FLoadedPlugin>();
-  Plugin->ManifestPath = ManifestPath;
-
-  if (!ParsePluginManifest(ManifestPath, Plugin->Manifest, Plugin->LastError)) {
-    SetPluginError(*Plugin, Plugin->LastError);
-    Plugins.push_back(std::move(Plugin));
-    return false;
-  }
-
-  for (const std::unique_ptr<FLoadedPlugin>& ExistingPlugin : Plugins) {
-    if (ExistingPlugin->Manifest.Name == Plugin->Manifest.Name) {
-      SetPluginError(*Plugin, "A plugin with the same name was already discovered.");
-      Plugins.push_back(std::move(Plugin));
-      return false;
-    }
-  }
-
-  if (!Plugin->Manifest.Enabled) {
-    M_LOG(Log, "Plugin '{}' is disabled.", Plugin->Manifest.Name);
-    Plugins.push_back(std::move(Plugin));
-    return true;
-  }
-
-  Plugin->ModuleOwner = "Plugin:" + Plugin->Manifest.Name;
-
-  const bool Activated = ActivatePlugin(*Plugin);
-  Plugins.push_back(std::move(Plugin));
-  return Activated;
+bool PluginHost::IsPluginActive(std::string_view Name) const {
+  for (const auto& Plugin : Plugins)
+    if (Plugin->Name == Name && Plugin->State == EPluginState::Active) return true;
+  return false;
 }
 
 bool PluginHost::IsInitialized() const { return Initialized; }
@@ -133,53 +146,8 @@ size_t PluginHost::GetActivePluginCount() const {
   return ActivePluginCount;
 }
 
-bool PluginHost::DiscoverPlugins() {
-  std::error_code ErrorCode;
-  if (!std::filesystem::is_directory(PluginsDirectory, ErrorCode)) {
-    M_LOG(Log, "Plugin directory was not found: {}", PluginsDirectory.string());
-    return !ErrorCode;
-  }
-
-  bool DiscoverySucceeded = true;
-  std::filesystem::directory_iterator Iterator(PluginsDirectory, ErrorCode);
-  const std::filesystem::directory_iterator End;
-  while (!ErrorCode && Iterator != End) {
-    if (Iterator->is_directory(ErrorCode)) {
-      const std::filesystem::path ManifestPath = Iterator->path() / "plugin.json";
-      if (std::filesystem::is_regular_file(ManifestPath, ErrorCode)) {
-        LoadPlugin(ManifestPath);
-      }
-    }
-    if (ErrorCode) {
-      DiscoverySucceeded = false;
-      break;
-    }
-    Iterator.increment(ErrorCode);
-  }
-
-  if (ErrorCode) {
-    M_LOG(
-        Error,
-        "Failed to discover plugins in '{}': {}",
-        PluginsDirectory.string(),
-        ErrorCode.message()
-    );
-    return false;
-  }
-  return DiscoverySucceeded;
-}
-
 bool PluginHost::ActivatePlugin(FLoadedPlugin& Plugin) {
-  if (Plugin.Manifest.ApiVersion != BROCCOLI_PLUGIN_API_VERSION) {
-    SetPluginError(
-        Plugin,
-        "Manifest API version " + std::to_string(Plugin.Manifest.ApiVersion) + " is not supported."
-    );
-    return false;
-  }
-
-  const std::filesystem::path LibraryPath =
-      Plugin.ManifestPath.parent_path() / Plugin.Manifest.LibraryPath;
+  const std::filesystem::path LibraryPath = Plugin.ManifestPath;
   std::error_code ErrorCode;
   if (!std::filesystem::is_regular_file(LibraryPath, ErrorCode)) {
     SetPluginError(Plugin, "Plugin library was not found: " + LibraryPath.string());
@@ -232,12 +200,15 @@ bool PluginHost::ActivatePlugin(FLoadedPlugin& Plugin) {
   uint32_t PluginApiVersion = 0;
   try {
     PluginApiVersion = Plugin.Instance->GetApiVersion();
+    const char* InstanceName = Plugin.Instance->GetName();
+    if (!InstanceName || Plugin.Name != InstanceName)
+      throw std::runtime_error("Plugin name mismatch");
   } catch (const std::exception& Exception) {
-    SetPluginError(Plugin, std::string("GetApiVersion threw an exception: ") + Exception.what());
+    SetPluginError(Plugin, std::string("Plugin identity validation failed: ") + Exception.what());
     DeactivatePlugin(Plugin);
     return false;
   } catch (...) {
-    SetPluginError(Plugin, "GetApiVersion threw an unknown exception.");
+    SetPluginError(Plugin, "Plugin identity validation threw an unknown exception.");
     DeactivatePlugin(Plugin);
     return false;
   }
@@ -248,6 +219,7 @@ bool PluginHost::ActivatePlugin(FLoadedPlugin& Plugin) {
   }
 
   PluginContext Context(Plugin.ModuleOwner);
+  Plugin.UnloadCallbackPending = true;
   try {
     if (!Plugin.Instance->OnLoad(Context)) {
       SetPluginError(Plugin, "OnLoad returned false.");
@@ -266,7 +238,7 @@ bool PluginHost::ActivatePlugin(FLoadedPlugin& Plugin) {
 
   Plugin.UnloadCallbackPending = true;
   Plugin.State = EPluginState::Active;
-  M_LOG(Log, "Plugin '{}' activated.", Plugin.Manifest.Name);
+  M_LOG(Log, "Plugin '{}' activated.", Plugin.Name);
   return true;
 }
 
@@ -274,9 +246,7 @@ bool PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
   if (ActorRegistry::GetInstance().HasLiveActors(Plugin.ModuleOwner) ||
       ComponentRegistry::GetInstance().HasLiveComponents(Plugin.ModuleOwner)) {
     M_LOG(
-        Warning,
-        "Plugin '{}' unload delayed: actors or components are still alive.",
-        Plugin.Manifest.Name
+        Warning, "Plugin '{}' unload delayed: actors or components are still alive.", Plugin.Name
     );
     return false;
   }
@@ -284,14 +254,9 @@ bool PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
     try {
       Plugin.Instance->OnUnload();
     } catch (const std::exception& Exception) {
-      M_LOG(
-          Error,
-          "Plugin '{}' OnUnload threw an exception: {}",
-          Plugin.Manifest.Name,
-          Exception.what()
-      );
+      M_LOG(Error, "Plugin '{}' OnUnload threw an exception: {}", Plugin.Name, Exception.what());
     } catch (...) {
-      M_LOG(Error, "Plugin '{}' OnUnload threw an unknown exception.", Plugin.Manifest.Name);
+      M_LOG(Error, "Plugin '{}' OnUnload threw an unknown exception.", Plugin.Name);
     }
     Plugin.UnloadCallbackPending = false;
     Plugin.State = EPluginState::Loaded;
@@ -300,7 +265,7 @@ bool PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
       M_LOG(
           Warning,
           "Plugin '{}' unload delayed: OnUnload left actors or components alive.",
-          Plugin.Manifest.Name
+          Plugin.Name
       );
       return false;
     }
@@ -315,15 +280,11 @@ bool PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
       M_LOG(
           Error,
           "Plugin '{}' DestroyBroccoliPlugin threw an exception: {}",
-          Plugin.Manifest.Name,
+          Plugin.Name,
           Exception.what()
       );
     } catch (...) {
-      M_LOG(
-          Error,
-          "Plugin '{}' DestroyBroccoliPlugin threw an unknown exception.",
-          Plugin.Manifest.Name
-      );
+      M_LOG(Error, "Plugin '{}' DestroyBroccoliPlugin threw an unknown exception.", Plugin.Name);
     }
     Plugin.Instance = nullptr;
   }
@@ -331,6 +292,7 @@ bool PluginHost::DeactivatePlugin(FLoadedPlugin& Plugin) {
   if (!FReflectionRegistry::GetInstance().UnregisterModule(Plugin.ModuleOwner)) return false;
   ActorRegistry::GetInstance().UnregisterModule(Plugin.ModuleOwner);
   ComponentRegistry::GetInstance().UnregisterModule(Plugin.ModuleOwner);
+  NetworkTransportRegistry::GetInstance().UnregisterModule(Plugin.ModuleOwner);
   Plugin.DestroyFunction = nullptr;
   Plugin.Library.Unload();
   if (Plugin.State != EPluginState::Failed) Plugin.State = EPluginState::Unloaded;

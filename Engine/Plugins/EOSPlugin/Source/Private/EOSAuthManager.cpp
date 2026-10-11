@@ -137,10 +137,7 @@ void EOSAuthManager::CreateDeviceId(const char* DisplayName, std::function<void(
   Options.ApiVersion = EOS_CONNECT_CREATEDEVICEID_API_LATEST;
   Options.DeviceModel = Context->DisplayName.c_str();
   EOS_Connect_CreateDeviceId(
-      ConnectHandle,
-      &Options,
-      Context,
-      [](const EOS_Connect_CreateDeviceIdCallbackInfo* Data) {
+      ConnectHandle, &Options, Context, [](const EOS_Connect_CreateDeviceIdCallbackInfo* Data) {
         auto* Context = static_cast<FCreateDeviceIdContext*>(Data ? Data->ClientData : nullptr);
         EOSAuthManager& AuthManager = EOSAuthManager::GetInstance();
 
@@ -208,10 +205,7 @@ void EOSAuthManager::LoginAfterDeviceId(
   Options.Credentials = &Credentials;
   Options.UserLoginInfo = &UserLoginInfo;
   EOS_Connect_Login(
-      ConnectHandle,
-      &Options,
-      Context,
-      [](const EOS_Connect_LoginCallbackInfo* Data) {
+      ConnectHandle, &Options, Context, [](const EOS_Connect_LoginCallbackInfo* Data) {
         auto* Context = static_cast<FConnectLoginContext*>(Data ? Data->ClientData : nullptr);
         EOSAuthManager& AuthManager = EOSAuthManager::GetInstance();
 
@@ -277,7 +271,8 @@ void EOSAuthManager::UnregisterLoginStatusNotification() {
   EOS_Connect_RemoveNotifyLoginStatusChanged(ConnectHandle, Id);
 }
 
-void EOSAuthManager::HandleLoginStatusChanged(const EOS_Connect_LoginStatusChangedCallbackInfo* Data
+void EOSAuthManager::HandleLoginStatusChanged(
+    const EOS_Connect_LoginStatusChangedCallbackInfo* Data
 ) {
   if (!Data || Data->CurrentStatus != EOS_ELoginStatus::EOS_LS_NotLoggedIn) {
     return;

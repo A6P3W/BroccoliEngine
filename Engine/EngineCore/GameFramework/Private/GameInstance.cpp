@@ -2,7 +2,7 @@
 
 #include "SceneManager.h"
 
-void GameInstance::OnSessionDisconnected(ELobbyDisconnectReason Reason) {
+void GameInstance::OnSessionDisconnected(ESessionDisconnectReason Reason) {
   (void)Reason;
   SceneManager::GetInstance().OpenStartupLevel();
 }

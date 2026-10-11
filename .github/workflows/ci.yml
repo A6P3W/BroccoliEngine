@@ -144,6 +144,15 @@ jobs:
       - name: Reflection tests
         shell: pwsh
         run: pwsh -NoProfile -File Tests/Reflection/Run-ReflectionTests.ps1
+      - name: EOSPlugin without credentials and ENet lifecycle tests
+        shell: pwsh
+        run: pwsh -NoProfile -File Tests/Network/Run-NetworkTests.ps1 -EOSNoCredentials
+      - name: EOSPlugin Editor build
+        shell: pwsh
+        run: ./broccoli.bat build Editor
+      - name: Core-only builds without EOS SDK
+        shell: pwsh
+        run: pwsh -NoProfile -File Tests/Network/Run-CoreOnlyBuilds.ps1 -IncludeEditorAndRelease
       - name: Save vcpkg binary cache
         uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         if: >-

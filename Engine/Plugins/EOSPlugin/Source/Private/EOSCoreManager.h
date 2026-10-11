@@ -10,7 +10,7 @@
 #include "BroccoliEngineAPI.h"
 #include "EOSTypes.h"
 
-class BROCCOLI_ENGINE_API EOSCoreManager {
+class EOSCoreManager {
  public:
   static EOSCoreManager& GetInstance();
 

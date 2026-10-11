@@ -53,31 +53,25 @@ function(broccoli_link_configured_plugins_to_game)
     message(FATAL_ERROR "broccoli_link_configured_plugins_to_game requires TARGET.")
   endif()
 
-  set(UsesDelayedPluginLoad FALSE)
+  foreach(Plugin IN LISTS BROCCOLI_PLUGINS)
+    target_include_directories("${BroccoliPluginGame_TARGET}" PRIVATE "${BROCCOLI_PLUGIN_ROOT}/${Plugin}/Source/Public")
+  endforeach()
   foreach(Configuration IN ITEMS Debug Editor Release)
     string(TOUPPER "${Configuration}" ConfigurationUpper)
     set(PluginListVariable "BROCCOLI_PLUGINS_${ConfigurationUpper}")
     foreach(Plugin IN LISTS ${PluginListVariable})
       if(TARGET "${Plugin}")
+        string(TOUPPER "${Plugin}" PluginUpper)
+        target_compile_definitions("${BroccoliPluginGame_TARGET}" PRIVATE "$<$<CONFIG:${Configuration}>:BROCCOLI_WITH_${PluginUpper}>")
         target_link_libraries(
           "${BroccoliPluginGame_TARGET}"
           PRIVATE "$<$<CONFIG:${Configuration}>:${Plugin}>"
         )
 
-        if(MSVC)
-          target_link_options(
-            "${BroccoliPluginGame_TARGET}"
-            PRIVATE "$<$<CONFIG:${Configuration}>:/DELAYLOAD:$<TARGET_FILE_NAME:${Plugin}>>"
-          )
-          set(UsesDelayedPluginLoad TRUE)
-        endif()
       endif()
     endforeach()
   endforeach()
 
-  if(MSVC AND UsesDelayedPluginLoad)
-    target_link_libraries("${BroccoliPluginGame_TARGET}" PRIVATE delayimp)
-  endif()
 endfunction()
 
 function(broccoli_add_plugin)
@@ -105,11 +99,6 @@ function(broccoli_add_plugin)
     message(FATAL_ERROR "Plugin '${BroccoliPlugin_NAME}' Source directory does not exist: ${PluginSourceDirectory}")
   endif()
 
-  set(PluginManifest "${PluginDirectory}/plugin.json")
-  if(NOT EXISTS "${PluginManifest}")
-    message(FATAL_ERROR "Plugin '${BroccoliPlugin_NAME}' plugin.json does not exist: ${PluginManifest}")
-  endif()
-
   file(GLOB_RECURSE PluginSources
     CONFIGURE_DEPENDS
     "${PluginSourceDirectory}/*.cpp"
@@ -123,7 +112,7 @@ function(broccoli_add_plugin)
   endif()
 
   set(PluginOutputDirectory
-    "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>/Plugins/${BroccoliPlugin_NAME}")
+    "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>")
   add_library("${BroccoliPlugin_NAME}" SHARED ${PluginSources})
   target_compile_features("${BroccoliPlugin_NAME}" PRIVATE cxx_std_26)
   broccoli_apply_gnu_debug_options("${BroccoliPlugin_NAME}")
@@ -142,11 +131,6 @@ function(broccoli_add_plugin)
     PDB_OUTPUT_DIRECTORY "${PluginOutputDirectory}"
   )
   broccoli_configure_plugin(TARGET "${BroccoliPlugin_NAME}")
-  add_custom_command(TARGET "${BroccoliPlugin_NAME}" POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${PluginManifest}"
-            "$<TARGET_FILE_DIR:${BroccoliPlugin_NAME}>/plugin.json"
-    VERBATIM
-  )
+
   source_group(TREE "${PluginSourceDirectory}" FILES ${PluginSources})
 endfunction()

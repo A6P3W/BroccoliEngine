@@ -62,83 +62,26 @@ function(broccoli_add_game)
     PDB_OUTPUT_DIRECTORY "${BROCCOLI_OUTPUT_ROOT}/Bin/x64/$<CONFIG>"
   )
 
-  find_program(BROCCOLI_UV_EXECUTABLE uv REQUIRED)
   set(BroccoliEngineSourceDir "${BROCCOLI_ENGINE_ROOT}/Engine")
-  set(BroccoliBuildToolsDir "${BROCCOLI_ENGINE_ROOT}/Tools/Build")
-  set(BroccoliConvertLevelsScript "${BROCCOLI_ENGINE_ROOT}/Tools/ConvertLevels.py")
-  set(BroccoliEosBinary "${BROCCOLI_ENGINE_ROOT}/Engine/ThirdParty/EOS/SDK/Bin/EOSSDK-Win64-Shipping.dll")
-  set(BroccoliMingwRuntimeArguments)
+  set(RuntimeDependencies)
   if(MINGW)
-    get_filename_component(BroccoliCompilerDirectory "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    get_filename_component(CompilerDirectory "${CMAKE_CXX_COMPILER}" DIRECTORY)
     foreach(RuntimeName IN ITEMS libgcc_s_seh-1.dll libstdc++-6.dll libwinpthread-1.dll)
-      set(RuntimePath "${BroccoliCompilerDirectory}/${RuntimeName}")
-      if(NOT EXISTS "${RuntimePath}")
-        message(FATAL_ERROR "MinGW runtime DLL not found: ${RuntimePath}")
-      endif()
-      list(APPEND BroccoliMingwRuntimeArguments --mingw-runtime "${RuntimePath}")
+      list(APPEND RuntimeDependencies "${CompilerDirectory}/${RuntimeName}")
     endforeach()
   endif()
-  set(BroccoliGameRequiredPluginArguments)
   foreach(Configuration IN ITEMS Debug Editor Release)
     string(TOUPPER "${Configuration}" ConfigurationUpper)
-    set(PluginListVariable "BROCCOLI_PLUGINS_${ConfigurationUpper}")
-    foreach(Plugin IN LISTS ${PluginListVariable})
-      list(APPEND BroccoliGameRequiredPluginArguments
-        --required-plugin "$<$<CONFIG:${Configuration}>:${Plugin}>")
+    set(PluginDependencies)
+    foreach(Plugin IN LISTS BROCCOLI_PLUGINS_${ConfigurationUpper})
+      get_target_property(Dependencies "${Plugin}" BROCCOLI_RUNTIME_DEPENDENCIES)
+      if(Dependencies)
+        list(APPEND PluginDependencies ${Dependencies})
+      endif()
     endforeach()
+    file(GENERATE OUTPUT "${BROCCOLI_OUTPUT_ROOT}/Intermediate/Generated/runtime-${Configuration}.json"
+      CONTENT "{\"engine_dir\":\"${BroccoliEngineSourceDir}\",\"game_dir\":\"${BROCCOLI_GAME_ROOT}\",\"game_name\":\"${GameName}\",\"runtime\":[\"$<JOIN:${RuntimeDependencies},\",\">\"],\"plugin_dependencies\":[\"$<JOIN:${PluginDependencies},\",\">\"]}\n"
+      CONDITION "$<CONFIG:${Configuration}>")
   endforeach()
-
-  add_custom_command(TARGET ${GameName} PRE_BUILD
-    COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BroccoliBuildToolsDir}" --frozen
-            python -m broccoli_build prepare-output
-            --output-dir "$<TARGET_FILE_DIR:${GameName}>"
-    VERBATIM
-  )
-
-  add_custom_command(TARGET ${GameName} POST_BUILD
-    COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BroccoliBuildToolsDir}" --frozen
-            python -m broccoli_build stage-runtime
-            --configuration "$<CONFIG>"
-            --engine-dir "${BroccoliEngineSourceDir}"
-            --game-dir "${BROCCOLI_GAME_ROOT}"
-            --output-dir "$<TARGET_FILE_DIR:${GameName}>"
-            --engine-binary "$<TARGET_FILE:BroccoliEngine>"
-            --game-name "${GameName}"
-            --eos-binary "${BroccoliEosBinary}"
-            --convert-levels-script "${BroccoliConvertLevelsScript}"
-            ${BroccoliMingwRuntimeArguments}
-            ${BroccoliGameRequiredPluginArguments}
-    COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BroccoliBuildToolsDir}" --frozen
-            python -m broccoli_build verify-runtime
-            --configuration "$<CONFIG>"
-            --output-dir "$<TARGET_FILE_DIR:${GameName}>"
-            --game-name "${GameName}"
-            ${BroccoliMingwRuntimeArguments}
-            ${BroccoliGameRequiredPluginArguments}
-    COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BroccoliBuildToolsDir}" --frozen
-            python -m broccoli_build package-runtime
-            --configuration "$<CONFIG>"
-            --output-dir "$<TARGET_FILE_DIR:${GameName}>"
-            --publish-dir "${BROCCOLI_OUTPUT_ROOT}/Publish/$<CONFIG>"
-            --game-binary "$<TARGET_FILE:${GameName}>"
-            --engine-binary "$<TARGET_FILE:BroccoliEngine>"
-            --game-name "${GameName}"
-            --eos-binary "${BroccoliEosBinary}"
-            --online-resources-dir "$<TARGET_FILE_DIR:${GameName}>/Resources-EOS"
-            --convert-levels-script "${BroccoliConvertLevelsScript}"
-            --bootstrap-binary "$<TARGET_FILE:BroccoliBootstrap>"
-            ${BroccoliMingwRuntimeArguments}
-            ${BroccoliGameRequiredPluginArguments}
-    COMMAND "${BROCCOLI_UV_EXECUTABLE}" run --project "${BroccoliBuildToolsDir}" --frozen
-            python -m broccoli_build verify-runtime
-            --configuration "$<CONFIG>"
-            --output-dir "$<TARGET_FILE_DIR:${GameName}>"
-            --game-name "${GameName}"
-            --publish-dir "${BROCCOLI_OUTPUT_ROOT}/Publish/$<CONFIG>"
-            ${BroccoliMingwRuntimeArguments}
-            ${BroccoliGameRequiredPluginArguments}
-    VERBATIM
-  )
-
   source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${BroccoliGameFiles})
 endfunction()

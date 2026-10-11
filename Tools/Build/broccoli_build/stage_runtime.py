@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from .common import ConvertLevels, CopyDirectory, CopyFile, EnsureDirectory
+from .runtime_plugins import StagePlugins
 
 
 def StageRuntime(
@@ -12,23 +13,15 @@ def StageRuntime(
   OutputDirectory: Path,
   EngineBinary: Path,
   GameName: str,
-  EosBinary: Path,
   ConvertLevelsScript: Path,
   MingwRuntime: list[Path] | None = None,
-  RequiredPlugins: list[str] | None = None,
+  PluginDependencies: list[Path] | None = None,
 ) -> None:
   EnsureDirectory(OutputDirectory)
   CopyFile(EngineBinary, OutputDirectory)
-  if EosBinary.is_file():
-    CopyFile(EosBinary, OutputDirectory)
   for RuntimeBinary in MingwRuntime or []:
     CopyFile(RuntimeBinary, OutputDirectory)
-  if MingwRuntime:
-    for PluginName in RequiredPlugins or []:
-      CopyFile(
-        OutputDirectory / "Plugins" / PluginName / f"{PluginName}.dll",
-        OutputDirectory,
-      )
+  StagePlugins(OutputDirectory, PluginDependencies or [])
 
   if Configuration.casefold() == "editor":
     print("Editor configuration: runtime resources staging skipped.")
@@ -37,11 +30,5 @@ def StageRuntime(
   ResourcesDirectory = OutputDirectory / "Resources"
   CopyDirectory(EngineDirectory / "Resources", ResourcesDirectory / "Engine")
   CopyDirectory(GameDirectory / "Resources", ResourcesDirectory / GameName)
-
-  OnlineResourcesDirectory = GameDirectory / "Resources-EOS"
-  if Configuration.casefold() == "debug" and OnlineResourcesDirectory.is_dir():
-    StagedOnlineResourcesDirectory = OutputDirectory / "Resources-EOS"
-    CopyDirectory(OnlineResourcesDirectory, StagedOnlineResourcesDirectory)
-    ConvertLevels(ConvertLevelsScript, StagedOnlineResourcesDirectory)
 
   ConvertLevels(ConvertLevelsScript, ResourcesDirectory)
