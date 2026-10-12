@@ -6,13 +6,16 @@
 #include "BroccoliEngineAPI.h"
 #include "ComponentRegistry.h"
 #include "Detail/AutomationMethodBinding.h"
+#include "NetworkTransportRegistry.h"
 #include "ReflectionGenerator.h"
 
 class BROCCOLI_ENGINE_API PluginContext {
  public:
   explicit PluginContext(std::string ModuleOwner = {}) : ModuleOwner(std::move(ModuleOwner)) {}
 
+  // clang-format off: keep the C++26 splice token [: intact.
   template <class T, class Base = [:ReflectionGenerator::DirectBase<T>():]>
+  // clang-format on
   bool RegisterActor(bool IsGameMode = false) const {
     using DirectBaseType = [:ReflectionGenerator::DirectBase<T>():];
     static_assert(std::is_same_v<Base, DirectBaseType>, "Base must be the direct base class of T");
@@ -36,7 +39,9 @@ class BROCCOLI_ENGINE_API PluginContext {
     return true;
   }
 
+  // clang-format off: keep the C++26 splice token [: intact.
   template <class T, class Base = [:ReflectionGenerator::DirectBase<T>():]>
+  // clang-format on
   bool RegisterComponent(FComponentClassOptions Options = {}) const {
     using DirectBaseType = [:ReflectionGenerator::DirectBase<T>():];
     static_assert(std::is_same_v<Base, DirectBaseType>, "Base must be the direct base class of T");
@@ -53,6 +58,8 @@ class BROCCOLI_ENGINE_API PluginContext {
     ComponentRegistry::GetInstance().UnregisterClass(T::StaticComponentClassName());
     return false;
   }
+
+  bool RegisterNetworkTransport(std::string Name, FNetworkTransportFactory Factory) const;
 
   void LogInfo(const char* Message) const;
   void LogWarning(const char* Message) const;

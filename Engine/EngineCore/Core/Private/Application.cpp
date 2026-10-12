@@ -30,10 +30,6 @@
 #include "AutomationSubsystem.h"
 #include "BroccoliRaylib.h"
 #include "DebugOverlay.h"
-#include "EOSAuthManager.h"
-#include "EOSCoreManager.h"
-#include "EOSLobbyManager.h"
-#include "EOSTitleStorageManager.h"
 #include "EditorMode.h"
 #include "EngineDefine.h"
 #include "GamePadDevice.h"
@@ -43,7 +39,6 @@
 #include "Log.h"
 #include "MouseDevice.h"
 #include "NetworkManager.h"
-#include "OnlinePlayManager.h"
 #include "PathResolver.h"
 #include "PerformanceOverlay.h"
 #include "PluginHost.h"
@@ -165,6 +160,7 @@ Application::~Application() { Shutdown(); }
 void Application::Shutdown() {
   RemoveLiveResizeHook();
 
+  NetworkManager::GetInstance().Stop();
   PluginHost::GetInstance().Shutdown();
 
   if (AutomationSubsystem) {
@@ -250,9 +246,14 @@ bool Application::Run() {
   MLog::Initialize();
   const std::filesystem::path ExecutableDirectory = PathResolver::GetExecutableDirectory();
   if (ExecutableDirectory.empty()) {
-    M_LOG(Error, "Could not determine the executable directory for plugin discovery.");
+    M_LOG(Error, "Could not determine the executable directory.");
+    Shutdown();
+    return false;
   } else {
-    PluginHost::GetInstance().Initialize(ExecutableDirectory / "Plugins");
+    if (!PluginHost::GetInstance().Initialize(ExecutableDirectory / "plugins.json")) {
+      Shutdown();
+      return false;
+    }
   }
   SetProcessDPIAware();
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -364,17 +365,8 @@ bool Application::Run() {
     AutomationSubsystem->Shutdown();
     AutomationSubsystem.reset();
   }
-  EOSTitleStorageManager::GetInstance().Shutdown();
   SceneManager::GetInstance().Shutdown();
   FJoltRuntime::Shutdown();
-  OnlinePlayManager::GetInstance().Shutdown();
-  NetworkManager::GetInstance().Stop();
-  EOSLobbyManager::GetInstance().Shutdown();
-  EOSAuthManager::GetInstance().Shutdown();
-  for (int TickIndex = 0; TickIndex < 3; ++TickIndex) {
-    EOSCoreManager::GetInstance().Tick();
-  }
-  EOSCoreManager::GetInstance().Shutdown();
   Shutdown();
   return true;
 }
@@ -384,7 +376,13 @@ bool Application::Update(float FrameDeltaTime, bool ProcessInput) {
   auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
 #endif
   if (ImGuiInitialized) rlImGuiBeginDelta(FrameDeltaTime);
+#if !defined(_RELEASE)
+  PerformanceOverlay.BeginSection(EPerformanceSection::Plugins);
+#endif
   PluginHost::GetInstance().Update(FrameDeltaTime);
+#if !defined(_RELEASE)
+  PerformanceOverlay.EndSection(EPerformanceSection::Plugins);
+#endif
 
 #if !defined(_RELEASE)
   PerformanceOverlay.BeginSection(EPerformanceSection::Scene);
@@ -433,11 +431,6 @@ bool Application::Update(float FrameDeltaTime, bool ProcessInput) {
 #endif
   }
 #if !defined(_RELEASE)
-  PerformanceOverlay.BeginSection(EPerformanceSection::EOS);
-#endif
-  EOSCoreManager::GetInstance().Tick();
-#if !defined(_RELEASE)
-  PerformanceOverlay.EndSection(EPerformanceSection::EOS);
   PerformanceOverlay.BeginSection(EPerformanceSection::Network);
 #endif
   NetworkManager::GetInstance().Service();

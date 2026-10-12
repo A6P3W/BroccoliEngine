@@ -15,6 +15,7 @@
 #include "DebugOverlay.h"
 #include "EOSAuthManager.h"
 #include "EOSCoreManager.h"
+#include "PathResolver.h"
 
 namespace {
 namespace Fs = std::filesystem;
@@ -46,9 +47,11 @@ bool IsValidFileName(const std::string& FileName) {
 
 bool IsZipFile(const Fs::path& Path) {
   std::string Extension = Path.extension().string();
-  std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char Character) {
-    return static_cast<char>(std::tolower(Character));
-  });
+  std::transform(
+      Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char Character) {
+        return static_cast<char>(std::tolower(Character));
+      }
+  );
   return Extension == ".zip";
 }
 
@@ -110,7 +113,9 @@ bool ExtractZipArchive(const Fs::path& ArchivePath, std::string& ErrorMessage) {
       return false;
     }
 
-    const std::string EntryName(EntryNameBuffer.data(), static_cast<size_t>(FileInfo.size_filename));
+    const std::string EntryName(
+        EntryNameBuffer.data(), static_cast<size_t>(FileInfo.size_filename)
+    );
     const Fs::path EntryPath(EntryName);
     if (!IsSafeArchiveEntry(EntryName, EntryPath)) {
       ErrorMessage = "The ZIP archive contains an unsafe entry path.";
@@ -469,7 +474,8 @@ EOSTitleStorageManager& EOSTitleStorageManager::GetInstance() {
 }
 
 std::string EOSTitleStorageManager::GetDownloadDirectoryPath() {
-  return Fs::path("Resources-EOS").generic_string();
+  return (PathResolver::GetExecutableDirectory() / "Saved" / "EOS" / "TitleStorage")
+      .generic_string();
 }
 
 EOSTitleStorageManager::EOSTitleStorageManager() : ImplPtr(new Impl()) {}
@@ -525,7 +531,8 @@ bool EOSTitleStorageManager::Download(const std::string& FileName, CompletionCal
   Fs::create_directories(DownloadDirectory, ErrorCode);
   if (ErrorCode || !Fs::is_directory(DownloadDirectory, ErrorCode)) {
     return Reject(
-        ETitleStorageDownloadError::DirectoryCreationFailed, "Failed to create Resources-EOS."
+        ETitleStorageDownloadError::DirectoryCreationFailed,
+        "Failed to create Saved/EOS/TitleStorage."
     );
   }
 

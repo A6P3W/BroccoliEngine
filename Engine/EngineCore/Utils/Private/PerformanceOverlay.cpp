@@ -157,7 +157,7 @@ void PerformanceOverlayManager::UpdateDisplayedSectionStats(double FrameCount) {
 
   Stats.UpdateDetail.SceneMs = GetAverage(EPerformanceSection::Scene);
   Stats.UpdateDetail.AutomationMs = GetAverage(EPerformanceSection::Automation);
-  Stats.UpdateDetail.EOSMs = GetAverage(EPerformanceSection::EOS);
+  Stats.UpdateDetail.PluginsMs = GetAverage(EPerformanceSection::Plugins);
   Stats.UpdateDetail.NetworkMs = GetAverage(EPerformanceSection::Network);
   Stats.UpdateDetail.InputMs = GetAverage(EPerformanceSection::Input);
   Stats.UpdateDetail.HttpMs = GetAverage(EPerformanceSection::Http);
@@ -216,7 +216,7 @@ void PerformanceOverlayManager::DrawUpdateDetails() {
 
   DrawSection("Scene", Stats.UpdateDetail.SceneMs);
   DrawSection("Automation", Stats.UpdateDetail.AutomationMs);
-  DrawSection("EOS", Stats.UpdateDetail.EOSMs);
+  DrawSection("Plugins", Stats.UpdateDetail.PluginsMs);
   DrawSection("Network", Stats.UpdateDetail.NetworkMs);
   DrawSection("Input", Stats.UpdateDetail.InputMs);
   DrawSection("HTTP", Stats.UpdateDetail.HttpMs);

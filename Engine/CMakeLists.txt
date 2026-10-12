@@ -70,12 +70,10 @@ target_include_directories(BroccoliEngine
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Network/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/GameFramework/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Utils/Public>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Online/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineSide>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineSide/Default/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Editor/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/EOS/SDK/Include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Automation/Private
     ${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Systems/Private
@@ -124,29 +122,6 @@ if(WIN32)
   target_link_libraries(BroccoliEngine PRIVATE
     ws2_32 winmm crypt32 bcrypt secur32 iphlpapi shell32
   )
-
-  set(BROCCOLI_EOS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/EOS/SDK")
-  set(BROCCOLI_EOS_LIBRARY "${BROCCOLI_EOS_ROOT}/Lib/EOSSDK-Win64-Shipping.lib")
-  set(BROCCOLI_EOS_DLL "${BROCCOLI_EOS_ROOT}/Bin/EOSSDK-Win64-Shipping.dll")
-
-  if(EXISTS "${BROCCOLI_EOS_LIBRARY}" AND EXISTS "${BROCCOLI_EOS_DLL}")
-    add_library(BroccoliEOS SHARED IMPORTED GLOBAL)
-    set_target_properties(BroccoliEOS PROPERTIES
-      IMPORTED_IMPLIB "${BROCCOLI_EOS_LIBRARY}"
-      IMPORTED_LOCATION "${BROCCOLI_EOS_DLL}"
-      INTERFACE_INCLUDE_DIRECTORIES "${BROCCOLI_EOS_ROOT}/Include"
-    )
-    target_link_libraries(BroccoliEngine PRIVATE BroccoliEOS)
-  else()
-    set(MISSING_EOS_DETAILS "")
-    if(NOT EXISTS "${BROCCOLI_EOS_LIBRARY}")
-      string(APPEND MISSING_EOS_DETAILS "  Library not found: ${BROCCOLI_EOS_LIBRARY}\n")
-    endif()
-    if(NOT EXISTS "${BROCCOLI_EOS_DLL}")
-      string(APPEND MISSING_EOS_DETAILS "  DLL not found: ${BROCCOLI_EOS_DLL}\n")
-    endif()
-    message(FATAL_ERROR "EOS SDK components are missing:\n${MISSING_EOS_DETAILS}")
-  endif()
 endif()
 
 set_target_properties(BroccoliEngine PROPERTIES
@@ -164,6 +139,15 @@ foreach(PluginName IN LISTS BROCCOLI_PLUGINS)
   set(PluginBuildFile "${BROCCOLI_PLUGIN_ROOT}/${PluginName}/Build.cmake")
   if(NOT EXISTS "${PluginBuildFile}")
     message(FATAL_ERROR "Plugin '${PluginName}' does not contain Build.cmake: ${PluginBuildFile}")
+  endif()
+  set(PluginEnabled FALSE)
+  foreach(Configuration IN ITEMS DEBUG EDITOR RELEASE)
+    if("${PluginName}" IN_LIST BROCCOLI_PLUGINS_${Configuration})
+      set(PluginEnabled TRUE)
+    endif()
+  endforeach()
+  if(NOT PluginEnabled)
+    continue()
   endif()
   include("${PluginBuildFile}")
   if(NOT TARGET "${PluginName}")

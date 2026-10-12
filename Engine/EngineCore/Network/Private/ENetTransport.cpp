@@ -88,8 +88,9 @@ class FENetTransport final : public INetworkTransport {
     return true;
   }
 
-  bool Connect(const FNetworkEndpoint& Endpoint, size_t ChannelCount, FNetworkPeerId& OutPeerId)
-      override {
+  bool Connect(
+      const FNetworkEndpoint& Endpoint, size_t ChannelCount, FNetworkPeerId& OutPeerId
+  ) override {
     Stop();
     OutPeerId = 0;
     if (!Initialized) {
@@ -104,8 +105,8 @@ class FENetTransport final : public INetworkTransport {
     }
 
     ENetAddress Address{};
-    if (enet_address_set_host(&Address, Endpoint.HostName.c_str()) != 0) {
-      M_LOG(Log, "[NetworkTransport] ENet Connect failed: host={}", Endpoint.HostName);
+    if (enet_address_set_host(&Address, Endpoint.Address.c_str()) != 0) {
+      M_LOG(Log, "[NetworkTransport] ENet Connect failed: host={}", Endpoint.Address);
       Stop();
       return false;
     }
@@ -123,7 +124,7 @@ class FENetTransport final : public INetworkTransport {
         Log,
         "[NetworkTransport] ENet connection requested: host={} port={} peer={} resolved={} "
         "state={} channels={}",
-        Endpoint.HostName,
+        Endpoint.Address,
         Endpoint.Port,
         OutPeerId,
         GetENetAddressText(Peer->address),
@@ -291,11 +292,6 @@ class FENetTransport final : public INetworkTransport {
 
   bool IsRunning() const override { return Host != nullptr; }
 
-  std::string GetRemoteProductUserId(FNetworkPeerId PeerId) const override {
-    (void)PeerId;
-    return {};
-  }
-
   void SetConnectedCallback(ConnectedCallback Callback) override {
     OnConnected = std::move(Callback);
   }
@@ -311,8 +307,6 @@ class FENetTransport final : public INetworkTransport {
   void SetPacketReceivedCallback(PacketReceivedCallback Callback) override {
     OnPacketReceived = std::move(Callback);
   }
-
-  void SetPeerAuthorizationCallback(PeerAuthorizationCallback Callback) override { (void)Callback; }
 
  private:
   void LogSuccessfulSend(
@@ -384,14 +378,6 @@ class FENetTransport final : public INetworkTransport {
   PacketReceivedCallback OnPacketReceived;
 };
 }  // namespace
-std::unique_ptr<INetworkTransport> CreateEOSP2PTransport();
-
-std::unique_ptr<INetworkTransport> CreateNetworkTransport(ENetworkTransportType Type) {
-  switch (Type) {
-    case ENetworkTransportType::EOSP2P:
-      return CreateEOSP2PTransport();
-    case ENetworkTransportType::ENet:
-    default:
-      return std::make_unique<FENetTransport>();
-  }
+std::unique_ptr<INetworkTransport> CreateENetTransport() {
+  return std::make_unique<FENetTransport>();
 }

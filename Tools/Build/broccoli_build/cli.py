@@ -16,9 +16,9 @@ from .package_runtime import PackageRuntime
 from .plugins import (
   GeneratePluginsCmake,
   LoadPluginConfigurations,
-  RemoveDisabledExamplePluginArtifacts,
 )
 from .prepare_output import PrepareOutput
+from .runtime_plugins import GenerateRuntimePlugins
 from .stage_runtime import StageRuntime
 from .verify_runtime import VerifyRuntime
 from .worktree import SetupWorktree
@@ -136,9 +136,66 @@ def Build(ProjectDirectory: Path, Configuration: str, Reconfigure: bool) -> None
     cwd=ProjectDirectory,
     check=True,
   )
+  StageBuiltProject(ProjectDirectory, Configuration)
   LatestBuildConfigurationPath = ProjectDirectory / LATEST_BUILD_CONFIGURATION_FILE
   LatestBuildConfigurationPath.parent.mkdir(parents=True, exist_ok=True)
   LatestBuildConfigurationPath.write_text(f"{Configuration}\n", encoding="utf-8", newline="\n")
+
+
+def StageBuiltProject(ProjectDirectory: Path, Configuration: str) -> None:
+  Metadata = json.loads(
+    (ProjectDirectory / "Intermediate" / "Generated" / f"runtime-{Configuration}.json").read_text(
+      encoding="utf-8"
+    )
+  )
+  EngineDirectory = Path(Metadata["engine_dir"])
+  GameDirectory = Path(Metadata["game_dir"])
+  GameName = Metadata["game_name"]
+  OutputDirectory = ProjectDirectory / "Bin" / "x64" / Configuration
+  PublishDirectory = ProjectDirectory / "Publish" / Configuration
+  Runtime = [Path(Value) for Value in Metadata["runtime"] if Value]
+  Dependencies = [Path(Value) for Value in Metadata["plugin_dependencies"] if Value]
+  Names = sorted(
+    Name
+    for Name, Configurations in LoadPluginConfigurations(ProjectDirectory).items()
+    if Configuration in Configurations
+  )
+  GenerateRuntimePlugins(OutputDirectory, Names)
+  PrepareOutput(OutputDirectory)
+  Converter = EngineDirectory.parent / "Tools" / "ConvertLevels.py"
+  EngineBinary = OutputDirectory / "BroccoliEngine.dll"
+  StageRuntime(
+    Configuration,
+    EngineDirectory,
+    GameDirectory,
+    OutputDirectory,
+    EngineBinary,
+    GameName,
+    Converter,
+    Runtime,
+    Dependencies,
+  )
+  VerifyRuntime(
+    OutputDirectory,
+    GameName,
+    PluginDependencies=Dependencies,
+    MingwRuntime=Runtime,
+    Configuration=Configuration,
+  )
+  if Configuration != "Editor":
+    PackageRuntime(
+      Configuration,
+      OutputDirectory,
+      PublishDirectory,
+      OutputDirectory / f"{GameName}-game.exe",
+      EngineBinary,
+      GameName,
+      Converter,
+      OutputDirectory / "BroccoliBootstrap.exe",
+      Dependencies,
+      Runtime,
+    )
+    VerifyRuntime(OutputDirectory, GameName, PublishDirectory, Dependencies, Runtime, Configuration)
 
 
 def LoadLatestBuildConfiguration(ProjectDirectory: Path) -> str:
@@ -280,10 +337,9 @@ def CreateParser() -> argparse.ArgumentParser:
   StageParser.add_argument("--output-dir", type=PathArgument, required=True)
   StageParser.add_argument("--engine-binary", type=PathArgument, required=True)
   StageParser.add_argument("--game-name", required=True)
-  StageParser.add_argument("--eos-binary", type=PathArgument, required=True)
   StageParser.add_argument("--convert-levels-script", type=PathArgument, required=True)
   StageParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
-  StageParser.add_argument("--required-plugin", action="append", default=[])
+  StageParser.add_argument("--plugin-dependency", action="append", type=PathArgument, default=[])
 
   PackageParser = Commands.add_parser("package-runtime", help="Create a distributable package")
   PackageParser.add_argument("--configuration", required=True)
@@ -292,11 +348,9 @@ def CreateParser() -> argparse.ArgumentParser:
   PackageParser.add_argument("--game-binary", type=PathArgument, required=True)
   PackageParser.add_argument("--engine-binary", type=PathArgument, required=True)
   PackageParser.add_argument("--game-name", required=True)
-  PackageParser.add_argument("--eos-binary", type=PathArgument, required=True)
-  PackageParser.add_argument("--online-resources-dir", type=PathArgument, required=True)
   PackageParser.add_argument("--convert-levels-script", type=PathArgument, required=True)
   PackageParser.add_argument("--bootstrap-binary", type=PathArgument, required=True)
-  PackageParser.add_argument("--required-plugin", action="append", default=[])
+  PackageParser.add_argument("--plugin-dependency", action="append", type=PathArgument, default=[])
   PackageParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
 
   VerifyParser = Commands.add_parser("verify-runtime", help="Verify runtime artifacts")
@@ -304,7 +358,7 @@ def CreateParser() -> argparse.ArgumentParser:
   VerifyParser.add_argument("--game-name", required=True)
   VerifyParser.add_argument("--publish-dir", type=PathArgument)
   VerifyParser.add_argument("--configuration")
-  VerifyParser.add_argument("--required-plugin", action="append", default=[])
+  VerifyParser.add_argument("--plugin-dependency", action="append", type=PathArgument, default=[])
   VerifyParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
   WorktreeParser = Commands.add_parser("worktree", help="Set up an existing Git worktree")
   WorktreeCommands = WorktreeParser.add_subparsers(dest="worktree_command", required=True)
@@ -353,7 +407,6 @@ def Main() -> int:
     elif Arguments.Command == "generate-plugins":
       PluginConfigurations = LoadPluginConfigurations(Arguments.project_dir)
       Changed = GeneratePluginsCmake(Arguments.project_dir, PluginConfigurations)
-      RemoveDisabledExamplePluginArtifacts(Arguments.project_dir, PluginConfigurations)
       if Changed and Arguments.changed_exit_code:
         return 2
     elif Arguments.Command == "prepare-output":
@@ -366,10 +419,9 @@ def Main() -> int:
         Arguments.output_dir,
         Arguments.engine_binary,
         Arguments.game_name,
-        Arguments.eos_binary,
         Arguments.convert_levels_script,
         Arguments.mingw_runtime,
-        [PluginName for PluginName in Arguments.required_plugin if PluginName],
+        Arguments.plugin_dependency,
       )
     elif Arguments.Command == "package-runtime":
       PackageRuntime(
@@ -379,24 +431,20 @@ def Main() -> int:
         Arguments.game_binary,
         Arguments.engine_binary,
         Arguments.game_name,
-        Arguments.eos_binary,
-        Arguments.online_resources_dir,
         Arguments.convert_levels_script,
         Arguments.bootstrap_binary,
-        [PluginName for PluginName in Arguments.required_plugin if PluginName],
+        Arguments.plugin_dependency,
         Arguments.mingw_runtime,
       )
     elif Arguments.Command == "verify-runtime":
-      if Arguments.configuration is not None and Arguments.configuration.casefold() == "editor":
-        print("Editor configuration: runtime verification skipped.")
-      else:
-        VerifyRuntime(
-          Arguments.output_dir,
-          Arguments.game_name,
-          Arguments.publish_dir,
-          [PluginName for PluginName in Arguments.required_plugin if PluginName],
-          Arguments.mingw_runtime,
-        )
+      VerifyRuntime(
+        Arguments.output_dir,
+        Arguments.game_name,
+        Arguments.publish_dir,
+        Arguments.plugin_dependency,
+        Arguments.mingw_runtime,
+        Arguments.configuration,
+      )
     elif Arguments.Command == "worktree":
       if Arguments.worktree_command == "setup":
         SetupWorktree(Path.cwd().resolve(), Arguments.path)

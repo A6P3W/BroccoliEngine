@@ -1,9 +1,10 @@
+#ifdef BROCCOLI_WITH_EOSPLUGIN
 #pragma once
+#include <EOSPlugin/EOSPlugin.h>
+using namespace BEPlugins::EOS;
 
 #include <string>
 #include <vector>
-
-#include "EOSTypes.h"
 
 class ANetworkTestPawn;
 
@@ -50,3 +51,22 @@ class FNetworkTestUI {
   int SelectedOnlineLobbyIndex = -1;
   std::string OnlineStatusMessage;
 };
+
+#else
+#pragma once
+#include <string>
+class ANetworkTestPawn;
+class FNetworkTestUI {
+ public:
+  explicit FNetworkTestUI(ANetworkTestPawn& InOwner) : Owner(InOwner) {}
+  void InitializeStatus();
+  void Draw();
+  void SetStatusMessage(const std::string& Message) { StatusMessage = Message; }
+
+ private:
+  ANetworkTestPawn& Owner;
+  std::string StatusMessage;
+  int Port = 7777;
+  char Address[256] = "127.0.0.1";
+};
+#endif
