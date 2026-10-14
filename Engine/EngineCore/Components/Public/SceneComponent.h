@@ -52,23 +52,23 @@ class BROCCOLI_ENGINE_API MSceneComponent : public MActorComponent {
   bool AttachToComponent(MSceneComponent* Parent, const FAttachmentTransformRules& AttachmentRules);
   MSceneComponent* GetParentComponent() const;
 
-  bool SetWorldLocation(const FVector2D& NewWorldLocation);
-  bool SetRelativeLocation(const FVector2D& NewRelativeLocation);
-  bool AddWorldOffset(const FVector2D& Offset);
-  bool AddLocalOffset(const FVector2D& Offset);
-  FVector2D GetWorldLocation() const;
-  FVector2D GetRelativeLocation() const;
+  bool SetWorldLocation2D(const FVector2D& NewWorldLocation);
+  bool SetRelativeLocation2D(const FVector2D& NewRelativeLocation);
+  bool AddWorldOffset2D(const FVector2D& Offset);
+  bool AddLocalOffset2D(const FVector2D& Offset);
+  FVector2D GetWorldLocation2D() const;
+  FVector2D GetRelativeLocation2D() const;
 
-  bool SetWorldRotation(FRotator NewRotation);
-  bool AddWorldRotation(FRotator DeltaRotation);
-  FRotator GetWorldRotation() const;
-  FRotator GetRelativeRotation() const;
+  bool SetWorldRotation2D(FRotator NewRotation);
+  bool AddWorldRotation2D(FRotator DeltaRotation);
+  FRotator GetWorldRotation2D() const;
+  FRotator GetRelativeRotation2D() const;
 
-  bool SetRelativeScale(FScale NewScale);
-  FScale GetRelativeScale() const;
+  bool SetRelativeScale2D(FScale NewScale);
+  FScale GetRelativeScale2D() const;
 
-  bool SetWorldScale(FScale NewScale);
-  FScale GetWorldScale() const;
+  bool SetWorldScale2D(FScale NewScale);
+  FScale GetWorldScale2D() const;
 
   bool SetWorldLocation3D(const FVector3D& NewWorldLocation);
   bool SetRelativeLocation3D(const FVector3D& NewRelativeLocation);

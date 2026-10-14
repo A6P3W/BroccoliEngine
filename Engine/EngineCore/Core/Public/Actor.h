@@ -88,14 +88,14 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   MActorComponent* FindReplicatedComponentByName(std::string_view NetComponentName) const;
   void AssignNetworkComponentIds();
 
-  FVector2D GetActorLocation() const;
-  bool SetActorLocation(const FVector2D& NewLocation);
+  FVector2D GetActorLocation2D() const;
+  bool SetActorLocation2D(const FVector2D& NewLocation);
 
-  FRotator GetActorRotation() const;
-  bool SetActorRotation(const FRotator& NewRotation);
+  FRotator GetActorRotation2D() const;
+  bool SetActorRotation2D(const FRotator& NewRotation);
 
-  FScale GetActorScale() const;
-  bool SetActorScale(FScale NewScale);
+  FScale GetActorScale2D() const;
+  bool SetActorScale2D(FScale NewScale);
 
   FVector3D GetActorLocation3D() const;
   bool SetActorLocation3D(const FVector3D& NewLocation);
@@ -105,9 +105,9 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   bool SetActorScale3D(const FScale3D& NewScale);
   FTransform3D GetActorTransform3D() const;
 
-  void AddActorWorldOffset(const FVector2D& Offset);
-  void AddActorLocalOffset(const FVector2D& Offset);
-  void AddActorRotation(const FRotator& DeltaRotation);
+  void AddActorWorldOffset2D(const FVector2D& Offset);
+  void AddActorLocalOffset2D(const FVector2D& Offset);
+  void AddActorRotation2D(const FRotator& DeltaRotation);
 
   void Destroy();
   bool IsPendingDestroy() const;

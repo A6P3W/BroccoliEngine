@@ -1,6 +1,7 @@
+#include "CollisionTestActors.h"
+
 #include "CircleCollision2DComponent.h"
 #include "Collision2DComponent.h"
-#include "CollisionTestActors.h"
 #include "LineCollision2DComponent.h"
 #include "Log.h"
 #include "RectangleCollision2DComponent.h"
@@ -33,7 +34,7 @@ void ACollisionTestActorBase::OnUpdate(float DeltaTime) {
   ElapsedSeconds += DeltaTime;
   // アクターに回転（FRotator）を加える関数
   // （ピッチ、ヨー、ロールからなる回転値を指定。ここではZ軸方向の回転）
-  AddActorRotation(FRotator(25.0f * DeltaTime));
+  AddActorRotation2D(FRotator(25.0f * DeltaTime));
   // アクターの位置に、デバッグ用のログ文字列を一定時間（0.1秒）表示するマクロ
   DRAW_WORLD_LOG("CollisionShape", 0.1f, this, "{}: overlap / rotating", ShapeLabel);
   // 画面の固定位置に、デバッグ用の説明テキストを表示するマクロ

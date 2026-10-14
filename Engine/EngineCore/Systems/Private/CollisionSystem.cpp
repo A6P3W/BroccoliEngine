@@ -220,9 +220,9 @@ void FCollisionSystem::RemoveActorReferences(AActor* Actor) {
 void FCollisionSystem::CircleAndCircle(
     MCircleCollision2DComponent* a, MCircleCollision2DComponent* b
 ) {
-  FVector2D locA = a->GetWorldLocation(), locB = b->GetWorldLocation();
-  float radA = a->GetRadius() * a->GetWorldScale().Scale,
-        radB = b->GetRadius() * b->GetWorldScale().Scale;
+  FVector2D locA = a->GetWorldLocation2D(), locB = b->GetWorldLocation2D();
+  float radA = a->GetRadius() * a->GetWorldScale2D().Scale,
+        radB = b->GetRadius() * b->GetWorldScale2D().Scale;
   float dx = locB.X - locA.X;
   float dy = locB.Y - locA.Y;
   float distanceSquared = dx * dx + dy * dy;
@@ -298,11 +298,11 @@ static bool LineSegmentsIntersect(
 void FCollisionSystem::CircleAndRectangle(
     MCircleCollision2DComponent* circle, MRectangleCollision2DComponent* rect
 ) {
-  FVector2D circleCenter = circle->GetWorldLocation();
-  FVector2D rectCenter = rect->GetWorldLocation();
-  float halfWidth = (rect->GetWidth() * rect->GetWorldScale().Scale) * 0.5f;
-  float halfHeight = (rect->GetHeight() * rect->GetWorldScale().Scale) * 0.5f;
-  float rad = UMath::DegToRad(rect->GetWorldRotation().Rotation);
+  FVector2D circleCenter = circle->GetWorldLocation2D();
+  FVector2D rectCenter = rect->GetWorldLocation2D();
+  float halfWidth = (rect->GetWidth() * rect->GetWorldScale2D().Scale) * 0.5f;
+  float halfHeight = (rect->GetHeight() * rect->GetWorldScale2D().Scale) * 0.5f;
+  float rad = UMath::DegToRad(rect->GetWorldRotation2D().Rotation);
   float cosA = std::cos(rad);
   float sinA = std::sin(rad);
 
@@ -315,7 +315,7 @@ void FCollisionSystem::CircleAndRectangle(
   float localDx = localCircleX - closestX;
   float localDy = localCircleY - closestY;
   float distanceSquared = localDx * localDx + localDy * localDy;
-  float radius = circle->GetRadius() * circle->GetWorldScale().Scale;
+  float radius = circle->GetRadius() * circle->GetWorldScale2D().Scale;
   auto circleActor = circle->GetOwner();
   auto rectActor = rect->GetOwner();
   constexpr float HysteresisMargin = 1.0f;
@@ -374,12 +374,12 @@ void FCollisionSystem::RectangleAndRectangle(
 ) {
   auto GetOBB = [](MRectangleCollision2DComponent* rect) -> OBB {
     OBB obb;
-    obb.Center = rect->GetWorldLocation();
-    float rad = UMath::DegToRad(rect->GetWorldRotation().Rotation);
+    obb.Center = rect->GetWorldLocation2D();
+    float rad = UMath::DegToRad(rect->GetWorldRotation2D().Rotation);
     obb.AxisX = {std::cos(rad), std::sin(rad)};
     obb.AxisY = {-std::sin(rad), std::cos(rad)};
-    obb.HalfW = (rect->GetWidth() * rect->GetWorldScale().Scale) * 0.5f;
-    obb.HalfH = (rect->GetHeight() * rect->GetWorldScale().Scale) * 0.5f;
+    obb.HalfW = (rect->GetWidth() * rect->GetWorldScale2D().Scale) * 0.5f;
+    obb.HalfH = (rect->GetHeight() * rect->GetWorldScale2D().Scale) * 0.5f;
     return obb;
   };
 
@@ -432,8 +432,8 @@ void FCollisionSystem::LineAndCircle(
 ) {
   FVector2D start = line->GetWorldStart();
   FVector2D end = line->GetWorldEnd();
-  FVector2D center = circle->GetWorldLocation();
-  float radius = circle->GetRadius() * circle->GetWorldScale().Scale;
+  FVector2D center = circle->GetWorldLocation2D();
+  float radius = circle->GetRadius() * circle->GetWorldScale2D().Scale;
   bool isOverlapping = DistanceSquaredPointToSegment(center, start, end) <= (radius * radius);
 
   auto lineActor = line->GetOwner();
@@ -469,10 +469,10 @@ void FCollisionSystem::LineAndRectangle(
 ) {
   FVector2D start = line->GetWorldStart();
   FVector2D end = line->GetWorldEnd();
-  FVector2D rectCenter = rect->GetWorldLocation();
-  float halfWidth = (rect->GetWidth() * rect->GetWorldScale().Scale) * 0.5f;
-  float halfHeight = (rect->GetHeight() * rect->GetWorldScale().Scale) * 0.5f;
-  float rad = UMath::DegToRad(rect->GetWorldRotation().Rotation);
+  FVector2D rectCenter = rect->GetWorldLocation2D();
+  float halfWidth = (rect->GetWidth() * rect->GetWorldScale2D().Scale) * 0.5f;
+  float halfHeight = (rect->GetHeight() * rect->GetWorldScale2D().Scale) * 0.5f;
+  float rad = UMath::DegToRad(rect->GetWorldRotation2D().Rotation);
   float cosA = std::cos(rad);
   float sinA = std::sin(rad);
 
@@ -574,15 +574,15 @@ void FCollisionSystem::CollisionResolution(
   bool bCanMoveB = moveB && (ActorB->bHasAuthority || ActorB->bIsLocallyControlled);
 
   if (bCanMoveA && bCanMoveB) {
-    ActorA->AddActorWorldOffset(normal * (-overlapDepth * 0.5f));
-    ActorB->AddActorWorldOffset(normal * (overlapDepth * 0.5f));
+    ActorA->AddActorWorldOffset2D(normal * (-overlapDepth * 0.5f));
+    ActorB->AddActorWorldOffset2D(normal * (overlapDepth * 0.5f));
     CancelNormalVelocity(moveA, normal);
     CancelNormalVelocity(moveB, {-normal.X, -normal.Y});
   } else if (bCanMoveA) {
-    ActorA->AddActorWorldOffset(normal * (-overlapDepth));
+    ActorA->AddActorWorldOffset2D(normal * (-overlapDepth));
     CancelNormalVelocity(moveA, normal);
   } else if (bCanMoveB) {
-    ActorB->AddActorWorldOffset(normal * (overlapDepth));
+    ActorB->AddActorWorldOffset2D(normal * (overlapDepth));
     CancelNormalVelocity(moveB, {-normal.X, -normal.Y});
   }
 }

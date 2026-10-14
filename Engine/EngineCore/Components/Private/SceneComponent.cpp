@@ -147,50 +147,52 @@ FTransform3D MSceneComponent::GetWorldTransform3D() const {
 }
 FTransform3D MSceneComponent::GetRelativeTransform3D() const { return ImplPtr->RelativeTransform; }
 
-bool MSceneComponent::SetWorldLocation(const FVector2D& Location) {
+bool MSceneComponent::SetWorldLocation2D(const FVector2D& Location) {
   const auto Old = GetWorldLocation3D();
   return SetWorldLocation3D({Location.X, Location.Y, Old.Z});
 }
-bool MSceneComponent::SetRelativeLocation(const FVector2D& Location) {
+bool MSceneComponent::SetRelativeLocation2D(const FVector2D& Location) {
   const auto Old = GetRelativeLocation3D();
   return SetRelativeLocation3D({Location.X, Location.Y, Old.Z});
 }
-bool MSceneComponent::AddWorldOffset(const FVector2D& Offset) {
+bool MSceneComponent::AddWorldOffset2D(const FVector2D& Offset) {
   const auto Position = GetWorldLocation3D();
   return SetWorldLocation3D({Position.X + Offset.X, Position.Y + Offset.Y, Position.Z});
 }
-bool MSceneComponent::AddLocalOffset(const FVector2D& Offset) {
+bool MSceneComponent::AddLocalOffset2D(const FVector2D& Offset) {
   return SetWorldLocation3D(
       GetWorldLocation3D() + GetWorldRotation3D().RotateVector({Offset.X, Offset.Y, 0.0f})
   );
 }
-FVector2D MSceneComponent::GetWorldLocation() const {
+FVector2D MSceneComponent::GetWorldLocation2D() const {
   const auto Position = GetWorldLocation3D();
   return {Position.X, Position.Y};
 }
-FVector2D MSceneComponent::GetRelativeLocation() const {
+FVector2D MSceneComponent::GetRelativeLocation2D() const {
   const auto Position = GetRelativeLocation3D();
   return {Position.X, Position.Y};
 }
-bool MSceneComponent::SetWorldRotation(FRotator Rotation) {
+bool MSceneComponent::SetWorldRotation2D(FRotator Rotation) {
   const auto Euler = GetWorldRotation3D().ToRotator();
   return SetWorldRotation3D(FQuaternion::FromRotator({Euler.Pitch, Euler.Yaw, Rotation.Rotation}));
 }
-bool MSceneComponent::AddWorldRotation(FRotator Rotation) {
-  return SetWorldRotation(FRotator(GetWorldRotation().Rotation + Rotation.Rotation));
+bool MSceneComponent::AddWorldRotation2D(FRotator Rotation) {
+  return SetWorldRotation2D(FRotator(GetWorldRotation2D().Rotation + Rotation.Rotation));
 }
-FRotator MSceneComponent::GetWorldRotation() const {
+FRotator MSceneComponent::GetWorldRotation2D() const {
   return FRotator(GetWorldRotation3D().ToRotator().Roll);
 }
-FRotator MSceneComponent::GetRelativeRotation() const {
+FRotator MSceneComponent::GetRelativeRotation2D() const {
   return FRotator(GetRelativeRotation3D().ToRotator().Roll);
 }
-bool MSceneComponent::SetRelativeScale(FScale Scale) {
+bool MSceneComponent::SetRelativeScale2D(FScale Scale) {
   return SetRelativeScale3D(FScale3D(Scale.Scale));
 }
-FScale MSceneComponent::GetRelativeScale() const { return FScale(GetRelativeScale3D().X); }
-bool MSceneComponent::SetWorldScale(FScale Scale) { return SetWorldScale3D(FScale3D(Scale.Scale)); }
-FScale MSceneComponent::GetWorldScale() const { return FScale(GetWorldScale3D().X); }
+FScale MSceneComponent::GetRelativeScale2D() const { return FScale(GetRelativeScale3D().X); }
+bool MSceneComponent::SetWorldScale2D(FScale Scale) {
+  return SetWorldScale3D(FScale3D(Scale.Scale));
+}
+FScale MSceneComponent::GetWorldScale2D() const { return FScale(GetWorldScale3D().X); }
 void MSceneComponent::SetVisibility(bool Visible) {
   ImplPtr->Visible = Visible;
   for (auto* Child : ImplPtr->ChildComponents) Child->SetVisibility(Visible);

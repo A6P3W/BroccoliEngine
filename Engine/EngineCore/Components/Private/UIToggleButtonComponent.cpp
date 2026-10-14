@@ -114,7 +114,7 @@ void UIToggleButtonComponent::UpdateVisuals() {
     return;
   }
 
-  ImplPtr->BoxSprite->SetRelativeLocation(FVector2D::ZeroVector());
+  ImplPtr->BoxSprite->SetRelativeLocation2D(FVector2D::ZeroVector());
   ImplPtr->BoxSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, GetCurrentColor(), true);
 }
 

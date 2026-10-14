@@ -17,7 +17,7 @@ AActor* EditorSelection::HitTest2D(World* WorldPtr, const FVector2D& WorldPositi
       continue;
     }
 
-    const FVector2D ActorPosition = Actor->GetActorLocation();
+    const FVector2D ActorPosition = Actor->GetActorLocation2D();
     const FVector2D Offset{
         ActorPosition.X - WorldPosition.X,
         ActorPosition.Y - WorldPosition.Y,

@@ -75,6 +75,7 @@ try {
   }
 
   & $Compiler @CompilerArguments "Tests/Reflection/ReflectionTests.cpp" `
+    "Engine/Editor/Private/EditorTransformTool.cpp" `
     "-L$DebugDirectory" "-lBroccoliEngine" "-o$TestExecutable"
   if ($LASTEXITCODE -ne 0) {
     throw "Reflection test compilation failed with exit code $LASTEXITCODE."

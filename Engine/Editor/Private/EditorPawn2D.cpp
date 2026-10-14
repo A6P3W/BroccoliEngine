@@ -95,7 +95,8 @@ void EditorPawn2D::OnMouseLeftPress(const FInputActionValue&) {
 
   FVector2D MouseRenderTargetPosition;
   if (EditorModePtr->TryGetViewportRenderTargetMousePosition(MouseRenderTargetPosition)) {
-    EditorModePtr->OnMousePress(RenderSystem::GetInstance().ScreenToWorld(MouseRenderTargetPosition)
+    EditorModePtr->OnMousePress(
+        RenderSystem::GetInstance().ScreenToWorld(MouseRenderTargetPosition)
     );
   }
 }
@@ -159,8 +160,8 @@ void EditorPawn2D::UpdateCameraDrag() {
 
   const float FieldOfView = std::clamp(Camera->GetFOV(), MinEditorFOV, MaxEditorFOV);
   FVector2D WorldDelta = {RenderTargetDelta.X, -RenderTargetDelta.Y};
-  WorldDelta = WorldDelta.RotateVector(GetActorRotation());
-  AddActorWorldOffset(WorldDelta * -1.0f / FieldOfView);
+  WorldDelta = WorldDelta.RotateVector(GetActorRotation2D());
+  AddActorWorldOffset2D(WorldDelta * -1.0f / FieldOfView);
 }
 
 void EditorPawn2D::OnMouseMove(const FInputActionValue&) {

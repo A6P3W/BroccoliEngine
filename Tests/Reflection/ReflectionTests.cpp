@@ -13,9 +13,11 @@
 #include "ActorRegistry.h"
 #include "ComponentRegistry.h"
 #include "EditorClipboard.h"
+#include "EditorTransformTool.h"
 #include "ForceFieldComponent.h"
 #include "LevelSerializer.h"
 #include "Log.h"
+#include "NetMovementComponent.h"
 #include "PathResolver.h"
 #include "PluginContext.h"
 #include "PluginHost.h"
@@ -1430,6 +1432,211 @@ void TestComponentRegistryAndPersistence() {
   Components.UnregisterModule(ModuleOwner);
   Check(Reflections.UnregisterModule(ModuleOwner), "Component reflection did not unregister.");
 }
+void TestTransform2DCompatibility() {
+  const auto Near = [](float Actual, float Expected) {
+    return std::abs(Actual - Expected) < 0.001F;
+  };
+  MSceneComponent Parent;
+  MSceneComponent Child;
+  Parent.SetWorldLocation3D({10.0F, 20.0F, 30.0F});
+  Parent.SetWorldScale2D(FScale(2.0F));
+  Child.SetRelativeLocation3D({1.0F, 2.0F, 3.0F});
+  Child.AttachToComponent(&Parent);
+  Check(Child.SetWorldLocation2D({40.0F, 50.0F}), "World XY update failed.");
+  Check(
+      Child.GetWorldLocation2D().Equals({40.0F, 50.0F}) &&
+          Near(Child.GetWorldLocation3D().Z, 36.0F),
+      "World XY update changed Z."
+  );
+  Check(Child.SetRelativeLocation2D({4.0F, 5.0F}), "Relative XY update failed.");
+  Check(
+      Child.GetRelativeLocation2D().Equals({4.0F, 5.0F}) &&
+          Near(Child.GetRelativeLocation3D().Z, 3.0F),
+      "Relative XY update changed Z."
+  );
+  Child.AddWorldOffset2D({2.0F, 3.0F});
+  Check(
+      Child.GetWorldLocation2D().Equals({20.0F, 33.0F}) &&
+          Near(Child.GetWorldLocation3D().Z, 36.0F),
+      "World offset changed Z or applied parent scale twice."
+  );
+
+  MSceneComponent Tilted;
+  Tilted.SetWorldLocation3D({10.0F, 20.0F, 30.0F});
+  Tilted.SetWorldRotation3D(FQuaternion::FromRotator({25.0F, 35.0F, 15.0F}));
+  const auto ExpectedLocalPosition =
+      Tilted.GetWorldLocation3D() + Tilted.GetWorldRotation3D().RotateVector({5.0F, 7.0F, 0.0F});
+  Tilted.AddLocalOffset2D({5.0F, 7.0F});
+  const auto ActualLocalPosition = Tilted.GetWorldLocation3D();
+  Check(
+      Near(ActualLocalPosition.X, ExpectedLocalPosition.X) &&
+          Near(ActualLocalPosition.Y, ExpectedLocalPosition.Y) &&
+          Near(ActualLocalPosition.Z, ExpectedLocalPosition.Z) &&
+          !Near(ActualLocalPosition.Z, 30.0F),
+      "Tilted local offset lost its 3D displacement."
+  );
+  Tilted.SetWorldRotation2D(FRotator(45.0F));
+  Tilted.AddWorldRotation2D(FRotator(5.0F));
+  const auto Euler = Tilted.GetWorldRotation3D().ToRotator();
+  Check(
+      Near(Euler.Pitch, 25.0F) && Near(Euler.Yaw, 35.0F) &&
+          Near(Tilted.GetWorldRotation2D().Rotation, 50.0F) &&
+          Near(Tilted.GetRelativeRotation2D().Rotation, 50.0F),
+      "2D rotation changed Pitch/Yaw or failed to add Roll."
+  );
+  Tilted.SetWorldScale3D({2.0F, 3.0F, 4.0F});
+  Check(Near(Tilted.GetWorldScale2D().Scale, 2.0F), "2D scale did not read X.");
+  Tilted.SetWorldScale2D(FScale(5.0F));
+  const auto Scale = Tilted.GetWorldScale3D();
+  Check(
+      Near(Scale.X, 5.0F) && Near(Scale.Y, 5.0F) && Near(Scale.Z, 5.0F),
+      "2D world scale did not uniformly scale XYZ."
+  );
+  Child.SetRelativeScale2D(FScale(3.0F));
+  Check(
+      Near(Child.GetRelativeScale2D().Scale, 3.0F) && Near(Child.GetRelativeScale3D().Z, 3.0F),
+      "2D relative scale did not uniformly scale XYZ."
+  );
+
+  class ATransformTestActor final : public AActor {
+   public:
+    DEFINE_ACTOR_CLASS(ATransformTestActor)
+  };
+  ATransformTestActor Sender;
+  Sender.SetActorLocation3D({1.0F, 2.0F, 9.0F});
+  Check(
+      Sender.SetActorLocation2D({12.0F, 34.0F}) &&
+          Sender.GetActorLocation2D().Equals({12.0F, 34.0F}) &&
+          Near(Sender.GetActorLocation3D().Z, 9.0F),
+      "Actor XY delegation changed Z."
+  );
+  Sender.AddActorWorldOffset2D({2.0F, 3.0F});
+  Sender.AddActorLocalOffset2D({1.0F, 2.0F});
+  Check(Sender.GetActorLocation2D().Equals({15.0F, 39.0F}), "Actor offset delegation failed.");
+  Sender.SetActorRotation2D(FRotator(20.0F));
+  Sender.AddActorRotation2D(FRotator(10.0F));
+  Sender.SetActorScale2D(FScale(1.5F));
+  Sender.UpdateReplicatedStateCache();
+  Check(!Sender.HasReplicatedStateChanged(), "Replication cache changed without mutation.");
+  Sender.AddActorWorldOffset2D({1.0F, 0.0F});
+  Check(Sender.HasReplicatedStateChanged(), "Replication cache missed XY mutation.");
+  FNetBuffer Buffer;
+  Check(Sender.SerializeNetworkState(Buffer), "Actor network serialization failed.");
+  FNetBuffer Expected;
+  Expected.Write(16.0F);
+  Expected.Write(39.0F);
+  Expected.Write(Sender.GetActorRotation2D().Rotation);
+  Expected.Write(Sender.GetActorScale2D().Scale);
+  Expected.Write(uint32_t{0});
+  Check(Buffer.GetData() == Expected.GetData(), "Actor network byte layout changed.");
+  ATransformTestActor Receiver;
+  Receiver.SetActorLocation3D({0.0F, 0.0F, 99.0F});
+  Check(
+      Receiver.DeserializeNetworkState(Buffer) &&
+          Receiver.GetActorLocation2D().Equals({16.0F, 39.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F) &&
+          Near(Receiver.GetActorRotation2D().Rotation, 30.0F) &&
+          Near(Receiver.GetActorScale2D().Scale, 1.5F),
+      "Actor network transform round trip changed."
+  );
+  class MNetTransformTestComponent final : public MNetMovementComponent {
+   public:
+    using MNetMovementComponent::Client_ReceiveAuthorityCorrection;
+    using MNetMovementComponent::Client_ResolveMove;
+  };
+  auto* Movement = NewObject<MNetTransformTestComponent>(&Receiver);
+  Check(Movement != nullptr, "Could not create network movement test component.");
+  Receiver.bHasAuthority = false;
+  Movement->Client_ResolveMove(1, {50.0F, 60.0F}, FRotator(45.0F), {2.0F, 3.0F});
+  Check(
+      Receiver.GetActorLocation2D().Equals({50.0F, 60.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F) &&
+          Near(Receiver.GetActorRotation2D().Rotation, 45.0F) &&
+          Movement->GetVelocity().Equals({2.0F, 3.0F}),
+      "Network movement acknowledgement changed transform synchronization."
+  );
+  Movement->Client_ReceiveAuthorityCorrection(2, 1, {70.0F, 80.0F}, FRotator(60.0F), {4.0F, 5.0F});
+  Movement->Client_ReceiveAuthorityCorrection(2, 1, {0.0F, 0.0F}, FRotator(0.0F), {0.0F, 0.0F});
+  Check(
+      Receiver.GetActorLocation2D().Equals({70.0F, 80.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F) &&
+          Near(Receiver.GetActorRotation2D().Rotation, 60.0F) &&
+          Movement->GetVelocity().Equals({4.0F, 5.0F}),
+      "Network movement correction or stale-sequence rejection changed."
+  );
+  Receiver.bHasAuthority = true;
+  Movement->SetFriction(1.0F);
+  Movement->SetWorldVelocity({2.0F, 3.0F});
+  Movement->OnUpdate(1.0F / 60.0F);
+  Check(
+      Receiver.GetActorLocation2D().Equals({72.0F, 83.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F),
+      "Network movement simulation changed XY displacement or Z."
+  );
+  EditorTransformTool Tool;
+  Tool.Begin(&Receiver, EActorAction::Move);
+  Tool.Update({}, {100.0F, 200.0F});
+  Tool.Begin(&Receiver, EActorAction::Rotate);
+  Tool.Update({40.0F, 0.0F}, {});
+  Tool.Begin(&Receiver, EActorAction::Scale);
+  Tool.Update({100.0F, 0.0F}, {});
+  Tool.End();
+  Check(
+      Receiver.GetActorLocation2D().Equals({100.0F, 200.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F) &&
+          Near(Receiver.GetActorRotation2D().Rotation, 70.0F) &&
+          Near(Receiver.GetActorScale2D().Scale, 1.65F) && !Tool.IsActive(),
+      "Editor 2D move/rotate/scale operation changed."
+  );
+  const FPhysicsRay3D StartRay{{100.0F, 200.0F, 109.0F}, {0.0F, 0.0F, -1.0F}, 100.0F};
+  Check(
+      Tool.Begin3D(
+          &Receiver,
+          EActorAction::Move,
+          EGizmoHandle3D::XY,
+          StartRay,
+          {0.0F, 0.0F, -1.0F},
+          {},
+          StartRay.Origin
+      ),
+      "Editor 3D move did not begin."
+  );
+  Tool.Update3D({{103.0F, 204.0F, 109.0F}, {0.0F, 0.0F, -1.0F}, 100.0F}, {});
+  Tool.End();
+  Check(
+      Receiver.GetActorLocation2D().Equals({103.0F, 204.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F),
+      "Editor 3D plane move changed."
+  );
+  Check(
+      Tool.Begin3D(
+          &Receiver,
+          EActorAction::Scale,
+          EGizmoHandle3D::Center,
+          StartRay,
+          {0.0F, 0.0F, -1.0F},
+          {},
+          StartRay.Origin
+      ),
+      "Editor 3D scale did not begin."
+  );
+  Tool.Update3D(StartRay, {10.0F, 0.0F});
+  Tool.End();
+  Check(
+      Near(Receiver.GetActorScale3D().X, 1.815F) && Near(Receiver.GetActorScale3D().Y, 1.815F) &&
+          Near(Receiver.GetActorScale3D().Z, 1.815F),
+      "Editor 3D center scale changed."
+  );
+  Parent.SetWorldScale3D(FScale3D(0.0F));
+  Receiver.GetRootComponent()->AttachToComponent(&Parent);
+  Check(
+      !Receiver.GetRootComponent()->SetWorldLocation2D({1.0F, 2.0F}) &&
+          Receiver.SetActorLocation2D({1.0F, 2.0F}) &&
+          !Receiver.GetRootComponent()->SetWorldScale2D(FScale(2.0F)) &&
+          Receiver.SetActorScale2D(FScale(2.0F)),
+      "Actor 2D setter return semantics changed."
+  );
+}
 }  // namespace
 
 int main(int ArgCount, char** Arguments) {
@@ -1438,6 +1645,7 @@ int main(int ArgCount, char** Arguments) {
     if (ArgCount == 2 && std::string_view(Arguments[1]) == "--live-actor-exit") {
       TestPluginHostExitWithLiveActor();
     } else {
+      TestTransform2DCompatibility();
       TestNonPublicProperties();
       TestStaticActorReflectionRegistration();
       TestPathValueAndReflection();

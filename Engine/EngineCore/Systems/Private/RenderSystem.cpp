@@ -286,10 +286,8 @@ bool LineIntersects(const FVector2D& Start, const FVector2D& End, const FScreenB
 }
 
 FScreenRenderArea BuildScreenRenderArea(const FVector2D& RenderTargetSize) {
-  const float Scale = (std::min)(
-      RenderTargetSize.X / static_cast<float>(VirtualWidth),
-      RenderTargetSize.Y / static_cast<float>(VirtualHeight)
-  );
+  const float Scale = (std::min)(RenderTargetSize.X / static_cast<float>(VirtualWidth),
+                                 RenderTargetSize.Y / static_cast<float>(VirtualHeight));
   const FVector2D Size = {
       static_cast<float>(VirtualWidth) * Scale, static_cast<float>(VirtualHeight) * Scale
   };
@@ -701,8 +699,8 @@ FVector2D RenderSystem::WorldToScreen(const FVector2D& worldPos) const {
   float camRot = 0.0f;
   float camFOV = 1.0f;
   if (Impl->MainCamera) {
-    camPos = Impl->MainCamera->GetWorldLocation();
-    camRot = Impl->MainCamera->GetWorldRotation().Rotation;
+    camPos = Impl->MainCamera->GetWorldLocation2D();
+    camRot = Impl->MainCamera->GetWorldRotation2D().Rotation;
     camFOV = Impl->MainCamera->GetFOV();
   }
   const float centerX = Impl->RenderTargetSize.X * 0.5f;
@@ -722,8 +720,8 @@ FVector2D RenderSystem::ScreenToWorld(const FVector2D& screenPos) const {
   float camRot = 0.0f;
   float camFOV = 1.0f;
   if (Impl->MainCamera) {
-    camPos = Impl->MainCamera->GetWorldLocation();
-    camRot = Impl->MainCamera->GetWorldRotation().Rotation;
+    camPos = Impl->MainCamera->GetWorldLocation2D();
+    camRot = Impl->MainCamera->GetWorldRotation2D().Rotation;
     camFOV = Impl->MainCamera->GetFOV();
   }
   const float centerX = Impl->RenderTargetSize.X * 0.5f;
@@ -766,8 +764,8 @@ FRenderContext RenderSystem::BuildRenderContext() const {
   float CameraRotation = 0.0f;
   float CameraFOV = 1.0f;
   if (Impl->MainCamera) {
-    CameraPosition = Impl->MainCamera->GetWorldLocation();
-    CameraRotation = Impl->MainCamera->GetWorldRotation().Rotation;
+    CameraPosition = Impl->MainCamera->GetWorldLocation2D();
+    CameraRotation = Impl->MainCamera->GetWorldRotation2D().Rotation;
     CameraFOV = Impl->MainCamera->GetFOV();
   }
 
@@ -789,8 +787,9 @@ FRenderContext RenderSystem::BuildRenderContext() const {
   };
 }
 
-bool RenderSystem::IsCommandVisible(const RenderCommand& Command, const FRenderContext& Context)
-    const {
+bool RenderSystem::IsCommandVisible(
+    const RenderCommand& Command, const FRenderContext& Context
+) const {
   return std::visit(FVisibilityVisitor{Command.common, Context}, Command.data);
 }
 

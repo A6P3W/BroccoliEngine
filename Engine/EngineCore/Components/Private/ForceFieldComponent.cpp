@@ -148,7 +148,7 @@ bool MForceFieldComponent::IsValidTarget(AActor* Target) const {
 }
 
 FVector2D MForceFieldComponent::GetForceOrigin() const {
-  return RangeComponent ? RangeComponent->GetWorldLocation() : GetWorldLocation();
+  return RangeComponent ? RangeComponent->GetWorldLocation2D() : GetWorldLocation2D();
 }
 
 FVector2D MForceFieldComponent::CalculateVector(AActor* Target, float StrengthScale) const {
@@ -156,7 +156,7 @@ FVector2D MForceFieldComponent::CalculateVector(AActor* Target, float StrengthSc
     return FVector2D::ZeroVector();
   }
   FVector2D ForceDirection = ForceType == EForceFieldType::Point
-                                 ? Target->GetActorLocation() - GetForceOrigin()
+                                 ? Target->GetActorLocation2D() - GetForceOrigin()
                                  : Direction;
   const float DirectionSizeSquared = ForceDirection.SizeSquared();
   if (DirectionSizeSquared <= 0.0001f) {
@@ -181,12 +181,14 @@ void MForceFieldComponent::UpdateDebugSprite() {
   }
 
   DebugSprite->SubmitGraph(ResourceManager::GetInstance().LoadResourceGraph(FPath(ArrowPath)));
-  DebugSprite->SetWorldLocation(GetForceOrigin());
+  DebugSprite->SetWorldLocation2D(GetForceOrigin());
 
   if (ForceType == EForceFieldType::Directional && Direction.SizeSquared() > 0.0001f) {
-    DebugSprite->SetWorldRotation(FRotator(UMath::RadToDeg(std::atan2(Direction.X, -Direction.Y))));
+    DebugSprite->SetWorldRotation2D(
+        FRotator(UMath::RadToDeg(std::atan2(Direction.X, -Direction.Y)))
+    );
   } else {
-    DebugSprite->SetWorldRotation(FRotator(0.0f));
+    DebugSprite->SetWorldRotation2D(FRotator(0.0f));
   }
 }
 #endif

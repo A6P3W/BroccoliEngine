@@ -166,13 +166,13 @@ void EditorTransformTool::Update(const FVector2D& Delta, const FVector2D& MouseW
     case EActorAction::Select:
       break;
     case EActorAction::Move:
-      TargetActor->SetActorLocation(MouseWorldPosition);
+      TargetActor->SetActorLocation2D(MouseWorldPosition);
       break;
     case EActorAction::Rotate:
-      TargetActor->AddActorRotation(FRotator(Delta.X * 0.25f));
+      TargetActor->AddActorRotation2D(FRotator(Delta.X * 0.25f));
       break;
     case EActorAction::Scale:
-      TargetActor->SetActorScale(TargetActor->GetActorScale() * (1.0f + Delta.X * 0.001f));
+      TargetActor->SetActorScale2D(TargetActor->GetActorScale2D() * (1.0f + Delta.X * 0.001f));
       break;
   }
 }

@@ -353,22 +353,22 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
         SelectedActor->SetActorScale3D({ScaleValues[0], ScaleValues[1], ScaleValues[2]});
       }
     } else {
-      const FVector2D Location = SelectedActor->GetActorLocation();
+      const FVector2D Location = SelectedActor->GetActorLocation2D();
       float LocationValues[2] = {Location.X, Location.Y};
       if (ImGui::DragFloat2("Location", LocationValues, 1.0f)) {
-        SelectedActor->SetActorLocation(FVector2D{LocationValues[0], LocationValues[1]});
+        SelectedActor->SetActorLocation2D(FVector2D{LocationValues[0], LocationValues[1]});
       }
 
-      const FRotator Rotation = SelectedActor->GetActorRotation();
+      const FRotator Rotation = SelectedActor->GetActorRotation2D();
       float RotationValue = Rotation.Rotation;
       if (ImGui::DragFloat("Rotation", &RotationValue, 1.0f)) {
-        SelectedActor->SetActorRotation(FRotator(RotationValue));
+        SelectedActor->SetActorRotation2D(FRotator(RotationValue));
       }
 
-      const FScale Scale = SelectedActor->GetActorScale();
+      const FScale Scale = SelectedActor->GetActorScale2D();
       float ScaleValue = Scale.Scale;
       if (ImGui::DragFloat("Scale", &ScaleValue, 0.01f)) {
-        SelectedActor->SetActorScale(FScale(ScaleValue));
+        SelectedActor->SetActorScale2D(FScale(ScaleValue));
       }
     }
   }
