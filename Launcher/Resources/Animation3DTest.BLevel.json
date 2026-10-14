@@ -1,0 +1,108 @@
+{
+  "actors": [
+    {
+      "class": "AAnimation3DTestActor",
+      "instance_name": "FoxSurvey",
+      "transform": {
+        "location": {
+          "x": -3,
+          "y": 0,
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 0.02,
+          "y": 0.02,
+          "z": 0.02
+        }
+      },
+      "properties": {
+        "AnimationName": "Survey",
+        "Speed": 1.0
+      }
+    },
+    {
+      "class": "AAnimation3DTestActor",
+      "instance_name": "FoxWalk",
+      "transform": {
+        "location": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 0.02,
+          "y": 0.02,
+          "z": 0.02
+        }
+      },
+      "properties": {
+        "AnimationName": "Walk",
+        "Speed": 0.75
+      }
+    },
+    {
+      "class": "AAnimation3DTestActor",
+      "instance_name": "FoxRun",
+      "transform": {
+        "location": {
+          "x": 3,
+          "y": 0,
+          "z": 0
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 0.02,
+          "y": 0.02,
+          "z": 0.02
+        }
+      },
+      "properties": {
+        "AnimationName": "Run",
+        "Speed": 1.5
+      }
+    },
+    {
+      "class": "AAnimation3DTestCameraActor",
+      "instance_name": "AnimationCamera",
+      "transform": {
+        "location": {
+          "x": 0,
+          "y": 4,
+          "z": -10
+        },
+        "rotation": {
+          "x": 0.17,
+          "y": 0,
+          "z": 0,
+          "w": 0.985
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    }
+  ],
+  "meta": {
+    "format_version": 2,
+    "game_mode": "AAnimation3DTestGameMode"
+  }
+}
