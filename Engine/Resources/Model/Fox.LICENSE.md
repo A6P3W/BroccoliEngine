@@ -14,5 +14,4 @@ License texts:
 - https://creativecommons.org/publicdomain/zero/1.0/legalcode
 - https://creativecommons.org/licenses/by/4.0/legalcode
 
-The model has not been modified. Temporary test fixtures derived from this file
-remove animations/skins or change animation names and key counts.
+The model has not been modified.
