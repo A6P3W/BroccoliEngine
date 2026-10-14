@@ -8,6 +8,6 @@
          if ((model.meshes[i].boneIndices != NULL) && (model.meshes[i].vboId[7] == 0)) { result = false; break; }  // Vertex boneIndices buffer not uploaded to GPU
          if ((model.meshes[i].boneWeights != NULL) && (model.meshes[i].vboId[8] == 0)) { result = false; break; }  // Vertex boneWeights buffer not uploaded to GPU
 +#endif
- 
+
          // NOTE: Some OpenGL versions do not support VAO, so avoid below check
          //if (model.meshes[i].vaoId == 0) { result = false; break }
