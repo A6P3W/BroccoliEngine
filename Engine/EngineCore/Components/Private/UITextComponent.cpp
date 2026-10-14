@@ -80,7 +80,7 @@ void UITextComponent::UpdateText() {
   int TextHeight = ImplPtr->FontSize;
 
   // 文字の中心を原点にするため、幅と高さの半分だけ左上にずらす（自動センタリング）
-  ImplPtr->TextSprite->SetRelativeLocation({-TextWidth * 0.5f, -TextHeight * 0.5f});
+  ImplPtr->TextSprite->SetRelativeLocation2D({-TextWidth * 0.5f, -TextHeight * 0.5f});
 
   ImplPtr->TextSprite->SubmitText(ImplPtr->Text, ImplPtr->Color, ImplPtr->FontHandle);
 }

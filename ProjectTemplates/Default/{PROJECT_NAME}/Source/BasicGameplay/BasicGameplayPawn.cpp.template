@@ -1,4 +1,5 @@
 #include "BasicGameplayPawn.h"
+
 #include "CircleCollision2DComponent.h"
 #include "EnhancedInputComponent.h"
 #include "Log.h"
@@ -50,7 +51,7 @@ void ABasicGameplayPawn::OnUpdate(float DeltaTime) {
   // 基底クラス APawn の OnUpdate 処理を実行
   APawn::OnUpdate(DeltaTime);
   // アクターの現在のワールド座標（2次元ベクトル）を取得
-  const FVector2D Position = GetActorLocation();
+  const FVector2D Position = GetActorLocation2D();
   // 画面の固定位置に、デバッグ用のテキストを指定時間（0.1秒）表示するマクロ
   DRAW_SCREEN_LOG("BasicGameplayHelp", 0.1f, "BasicGameplay: WASD move / Escape LevelStarter");
   // アクターの頭上（ワールド座標）に、座標情報テキストを指定時間（0.1秒）表示するマクロ

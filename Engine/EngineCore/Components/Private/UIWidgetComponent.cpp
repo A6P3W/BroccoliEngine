@@ -27,7 +27,9 @@ void MUIWidgetComponent::SetZOrderOffset(int offset) {
   }
 }
 
-int MUIWidgetComponent::GetFinalPriority() const { return ImplPtr->BasePriority + ImplPtr->ZOrderOffset; }
+int MUIWidgetComponent::GetFinalPriority() const {
+  return ImplPtr->BasePriority + ImplPtr->ZOrderOffset;
+}
 
 void MUIWidgetComponent::SetAnchor(EUIAnchor anchor) {
   ImplPtr->Anchor = anchor;
@@ -112,9 +114,9 @@ void MUIWidgetComponent::UpdateAnchoredLocation() {
       topLeft.X + ImplPtr->WidgetSize.X * 0.5f, topLeft.Y + ImplPtr->WidgetSize.Y * 0.5f
   };
 
-  if (std::abs(newRelativeLoc.X - GetRelativeLocation().X) > 0.001f ||
-      std::abs(newRelativeLoc.Y - GetRelativeLocation().Y) > 0.001f) {
-    SetRelativeLocation(newRelativeLoc);
+  if (std::abs(newRelativeLoc.X - GetRelativeLocation2D().X) > 0.001f ||
+      std::abs(newRelativeLoc.Y - GetRelativeLocation2D().Y) > 0.001f) {
+    SetRelativeLocation2D(newRelativeLoc);
   }
 }
 
