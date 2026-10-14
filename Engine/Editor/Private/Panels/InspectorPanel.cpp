@@ -419,10 +419,19 @@ void InspectorPanel::DrawContents(EditorContext& Context) {
     }
 
     if (ImGui::TreeNodeEx("Scene Components", ImGuiTreeNodeFlags_DefaultOpen)) {
-      const auto RootChildren = SceneChildren.find(RootComponent);
-      if (RootChildren != SceneChildren.end())
-        for (MSceneComponent* Component : RootChildren->second)
-          DrawSceneComponentNode(SelectedActor, Component, SceneChildren, bShowInternalComponents);
+      if (RootComponent != nullptr &&
+          RootComponent->GetComponentClassName() != MSceneComponent::StaticComponentClassName()) {
+        DrawSceneComponentNode(
+            SelectedActor, RootComponent, SceneChildren, bShowInternalComponents
+        );
+      } else {
+        const auto RootChildren = SceneChildren.find(RootComponent);
+        if (RootChildren != SceneChildren.end())
+          for (MSceneComponent* Component : RootChildren->second)
+            DrawSceneComponentNode(
+                SelectedActor, Component, SceneChildren, bShowInternalComponents
+            );
+      }
       bool HasVisibleUnattached = false;
       for (MSceneComponent* Component : UnattachedSceneComponents)
         HasVisibleUnattached |=
