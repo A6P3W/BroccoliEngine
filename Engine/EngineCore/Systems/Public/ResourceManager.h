@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "BroccoliEngineAPI.h"
 #include "FPath.h"
@@ -22,6 +23,11 @@ class BROCCOLI_ENGINE_API ResourceManager {
 
   int LoadResourceGraph(const FPath& Path);
   int LoadResourceModel(const FPath& Path);
+  int CreateSkeletalMeshInstance(const FPath& Path);
+  void DestroySkeletalMeshInstance(int Handle);
+  std::vector<std::string> GetSkeletalMeshClipNames(int Handle) const;
+  int GetSkeletalMeshClipFrameCount(int Handle, int Index) const;
+  bool ApplySkeletalMeshFrame(int Handle, int Index, float Frame);
   bool IsModelValid(int Handle) const;
   bool GetModelBounds(int Handle, FBox3D& OutBounds) const;
   static int NormalizeFontWeight(int Weight);

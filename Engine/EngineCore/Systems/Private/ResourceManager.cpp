@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -69,11 +70,40 @@ struct FFontResource {
   bool OwnsFont = false;
 };
 
+// raylib 6.0 UnloadModel does not own material textures or runtime pose arrays.
+void UnloadSkeletalModel(Model ModelData) {
+  std::unordered_set<unsigned int> TextureIds;
+  for (int Index = 0; Index < ModelData.materialCount; ++Index) {
+    const auto* Maps = ModelData.materials[Index].maps;
+    if (Maps == nullptr) continue;
+    for (int MapIndex = 0; MapIndex <= MATERIAL_MAP_BRDF; ++MapIndex) {
+      const Texture2D Texture = Maps[MapIndex].texture;
+      if (Texture.id != 0 && Texture.id != rlGetTextureIdDefault() &&
+          TextureIds.insert(Texture.id).second)
+        UnloadTexture(Texture);
+    }
+  }
+  MemFree(ModelData.currentPose);
+  MemFree(ModelData.boneMatrices);
+  UnloadModel(ModelData);
+}
+
+struct FAnimationClipSet {
+  ModelAnimation* Animations = nullptr;
+  int Count = 0;
+  ~FAnimationClipSet() {
+    if (Animations != nullptr) UnloadModelAnimations(Animations, Count);
+  }
+};
+
 struct FModelResource {
   Model ModelData{};
   FTransform3D ImportTransform;
   FBox3D Bounds;
   std::string Path;
+  std::shared_ptr<FAnimationClipSet> Clips;
+  std::vector<int> ClipIndices;
+  std::vector<std::string> ClipNames;
 };
 
 class FRaylibResourceStore {
@@ -108,6 +138,111 @@ class FRaylibResourceStore {
     );
     ModelPathMap.emplace(Path, Handle);
     return Handle;
+  }
+
+  bool EnsureSkinningShader() {
+    if (SkinningShader.id != 0) return true;
+    const std::string VertexPath = PathResolver::Resolve("/Engine/Shaders/Skinning.vs");
+    const std::string FragmentPath = PathResolver::Resolve("/Engine/Shaders/Skinning.fs");
+    Shader Loaded = LoadShader(VertexPath.c_str(), FragmentPath.c_str());
+    if (!IsShaderValid(Loaded) || Loaded.id == rlGetShaderIdDefault() ||
+        Loaded.locs[SHADER_LOC_MATRIX_BONETRANSFORMS] < 0) {
+      M_LOG(Warning, "GPU skinning shader load failed: {}, {}", VertexPath, FragmentPath);
+      if (Loaded.id != 0 && Loaded.id != rlGetShaderIdDefault()) UnloadShader(Loaded);
+      return false;
+    }
+    SkinningShader = Loaded;
+    return true;
+  }
+
+  int CreateSkeletalModel(const std::string& Path) {
+    const std::string Extension = ToLowerExtension(FileUtils::Utf8ToPath(Path));
+    std::error_code Error;
+    if ((Extension != ".glb" && Extension != ".gltf") ||
+        !std::filesystem::is_regular_file(FileUtils::Utf8ToPath(Path), Error)) {
+      M_LOG(Warning, "Skeletal model path missing or unsupported: {}", Path);
+      return 0;
+    }
+    Model ModelData = LoadModel(Path.c_str());
+    if (!IsModelValid(ModelData) || ModelData.skeleton.boneCount <= 0 ||
+        ModelData.skeleton.bones == nullptr || ModelData.skeleton.bindPose == nullptr ||
+        ModelData.currentPose == nullptr || ModelData.boneMatrices == nullptr) {
+      M_LOG(Warning, "Skeletal model load failed or skin missing: {}", Path);
+      UnloadSkeletalModel(ModelData);
+      return 0;
+    }
+    constexpr int MaxSkinningBones = 128;  // Matches Skinning.vs.
+    if (ModelData.skeleton.boneCount > MaxSkinningBones) {
+      M_LOG(
+          Warning,
+          "GPU skinning bone limit exceeded: {} ({} > {})",
+          Path,
+          ModelData.skeleton.boneCount,
+          MaxSkinningBones
+      );
+      UnloadSkeletalModel(ModelData);
+      return 0;
+    }
+    if (!EnsureSkinningShader()) {
+      UnloadSkeletalModel(ModelData);
+      return 0;
+    }
+    for (int Index = 0; Index < ModelData.materialCount; ++Index) {
+      ModelData.materials[Index].shader = SkinningShader;
+    }
+    auto Clips = AnimationPathMap[Path].lock();
+    if (!Clips) {
+      Clips = std::make_shared<FAnimationClipSet>();
+      Clips->Animations = LoadModelAnimations(Path.c_str(), &Clips->Count);
+      if (Clips->Animations == nullptr) Clips->Count = 0;
+      AnimationPathMap[Path] = Clips;
+    }
+    const BoundingBox Bounds = GetModelBoundingBox(ModelData);
+    FModelResource Resource;
+    Resource.ModelData = ModelData;
+    Resource.Bounds = {
+        {Bounds.min.x, Bounds.min.y, Bounds.min.z}, {Bounds.max.x, Bounds.max.y, Bounds.max.z}
+    };
+    Resource.Path = Path;
+    Resource.Clips = Clips;
+    std::unordered_set<std::string> Names;
+    for (int Index = 0; Index < Clips->Count; ++Index) {
+      const auto& Clip = Clips->Animations[Index];
+      if (Clip.keyframeCount <= 0 || Clip.keyframePoses == nullptr ||
+          !IsModelAnimationValid(ModelData, Clip)) {
+        M_LOG(Warning, "Invalid skeletal clip {} in {}", Index, Path);
+        continue;
+      }
+      bool Valid = true;
+      for (int Frame = 0; Frame < Clip.keyframeCount; ++Frame) {
+        if (Clip.keyframePoses[Frame] == nullptr) Valid = false;
+      }
+      if (!Valid) {
+        M_LOG(Warning, "Missing skeletal clip poses {} in {}", Index, Path);
+        continue;
+      }
+      const auto NameEnd = std::find(std::begin(Clip.name), std::end(Clip.name), '\0');
+      std::string Base(Clip.name, NameEnd);
+      if (Base.empty()) Base = "Animation_" + std::to_string(Index);
+      std::string Name = Base;
+      int Suffix = 1;
+      while (!Names.insert(Name).second) Name = Base + "_" + std::to_string(Suffix++);
+      Resource.ClipIndices.push_back(Index);
+      Resource.ClipNames.push_back(std::move(Name));
+    }
+    const int Handle = NextHandle++;
+    Models.emplace(Handle, std::move(Resource));
+    return Handle;
+  }
+
+  void DestroySkeletalModel(int Handle) {
+    const auto It = Models.find(Handle);
+    if (It == Models.end() || !It->second.Clips) return;
+    const std::string Path = It->second.Path;
+    UnloadSkeletalModel(It->second.ModelData);
+    Models.erase(It);
+    const auto Cache = AnimationPathMap.find(Path);
+    if (Cache != AnimationPathMap.end() && Cache->second.expired()) AnimationPathMap.erase(Cache);
   }
 
   const FModelResource* FindModel(int Handle) const {
@@ -277,10 +412,18 @@ class FRaylibResourceStore {
     TexturePathMap.clear();
 
     for (auto& [Handle, Resource] : Models) {
-      UnloadModel(Resource.ModelData);
+      if (Resource.Clips)
+        UnloadSkeletalModel(Resource.ModelData);
+      else
+        UnloadModel(Resource.ModelData);
     }
     Models.clear();
     ModelPathMap.clear();
+    AnimationPathMap.clear();
+    if (SkinningShader.id != 0) {
+      UnloadShader(SkinningShader);
+      SkinningShader = {};
+    }
   }
 
  private:
@@ -330,6 +473,8 @@ class FRaylibResourceStore {
     );
   }
 
+  std::unordered_map<std::string, std::weak_ptr<FAnimationClipSet>> AnimationPathMap;
+  Shader SkinningShader{};
   int NextHandle = 1;
   std::unordered_map<int, FTextureResource> Textures;
   std::unordered_map<std::string, int> TexturePathMap;
@@ -387,6 +532,39 @@ int ResourceManager::LoadResourceGraph(const FPath& Path) {
 int ResourceManager::LoadResourceModel(const FPath& Path) {
   const std::string ResolvedPath = PathResolver::Resolve(Path.String());
   return GetResourceStore().LoadModelResource(ResolvedPath);
+}
+
+int ResourceManager::CreateSkeletalMeshInstance(const FPath& Path) {
+  return GetResourceStore().CreateSkeletalModel(PathResolver::Resolve(Path.String()));
+}
+
+void ResourceManager::DestroySkeletalMeshInstance(int Handle) {
+  GetResourceStore().DestroySkeletalModel(Handle);
+}
+
+std::vector<std::string> ResourceManager::GetSkeletalMeshClipNames(int Handle) const {
+  const auto* Resource = GetResourceStore().FindModel(Handle);
+  return Resource == nullptr ? std::vector<std::string>{} : Resource->ClipNames;
+}
+
+int ResourceManager::GetSkeletalMeshClipFrameCount(int Handle, int Index) const {
+  const auto* Resource = GetResourceStore().FindModel(Handle);
+  if (Resource == nullptr || !Resource->Clips || Index < 0 ||
+      static_cast<size_t>(Index) >= Resource->ClipIndices.size())
+    return 0;
+  return Resource->Clips->Animations[Resource->ClipIndices[Index]].keyframeCount;
+}
+
+bool ResourceManager::ApplySkeletalMeshFrame(int Handle, int Index, float Frame) {
+  const auto* Resource = GetResourceStore().FindModel(Handle);
+  const int Count = GetSkeletalMeshClipFrameCount(Handle, Index);
+  if (Resource == nullptr || Count <= 0 || !std::isfinite(Frame) || Frame < 0.0f) return false;
+  UpdateModelAnimation(
+      Resource->ModelData,
+      Resource->Clips->Animations[Resource->ClipIndices[Index]],
+      (std::min)(Frame, static_cast<float>(Count - 1))
+  );
+  return true;
 }
 
 bool ResourceManager::IsModelValid(int Handle) const {
