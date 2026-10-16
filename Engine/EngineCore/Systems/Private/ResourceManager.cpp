@@ -140,6 +140,21 @@ class FRaylibResourceStore {
     return Handle;
   }
 
+  bool EnsureSkinningShader() {
+    if (SkinningShader.id != 0) return true;
+    const std::string VertexPath = PathResolver::Resolve("/Engine/Shaders/Skinning.vs");
+    const std::string FragmentPath = PathResolver::Resolve("/Engine/Shaders/Skinning.fs");
+    Shader Loaded = LoadShader(VertexPath.c_str(), FragmentPath.c_str());
+    if (!IsShaderValid(Loaded) || Loaded.id == rlGetShaderIdDefault() ||
+        Loaded.locs[SHADER_LOC_MATRIX_BONETRANSFORMS] < 0) {
+      M_LOG(Warning, "GPU skinning shader load failed: {}, {}", VertexPath, FragmentPath);
+      if (Loaded.id != 0 && Loaded.id != rlGetShaderIdDefault()) UnloadShader(Loaded);
+      return false;
+    }
+    SkinningShader = Loaded;
+    return true;
+  }
+
   int CreateSkeletalModel(const std::string& Path) {
     const std::string Extension = ToLowerExtension(FileUtils::Utf8ToPath(Path));
     std::error_code Error;
@@ -155,6 +170,25 @@ class FRaylibResourceStore {
       M_LOG(Warning, "Skeletal model load failed or skin missing: {}", Path);
       UnloadSkeletalModel(ModelData);
       return 0;
+    }
+    constexpr int MaxSkinningBones = 128;  // Matches Skinning.vs.
+    if (ModelData.skeleton.boneCount > MaxSkinningBones) {
+      M_LOG(
+          Warning,
+          "GPU skinning bone limit exceeded: {} ({} > {})",
+          Path,
+          ModelData.skeleton.boneCount,
+          MaxSkinningBones
+      );
+      UnloadSkeletalModel(ModelData);
+      return 0;
+    }
+    if (!EnsureSkinningShader()) {
+      UnloadSkeletalModel(ModelData);
+      return 0;
+    }
+    for (int Index = 0; Index < ModelData.materialCount; ++Index) {
+      ModelData.materials[Index].shader = SkinningShader;
     }
     auto Clips = AnimationPathMap[Path].lock();
     if (!Clips) {
@@ -386,6 +420,10 @@ class FRaylibResourceStore {
     Models.clear();
     ModelPathMap.clear();
     AnimationPathMap.clear();
+    if (SkinningShader.id != 0) {
+      UnloadShader(SkinningShader);
+      SkinningShader = {};
+    }
   }
 
  private:
@@ -436,6 +474,7 @@ class FRaylibResourceStore {
   }
 
   std::unordered_map<std::string, std::weak_ptr<FAnimationClipSet>> AnimationPathMap;
+  Shader SkinningShader{};
   int NextHandle = 1;
   std::unordered_map<int, FTextureResource> Textures;
   std::unordered_map<std::string, int> TexturePathMap;

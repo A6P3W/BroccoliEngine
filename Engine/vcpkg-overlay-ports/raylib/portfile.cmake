@@ -20,8 +20,6 @@ vcpkg_from_github(
         android.diff
         # Once the next version of cgltf is released, this patch will no longer be necessary.
         fix-cgltf.patch
-        # CPU skinning does not upload bone indices or weights to GPU buffers.
-        fix-cpu-skinning-validation.patch
         # Separate raylib API symbols that collide with Win32 static libraries.
         msvc-static-symbol-collisions.patch
 )
@@ -79,8 +77,8 @@ vcpkg_cmake_configure(
         -DBUILD_EXAMPLES=OFF
         -DCMAKE_POLICY_DEFAULT_CMP0072=NEW # Prefer GLVND
         -DCUSTOMIZE_BUILD=ON
-        # Use CPU skinning with the existing default-material DrawModel path.
-        -DSUPPORT_GPU_SKINNING=OFF
+        # Skeletal models use the raylib GPU skinning shader.
+        -DSUPPORT_GPU_SKINNING=ON
         # Use raylib EndDrawing() for frame pacing and event polling.
         -DSUPPORT_CUSTOM_FRAME_CONTROL=OFF
         -DSUPPORT_BUSY_WAIT_LOOP=OFF
