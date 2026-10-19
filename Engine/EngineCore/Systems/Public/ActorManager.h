@@ -10,6 +10,8 @@
 #include "UMath.h"
 class AActor;
 class World;
+
+/// @brief 各ワールド内のActorを管理するクラス
 class BROCCOLI_ENGINE_API FActorManager {
  public:
   FActorManager();
@@ -17,12 +19,17 @@ class BROCCOLI_ENGINE_API FActorManager {
   FActorManager(const FActorManager&) = delete;
   FActorManager& operator=(const FActorManager&) = delete;
 
+  /// @brief ワールドのActorの更新関数。
+  /// @param DeltaTime
   void Update(float DeltaTime);
+  /// @brief ワールドのActorの描画関数。
   void Draw();
 
   void SetWorld(World* world);
   World* GetWorld() const;
 
+  /// @brief ワールドに生成されたすべてのアクタの配列を取得します。
+  /// @return
   const std::vector<std::unique_ptr<AActor>>& GetAllActors() const;
   size_t GetActiveActorCount() const;
 

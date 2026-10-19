@@ -19,6 +19,7 @@ class FPhysicsSystem3D;
 class APlayerController;
 class APawn;
 
+/// @brief ワールドを管理するクラスです。
 class BROCCOLI_ENGINE_API World {
  public:
   World();
@@ -26,7 +27,10 @@ class BROCCOLI_ENGINE_API World {
   World(const World&) = delete;
   World& operator=(const World&) = delete;
 
+  /// @brief ワールドの更新関数。Draw関数の前に呼ばれる。
+  /// @param DeltaTime 前回の呼び出しとの差
   void Update(float DeltaTime);
+  /// @brief ワールドの描画関数。Update関数の後に呼ばれる。
   void Draw();
 
   FActorManager* GetActorManager();
@@ -36,6 +40,8 @@ class BROCCOLI_ENGINE_API World {
   FReplicationSystem* GetReplicationSystem();
   FPhysicsSystem3D* GetPhysicsSystem3D();
 
+  /// @brief ワールドに設定されているゲームモードを取得します。
+  /// @return AGameModeBaseクラス
   AGameModeBase* GetGameMode() const;
 
   template <class T>
@@ -61,7 +67,11 @@ class BROCCOLI_ENGINE_API World {
   float GetCurrentFps() const;
   void UpdateCurrentFps(float DeltaTime);
 
+  /// @brief ワールドのネットワークモードを取得します。
+  /// @return
   ENetMode GetNetMode() const;
+  /// @brief ワールドのネットワークモードを設定します。
+  /// @param NewNetMode
   void SetNetMode(ENetMode NewNetMode);
   bool IsStandalone() const;
   bool IsListenServer() const;
@@ -69,7 +79,13 @@ class BROCCOLI_ENGINE_API World {
   bool IsServer() const;
 
   FNetworkActorId AllocateNetworkActorId();
+  /// @brief 指定したレベルに接続中のクライアント全員で移動します。
+  /// @param SceneId
+  /// @return
   bool ServerTravel(FNetworkSceneId SceneId);
+  /// @brief 指定したレベルに接続中のクライアント全員で移動します。
+  /// @param LevelPath
+  /// @return
   bool ServerTravel(const std::string& LevelPath);
   void SetGameMode(AGameModeBase* mode);
 
