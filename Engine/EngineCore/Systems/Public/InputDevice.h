@@ -3,6 +3,7 @@
 
 enum class EInputDeviceType { None, Keyboard, Mouse, Gamepad };
 
+/// @brief デバイスから入力を取得する。
 class BROCCOLI_ENGINE_API InputDevice {
  public:
   InputDevice();

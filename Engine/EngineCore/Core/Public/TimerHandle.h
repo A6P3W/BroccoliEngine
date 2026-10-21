@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+/// @brief TimerManagerと使用するTimerのハンドル
 class FTimerHandle {
  public:
   FTimerHandle() = default;

@@ -52,6 +52,7 @@ class GamepadDevice;
 class KeyboardDevice;
 class MouseDevice;
 
+/// @brief 物理入力を操作名に対応付けるクラス。
 class BROCCOLI_ENGINE_API InputMapper {
  public:
   InputMapper();
@@ -59,6 +60,15 @@ class BROCCOLI_ENGINE_API InputMapper {
   InputMapper(const InputMapper&) = delete;
   InputMapper& operator=(const InputMapper&) = delete;
 
+  /**
+   * @brief Action名とキー入力を対応付ける。
+   * 
+   * @param ActionName Actionの名前
+   * @param Device KeyboardDevice
+   * @param Key キー
+   * @param ModifierAction 前提とするAction 
+   * @param Scale 最大値
+   */
   void AddMapping(
       const std::string& ActionName,
       KeyboardDevice* Device,
@@ -66,6 +76,16 @@ class BROCCOLI_ENGINE_API InputMapper {
       const std::string& ModifierAction = "",
       float Scale = 1.0f
   );
+
+  /**
+   * @brief Action名とマウス入力を対応付ける。
+   * 
+   * @param ActionName Actionの名前
+   * @param Device MouseDevice
+   * @param Button ボタン
+   * @param ModifierAction 前提とするAction 
+   * @param Scale 最大値
+   */
   void AddMapping(
       const std::string& ActionName,
       MouseDevice* Device,
@@ -73,6 +93,16 @@ class BROCCOLI_ENGINE_API InputMapper {
       const std::string& ModifierAction = "",
       float Scale = 1.0f
   );
+
+  /**
+   * @brief Action名とゲームパッド入力を対応付ける。
+   * 
+   * @param ActionName Actionの名前
+   * @param Device GamepadDevice
+   * @param Button ボタン
+   * @param ModifierAction 前提とするAction 
+   * @param Scale 最大値
+   */
   void AddMapping(
       const std::string& ActionName,
       GamepadDevice* Device,
@@ -81,6 +111,14 @@ class BROCCOLI_ENGINE_API InputMapper {
       float Scale = 1.0f
   );
 
+  /**
+   * @brief Action名とデバイスの入力を対応付ける。
+   * 
+   * @param ActionName Actionの名前
+   * @param Device デバイス
+   * @param AxisId 各デバイスクラスのAxisID
+   * @param Scale 最大値
+   */
   void AddAxisMapping(
       const std::string& ActionName, InputDevice* Device, int AxisId, float Scale = 1.0f
   );

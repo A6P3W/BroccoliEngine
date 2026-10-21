@@ -16,6 +16,7 @@
 #include "Reflection.h"
 
 #ifdef __INTELLISENSE__
+/// 変数の前に記述し、変数をエディタインスペクタに公開する。詳細はEngine\Documents\Reflection.mdを確認。
 #define EDITOR_PROPERTY(...)
 #else
 #define EDITOR_PROPERTY(...) [[= FEditorPropertyAnnotation{__VA_ARGS__}]]

@@ -34,8 +34,10 @@ struct TActorAutoRegister {
   }
 };
 
+///アクタをレジストリーに登録。
 #define REGISTER_ACTOR(ClassName) static TActorAutoRegister<ClassName> AutoRegister_##ClassName;
 
+///アクタのGetActorClassNameを登録。
 #define DEFINE_ACTOR_CLASS(ClassName)                         \
  public:                                                      \
   static std::string StaticClassName() { return #ClassName; } \
@@ -60,8 +62,11 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   AActor(const AActor&) = delete;
   AActor& operator=(const AActor&) = delete;
 
+  /// @brief アクタの生成後、アクタ、所持しているコンポーネントに対し、BeginPlayを実行する。
   void Spawned();
 
+  /// @brief アクタのクラス名を取得する。
+  /// @return
   virtual std::string GetActorClassName() const = 0;
 
   const std::vector<std::string>& GetTags() const;
@@ -237,8 +242,14 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
     }
     return results;
   }
+  /// @brief アクタが生成されたワールドを取得。
+  /// @return
   World* GetWorld();
+  /// @brief アクタの所属するワールドを設定。（内部用）
+  /// @param world
   void SetWorld(World* world);
+  /// @brief BeginPlayが実行されたか。
+  /// @return
   bool HasBegunPlay() const;
 
   bool IsEditorActor() const { return bEditorActor; }

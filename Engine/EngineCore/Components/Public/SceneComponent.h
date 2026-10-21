@@ -38,6 +38,7 @@ inline constexpr FAttachmentTransformRules FAttachmentTransformRules::SnapToTarg
     EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget
 };
 
+/// @brief 座標管理コンポーネント。
 class BROCCOLI_ENGINE_API MSceneComponent : public MActorComponent {
  public:
   DEFINE_ACTOR_COMPONENT_CLASS(MSceneComponent)

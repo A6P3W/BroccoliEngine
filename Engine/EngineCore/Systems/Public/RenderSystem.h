@@ -129,6 +129,7 @@ class MCamera3DComponent;
 struct FRenderContext;
 class RenderSystemImpl;
 
+/// @brief 描画を管理するクラス
 class BROCCOLI_ENGINE_API RenderSystem {
  public:
   RenderSystem();
@@ -218,7 +219,13 @@ class BROCCOLI_ENGINE_API RenderSystem {
   );
   void SubmitGrid3D(int Slices, float Spacing, EGridPlane Plane = EGridPlane::XZ);
 
+  /// @brief 2Dワールド上の座標をスクリーン座標で取得する。
+  /// @param worldPosition
+  /// @return
   FVector2D WorldToScreen(const FVector2D& worldPosition) const;
+  /// @brief スクリーン上の座標を2Dワールド上の座標で取得する。
+  /// @param screenPosition
+  /// @return
   FVector2D ScreenToWorld(const FVector2D& screenPosition) const;
   void SetRenderTargetSize(int Width, int Height);
   const FVector2D& GetRenderTargetSize() const;
@@ -228,9 +235,17 @@ class BROCCOLI_ENGINE_API RenderSystem {
 
   void Draw();
 
+  /// @brief 2Dのカメラを変更する。
+  /// @param m
   void SetCameraView(MCamera2DComponent* m);
+  /// @brief 2Dのカメラを取得する。
+  /// @return
   MCamera2DComponent* GetCamera();
+  /// @brief 3Dのカメラを変更する。
+  /// @param Camera
   void SetCameraView3D(MCamera3DComponent* Camera);
+  /// @brief 3Dのカメラを取得する。
+  /// @return
   MCamera3DComponent* GetCamera3D();
   void SetViewCullingEnabled(bool BEnabled);
   bool IsViewCullingEnabled() const;

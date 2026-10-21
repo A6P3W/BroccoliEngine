@@ -13,8 +13,10 @@
 
 using FPropertyValue = std::variant<bool, int, float, std::string, FVector2D, FVector3D, FPath>;
 
+/// @brief エディタインスペクタのプロパティとして公開可能な型。
 enum class EPropertyType { Bool, Int, Float, String, Vector2D, Vector3D, Path };
 
+/// @brief Pathプロパティでのフィルタ。
 enum class EPathFilter { AnyFile, Image, Model };
 
 struct FEditorPropertyMetadata {
@@ -30,6 +32,7 @@ struct FEditorPropertyMetadata {
   EPathFilter PathFilter = EPathFilter::AnyFile;
 };
 
+/// @brief インスペクタで公開するプロパティの構造体
 struct FProperty {
   std::string Name;
   EPropertyType Type;
@@ -38,6 +41,7 @@ struct FProperty {
   FEditorPropertyMetadata EditorMetadata;
 };
 
+/// @brief リフレクションで管理するクラスの構造体。
 struct BROCCOLI_ENGINE_API FClass {
   std::string Name;
   const FClass* BaseClass = nullptr;

@@ -6,6 +6,7 @@
 #include "InputDevice.h"
 
 class KeyboardDevice;
+/// @brief InputDeviceを管理する。
 class BROCCOLI_ENGINE_API InputManager {
  private:
   InputManager();

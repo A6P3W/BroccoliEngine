@@ -7,6 +7,7 @@
 #include "InputMapper.h"
 #include "UMath.h"
 
+/// @brief デバイスのトリガー。開始、継続、終了
 enum class ETriggerEvent { Started, Triggered, Completed };
 
 struct FInputActionValue {
@@ -16,6 +17,7 @@ struct FInputActionValue {
   EInputDeviceType SourceDevice = EInputDeviceType::None;
 };
 
+/// @brief 入力イベントの判定、コールバック管理を行う。
 class BROCCOLI_ENGINE_API MEnhancedInputComponent : public MActorComponent {
  public:
   DEFINE_ACTOR_COMPONENT_CLASS(MEnhancedInputComponent)

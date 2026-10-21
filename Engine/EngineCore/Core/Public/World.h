@@ -52,6 +52,12 @@ class BROCCOLI_ENGINE_API World {
     return mode;
   }
 
+  /// @brief Actorをワールドに生成します。ActorManagerのSpawnObjectを使用します。
+  /// @tparam T Actorのクラス
+  /// @param Loc 生成する座標
+  /// @param Rot 初期回転
+  /// @param DeferBeginPlay 内部用(BeginPlayを実行しない)
+  /// @return
   template <class T>
   T* SpawnActor(
       const FVector2D& Loc = {0, 0}, FRotator Rot = FRotator(0), bool DeferBeginPlay = false
@@ -68,7 +74,7 @@ class BROCCOLI_ENGINE_API World {
   void UpdateCurrentFps(float DeltaTime);
 
   /// @brief ワールドのネットワークモードを取得します。
-  /// @return
+  /// @return ENetMode
   ENetMode GetNetMode() const;
   /// @brief ワールドのネットワークモードを設定します。
   /// @param NewNetMode

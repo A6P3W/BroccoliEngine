@@ -33,6 +33,13 @@ class BROCCOLI_ENGINE_API FActorManager {
   const std::vector<std::unique_ptr<AActor>>& GetAllActors() const;
   size_t GetActiveActorCount() const;
 
+  /// @brief Actorをワールドに生成します。
+  /// @tparam T Actorのクラス
+  /// @tparam
+  /// @param location 生成する座標
+  /// @param rotation 初期回転
+  /// @param DeferBeginPlay 内部用(BeginPlayの実行を行わない)
+  /// @return Actorのポインタ
   template <class T, std::enable_if_t<std::is_base_of_v<AActor, T>, int> = 0>
   T* SpawnObject(
       const FVector2D& location = FVector2D::ZeroVector(),

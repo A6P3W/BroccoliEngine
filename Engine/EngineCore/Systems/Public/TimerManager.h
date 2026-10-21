@@ -6,14 +6,23 @@
 #include <unordered_set>
 #include <vector>
 
-#include "TimerHandle.h"
 #include "BroccoliEngineAPI.h"
+#include "TimerHandle.h"
 
+/// @brief タイマー機能を管理するクラス
 class BROCCOLI_ENGINE_API FTimerManager {
  public:
   FTimerManager();
   ~FTimerManager();
 
+  /// @brief タイマーをセットする。
+  /// @tparam UserClass
+  /// @param Handle タイマーのハンドル
+  /// @param Object コールバック実行先クラス(このクラスならthis)
+  /// @param MemberFunc 実行する関数
+  /// @param Rate タイマーの時間
+  /// @param bLoop ループするかどうか
+  /// @param FirstDelay タイマー開始までの遅延
   template <class UserClass>
   void SetTimer(
       FTimerHandle& Handle,

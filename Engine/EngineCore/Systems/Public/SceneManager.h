@@ -1,5 +1,4 @@
 #pragma once
-#include "BroccoliEngineAPI.h"
 #include <functional>
 #include <memory>
 #include <string>
@@ -7,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "BroccoliEngineAPI.h"
 #include "GameInstance.h"
 #include "GameModeBase.h"
 #include "NetMode.h"
@@ -29,6 +29,7 @@ class BROCCOLI_ENGINE_API SceneManager {
 
   World* GetCurrentScene();
 
+  /// @brief シーン推移を実行する。
   void ProcessSceneChanges();
   void Shutdown();
 

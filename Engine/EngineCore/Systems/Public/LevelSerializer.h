@@ -8,10 +8,12 @@
 #include "UMath.h"
 #include "nlohmann/json.hpp"
 
+/// @brief レベルのメタデータ
 struct FLevelMetaData {
   std::string GameModeClassName;
 };
 
+/// @brief 1コンポーネント分の保存データ
 struct FComponentSaveData {
   std::string Name;
   std::string ClassName;
@@ -19,10 +21,11 @@ struct FComponentSaveData {
   FTransform3D RelativeTransform;
   bool HasSceneAttachmentData = false;
   EComponentCreationSource Source = EComponentCreationSource::Native;
+  // コンポーネント固有のプロパティ保存用
   std::unordered_map<std::string, nlohmann::json> CustomProperties;
 };
 
-// 1アクタ分のデータ
+/// @brief 1アクタ分の保存データ
 struct FActorSaveData {
   std::string ClassName;
   std::string InstanceName;
@@ -38,7 +41,13 @@ class AActor;
 
 class BROCCOLI_ENGINE_API LevelSerializer {
  public:
+  /// @brief アクタをSaveData形式で取得する。
+  /// @param Actor
+  /// @return
   static FActorSaveData CaptureActor(AActor* Actor);
+  /// @brief アクタにSaveData形式で保存された情報を適用する。
+  /// @param Actor
+  /// @param Data
   static void ApplyActor(AActor* Actor, const FActorSaveData& Data);
   // 現在ActorManagerにいるActorRegistryに登録されている全アクタを保存
   static bool Save(World* world, const std::string& filePath, const std::string& gameModeClassName);

@@ -3,6 +3,7 @@
 #include "BroccoliEngineAPI.h"
 #include "FPath.h"
 
+/// @brief 音を管理するクラス。
 class BROCCOLI_ENGINE_API FSoundManager {
  public:
   FSoundManager();
