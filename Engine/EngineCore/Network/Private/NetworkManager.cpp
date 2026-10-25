@@ -57,11 +57,13 @@ struct NetworkManager::Impl {
   };
 
   std::unique_ptr<INetworkTransport> Transport;
+  // エンジンデフォルトの通信方法としてENetを使用。
   std::string TransportName = "ENet";
   std::unordered_map<FNetworkConnectionId, FManagedPeer> PeersByConnectionId;
   std::unordered_map<FNetworkPeerId, FNetworkConnectionId> ConnectionIdsByPeer;
   std::unordered_set<uint8_t> LoggedReceivedPacketTypes;
   FNetworkPeerId ServerPeerId = 0;
+  // パケット送信を許可するか。切断時すぐにfalseになり、切断後の送信を防ぐ。
   bool bAcceptingSends = false;
   CallbackHandle NextCallbackHandle = 1;
   std::vector<std::pair<CallbackHandle, ConnectedCallback>> OnConnectedCallbacks;
