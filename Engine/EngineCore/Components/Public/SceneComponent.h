@@ -49,7 +49,13 @@ class BROCCOLI_ENGINE_API MSceneComponent : public MActorComponent {
 
   virtual void OnMessage(const std::string& message);
 
+  /// @brief 親を変更する。
+  /// @param Parent
   void AttachToComponent(MSceneComponent* Parent);
+  /// @brief 親を変更する
+  /// @param Parent
+  /// @param AttachmentRules
+  /// @return
   bool AttachToComponent(MSceneComponent* Parent, const FAttachmentTransformRules& AttachmentRules);
   MSceneComponent* GetParentComponent() const;
 
@@ -86,17 +92,24 @@ class BROCCOLI_ENGINE_API MSceneComponent : public MActorComponent {
   FTransform3D GetWorldTransform3D() const;
   FTransform3D GetRelativeTransform3D() const;
 
+  /// @brief 子を含める視認性を設定する。
+  /// @param bNewVisibility
   virtual void SetVisibility(bool bNewVisibility);
   bool IsVisible() const;
 
+  /// @brief 2Dグリッドの所属更新が必要か。
+  /// @return
   bool bGridDirty() const;
   void SetGridClean();
 
  protected:
+  /// @brief コンポーネント破棄時、このコンポーネントもすべて破棄する。
   void OnComponentDestroy() override;
 
   const std::vector<MSceneComponent*>& GetChildComponents() const;
+  /// @brief 子に伝播し、Transform,Gridの更新フラグを立てる。
   void MakeTransformDirty();
+  /// @brief 座標の更新を行いTransform更新フラグを取り消す。
   void UpdateTransform() const;
 
  private:

@@ -4,6 +4,7 @@
 
 #include "BroccoliEngineAPI.h"
 
+/// @brief 色を管理するクラス。
 struct BROCCOLI_ENGINE_API FColor {
   uint8_t R = 0;
   uint8_t G = 0;
