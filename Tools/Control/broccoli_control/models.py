@@ -26,6 +26,15 @@ class EngineState:
   ActorCount: int
   Physics3DAvailable: bool
   Physics3DBodyCount: int
+  EngineUpdate: str = "running"
+  EngineStopped: bool = False
+  Stepping: bool = False
+  StepDeltaTime: float = 1.0 / 60.0
+  CompletedEngineUpdates: int = 0
+  SceneGeneration: int = 0
+  ActiveOperationId: str = ""
+  LevelOperationId: str = ""
+  LevelTransitionPending: bool = False
 
   @classmethod
   def from_mapping(
@@ -89,6 +98,32 @@ class EngineState:
         Operation=Operation,
       )
 
+    UpdateFields = {
+      "engineUpdate": (str, "running"),
+      "engineStopped": (bool, False),
+      "stepping": (bool, False),
+      "completedEngineUpdates": (int, 0),
+      "sceneGeneration": (int, 0),
+      "activeOperationId": (str, ""),
+      "levelOperationId": (str, ""),
+      "levelTransitionPending": (bool, False),
+    }
+    for FieldName, (ExpectedType, Default) in UpdateFields.items():
+      Value = Data.get(FieldName, Default)
+      if type(Value) is not ExpectedType or (ExpectedType is int and Value < 0):
+        raise InvalidEngineResponse(f"Invalid state field '{FieldName}'.", Operation=Operation)
+    if Data.get("engineUpdate", "running") not in {"running", "stopped"}:
+      raise InvalidEngineResponse("Invalid engineUpdate state.", Operation=Operation)
+    StepDeltaTime = Data.get("stepDeltaTime", 1.0 / 60.0)
+    # C++ float 0.1f serializes slightly above 0.1 when promoted to a JSON number.
+    if (
+      isinstance(StepDeltaTime, bool)
+      or not isinstance(StepDeltaTime, (int, float))
+      or not math.isfinite(StepDeltaTime)
+      or not 0 < StepDeltaTime <= 0.10000001
+    ):
+      raise InvalidEngineResponse("Invalid stepDeltaTime.", Operation=Operation)
+
     return Class(
       SceneName=Data["sceneName"],
       Fps=float(FpsValue),
@@ -97,6 +132,15 @@ class EngineState:
       ActorCount=Data["actorCount"],
       Physics3DAvailable=Physics3DAvailable,
       Physics3DBodyCount=Physics3DBodyCount,
+      EngineUpdate=Data.get("engineUpdate", "running"),
+      EngineStopped=Data.get("engineStopped", False),
+      Stepping=Data.get("stepping", False),
+      StepDeltaTime=float(StepDeltaTime),
+      CompletedEngineUpdates=Data.get("completedEngineUpdates", 0),
+      SceneGeneration=Data.get("sceneGeneration", 0),
+      ActiveOperationId=Data.get("activeOperationId", ""),
+      LevelOperationId=Data.get("levelOperationId", ""),
+      LevelTransitionPending=Data.get("levelTransitionPending", False),
     )
 
   def to_dict(Self) -> dict[str, Any]:
@@ -108,6 +152,15 @@ class EngineState:
       "actorCount": Self.ActorCount,
       "physics3DAvailable": Self.Physics3DAvailable,
       "physics3DBodyCount": Self.Physics3DBodyCount,
+      "engineUpdate": Self.EngineUpdate,
+      "engineStopped": Self.EngineStopped,
+      "stepping": Self.Stepping,
+      "stepDeltaTime": Self.StepDeltaTime,
+      "completedEngineUpdates": Self.CompletedEngineUpdates,
+      "sceneGeneration": Self.SceneGeneration,
+      "activeOperationId": Self.ActiveOperationId,
+      "levelOperationId": Self.LevelOperationId,
+      "levelTransitionPending": Self.LevelTransitionPending,
     }
 
 
@@ -939,7 +992,9 @@ class TransformPatch:
     RotVal: dict[str, float] | float | None = None
     if Self.Rotation is not None:
       if isinstance(Self.Rotation, (int, float)) and not isinstance(Self.Rotation, bool):
-        RotVal = _finite_number({"rotation": Self.Rotation}, "rotation", Operation="transform patch")
+        RotVal = _finite_number(
+          {"rotation": Self.Rotation}, "rotation", Operation="transform patch"
+        )
       elif isinstance(Self.Rotation, Mapping):
         RotDict: dict[str, float] = {}
         for Key in ("pitch", "yaw", "roll", "x", "y", "z"):
@@ -1240,4 +1295,71 @@ class RecentLogs:
       "droppedEntries": Self.DroppedEntries,
       "historyLost": Self.HistoryLost,
       "hasMore": Self.HasMore,
+    }
+
+
+@dataclass(frozen=True, slots=True)
+class EngineOperation:
+  """Accepted operation; update completion is independent of its HTTP request."""
+
+  OperationId: str
+  Kind: str
+  Status: str
+  RequestedCount: int
+  CompletedCount: int
+  StartUpdate: int
+  EndUpdate: int | None
+  Reason: str
+
+  @property
+  def IsTerminal(Self) -> bool:
+    return Self.Status in {"completed", "cancelled", "failed"}
+
+  @classmethod
+  def from_mapping(Class, Data: Mapping[str, Any], *, Operation: str) -> EngineOperation:
+    if not isinstance(Data, Mapping):
+      raise InvalidEngineResponse("Operation result must be an object.", Operation=Operation)
+    OperationId = Data.get("operationId")
+    Kind = Data.get("kind")
+    Status = Data.get("status")
+    Reason = Data.get("reason")
+    if (
+      not isinstance(OperationId, str)
+      or not OperationId
+      or Kind not in ("step", "stop", "level")
+      or Status not in ("pending", "running", "completed", "cancelled", "failed")
+      or not isinstance(Reason, str)
+    ):
+      raise InvalidEngineResponse("Invalid operation identity or status.", Operation=Operation)
+    for Field in ("requestedCount", "completedCount", "startUpdate"):
+      if type(Data.get(Field)) is not int or Data[Field] < 0:
+        raise InvalidEngineResponse(f"Invalid operation field '{Field}'.", Operation=Operation)
+    EndUpdate = Data.get("endUpdate")
+    if EndUpdate is not None and (type(EndUpdate) is not int or EndUpdate < Data["startUpdate"]):
+      raise InvalidEngineResponse("Invalid operation endUpdate.", Operation=Operation)
+    if Data["completedCount"] > Data["requestedCount"] or (
+      Status in ("completed", "cancelled", "failed")
+    ) != (EndUpdate is not None):
+      raise InvalidEngineResponse("Inconsistent operation progress.", Operation=Operation)
+    return Class(
+      OperationId,
+      Kind,
+      Status,
+      Data["requestedCount"],
+      Data["completedCount"],
+      Data["startUpdate"],
+      EndUpdate,
+      Reason,
+    )
+
+  def to_dict(Self) -> dict[str, Any]:
+    return {
+      "operationId": Self.OperationId,
+      "kind": Self.Kind,
+      "status": Self.Status,
+      "requestedCount": Self.RequestedCount,
+      "completedCount": Self.CompletedCount,
+      "startUpdate": Self.StartUpdate,
+      "endUpdate": Self.EndUpdate,
+      "reason": Self.Reason,
     }

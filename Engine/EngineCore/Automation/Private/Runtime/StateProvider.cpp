@@ -1,5 +1,7 @@
 #include "StateProvider.h"
 
+#include "Application.h"
+
 FAutomationStateProvider CreateAutomationStateProvider(
     FAutomationWorldStateProvider WorldStateProvider
 ) {
@@ -14,6 +16,7 @@ FAutomationStateProvider CreateAutomationStateProvider(
         {"physics3DAvailable", WorldState.Physics3DAvailable},
         {"physics3DBodyCount", WorldState.Physics3DBodyCount}
     };
+    if (const auto* Control = Application::GetUpdateControl()) State.update(Control->GetState());
     return State;
   };
 }

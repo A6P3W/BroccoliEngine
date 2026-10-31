@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
+import math
+import time
 from collections.abc import Mapping
 from typing import Any
 
@@ -11,11 +13,13 @@ import httpx
 
 from .config import ControlConfig
 from .errors import (
+  ControlError,
   ControlInternalError,
   EngineApiError,
   EngineTimeout,
   EngineUnavailable,
   InvalidEngineResponse,
+  OperationWaitTimeout,
 )
 from .models import (
   AUTOMATION_NAME_PATTERN,
@@ -29,6 +33,7 @@ from .models import (
   ActorMethodList,
   ActorMethodResult,
   DestroyActorResult,
+  EngineOperation,
   EngineState,
   LevelList,
   RecentLogs,
@@ -243,6 +248,62 @@ class ControlClient:
       Operation=Operation,
       ExpectedCommandName=CommandName,
     )
+
+  def get_operation_status(Self, OperationId: str) -> EngineOperation:
+    if not isinstance(OperationId, str) or not OperationId:
+      raise ValueError("OperationId must be a non-empty string.")
+    Result = Self.execute_system_command("operation_status", {"operationId": OperationId})
+    Status = EngineOperation.from_mapping(Result.Result, Operation="get operation status")
+    if Status.OperationId != OperationId:
+      raise InvalidEngineResponse(
+        "Operation ID does not match request.", Operation="get operation status"
+      )
+    return Status
+
+  def wait_for_operation(
+    Self,
+    OperationId: str,
+    *,
+    TimeoutSeconds: float = 30.0,
+    PollIntervalSeconds: float = 0.05,
+  ) -> EngineOperation:
+    for Value in (TimeoutSeconds, PollIntervalSeconds):
+      if (
+        isinstance(Value, bool)
+        or not isinstance(Value, (int, float))
+        or not math.isfinite(Value)
+        or Value <= 0
+      ):
+        raise ValueError("Wait timeout and poll interval must be positive finite numbers.")
+    Deadline = time.monotonic() + TimeoutSeconds
+    while True:
+      try:
+        Status = Self.get_operation_status(OperationId)
+      except (EngineTimeout, EngineUnavailable, EngineApiError) as Error:
+        raise ControlError(
+          Error.Code,
+          f"{Error.Message} Query operationId={OperationId}; do not resend step.",
+          Operation="wait for operation",
+        ) from Error
+      if Status.IsTerminal:
+        return Status
+      Remaining = Deadline - time.monotonic()
+      if Remaining <= 0:
+        raise OperationWaitTimeout(OperationId)
+      time.sleep(min(PollIntervalSeconds, Remaining))
+
+  def stop_engine_update(Self) -> EngineOperation:
+    Result = Self.execute_system_command("stop_engine_update")
+    return EngineOperation.from_mapping(Result.Result, Operation="stop engine update")
+
+  def start_engine_update(Self) -> SystemCommandResult:
+    return Self.execute_system_command("start_engine_update")
+
+  def step_engine_update(Self, Count: int) -> EngineOperation:
+    if type(Count) is not int or not 1 <= Count <= 1000000:
+      raise ValueError("Count must be an integer between 1 and 1000000.")
+    Result = Self.execute_system_command("step_engine_update", {"count": Count})
+    return EngineOperation.from_mapping(Result.Result, Operation="step engine update")
 
   def spawn_actor(
     Self,

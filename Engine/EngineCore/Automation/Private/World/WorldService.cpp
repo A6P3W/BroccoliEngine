@@ -180,6 +180,7 @@ EAutomationWorldMutationStatus SpawnActor(
   }
 
   Actor->Spawned();
+  ActorManager->FlushPendingActors();
   return MakeActorSnapshot(*Actor, *CurrentWorld, OutSnapshot) ==
                  EAutomationWorldReadStatus::Success
              ? EAutomationWorldMutationStatus::Success
@@ -206,6 +207,7 @@ EAutomationWorldMutationStatus DestroyActor(FActorId ActorId) {
   }
 
   Actor->Destroy();
+  ActorManager->RemovePendingDestroy();
   return EAutomationWorldMutationStatus::Success;
 }
 

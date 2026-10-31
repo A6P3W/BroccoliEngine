@@ -169,7 +169,8 @@ FAutomationHttpResponse FAutomationWorldController::CreateWorldActor(const nlohm
     }
 
     FAutomationCommandTicket Ticket =
-        CommandQueue.Enqueue([Provider = SpawnActorProvider, Request = std::move(Request)]() {
+        CommandQueue.EnqueueMutation([Provider = SpawnActorProvider,
+                                      Request = std::move(Request)]() {
           FAutomationActorSnapshot Snapshot;
           const EAutomationWorldMutationStatus Status = Provider(Request, Snapshot);
           if (Status != EAutomationWorldMutationStatus::Success) {
@@ -199,7 +200,7 @@ FAutomationHttpResponse FAutomationWorldController::DeleteWorldActor(std::string
     }
 
     FAutomationCommandTicket Ticket =
-        CommandQueue.Enqueue([Provider = DestroyActorProvider, ActorId]() {
+        CommandQueue.EnqueueMutation([Provider = DestroyActorProvider, ActorId]() {
           const EAutomationWorldMutationStatus Status = Provider(ActorId);
           if (Status != EAutomationWorldMutationStatus::Success) {
             return MakeWorldMutationError(Status);
@@ -231,7 +232,7 @@ FAutomationHttpResponse FAutomationWorldController::PatchWorldActorTransform(
       return {500, MakeAutomationError(EAutomationErrorCode::InternalError, InternalErrorMessage)};
     }
 
-    FAutomationCommandTicket Ticket = CommandQueue.Enqueue(
+    FAutomationCommandTicket Ticket = CommandQueue.EnqueueMutation(
         [Provider = PatchActorTransformProvider, ActorId, Patch = std::move(Patch)]() {
           FAutomationActorSnapshot Snapshot;
           const EAutomationWorldMutationStatus Status = Provider(ActorId, Patch, Snapshot);

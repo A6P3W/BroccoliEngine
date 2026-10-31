@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import ctypes
 import json
+import math
 import os
 import sys
 from collections.abc import Callable, Mapping
@@ -76,14 +77,15 @@ def _ReadRegistration(RegistrationPath: Path, TargetExecutable: Path) -> Control
   return ControlRegistration(ProcessId, Port)
 
 
-def ResolveTargetExecutable(ProjectDirectory: Path) -> Path:
+def ResolveTargetExecutable(ProjectDirectory: Path, Configuration: str | None = None) -> Path:
   """Resolve the executable produced by the most recent build of this project."""
 
-  ConfigurationPath = ProjectDirectory / "Intermediate" / "LastBuildConfiguration.txt"
-  try:
-    Configuration = ConfigurationPath.read_text(encoding="utf-8").strip()
-  except OSError as Error:
-    raise ValueError(f"Latest build configuration does not exist: {ConfigurationPath}") from Error
+  if Configuration is None:
+    ConfigurationPath = ProjectDirectory / "Intermediate" / "LastBuildConfiguration.txt"
+    try:
+      Configuration = ConfigurationPath.read_text(encoding="utf-8").strip()
+    except OSError as Error:
+      raise ValueError(f"Latest build configuration does not exist: {ConfigurationPath}") from Error
   if Configuration not in {"Debug", "Editor", "Release"}:
     raise ValueError(f"Unsupported latest build configuration: {Configuration}")
 
@@ -134,7 +136,26 @@ def ResolveRegistration(TargetExecutable: Path, ProcessId: int | None) -> Contro
 def ResolveControlConfig(ProjectDirectory: Path, ProcessId: int | None) -> ControlConfig:
   """Create a client configuration using current discovery data and user timeout settings."""
 
-  Registration = ResolveRegistration(ResolveTargetExecutable(ProjectDirectory), ProcessId)
+  if ProcessId is None:
+    TargetExecutable = ResolveTargetExecutable(ProjectDirectory)
+  else:
+    # An explicit PID may belong to another configuration than the last build.
+    ActualExecutable = _GetProcessExecutablePath(ProcessId)
+    Candidates = (
+      ResolveTargetExecutable(ProjectDirectory, Configuration)
+      for Configuration in ("Debug", "Editor", "Release")
+    )
+    TargetExecutable = next(
+      (
+        Candidate
+        for Candidate in Candidates
+        if ActualExecutable is not None and _PathsMatch(Candidate, ActualExecutable)
+      ),
+      None,
+    )
+    if TargetExecutable is None:
+      raise ValueError(f"PID {ProcessId} is not a running Engine instance of this project.")
+  Registration = ResolveRegistration(TargetExecutable, ProcessId)
   return replace(load_config([]), Port=Registration.Port)
 
 
@@ -197,7 +218,9 @@ def CreateParser() -> argparse.ArgumentParser:
     description="Find actors by class name or instance name.",
   )
   FindActorsParser.add_argument("--class", dest="class_name", help="Actor class name to filter by")
-  FindActorsParser.add_argument("--name", dest="instance_name", help="Actor instance name to filter by")
+  FindActorsParser.add_argument(
+    "--name", dest="instance_name", help="Actor instance name to filter by"
+  )
   ActorParser = Commands.add_parser(
     "actor",
     help="Get actor details by actor ID",
@@ -351,21 +374,52 @@ def CreateParser() -> argparse.ArgumentParser:
     default={},
     help="System command arguments as a JSON object",
   )
+
+  def AddWaitOptions(Target: argparse.ArgumentParser) -> None:
+    Target.add_argument("--wait", action="store_true", help="Wait for operation completion")
+    Target.add_argument("--wait-timeout", dest="WaitTimeout", type=float, default=30.0)
+
+  AddWaitOptions(SystemCallParser)
+  StopParser = Commands.add_parser("stop-engine-update", help="Stop at an update boundary")
+  AddWaitOptions(StopParser)
+  Commands.add_parser("start-engine-update", help="Resume automatic Engine updates")
+  StepParser = Commands.add_parser(
+    "step-engine-update", help="Run a fixed number of Engine updates"
+  )
+  StepParser.add_argument("Count", type=int)
+  AddWaitOptions(StepParser)
+  OperationParser = Commands.add_parser("operation-status", help="Query an accepted operation")
+  OperationParser.add_argument("OperationId")
+  AddWaitOptions(OperationParser)
+
   LogsParser = Commands.add_parser(
     "logs",
     help="Get recent in-memory engine logs",
     description="Get recent in-memory engine logs.",
   )
-  LogsParser.add_argument("--limit", type=int, default=100, help="Maximum number of log entries (1-1000, default: 100)")
-  LogsParser.add_argument("--level", help="Filter by minimum log level (debug, info, warning, error)")
-  LogsParser.add_argument("--after-sequence", type=int, help="Return entries logged after this sequence number")
+  LogsParser.add_argument(
+    "--limit", type=int, default=100, help="Maximum number of log entries (1-1000, default: 100)"
+  )
+  LogsParser.add_argument(
+    "--level", help="Filter by minimum log level (debug, info, warning, error)"
+  )
+  LogsParser.add_argument(
+    "--after-sequence", type=int, help="Return entries logged after this sequence number"
+  )
   return Parser
 
 
 def Dispatch(Client: ControlClient, Arguments: argparse.Namespace) -> Mapping[str, Any]:
   """Map a parsed CLI command to one ControlClient operation."""
 
+  if getattr(Arguments, "wait", False):
+    if not math.isfinite(Arguments.WaitTimeout) or Arguments.WaitTimeout <= 0:
+      raise ValueError("Wait timeout must be a positive finite number.")
   CommandHandlers: dict[str, Callable[[], Mapping[str, Any]]] = {
+    "stop-engine-update": lambda: Client.stop_engine_update().to_dict(),
+    "start-engine-update": lambda: Client.start_engine_update().to_dict(),
+    "step-engine-update": lambda: Client.step_engine_update(Arguments.Count).to_dict(),
+    "operation-status": lambda: Client.get_operation_status(Arguments.OperationId).to_dict(),
     "state": lambda: Client.get_state().to_dict(),
     "actors": lambda: Client.get_actors().to_dict(),
     "find-actors": lambda: Client.find_actors(
@@ -449,7 +503,15 @@ def Dispatch(Client: ControlClient, Arguments: argparse.Namespace) -> Mapping[st
     )
   ):
     raise ValueError("Specify at least one transform value.")
-  return CommandHandlers[Arguments.Command]()
+  Result = CommandHandlers[Arguments.Command]()
+  if getattr(Arguments, "wait", False):
+    Accepted = Result.get("result", Result)
+    if not isinstance(Accepted, Mapping) or not isinstance(Accepted.get("operationId"), str):
+      raise ValueError("This command did not return an operationId to wait for.")
+    return Client.wait_for_operation(
+      Accepted["operationId"], TimeoutSeconds=Arguments.WaitTimeout
+    ).to_dict()
+  return Result
 
 
 def Run(Arguments: list[str] | None = None, ProjectDirectory: Path | None = None) -> int:
@@ -466,4 +528,4 @@ def Run(Arguments: list[str] | None = None, ProjectDirectory: Path | None = None
     print(Error, file=sys.stderr)
     return 1
   print(json.dumps(Result, ensure_ascii=False, separators=(",", ":")))
-  return 0
+  return 1 if Result.get("status") in {"failed", "cancelled"} else 0

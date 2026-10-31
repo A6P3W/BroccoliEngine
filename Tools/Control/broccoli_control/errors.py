@@ -101,3 +101,15 @@ class ControlInternalError(ControlError):
       Operation=Operation,
       Retryable=False,
     )
+
+
+class OperationWaitTimeout(ControlError):
+  """A local wait expired; the accepted operation is still queryable."""
+
+  def __init__(Self, OperationId: str) -> None:
+    Self.OperationId = OperationId
+    super().__init__(
+      "OPERATION_WAIT_TIMEOUT",
+      f"Wait deadline exceeded. Query operationId={OperationId}; do not resend step.",
+      Operation="wait for operation",
+    )
