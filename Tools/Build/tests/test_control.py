@@ -31,6 +31,22 @@ class FakeControlClient:
     Self.Calls.append(("invoke_actor_method", (ActorId, MethodName), {"Arguments": Arguments}))
     return FakeResult({"actorId": ActorId, "methodName": MethodName})
 
+  def stop_engine_update(Self) -> FakeResult:
+    Self.Calls.append(("stop_engine_update", (), {}))
+    return FakeResult({"operationId": "8", "status": "completed"})
+
+  def start_engine_update(Self) -> FakeResult:
+    Self.Calls.append(("start_engine_update", (), {}))
+    return FakeResult({"engineUpdate": "running"})
+
+  def step_engine_update(Self, Count: int) -> FakeResult:
+    Self.Calls.append(("step_engine_update", (Count,), {}))
+    return FakeResult({"operationId": "9", "requestedCount": Count})
+
+  def get_operation_status(Self, OperationId: str) -> FakeResult:
+    Self.Calls.append(("get_operation_status", (OperationId,), {}))
+    return FakeResult({"operationId": OperationId, "status": "completed"})
+
 
 def TestSpawnActorDispatchesOnlyThroughControlClient() -> None:
   Client = FakeControlClient()
@@ -78,6 +94,27 @@ def TestCallDispatchesJsonArguments() -> None:
   ]
 
 
+def TestUpdateOperationCommandsDispatchThroughControlClient() -> None:
+  Client = FakeControlClient()
+  Cases = [
+    (["stop-engine-update"], {"operationId": "8", "status": "completed"}),
+    (["start-engine-update"], {"engineUpdate": "running"}),
+    (["step-engine-update", "3"], {"operationId": "9", "requestedCount": 3}),
+    (["operation-status", "9"], {"operationId": "9", "status": "completed"}),
+  ]
+
+  for Tokens, Expected in Cases:
+    Arguments = control.CreateParser().parse_args(Tokens)
+    assert control.Dispatch(Client, Arguments) == Expected  # type: ignore[arg-type]
+
+  assert Client.Calls == [
+    ("stop_engine_update", (), {}),
+    ("start_engine_update", (), {}),
+    ("step_engine_update", (3,), {}),
+    ("get_operation_status", ("9",), {}),
+  ]
+
+
 def TestRunPrintsCompactJson(monkeypatch, capsys, tmp_path) -> None:  # type: ignore[no-untyped-def]
   class ContextClient(FakeControlClient):
     def __init__(Self, _Config: object) -> None:
@@ -113,9 +150,7 @@ def TestResolveRegistrationSelectsTheOnlyLiveEngine(monkeypatch, tmp_path) -> No
   ExecutablePath = tmp_path / "Bin" / "Game-game.exe"
   RegistrationDirectory = ExecutablePath.parent / "control"
   RegistrationDirectory.mkdir(parents=True)
-  (RegistrationDirectory / "12340.json").write_text(
-    '{"pid":12340,"port":39100}', encoding="utf-8"
-  )
+  (RegistrationDirectory / "12340.json").write_text('{"pid":12340,"port":39100}', encoding="utf-8")
   monkeypatch.setattr(control, "_GetProcessExecutablePath", lambda _: ExecutablePath)
 
   Registration = control.ResolveRegistration(ExecutablePath, None)
@@ -127,12 +162,8 @@ def TestResolveRegistrationIgnoresStaleRegistrations(monkeypatch, tmp_path) -> N
   ExecutablePath = tmp_path / "Bin" / "Game-game.exe"
   RegistrationDirectory = ExecutablePath.parent / "control"
   RegistrationDirectory.mkdir(parents=True)
-  (RegistrationDirectory / "12340.json").write_text(
-    '{"pid":12340,"port":39100}', encoding="utf-8"
-  )
-  (RegistrationDirectory / "18520.json").write_text(
-    '{"pid":18520,"port":39101}', encoding="utf-8"
-  )
+  (RegistrationDirectory / "12340.json").write_text('{"pid":12340,"port":39100}', encoding="utf-8")
+  (RegistrationDirectory / "18520.json").write_text('{"pid":18520,"port":39101}', encoding="utf-8")
   monkeypatch.setattr(
     control,
     "_GetProcessExecutablePath",
@@ -170,9 +201,7 @@ def TestResolveRegistrationReadsOnlyRequestedPid(monkeypatch, tmp_path) -> None:
   ExecutablePath = tmp_path / "Bin" / "Game-game.exe"
   RegistrationDirectory = ExecutablePath.parent / "control"
   RegistrationDirectory.mkdir(parents=True)
-  (RegistrationDirectory / "12340.json").write_text(
-    '{"pid":12340,"port":39100}', encoding="utf-8"
-  )
+  (RegistrationDirectory / "12340.json").write_text('{"pid":12340,"port":39100}', encoding="utf-8")
   monkeypatch.setattr(control, "_GetProcessExecutablePath", lambda _: ExecutablePath)
 
   Registration = control.ResolveRegistration(ExecutablePath, 12340)
@@ -180,14 +209,44 @@ def TestResolveRegistrationReadsOnlyRequestedPid(monkeypatch, tmp_path) -> None:
   assert Registration == control.ControlRegistration(12340, 39100)
 
 
-def TestResolveTargetExecutableUsesPackagedEngineBinary(tmp_path) -> None:
+def TestResolveControlConfigSelectsTheExplicitPidConfiguration(monkeypatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
   (tmp_path / "Intermediate").mkdir()
   (tmp_path / "Intermediate" / "LastBuildConfiguration.txt").write_text(
-    "Debug\n", encoding="utf-8"
+    "Editor\n", encoding="utf-8"
   )
-  (tmp_path / ".broccoli-project.json").write_text(
-    '{"project_name":"Game"}', encoding="utf-8"
+  (tmp_path / ".broccoli-project.json").write_text('{"project_name":"Game"}', encoding="utf-8")
+  DebugExecutable = tmp_path / "Publish" / "Debug" / "Binaries" / "Game.exe"
+  RegistrationDirectory = DebugExecutable.parent / "control"
+  RegistrationDirectory.mkdir(parents=True)
+  (RegistrationDirectory / "12340.json").write_text('{"pid":12340,"port":39100}', encoding="utf-8")
+  monkeypatch.setattr(control, "_GetProcessExecutablePath", lambda _: DebugExecutable)
+
+  Config = control.ResolveControlConfig(tmp_path, 12340)
+
+  assert Config.Port == 39100
+
+
+def TestResolveControlConfigRejectsAnExplicitPidFromAnotherProject(monkeypatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
+  (tmp_path / "Intermediate").mkdir()
+  (tmp_path / "Intermediate" / "LastBuildConfiguration.txt").write_text(
+    "Editor\n", encoding="utf-8"
   )
+  (tmp_path / ".broccoli-project.json").write_text('{"project_name":"Game"}', encoding="utf-8")
+  OtherExecutable = tmp_path / "OtherProject" / "OtherGame.exe"
+  monkeypatch.setattr(control, "_GetProcessExecutablePath", lambda _: OtherExecutable)
+
+  try:
+    control.ResolveControlConfig(tmp_path, 12340)
+  except ValueError as Error:
+    assert str(Error) == "PID 12340 is not a running Engine instance of this project."
+  else:
+    raise AssertionError("another project's Engine PID was accepted")
+
+
+def TestResolveTargetExecutableUsesPackagedEngineBinary(tmp_path) -> None:
+  (tmp_path / "Intermediate").mkdir()
+  (tmp_path / "Intermediate" / "LastBuildConfiguration.txt").write_text("Debug\n", encoding="utf-8")
+  (tmp_path / ".broccoli-project.json").write_text('{"project_name":"Game"}', encoding="utf-8")
 
   ExecutablePath = control.ResolveTargetExecutable(tmp_path)
 

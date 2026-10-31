@@ -24,7 +24,9 @@
 #include <cmath>
 #include <filesystem>
 #include <functional>
+#include <stdexcept>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include "AutomationSubsystem.h"
@@ -54,6 +56,7 @@
 namespace {
 void (*GameSetupCallback)() = nullptr;
 bool ShouldQuitGame = false;
+Application* CurrentApplication = nullptr;
 constexpr UINT_PTR LiveResizeTimerId = 0xB0CC011;
 constexpr UINT LiveResizeIntervalMilliseconds = 16;
 HWND LiveResizeWindowHandle = nullptr;
@@ -132,17 +135,28 @@ void RemoveLiveResizeHook() {
   LiveResizeTickInProgress = false;
 }
 
+std::wstring CommandLineValue(const std::wstring& Argument) {
+  int ArgumentCount = 0;
+  LPWSTR* Arguments = CommandLineToArgvW(GetCommandLineW(), &ArgumentCount);
+  if (!Arguments) return {};
+  std::wstring Result;
+  for (int Index = 1; Index < ArgumentCount; ++Index) {
+    if (Argument == Arguments[Index]) {
+      Result = Index + 1 < ArgumentCount ? Arguments[Index + 1] : L"";
+      break;
+    }
+  }
+  LocalFree(Arguments);
+  return Result;
+}
+
 bool HasCommandLineArgument(const std::wstring& Argument) {
   int ArgumentCount = 0;
   LPWSTR* Arguments = CommandLineToArgvW(GetCommandLineW(), &ArgumentCount);
-  if (Arguments == nullptr) return false;
-
+  if (!Arguments) return false;
   bool Found = false;
-  for (int ArgumentIndex = 1; ArgumentIndex < ArgumentCount; ++ArgumentIndex) {
-    if (Argument == Arguments[ArgumentIndex]) {
-      Found = true;
-      break;
-    }
+  for (int Index = 1; Index < ArgumentCount; ++Index) {
+    if (Argument == Arguments[Index]) Found = true;
   }
   LocalFree(Arguments);
   return Found;
@@ -153,12 +167,20 @@ RenderTexture2D* AsRenderTexture(void* Buffer) { return static_cast<RenderTextur
 
 void Application::SetGameSetupCallback(void (*Callback)()) { GameSetupCallback = Callback; }
 
-Application::Application() = default;
+Application::Application() { CurrentApplication = this; }
 
-Application::~Application() { Shutdown(); }
+Application::~Application() {
+  Shutdown();
+  if (CurrentApplication == this) CurrentApplication = nullptr;
+}
+
+FEngineUpdateControl* Application::GetUpdateControl() {
+  return CurrentApplication ? &CurrentApplication->UpdateControl : nullptr;
+}
 
 void Application::Shutdown() {
   RemoveLiveResizeHook();
+  UpdateControl.Shutdown();
 
   NetworkManager::GetInstance().Stop();
   PluginHost::GetInstance().Shutdown();
@@ -239,7 +261,10 @@ void Application::SetWindowResolution(int Width, int Height) {
   if (IsWindowReady() && Width > 0 && Height > 0) SetWindowSize(Width, Height);
 }
 
-void Application::QuitGame() { ShouldQuitGame = true; }
+void Application::QuitGame() {
+  ShouldQuitGame = true;
+  if (auto* Control = GetUpdateControl()) Control->RequestShutdown();
+}
 
 bool Application::Run() {
   PathResolver::InitializeWorkingDirectory();
@@ -255,8 +280,31 @@ bool Application::Run() {
       return false;
     }
   }
+  const std::wstring EngineUpdate = CommandLineValue(L"--engine-update");
+  if (HasCommandLineArgument(L"--engine-update") && EngineUpdate != L"stopped" &&
+      EngineUpdate != L"running") {
+    M_LOG(Error, "--engine-update must be running or stopped.");
+    return false;
+  }
+  float FixedDeltaTime = 1.0f / 60.0f;
+  if (HasCommandLineArgument(L"--step-delta-time")) {
+    try {
+      const std::wstring Value = CommandLineValue(L"--step-delta-time");
+      size_t Parsed = 0;
+      FixedDeltaTime = std::stof(Value, &Parsed);
+      if (Parsed != Value.size() || !std::isfinite(FixedDeltaTime) || FixedDeltaTime <= 0.0f ||
+          FixedDeltaTime > 0.1f)
+        throw std::invalid_argument("step delta time");
+    } catch (...) {
+      M_LOG(Error, "--step-delta-time must be finite, positive and at most 0.1 seconds.");
+      return false;
+    }
+  }
+  UpdateControl.Configure(EngineUpdate != L"stopped", FixedDeltaTime);
   SetProcessDPIAware();
-  SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+  SetConfigFlags(
+      FLAG_WINDOW_RESIZABLE | (HasCommandLineArgument(L"--window-hidden") ? FLAG_WINDOW_HIDDEN : 0)
+  );
 
   std::string Mode;
   if (IsEditor) {
@@ -278,7 +326,7 @@ bool Application::Run() {
   ShouldQuitGame = false;
   SetExitKey(KEY_NULL);
 
-  if (IsRelease) {
+  if (IsRelease && !HasCommandLineArgument(L"--window-hidden")) {
     ToggleFullscreen();
   } else {
     SetWindowSize(1920, 1080);
@@ -319,15 +367,11 @@ bool Application::Run() {
   Input.AddDevice(std::make_unique<KeyboardDevice>());
   Input.AddDevice(std::make_unique<MouseDevice>());
   Input.AddDevice(std::make_unique<GamepadDevice>(1));
+  ProcessSceneChanges();
   InitializeAutomation();
 
   if (!InstallLiveResizeHook([this](float ResizeDeltaTime) {
-        DeltaTime = ResizeDeltaTime;
-        if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
-          CurrentScene->UpdateCurrentFps(DeltaTime);
-        }
-        Update(DeltaTime, false);
-        Draw(false);
+        Tick(ResizeDeltaTime, false, false);
       })) {
     M_LOG(Warning, "Live window resize redraw hook installation failed.");
   }
@@ -339,27 +383,12 @@ bool Application::Run() {
     }
     SetTargetFPS((std::max)(1, TargetFps));
 
-    DeltaTime = (std::min)(GetFrameTime(), 0.1f);
-    if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
-      CurrentScene->UpdateCurrentFps(DeltaTime);
-    }
-
-#if !defined(_RELEASE)
-    auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
-    PerformanceOverlay.BeginFrame();
-    PerformanceOverlay.BeginUpdate();
-#endif
-    Update(DeltaTime, true);
-#if !defined(_RELEASE)
-    PerformanceOverlay.EndUpdate();
-
-    PerformanceOverlay.BeginRender();
-#endif
-    Draw(true);
+    Tick((std::min)(GetFrameTime(), 0.1f), true, true);
     MLog::EndFrame();
   }
 
   RemoveLiveResizeHook();
+  UpdateControl.Shutdown();
 
   if (AutomationSubsystem) {
     AutomationSubsystem->Shutdown();
@@ -371,23 +400,14 @@ bool Application::Run() {
   return true;
 }
 
-bool Application::Update(float FrameDeltaTime, bool ProcessInput) {
-#if !defined(_RELEASE)
-  auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
-#endif
-  if (ImGuiInitialized) rlImGuiBeginDelta(FrameDeltaTime);
-#if !defined(_RELEASE)
-  PerformanceOverlay.BeginSection(EPerformanceSection::Plugins);
-#endif
-  PluginHost::GetInstance().Update(FrameDeltaTime);
-#if !defined(_RELEASE)
-  PerformanceOverlay.EndSection(EPerformanceSection::Plugins);
-#endif
+void Application::ControlUpdate() {
+  if (AutomationSubsystem) AutomationSubsystem->Update();
+}
 
-#if !defined(_RELEASE)
-  PerformanceOverlay.BeginSection(EPerformanceSection::Scene);
-#endif
-  SceneManager::GetInstance().ProcessSceneChanges();
+bool Application::ProcessSceneChanges() {
+  auto& Manager = SceneManager::GetInstance();
+  UpdateControl.FailSupersededLevel(Manager.GetPendingRequestId());
+  const auto Result = Manager.ProcessSceneChanges();
   World* CurrentScene = SceneManager::GetInstance().GetCurrentScene();
   if (CurrentScene != nullptr) {
     if (auto* CurrentEditorMode = dynamic_cast<EditorMode*>(CurrentScene->GetGameMode())) {
@@ -418,14 +438,70 @@ bool Application::Update(float FrameDeltaTime, bool ProcessInput) {
       );
     }
   }
+  return Result.RequestId != 0 && UpdateControl.OnSceneProcessed(Result.RequestId, Result.Success);
+}
+
+void Application::Tick(float FrameDeltaTime, bool ProcessInput, bool CompleteFrame) {
+  if (TickInProgress || ShouldQuitGame) return;
+  TickInProgress = true;
+  if (!UpdateControl.BeginUpdate()) {
+    ControlUpdate();
+    // EndDrawing normally polls events and throttles. Neither runs while stopped.
+    if (CompleteFrame) {
+      TickInProgress = false;
+      PollInputEvents();
+      TickInProgress = true;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(4));
+    TickInProgress = false;
+    return;
+  }
+  if (ProcessSceneChanges()) {
+    UpdateControl.SkipUpdate();
+    TickInProgress = false;
+    return;
+  }
+  DeltaTime =
+      UpdateControl.IsStepUpdate()
+          ? UpdateControl.GetStepDeltaTime()
+          : (UpdateControl.TakeTimeReset() ? UpdateControl.GetStepDeltaTime() : FrameDeltaTime);
+  if (World* CurrentScene = SceneManager::GetInstance().GetCurrentScene()) {
+    CurrentScene->UpdateCurrentFps(DeltaTime);
+  }
 #if !defined(_RELEASE)
-  PerformanceOverlay.EndSection(EPerformanceSection::Scene);
+  auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
+  PerformanceOverlay.BeginFrame();
+  PerformanceOverlay.BeginUpdate();
 #endif
+  EngineUpdate(DeltaTime, ProcessInput);
+  UpdateControl.CompleteUpdate();
+#if !defined(_RELEASE)
+  PerformanceOverlay.EndUpdate();
+  PerformanceOverlay.BeginRender();
+#endif
+  Draw(CompleteFrame);
+  TickInProgress = false;
+}
+
+bool Application::EngineUpdate(float FrameDeltaTime, bool ProcessInput) {
+#if !defined(_RELEASE)
+  auto& PerformanceOverlay = PerformanceOverlayManager::GetInstance();
+#endif
+  if (ImGuiInitialized) rlImGuiBeginDelta(FrameDeltaTime);
+#if !defined(_RELEASE)
+  PerformanceOverlay.BeginSection(EPerformanceSection::Plugins);
+#endif
+  PluginHost::GetInstance().Update(FrameDeltaTime);
+#if !defined(_RELEASE)
+  PerformanceOverlay.EndSection(EPerformanceSection::Plugins);
+#endif
+
+  World* CurrentScene = SceneManager::GetInstance().GetCurrentScene();
   if (AutomationSubsystem) {
 #if !defined(_RELEASE)
     PerformanceOverlay.BeginSection(EPerformanceSection::Automation);
 #endif
-    AutomationSubsystem->Update();
+    ControlUpdate();
 #if !defined(_RELEASE)
     PerformanceOverlay.EndSection(EPerformanceSection::Automation);
 #endif
@@ -541,7 +617,11 @@ bool Application::Draw(bool CompleteFrame) {
   PerformanceOverlay.Update(DeltaTime);
 #endif
   if (CompleteFrame) {
+    // The update, render, ImGui and performance frame are closed. Windows may enter a
+    // modal resize loop here; allow its timer to start another complete controlled tick.
+    TickInProgress = false;
     EndDrawing();
+    TickInProgress = true;
   } else {
     rlDrawRenderBatchActive();
     SwapScreenBuffer();

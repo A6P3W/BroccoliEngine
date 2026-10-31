@@ -47,6 +47,8 @@ class BROCCOLI_ENGINE_API FAutomationCommandQueue {
 
   FAutomationCommandTicket Enqueue(FAutomationTask Task);
 
+  FAutomationCommandTicket EnqueueMutation(FAutomationTask Task);
+
   void ProcessCommands();
   void StopAcceptingCommands();
   void CancelAll(EAutomationErrorCode ErrorCode, std::string_view Message);

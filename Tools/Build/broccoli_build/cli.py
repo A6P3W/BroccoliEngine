@@ -229,12 +229,36 @@ def LoadProjectName(ProjectDirectory: Path) -> str:
   return ProjectName
 
 
-def Run(ProjectDirectory: Path, Configuration: str, ApplicationArguments: list[str]) -> None:
+def Run(
+  ProjectDirectory: Path,
+  Configuration: str,
+  ApplicationArguments: list[str],
+  *,
+  JsonOutput: bool = False,
+) -> None:
   ExecutablePath = GetRunExecutable(ProjectDirectory, Configuration)
+  WorkingDirectory = ProjectDirectory
+  if JsonOutput and Configuration != "Editor":
+    # The package launcher exits after spawning Binaries/<game>.exe. Launch the
+    # Engine directly so the returned PID belongs to its control registration.
+    WorkingDirectory = ExecutablePath.parent
+    ExecutablePath = WorkingDirectory / "Binaries" / ExecutablePath.name
   if not ExecutablePath.is_file():
     raise ValueError(f"Executable does not exist: {ExecutablePath}")
-  print(f"[run] {ExecutablePath}")
-  subprocess.Popen([str(ExecutablePath), *ApplicationArguments], cwd=ProjectDirectory)
+  LaunchOptions = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL} if JsonOutput else {}
+  Process = subprocess.Popen(
+    [str(ExecutablePath), *ApplicationArguments],
+    cwd=WorkingDirectory,
+    **LaunchOptions,
+  )
+  if JsonOutput:
+    print(
+      json.dumps(
+        {"pid": Process.pid, "executable": str(ExecutablePath), "configuration": Configuration}
+      )
+    )
+  else:
+    print(f"[run] {ExecutablePath}")
 
 
 def SplitRunApplicationArguments(RawArguments: list[str]) -> tuple[list[str], list[str]]:
@@ -313,6 +337,9 @@ def CreateParser() -> argparse.ArgumentParser:
   RunParser = Commands.add_parser("run", help="Run a built project configuration")
   RunParser.add_argument("configuration", nargs="?", type=ConfigurationArgument)
   RunParser.add_argument("--control", action="store_true")
+  RunParser.add_argument(
+    "--json", dest="JsonOutput", action="store_true", help="Print launched PID as JSON"
+  )
   RunParser.add_argument("--latest", action="store_true")
   RunParser.add_argument("--project-dir", type=PathArgument, default=Path.cwd())
 
@@ -399,6 +426,7 @@ def Main() -> int:
         Arguments.project_dir,
         Configuration,
         IncludeControlArgument(ApplicationArguments, Arguments.control),
+        **({"JsonOutput": True} if Arguments.JsonOutput else {}),
       )
     elif Arguments.Command == "clean":
       if Arguments.configuration is not None and Arguments.clean_all:

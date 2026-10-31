@@ -1,5 +1,4 @@
 #pragma once
-#include "BroccoliEngineAPI.h"
 #include <functional>
 #include <memory>
 #include <string>
@@ -7,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "BroccoliEngineAPI.h"
 #include "GameInstance.h"
 #include "GameModeBase.h"
 #include "NetMode.h"
@@ -29,7 +29,12 @@ class BROCCOLI_ENGINE_API SceneManager {
 
   World* GetCurrentScene();
 
-  void ProcessSceneChanges();
+  struct FSceneChangeResult {
+    uint64_t RequestId = 0;
+    bool Success = false;
+  };
+  FSceneChangeResult ProcessSceneChanges();
+  uint64_t GetPendingRequestId() const;
   void Shutdown();
 
   void RegisterLevelPath(FNetworkSceneId SceneId, const std::string& LevelPath);
