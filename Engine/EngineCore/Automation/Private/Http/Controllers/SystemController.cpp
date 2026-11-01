@@ -3,6 +3,7 @@
 #include "../Detail/HttpErrorMapping.h"
 #include "../Detail/HttpParsing.h"
 #include "../Detail/HttpSerialization.h"
+#include "Application.h"
 
 using namespace AutomationHttpDetail;
 
@@ -95,7 +96,27 @@ FAutomationHttpResponse FAutomationSystemController::ExecuteSystemCommand(
             );
           }
 
+          const auto* Control = Application::GetUpdateControl();
+          if (Control && Control->IsShuttingDown()) {
+            return MakeAutomationError(
+                EAutomationErrorCode::EngineShuttingDown, "Engine shutting down."
+            );
+          }
+          if (Control && !Control->CanMutate() && CommandNameText != "stop_engine_update" &&
+              CommandNameText != "operation_status" && CommandNameText != "quit_game") {
+            return MakeAutomationError(
+                EAutomationErrorCode::Conflict, "Mutation is not allowed during Engine stepping."
+            );
+          }
           nlohmann::json Result = Descriptor->Handler(Arguments);
+          const bool IsExecutionControlCommand =
+              CommandNameText == "stop_engine_update" || CommandNameText == "start_engine_update" ||
+              CommandNameText == "step_engine_update" || CommandNameText == "operation_status" ||
+              CommandNameText == "open_level_by_id" || CommandNameText == "open_level_by_path";
+          if (IsExecutionControlCommand && Result.is_object() && Result.contains("success") &&
+              !Result.value("success", true)) {
+            return Result;
+          }
           M_LOG(Log, "Automation system command completed: command={}", CommandNameText);
           return MakeAutomationSuccess(
               {{"commandName", CommandNameText}, {"result", std::move(Result)}}

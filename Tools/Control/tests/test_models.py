@@ -9,6 +9,7 @@ from broccoli_control.models import (
   ActorInfo,
   ActorList,
   ActorMethodInfo,
+  EngineState,
   RecentLogs,
   SystemCommandInfo,
 )
@@ -40,6 +41,13 @@ LOG_DATA = {
   "droppedEntries": 0,
   "historyLost": False,
   "hasMore": False,
+}
+STATE_DATA = {
+  "sceneName": "LevelStarter",
+  "fps": 60.0,
+  "simulating": False,
+  "worldAvailable": True,
+  "actorCount": 0,
 }
 
 
@@ -86,6 +94,23 @@ def test_actor_list_rejects_inconsistent_data() -> None:
       {"sceneName": "BasicGameplay", "actorCount": 2, "actors": [ACTOR_DATA, ACTOR_DATA]},
       Operation="test actors",
     )
+
+
+@pytest.mark.parametrize("StepDeltaTime", [0.1, 0.10000000149011612])
+def test_engine_state_accepts_float32_roundtrip_at_maximum_step_delta(
+  StepDeltaTime: float,
+) -> None:
+  State = EngineState.from_mapping(
+    {**STATE_DATA, "stepDeltaTime": StepDeltaTime}, Operation="test state"
+  )
+
+  assert State.StepDeltaTime == StepDeltaTime
+
+
+@pytest.mark.parametrize("StepDeltaTime", [0, -0.1, 0.11, math.nan, math.inf, -math.inf])
+def test_engine_state_rejects_invalid_step_delta(StepDeltaTime: float) -> None:
+  with pytest.raises(InvalidEngineResponse, match="stepDeltaTime"):
+    EngineState.from_mapping({**STATE_DATA, "stepDeltaTime": StepDeltaTime}, Operation="test state")
 
 
 def test_automation_descriptors_reject_invalid_values() -> None:

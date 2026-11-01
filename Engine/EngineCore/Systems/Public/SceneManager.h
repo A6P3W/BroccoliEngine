@@ -1,5 +1,4 @@
 #pragma once
-#include "BroccoliEngineAPI.h"
 #include <functional>
 #include <memory>
 #include <string>
@@ -7,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "BroccoliEngineAPI.h"
 #include "GameInstance.h"
 #include "GameModeBase.h"
 #include "NetMode.h"
@@ -29,7 +29,17 @@ class BROCCOLI_ENGINE_API SceneManager {
 
   World* GetCurrentScene();
 
-  void ProcessSceneChanges();
+  /// @brief 保留中のシーン切替処理の実行結果。
+  struct FSceneChangeResult {
+    uint64_t RequestId = 0;  ///< 処理されたリクエストID（切替要求がなかった場合は0）
+    bool Success = false;    ///< シーンの生成・ロードに成功した場合はtrue
+  };
+
+  /// @brief キューに積まれているシーン切替要求を実行し、その結果を返す。
+  FSceneChangeResult ProcessSceneChanges();
+
+  /// @brief 現在保留されているシーン切替要求のリクエストIDを取得する（保留なしの場合は0）。
+  uint64_t GetPendingRequestId() const;
   void Shutdown();
 
   void RegisterLevelPath(FNetworkSceneId SceneId, const std::string& LevelPath);

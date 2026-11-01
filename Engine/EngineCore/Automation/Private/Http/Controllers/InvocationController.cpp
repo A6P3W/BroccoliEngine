@@ -96,11 +96,11 @@ FAutomationHttpResponse FAutomationInvocationController::InvokeWorldActorMethod(
     }
 
     FAutomationCommandTicket Ticket =
-        CommandQueue.Enqueue([Registry = MethodRegistry,
-                              Resolver = ActorResolver,
-                              ActorId,
-                              MethodNameText = std::string(MethodName),
-                              Arguments = Body]() {
+        CommandQueue.EnqueueMutation([Registry = MethodRegistry,
+                                      Resolver = ActorResolver,
+                                      ActorId,
+                                      MethodNameText = std::string(MethodName),
+                                      Arguments = Body]() {
           AActor* Actor = nullptr;
           const EAutomationActorResolveStatus ResolveStatus = Resolver(ActorId, Actor);
           if (ResolveStatus != EAutomationActorResolveStatus::Success) {
@@ -256,12 +256,12 @@ FAutomationHttpResponse FAutomationInvocationController::InvokeWorldActorCompone
   }
   try {
     FAutomationCommandTicket Ticket =
-        CommandQueue.Enqueue([Registry = ComponentMethodRegistry,
-                              Resolver = ComponentResolver,
-                              ActorId,
-                              ComponentId,
-                              MethodNameText = std::string(MethodName),
-                              Arguments = Body["arguments"]]() {
+        CommandQueue.EnqueueMutation([Registry = ComponentMethodRegistry,
+                                      Resolver = ComponentResolver,
+                                      ActorId,
+                                      ComponentId,
+                                      MethodNameText = std::string(MethodName),
+                                      Arguments = Body["arguments"]]() {
           MActorComponent* Component = nullptr;
           const EAutomationComponentResolveStatus Status =
               Resolver(ActorId, ComponentId, Component);

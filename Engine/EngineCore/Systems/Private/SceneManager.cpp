@@ -65,6 +65,8 @@ struct SceneManager::Impl {
   std::function<std::unique_ptr<World>()> PendingSceneFactory;
   std::unordered_map<FNetworkSceneId, std::string> RegisteredLevelPaths;
   std::unique_ptr<GameInstance> GameInstance = std::make_unique<::GameInstance>();
+  uint64_t NextRequestId = 1;
+  uint64_t PendingRequestId = 0;
   FNetworkSceneId CurrentSceneId = 0;
   FNetworkSceneId PendingSceneId = 0;
   std::string CurrentLevelPath;
@@ -185,6 +187,7 @@ void SceneManager::QueueSceneFactory(
   if (!Factory) {
     return;
   }
+  ImplPtr->PendingRequestId = ImplPtr->NextRequestId++;
   ImplPtr->PendingSceneFactory = [Factory = std::move(Factory),
                                   NetMode]() -> std::unique_ptr<World> { return Factory(NetMode); };
   ImplPtr->PendingSceneId = SceneId;
@@ -194,6 +197,7 @@ void SceneManager::QueueSceneFactory(
 void SceneManager::QueueLevelPath(
     const std::string& LevelPath, ENetMode NetMode, FNetworkSceneId SceneId
 ) {
+  ImplPtr->PendingRequestId = ImplPtr->NextRequestId++;
   ImplPtr->PendingSceneFactory = [LevelPath, NetMode]() -> std::unique_ptr<World> {
     auto newWorld = std::make_unique<World>();
     newWorld->SetNetMode(NetMode);
@@ -206,8 +210,12 @@ void SceneManager::QueueLevelPath(
   ImplPtr->PendingLevelPath = LevelPath;
 }
 
-void SceneManager::ProcessSceneChanges() {
+uint64_t SceneManager::GetPendingRequestId() const { return ImplPtr->PendingRequestId; }
+
+SceneManager::FSceneChangeResult SceneManager::ProcessSceneChanges() {
   if (ImplPtr->PendingSceneFactory) {
+    const uint64_t RequestId = ImplPtr->PendingRequestId;
+    ImplPtr->PendingRequestId = 0;
     auto SceneFactory = std::move(ImplPtr->PendingSceneFactory);
     const FNetworkSceneId NewSceneId = ImplPtr->PendingSceneId;
     const std::string NewLevelPath = ImplPtr->PendingLevelPath;
@@ -223,7 +231,7 @@ void SceneManager::ProcessSceneChanges() {
           NewSceneId,
           NewLevelPath
       );
-      return;
+      return {RequestId, false};
     }
 
     ImplPtr->CurrentScene.reset();
@@ -250,6 +258,8 @@ void SceneManager::ProcessSceneChanges() {
       }
     }
 
+    ImplPtr->CurrentScene->GetActorManager()->FlushPendingActors();
+
     if (ImplPtr->CurrentScene && ImplPtr->CurrentScene->GetReplicationSystem()) {
       ImplPtr->CurrentScene->GetReplicationSystem()->NotifySceneLoaded();
     }
@@ -260,7 +270,9 @@ void SceneManager::ProcessSceneChanges() {
         static_cast<int>(ImplPtr->CurrentScene->GetNetMode()),
         RenderSystem::GetInstance().GetCamera() != nullptr
     );
+    return {RequestId, true};
   }
+  return {};
 }
 
 void SceneManager::Shutdown() {

@@ -176,6 +176,42 @@ def TestRunUsesLatestConfigurationAndForwardsArguments(
   assert Commands == [([str(ExecutablePath), "--example", "value"], TmpPath)]
 
 
+def TestRunJsonLaunchesTheRegisteredEngineProcessAndRedirectsOutput(
+  TmpPath: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+  WritePluginSettings(TmpPath, [])
+  LauncherPath = TmpPath / "Publish" / "Debug" / "Launcher.exe"
+  EnginePath = LauncherPath.parent / "Binaries" / "Launcher.exe"
+  EnginePath.parent.mkdir(parents=True)
+  LauncherPath.write_bytes(b"bootstrap")
+  EnginePath.write_bytes(b"engine")
+  Commands: list[tuple[list[str], Path, dict[str, object]]] = []
+
+  class FakeProcess:
+    pid = 12345
+
+  def RecordPopen(Command: list[str], cwd: Path, **Options: object) -> FakeProcess:
+    Commands.append((Command, cwd, Options))
+    return FakeProcess()
+
+  monkeypatch.setattr(cli.subprocess, "Popen", RecordPopen)
+
+  cli.Run(TmpPath, "Debug", ["--control"], JsonOutput=True)
+
+  assert Commands == [
+    (
+      [str(EnginePath), "--control"],
+      LauncherPath.parent,
+      {"stdout": cli.subprocess.DEVNULL, "stderr": cli.subprocess.DEVNULL},
+    )
+  ]
+  assert json.loads(capsys.readouterr().out) == {
+    "pid": 12345,
+    "executable": str(EnginePath),
+    "configuration": "Debug",
+  }
+
+
 def TestRunUsesGeneratedProjectName(TmpPath: Path) -> None:
   (TmpPath / ".broccoli-project.json").write_text(
     '{"project_name": "ExampleGame", "plugins": []}\n', encoding="utf-8"

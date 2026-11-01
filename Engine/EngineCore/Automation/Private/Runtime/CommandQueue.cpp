@@ -3,6 +3,8 @@
 #include <exception>
 #include <utility>
 
+#include "Application.h"
+
 namespace {
 constexpr std::string_view EngineShuttingDownMessage = "The engine is shutting down.";
 constexpr std::string_view RequestCancelledMessage = "The request was cancelled before execution.";
@@ -57,6 +59,21 @@ FAutomationCommandTicket FAutomationCommandQueue::Enqueue(FAutomationTask Task) 
       MakeAutomationError(EAutomationErrorCode::EngineShuttingDown, EngineShuttingDownMessage)
   );
   return Ticket;
+}
+
+FAutomationCommandTicket FAutomationCommandQueue::EnqueueMutation(FAutomationTask Task) {
+  return Enqueue([Task = std::move(Task)]() {
+    const auto* Control = Application::GetUpdateControl();
+    if (Control && Control->IsShuttingDown()) {
+      return MakeAutomationError(EAutomationErrorCode::EngineShuttingDown, "Engine shutting down.");
+    }
+    if (Control && !Control->CanMutate()) {
+      return MakeAutomationError(
+          EAutomationErrorCode::Conflict, "Mutation is not allowed during Engine stepping."
+      );
+    }
+    return Task();
+  });
 }
 
 void FAutomationCommandQueue::ProcessCommands() {
