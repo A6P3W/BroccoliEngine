@@ -45,8 +45,11 @@ class BROCCOLI_ENGINE_API FAutomationCommandQueue {
   FAutomationCommandQueue(const FAutomationCommandQueue&) = delete;
   FAutomationCommandQueue& operator=(const FAutomationCommandQueue&) = delete;
 
+  /// @brief メインスレッドで実行する常時実行可能なタスクをキューに追加する。
   FAutomationCommandTicket Enqueue(FAutomationTask Task);
 
+  /// @brief エンジン状態を変更するタスクをキューに追加する。
+  /// 実行時にエンジンがステップ実行中または終了処理中の場合は、タスクを実行せずエラーを返す。
   FAutomationCommandTicket EnqueueMutation(FAutomationTask Task);
 
   void ProcessCommands();

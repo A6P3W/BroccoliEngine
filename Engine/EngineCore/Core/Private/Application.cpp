@@ -446,12 +446,14 @@ void Application::Tick(float FrameDeltaTime, bool ProcessInput, bool CompleteFra
   TickInProgress = true;
   if (!UpdateControl.BeginUpdate()) {
     ControlUpdate();
-    // EndDrawing normally polls events and throttles. Neither runs while stopped.
+    // リサイズ中に呼ばれ、多重ループになることを防ぐ。
     if (CompleteFrame) {
       TickInProgress = false;
+      // OSとの通信を維持し、ウィンドウが応答なしで固まるのを防ぐ。
       PollInputEvents();
       TickInProgress = true;
     }
+    // EngineUpdate停止中でもTickの実行間隔を設けるため。
     std::this_thread::sleep_for(std::chrono::milliseconds(4));
     TickInProgress = false;
     return;
