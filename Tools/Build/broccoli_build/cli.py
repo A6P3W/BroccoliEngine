@@ -334,14 +334,43 @@ def CreateParser() -> argparse.ArgumentParser:
   RegenerateParser = Commands.add_parser("regenerate", help="Regenerate the CMake project model")
   RegenerateParser.add_argument("--project-dir", type=PathArgument, default=Path.cwd())
 
-  RunParser = Commands.add_parser("run", help="Run a built project configuration")
-  RunParser.add_argument("configuration", nargs="?", type=ConfigurationArgument)
-  RunParser.add_argument("--control", action="store_true")
-  RunParser.add_argument(
-    "--json", dest="JsonOutput", action="store_true", help="Print launched PID as JSON"
+  RunParser = Commands.add_parser(
+    "run",
+    help="Run a built project configuration",
+    description=(
+      "Run a built project configuration. Arguments after '--' are passed directly to the Engine."
+    ),
+    epilog=(
+      "Engine arguments (pass after '--'):\n"
+      "  --window-hidden                    Hide the window before initialization (offscreen rendering remains active)\n"
+      "  --engine-update running|stopped    Initial automatic Engine update mode (default: running)\n"
+      "  --step-delta-time <seconds>        Fixed delta time for stepping and first frame after resume (0 < dt <= 0.1, default: 1/60)\n\n"
+      "Example:\n"
+      "  broccoli.bat run Debug --control --json -- --window-hidden --engine-update stopped --step-delta-time 0.016666667"
+    ),
+    formatter_class=argparse.RawDescriptionHelpFormatter,
   )
-  RunParser.add_argument("--latest", action="store_true")
-  RunParser.add_argument("--project-dir", type=PathArgument, default=Path.cwd())
+  RunParser.add_argument(
+    "configuration",
+    nargs="?",
+    type=ConfigurationArgument,
+    help="Build configuration to run (Debug, Editor, Release)",
+  )
+  RunParser.add_argument(
+    "--control", action="store_true", help="Launch the Engine with the Automation Control Server enabled"
+  )
+  RunParser.add_argument(
+    "--json",
+    dest="JsonOutput",
+    action="store_true",
+    help="Launch the Engine binary directly and print pid, executable, and configuration as JSON",
+  )
+  RunParser.add_argument(
+    "--latest", action="store_true", help="Run the most recently built configuration"
+  )
+  RunParser.add_argument(
+    "--project-dir", type=PathArgument, default=Path.cwd(), help="Project directory (default: current directory)"
+  )
 
   CleanParser = Commands.add_parser("clean", help="Remove build output for a configuration")
   CleanParser.add_argument("configuration", nargs="?", type=ConfigurationArgument)

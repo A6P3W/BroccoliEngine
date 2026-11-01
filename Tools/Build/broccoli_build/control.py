@@ -8,7 +8,7 @@ import json
 import math
 import os
 import sys
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -102,25 +102,32 @@ def ResolveTargetExecutable(ProjectDirectory: Path, Configuration: str | None = 
   return ProjectDirectory / "Publish" / Configuration / "Binaries" / f"{ProjectName}.exe"
 
 
-def ResolveRegistration(TargetExecutable: Path, ProcessId: int | None) -> ControlRegistration:
-  """Find exactly one live registration belonging to the selected executable."""
+def ResolveRegistration(
+  TargetExecutables: Path | Iterable[Path], ProcessId: int | None
+) -> ControlRegistration:
+  """Find exactly one live registration belonging to the selected executable(s)."""
 
-  ControlDirectory = TargetExecutable.parent / "control"
+  Targets = (
+    [TargetExecutables] if isinstance(TargetExecutables, Path) else list(TargetExecutables)
+  )
   if ProcessId is not None:
-    Registration = _ReadRegistration(ControlDirectory / f"{ProcessId}.json", TargetExecutable)
-    if Registration is None:
-      raise ValueError(f"No running BROCCOLI ENGINE instance exists for PID {ProcessId}.")
-    return Registration
+    for TargetExecutable in Targets:
+      ControlDirectory = TargetExecutable.parent / "control"
+      Registration = _ReadRegistration(ControlDirectory / f"{ProcessId}.json", TargetExecutable)
+      if Registration is not None:
+        return Registration
+    raise ValueError(f"No running BROCCOLI ENGINE instance exists for PID {ProcessId}.")
 
-  if not ControlDirectory.is_dir():
-    raise ValueError(f"No running BROCCOLI ENGINE instance was found for: {TargetExecutable}")
   Registrations = [
     Registration
+    for TargetExecutable in Targets
+    if (ControlDirectory := TargetExecutable.parent / "control").is_dir()
     for RegistrationPath in ControlDirectory.glob("*.json")
     if (Registration := _ReadRegistration(RegistrationPath, TargetExecutable)) is not None
   ]
   if not Registrations:
-    raise ValueError(f"No running BROCCOLI ENGINE instance was found for: {TargetExecutable}")
+    TargetSummary = Targets[0] if len(Targets) == 1 else Targets[0].parents[2]
+    raise ValueError(f"No running BROCCOLI ENGINE instance was found for: {TargetSummary}")
   if len(Registrations) == 1:
     return Registrations[0]
 
@@ -136,26 +143,17 @@ def ResolveRegistration(TargetExecutable: Path, ProcessId: int | None) -> Contro
 def ResolveControlConfig(ProjectDirectory: Path, ProcessId: int | None) -> ControlConfig:
   """Create a client configuration using current discovery data and user timeout settings."""
 
-  if ProcessId is None:
-    TargetExecutable = ResolveTargetExecutable(ProjectDirectory)
-  else:
-    # An explicit PID may belong to another configuration than the last build.
+  Candidates = [
+    ResolveTargetExecutable(ProjectDirectory, Configuration)
+    for Configuration in ("Debug", "Editor", "Release")
+  ]
+  if ProcessId is not None:
     ActualExecutable = _GetProcessExecutablePath(ProcessId)
-    Candidates = (
-      ResolveTargetExecutable(ProjectDirectory, Configuration)
-      for Configuration in ("Debug", "Editor", "Release")
-    )
-    TargetExecutable = next(
-      (
-        Candidate
-        for Candidate in Candidates
-        if ActualExecutable is not None and _PathsMatch(Candidate, ActualExecutable)
-      ),
-      None,
-    )
-    if TargetExecutable is None:
+    if ActualExecutable is None or not any(
+      _PathsMatch(Candidate, ActualExecutable) for Candidate in Candidates
+    ):
       raise ValueError(f"PID {ProcessId} is not a running Engine instance of this project.")
-  Registration = ResolveRegistration(TargetExecutable, ProcessId)
+  Registration = ResolveRegistration(Candidates, ProcessId)
   return replace(load_config([]), Port=Registration.Port)
 
 
@@ -205,7 +203,11 @@ def CreateParser() -> argparse.ArgumentParser:
   Commands.add_parser(
     "state",
     help="Get current engine scene, FPS, and physics state",
-    description="Get current engine scene, FPS, and physics state.",
+    description=(
+      "Get current engine scene, FPS, physics, and update control state "
+      "(engineUpdate, engineStopped, stepping, stepDeltaTime, completedEngineUpdates, "
+      "sceneGeneration, activeOperationId, levelOperationId, levelTransitionPending)."
+    ),
   )
   Commands.add_parser(
     "actors",
@@ -365,7 +367,12 @@ def CreateParser() -> argparse.ArgumentParser:
   SystemCallParser = Commands.add_parser(
     "system-call",
     help="Execute a registered system command",
-    description="Execute a registered BROCCOLI ENGINE system command (e.g. open_level_by_path).",
+    description=(
+      "Execute a registered BROCCOLI ENGINE system command "
+      "(use 'system-commands' to list all commands and parameter schemas). "
+      "For example, open_level_by_path / open_level_by_id accept "
+      '\'{"afterUpdate": "stop"}\' (or "preserve" / "run") to stop immediately after loading.'
+    ),
   )
   SystemCallParser.add_argument("command_name", help="System command name")
   SystemCallParser.add_argument(
@@ -376,20 +383,54 @@ def CreateParser() -> argparse.ArgumentParser:
   )
 
   def AddWaitOptions(Target: argparse.ArgumentParser) -> None:
-    Target.add_argument("--wait", action="store_true", help="Wait for operation completion")
-    Target.add_argument("--wait-timeout", dest="WaitTimeout", type=float, default=30.0)
+    Target.add_argument(
+      "--wait",
+      action="store_true",
+      help="Wait until the accepted asynchronous operation reaches a terminal state",
+    )
+    Target.add_argument(
+      "--wait-timeout",
+      dest="WaitTimeout",
+      type=float,
+      default=30.0,
+      help="Maximum time in seconds to wait when --wait is set (default: 30.0)",
+    )
 
   AddWaitOptions(SystemCallParser)
-  StopParser = Commands.add_parser("stop-engine-update", help="Stop at an update boundary")
-  AddWaitOptions(StopParser)
-  Commands.add_parser("start-engine-update", help="Resume automatic Engine updates")
-  StepParser = Commands.add_parser(
-    "step-engine-update", help="Run a fixed number of Engine updates"
+  StopParser = Commands.add_parser(
+    "stop-engine-update",
+    help="Stop at an update boundary",
+    description=(
+      "Stop automatic Engine updates at an update boundary. "
+      "While stopped, only control commands and OS events are processed; "
+      "World simulation (start_simulation / stop_simulation) remains independent."
+    ),
   )
-  StepParser.add_argument("Count", type=int)
+  AddWaitOptions(StopParser)
+  Commands.add_parser(
+    "start-engine-update",
+    help="Resume automatic Engine updates",
+    description="Resume automatic Engine updates from a stopped state.",
+  )
+  StepParser = Commands.add_parser(
+    "step-engine-update",
+    help="Run a fixed number of Engine updates",
+    description=(
+      "Advance the stopped Engine by a fixed number of updates using stepDeltaTime, "
+      "then return to the stopped state. While stepping, read queries remain available "
+      "and mutation requests return HTTP 409 CONFLICT."
+    ),
+  )
+  StepParser.add_argument(
+    "Count", type=int, help="Number of Engine updates to execute (1-1000000)"
+  )
   AddWaitOptions(StepParser)
-  OperationParser = Commands.add_parser("operation-status", help="Query an accepted operation")
-  OperationParser.add_argument("OperationId")
+  OperationParser = Commands.add_parser(
+    "operation-status",
+    help="Query an accepted operation",
+    description="Query the status of an asynchronous stop, step, or level transition operation.",
+  )
+  OperationParser.add_argument("OperationId", help="Operation ID returned when the command was accepted")
   AddWaitOptions(OperationParser)
 
   LogsParser = Commands.add_parser(

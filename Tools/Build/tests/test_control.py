@@ -209,7 +209,9 @@ def TestResolveRegistrationReadsOnlyRequestedPid(monkeypatch, tmp_path) -> None:
   assert Registration == control.ControlRegistration(12340, 39100)
 
 
-def TestResolveControlConfigSelectsTheExplicitPidConfiguration(monkeypatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
+def TestResolveControlConfigSelectsSingleRunningEngineAcrossConfigurations(
+  monkeypatch, tmp_path
+) -> None:  # type: ignore[no-untyped-def]
   (tmp_path / "Intermediate").mkdir()
   (tmp_path / "Intermediate" / "LastBuildConfiguration.txt").write_text(
     "Editor\n", encoding="utf-8"
@@ -221,9 +223,8 @@ def TestResolveControlConfigSelectsTheExplicitPidConfiguration(monkeypatch, tmp_
   (RegistrationDirectory / "12340.json").write_text('{"pid":12340,"port":39100}', encoding="utf-8")
   monkeypatch.setattr(control, "_GetProcessExecutablePath", lambda _: DebugExecutable)
 
-  Config = control.ResolveControlConfig(tmp_path, 12340)
-
-  assert Config.Port == 39100
+  assert control.ResolveControlConfig(tmp_path, None).Port == 39100
+  assert control.ResolveControlConfig(tmp_path, 12340).Port == 39100
 
 
 def TestResolveControlConfigRejectsAnExplicitPidFromAnotherProject(monkeypatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
