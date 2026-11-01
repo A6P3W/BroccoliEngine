@@ -68,6 +68,29 @@ void TestStopCancelsStepAfterCurrentUpdate() {
   assert(!Control.BeginUpdate());
 }
 
+void TestStopDuringFinalStepUpdateCompletesBothOperations() {
+  FEngineUpdateControl Control;
+  Control.Configure(false, 1.0f / 60.0f);
+  const auto StepId = OperationId(Control.Step(2));
+  assert(Control.BeginUpdate());
+  Control.CompleteUpdate();
+  assert(Control.BeginUpdate());
+
+  const auto StopId = OperationId(Control.Stop());
+  assert(Control.GetOperation(StopId).at("status") == "pending");
+  Control.CompleteUpdate();
+
+  const auto CompletedStep = Control.GetOperation(StepId);
+  assert(CompletedStep.at("status") == "completed");
+  assert(CompletedStep.at("completedCount") == 2);
+  assert(CompletedStep.at("endUpdate") == 2);
+  assert(CompletedStep.at("reason") == "");
+  assert(Control.GetOperation(StopId).at("status") == "completed");
+  assert(Control.GetOperation(StopId).at("endUpdate") == 2);
+  assert(Control.GetState().at("engineStopped").get<bool>());
+  assert(!Control.BeginUpdate());
+}
+
 void TestInvalidStepsAndConflictingOperationsAreRejected() {
   FEngineUpdateControl Control;
   Control.Configure(true, 1.0f / 60.0f);
@@ -121,6 +144,7 @@ int main() {
   TestStopAndStartDoNotAdvanceUpdates();
   TestStepConsumesOnlyUpdatesStartedForThatOperation();
   TestStopCancelsStepAfterCurrentUpdate();
+  TestStopDuringFinalStepUpdateCompletesBothOperations();
   TestInvalidStepsAndConflictingOperationsAreRejected();
   TestLevelCompletionMustMatchRequestBeforeStopping();
   TestFailedLevelDoesNotStopAutomaticUpdates();

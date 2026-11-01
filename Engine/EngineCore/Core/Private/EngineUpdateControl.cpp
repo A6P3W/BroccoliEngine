@@ -89,7 +89,7 @@ void FEngineUpdateControl::CompleteUpdate() {
   if (!FrameStepOperation.empty() && FrameStepOperation == StepOperation) {
     auto* Operation = FindOperation(FrameStepOperation);
     (*Operation)["completedCount"] = (*Operation)["completedCount"].get<uint32_t>() + 1;
-    if (StopOperation.empty() && (*Operation)["completedCount"] == (*Operation)["requestedCount"]) {
+    if ((*Operation)["completedCount"] == (*Operation)["requestedCount"]) {
       Finish(StepOperation, "completed");
       StepOperation.clear();
     }
