@@ -7,6 +7,7 @@
 class AActor;
 class World;
 
+/// @brief クリップボード管理クラス。
 class BROCCOLI_ENGINE_API EditorClipboard {
  public:
   bool Copy(AActor* Actor);

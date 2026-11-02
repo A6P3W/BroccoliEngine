@@ -24,6 +24,7 @@ enum class EEditorState {
   Dragging,
 };
 
+/// @brief エディタ用ゲームモード
 class EditorMode : public AGameModeBase {
  public:
   DEFINE_ACTOR_CLASS(EditorMode);
@@ -107,16 +108,16 @@ class EditorMode : public AGameModeBase {
   EEditorState State = EEditorState::Idle;
   std::string SelectedClass;
   std::string SelectedGameModeClass;
-  AActor* SelectingActor = nullptr;  // ドラッグ中のゴースト
-  EditorController* EditorControllerPtr = nullptr;
-  EditorPawn2D* EditorPawn2DPtr = nullptr;
-  EditorPawn3D* EditorPawn3DPtr = nullptr;
-  EActorAction ActorAction = EActorAction::Select;
-  FEditorViewportState ViewportState;
+  AActor* SelectingActor = nullptr;                 // ドラッグ中のゴースト
+  EditorController* EditorControllerPtr = nullptr;  //EditorController
+  EditorPawn2D* EditorPawn2DPtr = nullptr;          // 2D用EditorPawn
+  EditorPawn3D* EditorPawn3DPtr = nullptr;          // 3D用EditorPawn
+  EActorAction ActorAction = EActorAction::Select;  // アクタに対して行うアクション
+  FEditorViewportState ViewportState;               //Viewportの状態
   EditorSelection Selection;
   EditorPlacementTool PlacementTool;
-  EditorTransformTool TransformTool;
-  EditorClipboard Clipboard;
+  EditorTransformTool TransformTool;  // トランスフォームピッカークラス
+  EditorClipboard Clipboard;          // クリップボード管理クラス
 
   static std::string PendingLoadPath;
 

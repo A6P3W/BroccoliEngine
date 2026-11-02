@@ -3,6 +3,7 @@
 
 class EditorMode;
 class MEnhancedInputComponent;
+/// @brief editor用playercontroller
 class EditorController : public APlayerController {
  public:
   DEFINE_ACTOR_CLASS(EditorController);
