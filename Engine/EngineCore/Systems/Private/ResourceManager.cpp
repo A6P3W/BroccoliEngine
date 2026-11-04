@@ -90,6 +90,7 @@ out vec4 fragColor;
 void main() {
   vec4 world = matModel * vec4(vertexPosition, 1.0);
   fragPosition = world.xyz;
+  // ワールド空間の法線
   fragNormal = normalize(transpose(inverse(mat3(matModel))) * vertexNormal);
   fragTexCoord = vertexTexCoord;
   fragColor = vertexColor;
@@ -97,11 +98,13 @@ void main() {
 })glsl";
 
 constexpr const char* MaterialFragmentShader = R"glsl(#version 330
+// Textureのuv座標
 in vec2 fragTexCoord;
 in vec3 fragNormal;
 in vec3 fragPosition;
 in vec4 fragColor;
 uniform sampler2D texture0;
+// マテリアル基本色
 uniform vec4 colDiffuse;
 uniform vec3 viewPos;
 uniform vec3 lightDirection;
@@ -112,13 +115,18 @@ uniform int hasLight;
 uniform int shadingModel;
 out vec4 finalColor;
 void main() {
+  // BaseColor
   vec4 base = texture(texture0, fragTexCoord) * colDiffuse * fragColor;
   if (shadingModel == 0) { finalColor = base; return; }
   vec3 normal = normalize(fragNormal);
+  // ランバート拡散反射
   float diffuse = hasLight != 0 ? max(dot(normal, -normalize(lightDirection)), 0.0) : 0.0;
+  // Blinn-Phong 鏡面反射
   vec3 viewDirection = normalize(viewPos - fragPosition);
   vec3 halfway = normalize(viewDirection - normalize(lightDirection));
   float specular = hasLight != 0 ? pow(max(dot(normal, halfway), 0.0), 32.0) * 0.1 : 0.0;
+
+  // ライティング合成
   vec3 lighting = vec3(ambientStrength) + lightColor * lightIntensity * (diffuse + specular);
   finalColor = vec4(base.rgb * lighting, base.a);
 })glsl";
@@ -148,8 +156,8 @@ class FRaylibResourceStore {
         FModelResource{
             ModelData,
             {},
-            {{Bounds.min.x, Bounds.min.y, Bounds.min.z}, {Bounds.max.x, Bounds.max.y, Bounds.max.z}
-            },
+            {{Bounds.min.x, Bounds.min.y, Bounds.min.z},
+             {Bounds.max.x, Bounds.max.y, Bounds.max.z}},
             Path,
         }
     );
