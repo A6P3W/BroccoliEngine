@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "ActorComponent.h"
+#include "ComponentRegistry.h"
 #include "EngineDefine.h"
 #include "PhysicsSystem3D.h"
 #include "ReplicationSystem.h"
@@ -120,12 +121,26 @@ const std::vector<std::unique_ptr<MActorComponent>>& AActor::GetComponents() con
   return ImplPtr->Components;
 }
 
-MActorComponent* AActor::AcceptNewObjectComponent(std::unique_ptr<MActorComponent> NewComponent) {
+MActorComponent* AActor::AcceptNewObjectComponent(
+    std::unique_ptr<MActorComponent> NewComponent, const FComponentCreateParams& Params
+) {
   if (!NewComponent) {
     return nullptr;
   }
 
   MActorComponent* NewComponentPtr = NewComponent.get();
+  std::string Name = Params.Name;
+  if (!Name.empty() && FindComponentByName(Name) != nullptr) return nullptr;
+  if (Name.empty()) {
+    const std::string Base = NewComponentPtr->GetComponentClassName();
+    Name = Base;
+    for (unsigned Index = 1; FindComponentByName(Name) != nullptr; ++Index)
+      Name = Base + "_" + std::to_string(Index);
+  }
+  NewComponentPtr->ComponentName = std::move(Name);
+  NewComponentPtr->bExplicitComponentName = !Params.Name.empty();
+  NewComponentPtr->CreationSource = Params.Source;
+  NewComponentPtr->EditorVisibility = Params.EditorVisibility;
 
   NewComponentPtr->SetOwner(this);
   NewComponentPtr->SetComponentId(ImplPtr->NextComponentId++);
@@ -140,7 +155,18 @@ MActorComponent* AActor::AcceptNewObjectComponent(std::unique_ptr<MActorComponen
   }
 
   ImplPtr->Components.push_back(std::move(NewComponent));
+  ComponentRegistry::GetInstance().NotifyCreated(
+      NewComponentPtr, NewComponentPtr->GetComponentClassName()
+  );
   return NewComponentPtr;
+}
+
+MActorComponent* AActor::FindComponentByName(std::string_view ComponentName) const {
+  for (const auto& Component : ImplPtr->Components)
+    if (Component && !Component->IsPendingDestroy() &&
+        Component->GetComponentName() == ComponentName)
+      return Component.get();
+  return nullptr;
 }
 
 void AActor::CompletePendingComponentRegistrations() {
@@ -240,26 +266,32 @@ void AActor::Draw() {
   }
 }
 
-FVector2D AActor::GetActorLocation() const { return RootComponent->GetWorldLocation(); }
+FVector2D AActor::GetActorLocation2D() const { return RootComponent->GetWorldLocation2D(); }
 
-bool AActor::SetActorLocation(const FVector2D& NewLocation) {
-  RootComponent->SetWorldLocation(NewLocation);
+bool AActor::SetActorLocation2D(const FVector2D& NewLocation) {
+  RootComponent->SetWorldLocation2D(NewLocation);
   return true;
 }
 
-void AActor::AddActorWorldOffset(const FVector2D& Offset) { RootComponent->AddWorldOffset(Offset); }
+void AActor::AddActorWorldOffset2D(const FVector2D& Offset) {
+  RootComponent->AddWorldOffset2D(Offset);
+}
 
-void AActor::AddActorLocalOffset(const FVector2D& Offset) { RootComponent->AddLocalOffset(Offset); }
+void AActor::AddActorLocalOffset2D(const FVector2D& Offset) {
+  RootComponent->AddLocalOffset2D(Offset);
+}
 
-FRotator AActor::GetActorRotation() const { return FRotator(RootComponent->GetWorldRotation()); }
+FRotator AActor::GetActorRotation2D() const {
+  return FRotator(RootComponent->GetWorldRotation2D());
+}
 
-bool AActor::SetActorRotation(const FRotator& NewRotation) {
-  RootComponent->SetWorldRotation(NewRotation);
+bool AActor::SetActorRotation2D(const FRotator& NewRotation) {
+  RootComponent->SetWorldRotation2D(NewRotation);
   return true;
 }
 
-void AActor::AddActorRotation(const FRotator& DeltaRotation) {
-  RootComponent->AddWorldRotation(DeltaRotation);
+void AActor::AddActorRotation2D(const FRotator& DeltaRotation) {
+  RootComponent->AddWorldRotation2D(DeltaRotation);
 }
 
 void AActor::Destroy() {
@@ -288,10 +320,10 @@ void AActor::SetInstanceNameInternal(std::string InInstanceName) {
 
 void AActor::InvalidateInstanceNameInternal() { ImplPtr->InstanceName.clear(); }
 
-FScale AActor::GetActorScale() const { return RootComponent->GetWorldScale(); }
+FScale AActor::GetActorScale2D() const { return RootComponent->GetWorldScale2D(); }
 
-bool AActor::SetActorScale(FScale NewScale) {
-  RootComponent->SetWorldScale(NewScale);
+bool AActor::SetActorScale2D(FScale NewScale) {
+  RootComponent->SetWorldScale2D(NewScale);
   return true;
 }
 
@@ -363,9 +395,9 @@ bool AActor::HasReplicatedStateChanged(float Tolerance) const {
     return true;
   }
 
-  const FVector2D location = GetActorLocation();
-  const FRotator rotation = GetActorRotation();
-  const FScale scale = GetActorScale();
+  const FVector2D location = GetActorLocation2D();
+  const FRotator rotation = GetActorRotation2D();
+  const FScale scale = GetActorScale2D();
 
   if (ImplPtr->ReplicatedStateDirty ||
       !location.Equals(ImplPtr->LastReplicatedLocation, Tolerance) ||
@@ -395,9 +427,9 @@ bool AActor::HasReplicatedStateChanged(float Tolerance) const {
 }
 
 void AActor::UpdateReplicatedStateCache() {
-  ImplPtr->LastReplicatedLocation = GetActorLocation();
-  ImplPtr->LastReplicatedRotation = GetActorRotation();
-  ImplPtr->LastReplicatedScale = GetActorScale();
+  ImplPtr->LastReplicatedLocation = GetActorLocation2D();
+  ImplPtr->LastReplicatedRotation = GetActorRotation2D();
+  ImplPtr->LastReplicatedScale = GetActorScale2D();
   for (const auto& replicatedProperty : ImplPtr->ReplicatedProperties) {
     if (replicatedProperty) {
       replicatedProperty->UpdateCache();
@@ -590,9 +622,9 @@ std::vector<MActorComponent*> AActor::GetReplicatedNetworkComponents() const {
 }
 
 void AActor::SerializeActorNetworkState(FNetBuffer& OutBuffer) {
-  const FVector2D location = GetActorLocation();
-  const FRotator rotation = GetActorRotation();
-  const FScale scale = GetActorScale();
+  const FVector2D location = GetActorLocation2D();
+  const FRotator rotation = GetActorRotation2D();
+  const FScale scale = GetActorScale2D();
 
   OutBuffer.Write(location.X);
   OutBuffer.Write(location.Y);
@@ -618,9 +650,9 @@ bool AActor::DeserializeActorNetworkState(FNetBuffer& InBuffer, bool bApplyTrans
   if (!InBuffer.Read(scale)) return false;
 
   if (bApplyTransform) {
-    SetActorLocation({locationX, locationY});
-    SetActorRotation(FRotator(rotation));
-    SetActorScale(FScale(scale));
+    SetActorLocation2D({locationX, locationY});
+    SetActorRotation2D(FRotator(rotation));
+    SetActorScale2D(FScale(scale));
   }
 
   for (const auto& replicatedProperty : ImplPtr->ReplicatedProperties) {

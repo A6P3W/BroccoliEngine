@@ -21,6 +21,6 @@ void ADefaultDirectionalForceFieldActor::OnUpdate(float DeltaTime) {
 
   MForceFieldComponent* ForceField = GetForceFieldComponent();
   if (ForceField) {
-    ForceField->SetDirection(FVector2D{1.0f, 0.0f}.RotateVector(GetActorRotation()));
+    ForceField->SetDirection(FVector2D{1.0f, 0.0f}.RotateVector(GetActorRotation2D()));
   }
 }

@@ -1,5 +1,7 @@
 #include "Sprite3DComponent.h"
 
+REGISTER_COMPONENT(MSprite3DComponent)
+
 #include <algorithm>
 
 #include "RenderSystem.h"

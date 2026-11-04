@@ -3,11 +3,8 @@ from pathlib import Path
 
 import pytest
 from broccoli_build import cli
-from broccoli_build.package_runtime import PackageRuntime
-from broccoli_build.plugins import GeneratePluginsCmake, RemoveDisabledExamplePluginArtifacts
+from broccoli_build.plugins import GeneratePluginsCmake
 from broccoli_build.prepare_output import PrepareOutput
-from broccoli_build.stage_runtime import StageRuntime
-from broccoli_build.verify_runtime import VerifyRuntime
 
 
 @pytest.fixture(name="TmpPath")
@@ -28,15 +25,14 @@ def WriteConvertLevelsScript(ScriptPath: Path) -> None:
 
 
 def TestPrepareOutputRemovesGeneratedArtifacts(TmpPath: Path) -> None:
-  for Name in ("Logs", "Saved", "Resources", "Resources-EOS"):
+  for Name in ("Logs", "Saved", "Resources"):
     (TmpPath / Name).mkdir()
   (TmpPath / "Log.txt").write_text("log", encoding="utf-8")
 
   PrepareOutput(TmpPath)
+  assert (TmpPath / "Saved").is_dir()
 
-  assert not any(
-    (TmpPath / Name).exists() for Name in ("Logs", "Saved", "Resources", "Resources-EOS", "Log.txt")
-  )
+  assert not any((TmpPath / Name).exists() for Name in ("Logs", "Resources", "Log.txt"))
 
 
 def WritePluginSettings(TmpPath: Path, Plugins: object) -> None:
@@ -67,6 +63,7 @@ def TestBuildLeavesPluginGenerationToCmakeConfigure(
   TmpPath: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   WritePluginSettings(TmpPath, [])
+  (TmpPath / "CMakeUserPresets.json").write_text("{}", encoding="utf-8")
   CacheFile = TmpPath / "build" / "windows-x64-gcc26" / "CMakeCache.txt"
   CacheFile.parent.mkdir(parents=True)
   CacheFile.write_text("cache", encoding="utf-8")
@@ -75,23 +72,29 @@ def TestBuildLeavesPluginGenerationToCmakeConfigure(
   def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
     Commands.append((Command, cwd))
 
+  monkeypatch.setattr(cli, "StageBuiltProject", lambda *Arguments: None)
   monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
   monkeypatch.setattr(cli.subprocess, "run", RecordRun)
 
   cli.Build(TmpPath, "Debug", False)
 
   assert Commands == [
-    (["cmake", "--build", "--preset", "debug-local", "--target", "BroccoliProjectBuild_Debug"], TmpPath)
+    (
+      ["cmake", "--build", "--preset", "debug-local", "--target", "BroccoliProjectBuild_Debug"],
+      TmpPath,
+    )
   ]
 
 
 def TestRegenerateDoesNotBuild(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
   WritePluginSettings(TmpPath, [])
+  (TmpPath / "CMakeUserPresets.json").write_text("{}", encoding="utf-8")
   Commands: list[list[str]] = []
 
   def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
     Commands.append(Command)
 
+  monkeypatch.setattr(cli, "StageBuiltProject", lambda *Arguments: None)
   monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
   monkeypatch.setattr(cli.subprocess, "run", RecordRun)
 
@@ -100,12 +103,50 @@ def TestRegenerateDoesNotBuild(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -
   assert Commands == [["cmake", "--preset", "windows-x64-local"]]
 
 
+@pytest.mark.parametrize("HasUserPresets", [False, True])
+@pytest.mark.parametrize("Configuration", ["Debug", "Editor"])
+def TestBuildSelectsEnvironmentOrLocalPresets(
+  TmpPath: Path,
+  monkeypatch: pytest.MonkeyPatch,
+  HasUserPresets: bool,
+  Configuration: str,
+) -> None:
+  if HasUserPresets:
+    (TmpPath / "CMakeUserPresets.json").write_text("{}", encoding="utf-8")
+  Commands: list[list[str]] = []
+
+  def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
+    assert cwd == TmpPath
+    assert check
+    Commands.append(Command)
+
+  monkeypatch.setattr(cli, "StageBuiltProject", lambda *Arguments: None)
+  monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
+  monkeypatch.setattr(cli.subprocess, "run", RecordRun)
+
+  cli.Build(TmpPath, Configuration, False)
+
+  Suffix = "local" if HasUserPresets else "env"
+  assert Commands == [
+    ["cmake", "--preset", f"windows-x64-{Suffix}"],
+    [
+      "cmake",
+      "--build",
+      "--preset",
+      f"{Configuration.casefold()}-{Suffix}",
+      "--target",
+      f"BroccoliProjectBuild_{Configuration}",
+    ],
+  ]
+
+
 def TestBuildRecordsLatestConfiguration(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
   WritePluginSettings(TmpPath, [])
   CacheFile = TmpPath / "build" / "windows-x64-gcc26" / "CMakeCache.txt"
   CacheFile.parent.mkdir(parents=True)
   CacheFile.write_text("cache", encoding="utf-8")
 
+  monkeypatch.setattr(cli, "StageBuiltProject", lambda *Arguments: None)
   monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
   monkeypatch.setattr(cli.subprocess, "run", lambda *_, **__: None)
 
@@ -122,9 +163,7 @@ def TestRunUsesLatestConfigurationAndForwardsArguments(
   ExecutablePath.parent.mkdir(parents=True)
   ExecutablePath.write_bytes(b"launcher")
   (TmpPath / "Intermediate").mkdir()
-  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
-    "Debug\n", encoding="utf-8"
-  )
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text("Debug\n", encoding="utf-8")
   Commands: list[tuple[list[str], Path]] = []
 
   def RecordPopen(Command: list[str], cwd: Path) -> None:
@@ -135,6 +174,42 @@ def TestRunUsesLatestConfigurationAndForwardsArguments(
   cli.Run(TmpPath, cli.LoadLatestBuildConfiguration(TmpPath), ["--example", "value"])
 
   assert Commands == [([str(ExecutablePath), "--example", "value"], TmpPath)]
+
+
+def TestRunJsonLaunchesTheRegisteredEngineProcessAndRedirectsOutput(
+  TmpPath: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+  WritePluginSettings(TmpPath, [])
+  LauncherPath = TmpPath / "Publish" / "Debug" / "Launcher.exe"
+  EnginePath = LauncherPath.parent / "Binaries" / "Launcher.exe"
+  EnginePath.parent.mkdir(parents=True)
+  LauncherPath.write_bytes(b"bootstrap")
+  EnginePath.write_bytes(b"engine")
+  Commands: list[tuple[list[str], Path, dict[str, object]]] = []
+
+  class FakeProcess:
+    pid = 12345
+
+  def RecordPopen(Command: list[str], cwd: Path, **Options: object) -> FakeProcess:
+    Commands.append((Command, cwd, Options))
+    return FakeProcess()
+
+  monkeypatch.setattr(cli.subprocess, "Popen", RecordPopen)
+
+  cli.Run(TmpPath, "Debug", ["--control"], JsonOutput=True)
+
+  assert Commands == [
+    (
+      [str(EnginePath), "--control"],
+      LauncherPath.parent,
+      {"stdout": cli.subprocess.DEVNULL, "stderr": cli.subprocess.DEVNULL},
+    )
+  ]
+  assert json.loads(capsys.readouterr().out) == {
+    "pid": 12345,
+    "executable": str(EnginePath),
+    "configuration": "Debug",
+  }
 
 
 def TestRunUsesGeneratedProjectName(TmpPath: Path) -> None:
@@ -155,9 +230,7 @@ def TestRunRejectsMissingLatestConfiguration(TmpPath: Path) -> None:
 
 def TestRunParserForwardsArgumentsAfterLatestSeparator(TmpPath: Path) -> None:
   (TmpPath / "Intermediate").mkdir()
-  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
-    "Editor\n", encoding="utf-8"
-  )
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text("Editor\n", encoding="utf-8")
   CliArguments, ApplicationArguments = cli.SplitRunApplicationArguments(
     ["run", "--latest", "--project-dir", str(TmpPath), "--", "--control"]
   )
@@ -206,12 +279,12 @@ def TestMainForwardsSeparatedArgumentsWithoutReinterpretingThem(
   TmpPath: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
   (TmpPath / "Intermediate").mkdir()
-  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text(
-    "Editor\n", encoding="utf-8"
-  )
+  (TmpPath / "Intermediate" / "LastBuildConfiguration.txt").write_text("Editor\n", encoding="utf-8")
   Calls: list[tuple[Path, str, list[str]]] = []
 
-  def RecordRun(ProjectDirectory: Path, Configuration: str, ApplicationArguments: list[str]) -> None:
+  def RecordRun(
+    ProjectDirectory: Path, Configuration: str, ApplicationArguments: list[str]
+  ) -> None:
     Calls.append((ProjectDirectory, Configuration, ApplicationArguments))
 
   monkeypatch.setattr(cli, "Run", RecordRun)
@@ -237,7 +310,9 @@ def TestMainForwardsSeparatedArgumentsWithoutReinterpretingThem(
 def TestMainAddsControlArgumentOnlyOnce(TmpPath: Path, monkeypatch: pytest.MonkeyPatch) -> None:
   Calls: list[list[str]] = []
 
-  def RecordRun(_ProjectDirectory: Path, _Configuration: str, ApplicationArguments: list[str]) -> None:
+  def RecordRun(
+    _ProjectDirectory: Path, _Configuration: str, ApplicationArguments: list[str]
+  ) -> None:
     Calls.append(ApplicationArguments)
 
   monkeypatch.setattr(cli, "Run", RecordRun)
@@ -257,6 +332,7 @@ def TestCleanOnlyRemovesTheRequestedConfiguration(
   for Configuration in ("Debug", "Editor"):
     (TmpPath / "Bin" / "x64" / Configuration).mkdir(parents=True)
     (TmpPath / "Publish" / Configuration).mkdir(parents=True)
+  (TmpPath / "CMakeUserPresets.json").write_text("{}", encoding="utf-8")
   CacheFile = TmpPath / "build" / "windows-x64-gcc26" / "CMakeCache.txt"
   CacheFile.parent.mkdir(parents=True)
   CacheFile.write_text("cache", encoding="utf-8")
@@ -265,6 +341,7 @@ def TestCleanOnlyRemovesTheRequestedConfiguration(
   def RecordRun(Command: list[str], cwd: Path, check: bool) -> None:
     Commands.append(Command)
 
+  monkeypatch.setattr(cli, "StageBuiltProject", lambda *Arguments: None)
   monkeypatch.setattr(cli, "FindCmakeCommand", lambda: "cmake")
   monkeypatch.setattr(cli.subprocess, "run", RecordRun)
 
@@ -328,64 +405,6 @@ def TestGeneratePluginsCmakeReflectsConfigurationSettings(TmpPath: Path) -> None
   )
 
 
-def TestGeneratePluginsCommandRemovesDisabledConfigurationArtifacts(
-  TmpPath: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-  WritePluginSettings(TmpPath, [{"name": "ExamplePlugin", "configurations": ["Editor"]}])
-  for Configuration in ("Debug", "Editor", "Release"):
-    ArtifactDirectory = TmpPath / "Bin" / "x64" / Configuration / "Plugins" / "ExamplePlugin"
-    ArtifactDirectory.mkdir(parents=True)
-
-  monkeypatch.setattr(
-    cli.sys,
-    "argv",
-    ["broccoli_build", "generate-plugins", "--project-dir", str(TmpPath)],
-  )
-
-  assert cli.Main() == 0
-  assert not (TmpPath / "Bin" / "x64" / "Debug" / "Plugins" / "ExamplePlugin").exists()
-  assert (TmpPath / "Bin" / "x64" / "Editor" / "Plugins" / "ExamplePlugin").is_dir()
-  assert not (TmpPath / "Bin" / "x64" / "Release" / "Plugins" / "ExamplePlugin").exists()
-
-
-def TestGeneratePluginsCmakeRemovesOnlyDisabledConfigurationArtifacts(TmpPath: Path) -> None:
-  WritePluginSettings(TmpPath, [{"name": "ExamplePlugin", "configurations": ["Editor"]}])
-  for Configuration in ("Debug", "Editor", "Release"):
-    ArtifactDirectory = TmpPath / "Bin" / "x64" / Configuration / "Plugins" / "ExamplePlugin"
-    ArtifactDirectory.mkdir(parents=True)
-    (ArtifactDirectory / "ExamplePlugin.dll").write_bytes(b"plugin")
-
-  assert GeneratePluginsCmake(TmpPath)
-  RemoveDisabledExamplePluginArtifacts(TmpPath)
-
-  assert not (TmpPath / "Bin" / "x64" / "Debug" / "Plugins" / "ExamplePlugin").exists()
-  assert (TmpPath / "Bin" / "x64" / "Editor" / "Plugins" / "ExamplePlugin").is_dir()
-  assert not (TmpPath / "Bin" / "x64" / "Release" / "Plugins" / "ExamplePlugin").exists()
-
-
-def TestGeneratePluginsCmakeRemovesAllArtifactsWhenPluginIsUndefined(TmpPath: Path) -> None:
-  WritePluginSettings(TmpPath, [])
-  for Configuration in ("Debug", "Editor", "Release"):
-    ArtifactDirectory = TmpPath / "Bin" / "x64" / Configuration / "Plugins" / "ExamplePlugin"
-    ArtifactDirectory.mkdir(parents=True)
-
-  assert GeneratePluginsCmake(TmpPath)
-  RemoveDisabledExamplePluginArtifacts(TmpPath)
-
-  assert (TmpPath / "Intermediate" / "Generated" / "Plugins.cmake").read_text(
-    encoding="utf-8"
-  ) == (
-    "set(BROCCOLI_PLUGINS)\n\n"
-    "set(BROCCOLI_PLUGINS_DEBUG)\n\n"
-    "set(BROCCOLI_PLUGINS_EDITOR)\n\n"
-    "set(BROCCOLI_PLUGINS_RELEASE)\n"
-  )
-  for Configuration in ("Debug", "Editor", "Release"):
-    assert not (
-      TmpPath / "Bin" / "x64" / Configuration / "Plugins" / "ExamplePlugin"
-    ).exists()
-
-
 @pytest.mark.parametrize(
   ("Plugins", "Message"),
   [
@@ -416,200 +435,3 @@ def TestGeneratePluginsCmakeRejectsInvalidSettings(
 
   with pytest.raises(ValueError, match=Message):
     GeneratePluginsCmake(TmpPath)
-
-
-def TestStageRuntimeStagesEditorBinariesWithoutResources(TmpPath: Path) -> None:
-  OutputDirectory = TmpPath / "Output"
-  EngineBinary = TmpPath / "BroccoliEngine.dll"
-  EosBinary = TmpPath / "EOSSDK-Win64-Shipping.dll"
-  EngineBinary.write_bytes(b"engine")
-  EosBinary.write_bytes(b"eos")
-
-  StageRuntime(
-    "Editor",
-    TmpPath / "Engine",
-    TmpPath / "Game",
-    OutputDirectory,
-    EngineBinary,
-    "Game",
-    EosBinary,
-    TmpPath / "ConvertLevels.py",
-  )
-
-  assert (OutputDirectory / "BroccoliEngine.dll").is_file()
-  assert (OutputDirectory / "EOSSDK-Win64-Shipping.dll").is_file()
-  assert not (OutputDirectory / "Resources").exists()
-
-
-def TestStageRuntimeAcceptsEngineBinaryAlreadyInOutput(TmpPath: Path) -> None:
-  OutputDirectory = TmpPath / "Output"
-  OutputDirectory.mkdir()
-  EngineBinary = OutputDirectory / "BroccoliEngine.dll"
-  EosBinary = TmpPath / "EOSSDK-Win64-Shipping.dll"
-  EngineBinary.write_bytes(b"engine")
-  EosBinary.write_bytes(b"eos")
-
-  StageRuntime(
-    "Editor",
-    TmpPath / "Engine",
-    TmpPath / "Game",
-    OutputDirectory,
-    EngineBinary,
-    "Game",
-    EosBinary,
-    TmpPath / "ConvertLevels.py",
-  )
-
-  assert EngineBinary.read_bytes() == b"engine"
-  assert (OutputDirectory / "EOSSDK-Win64-Shipping.dll").is_file()
-
-
-def TestStageRuntimeStagesDebugArtifacts(TmpPath: Path) -> None:
-  EngineDirectory = TmpPath / "Engine"
-  GameDirectory = TmpPath / "Game"
-  OutputDirectory = TmpPath / "Output"
-  (EngineDirectory / "Resources").mkdir(parents=True)
-  (GameDirectory / "Resources").mkdir(parents=True)
-  (GameDirectory / "Resources-EOS").mkdir(parents=True)
-  (EngineDirectory / "Resources" / "engine.txt").write_text("engine", encoding="utf-8")
-  (GameDirectory / "Resources" / "level.BLevel.json").write_text("{}", encoding="utf-8")
-  (GameDirectory / "Resources-EOS" / "online.BLevel.json").write_text("{}", encoding="utf-8")
-  (GameDirectory / "Resources-EOS" / "online.txt").write_text("online", encoding="utf-8")
-  EngineBinary = TmpPath / "BroccoliEngine.dll"
-  EosBinary = TmpPath / "EOSSDK-Win64-Shipping.dll"
-  ConvertLevelsScript = TmpPath / "ConvertLevels.py"
-  EngineBinary.write_bytes(b"engine")
-  EosBinary.write_bytes(b"eos")
-  WriteConvertLevelsScript(ConvertLevelsScript)
-
-  StageRuntime(
-    "Debug",
-    EngineDirectory,
-    GameDirectory,
-    OutputDirectory,
-    EngineBinary,
-    "Game",
-    EosBinary,
-    ConvertLevelsScript,
-  )
-
-  assert (OutputDirectory / "BroccoliEngine.dll").is_file()
-  assert (OutputDirectory / "EOSSDK-Win64-Shipping.dll").is_file()
-  assert (OutputDirectory / "Resources" / "Engine" / "engine.txt").is_file()
-  assert (OutputDirectory / "Resources" / "Game" / "level.BLevel").is_file()
-  assert not (OutputDirectory / "Resources" / "Game" / "level.BLevel.json").exists()
-  assert (OutputDirectory / "Resources-EOS" / "online.BLevel").is_file()
-  assert not (OutputDirectory / "Resources-EOS" / "online.BLevel.json").exists()
-  assert (OutputDirectory / "Resources-EOS" / "online.txt").is_file()
-
-
-def TestPackageRuntimeCreatesVerifiedLayout(TmpPath: Path) -> None:
-  OutputDirectory = TmpPath / "Output"
-  PublishDirectory = TmpPath / "Publish"
-  OnlineResourcesDirectory = TmpPath / "OnlineResources"
-  ResourcesDirectory = OutputDirectory / "Resources"
-  (ResourcesDirectory / "Engine").mkdir(parents=True)
-  (ResourcesDirectory / "Game").mkdir(parents=True)
-  (ResourcesDirectory / "Engine" / "engine.txt").write_text("engine", encoding="utf-8")
-  (ResourcesDirectory / "Game" / "level.BLevel").write_bytes(b"level")
-  PluginDirectory = OutputDirectory / "Plugins" / "ExamplePlugin"
-  PluginDirectory.mkdir(parents=True)
-  (PluginDirectory / "ExamplePlugin.dll").write_bytes(b"plugin")
-  (PluginDirectory / "plugin.json").write_text("{}", encoding="utf-8")
-  OnlineResourcesDirectory.mkdir()
-  (OnlineResourcesDirectory / "online.BLevel.json").write_text("{}", encoding="utf-8")
-  (OnlineResourcesDirectory / "online.txt").write_text("online", encoding="utf-8")
-  GameBinary = OutputDirectory / "Game-game.exe"
-  EngineBinary = OutputDirectory / "BroccoliEngine.dll"
-  EosBinary = OutputDirectory / "EOSSDK-Win64-Shipping.dll"
-  BootstrapBinary = OutputDirectory / "BroccoliBootstrap.exe"
-  ConvertLevelsScript = TmpPath / "ConvertLevels.py"
-  GameBinary.write_bytes(b"game")
-  EngineBinary.write_bytes(b"engine")
-  EosBinary.write_bytes(b"eos")
-  BootstrapBinary.write_bytes(b"bootstrap")
-  WriteConvertLevelsScript(ConvertLevelsScript)
-
-  PackageRuntime(
-    "Release",
-    OutputDirectory,
-    PublishDirectory,
-    GameBinary,
-    EngineBinary,
-    "Game",
-    EosBinary,
-    OnlineResourcesDirectory,
-    ConvertLevelsScript,
-    BootstrapBinary,
-    ["ExamplePlugin"],
-  )
-
-  VerifyRuntime(OutputDirectory, "Game", PublishDirectory, ["ExamplePlugin"])
-  assert (PublishDirectory / "Game.exe").is_file()
-  assert (PublishDirectory / "Binaries" / "Game.exe").is_file()
-  assert (PublishDirectory / "Binaries" / "Plugins" / "ExamplePlugin" / "ExamplePlugin.dll").is_file()
-  assert (PublishDirectory / "Binaries" / "Plugins" / "ExamplePlugin" / "plugin.json").is_file()
-  assert (PublishDirectory / "Resources-EOS" / "online.BLevel").is_file()
-  assert not (PublishDirectory / "Resources-EOS" / "online.BLevel.json").exists()
-  assert (PublishDirectory / "Resources-EOS" / "online.txt").is_file()
-
-  (PluginDirectory / "ExamplePlugin.dll").unlink()
-  with pytest.raises(ValueError, match="ExamplePlugin.dll"):
-    VerifyRuntime(OutputDirectory, "Game", PublishDirectory, ["ExamplePlugin"])
-  with pytest.raises(ValueError, match="ExamplePlugin.dll"):
-    PackageRuntime(
-      "Release",
-      OutputDirectory,
-      PublishDirectory,
-      GameBinary,
-      EngineBinary,
-      "Game",
-      EosBinary,
-      OnlineResourcesDirectory,
-      ConvertLevelsScript,
-      BootstrapBinary,
-      ["ExamplePlugin"],
-    )
-
-
-def TestPackageRuntimeAcceptsBuildWithoutPlugins(TmpPath: Path) -> None:
-  OutputDirectory = TmpPath / "Output"
-  PublishDirectory = TmpPath / "Publish"
-  OnlineResourcesDirectory = TmpPath / "OnlineResources"
-  ResourcesDirectory = OutputDirectory / "Resources"
-  (ResourcesDirectory / "Engine").mkdir(parents=True)
-  (ResourcesDirectory / "Game").mkdir(parents=True)
-  (ResourcesDirectory / "Engine" / "engine.txt").write_text("engine", encoding="utf-8")
-  (ResourcesDirectory / "Game" / "level.BLevel").write_bytes(b"level")
-  OnlineResourcesDirectory.mkdir()
-  GameBinary = OutputDirectory / "Game-game.exe"
-  EngineBinary = OutputDirectory / "BroccoliEngine.dll"
-  EosBinary = OutputDirectory / "EOSSDK-Win64-Shipping.dll"
-  BootstrapBinary = OutputDirectory / "BroccoliBootstrap.exe"
-  ConvertLevelsScript = TmpPath / "ConvertLevels.py"
-  GameBinary.write_bytes(b"game")
-  EngineBinary.write_bytes(b"engine")
-  EosBinary.write_bytes(b"eos")
-  BootstrapBinary.write_bytes(b"bootstrap")
-  WriteConvertLevelsScript(ConvertLevelsScript)
-
-  PackageRuntime(
-    "Release",
-    OutputDirectory,
-    PublishDirectory,
-    GameBinary,
-    EngineBinary,
-    "Game",
-    EosBinary,
-    OnlineResourcesDirectory,
-    ConvertLevelsScript,
-    BootstrapBinary,
-  )
-
-  VerifyRuntime(OutputDirectory, "Game", PublishDirectory)
-  assert not (PublishDirectory / "Binaries" / "Plugins").exists()
-
-
-def TestVerifyRuntimeReportsMissingArtifacts(TmpPath: Path) -> None:
-  with pytest.raises(ValueError, match="Missing required runtime artifacts"):
-    VerifyRuntime(TmpPath, "Game")

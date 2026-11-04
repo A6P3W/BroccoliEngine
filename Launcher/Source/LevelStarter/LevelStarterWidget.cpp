@@ -12,11 +12,7 @@
 
 // このアクタークラスを ActorRegistry に一般アクターとして自動登録するマクロ
 REGISTER_ACTOR(ALevelStarterWidget)
-CONTROL_METHOD(
-    "get_status",
-    "Return the LevelStarter widget status for automation verification.",
-    &ALevelStarterWidget::GetAutomationStatus
-)
+REGISTER_CONTROL_CLASS(ALevelStarterWidget)
 
 ALevelStarterWidget::ALevelStarterWidget() {
   constexpr float ButtonWidth = 300.0f;

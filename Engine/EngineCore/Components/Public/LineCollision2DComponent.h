@@ -17,10 +17,10 @@ class BROCCOLI_ENGINE_API MLineCollision2DComponent : public MCollision2DCompone
   }
 
   FVector2D GetWorldStart() const {
-    return GetWorldLocation() + LocalStart.RotateVector(GetWorldRotation()) * GetWorldScale();
+    return GetWorldLocation2D() + LocalStart.RotateVector(GetWorldRotation2D()) * GetWorldScale2D();
   }
   FVector2D GetWorldEnd() const {
-    return GetWorldLocation() + LocalEnd.RotateVector(GetWorldRotation()) * GetWorldScale();
+    return GetWorldLocation2D() + LocalEnd.RotateVector(GetWorldRotation2D()) * GetWorldScale2D();
   }
 
   void Draw() override;

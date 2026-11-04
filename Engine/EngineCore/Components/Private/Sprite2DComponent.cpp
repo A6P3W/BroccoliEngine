@@ -1,5 +1,7 @@
 #include "Sprite2DComponent.h"
 
+REGISTER_COMPONENT(MSprite2DComponent)
+
 #include "Actor.h"
 #include "ResourceManager.h"
 #include "UMath.h"
@@ -67,9 +69,9 @@ void MSprite2DComponent::Draw() {
   if (!IsVisible()) return;
 
   // 現在のワールドトランスフォームを取得
-  FVector2D worldPos = GetWorldLocation();
-  FRotator worldRot = GetWorldRotation();
-  FScale worldScale = GetWorldScale();
+  FVector2D worldPos = GetWorldLocation2D();
+  FRotator worldRot = GetWorldRotation2D();
+  FScale worldScale = GetWorldScale2D();
 
   auto& rs = RenderSystem::GetInstance();
 

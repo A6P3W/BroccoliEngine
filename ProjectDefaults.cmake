@@ -21,3 +21,13 @@ function(broccoli_apply_common_msvc_options Target)
     )
   endif()
 endfunction()
+
+function(broccoli_apply_gnu_debug_options Target)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options("${Target}" PRIVATE
+      "$<$<OR:$<CONFIG:Debug>,$<CONFIG:Editor>>:-g>"
+      "$<$<OR:$<CONFIG:Debug>,$<CONFIG:Editor>>:-O0>"
+    )
+  endif()
+endfunction()
+

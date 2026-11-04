@@ -20,7 +20,7 @@ bool FAutomationComponentMethodRegistry::RegisterMethod(
     std::string ClassName, FAutomationComponentMethodDescriptor Descriptor, std::string* OutError
 ) {
   return AutomationRegistryDetail::RegisterClassMethod(
-      Frozen,
+      false,
       MethodsByClass,
       std::move(ClassName),
       std::move(Descriptor),
@@ -42,6 +42,15 @@ FAutomationComponentMethodRegistry::GetMethodsForClass(std::string_view ClassNam
   );
 }
 
-void FAutomationComponentMethodRegistry::Freeze() { Frozen = true; }
-
-bool FAutomationComponentMethodRegistry::IsFrozen() const { return Frozen; }
+void FAutomationComponentMethodRegistry::UnregisterModule(std::string_view ModuleOwner) {
+  for (auto Class = MethodsByClass.begin(); Class != MethodsByClass.end();) {
+    std::erase_if(Class->second, [ModuleOwner](const auto& Method) {
+      return Method.second.ModuleOwner == ModuleOwner;
+    });
+    if (Class->second.empty()) {
+      Class = MethodsByClass.erase(Class);
+    } else {
+      ++Class;
+    }
+  }
+}

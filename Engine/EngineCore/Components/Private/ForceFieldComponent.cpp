@@ -14,6 +14,8 @@
 #include "Sprite2DComponent.h"
 #endif
 
+REGISTER_COMPONENT(MForceFieldComponent)
+
 MForceFieldComponent::MForceFieldComponent() {
   bReplicates = true;
   SetNetComponentName("ForceFieldComponent");
@@ -29,11 +31,14 @@ void MForceFieldComponent::OnRegister() {
     return;
   }
 
-  DebugSprite = NewObject<MSprite2DComponent>(GetOwner());
+  DebugSprite = NewObjectWithParams<MSprite2DComponent>(
+      GetOwner(), FComponentCreateParams{.EditorVisibility = EComponentEditorVisibility::Hidden}
+  );
   if (!DebugSprite) {
     return;
   }
 
+  DebugSprite->AttachToComponent(this);
   DebugSprite->SetRenderSettings(100, RenderSpace::World);
   UpdateDebugSprite();
   DebugSprite->RegisterComponent();
@@ -126,9 +131,9 @@ bool MForceFieldComponent::IsValidTarget(AActor* Target) const {
   }
 
   const bool Ignored = std::any_of(
-      IgnoredActorTags.begin(),
-      IgnoredActorTags.end(),
-      [Target](const std::string& Tag) { return Target->HasTag(Tag); }
+      IgnoredActorTags.begin(), IgnoredActorTags.end(), [Target](const std::string& Tag) {
+        return Target->HasTag(Tag);
+      }
   );
   if (Ignored) {
     return false;
@@ -136,14 +141,14 @@ bool MForceFieldComponent::IsValidTarget(AActor* Target) const {
 
   return AffectedActorTags.empty() ||
          std::any_of(
-             AffectedActorTags.begin(),
-             AffectedActorTags.end(),
-             [Target](const std::string& Tag) { return Target->HasTag(Tag); }
+             AffectedActorTags.begin(), AffectedActorTags.end(), [Target](const std::string& Tag) {
+               return Target->HasTag(Tag);
+             }
          );
 }
 
 FVector2D MForceFieldComponent::GetForceOrigin() const {
-  return RangeComponent ? RangeComponent->GetWorldLocation() : GetWorldLocation();
+  return RangeComponent ? RangeComponent->GetWorldLocation2D() : GetWorldLocation2D();
 }
 
 FVector2D MForceFieldComponent::CalculateVector(AActor* Target, float StrengthScale) const {
@@ -151,7 +156,7 @@ FVector2D MForceFieldComponent::CalculateVector(AActor* Target, float StrengthSc
     return FVector2D::ZeroVector();
   }
   FVector2D ForceDirection = ForceType == EForceFieldType::Point
-                                 ? Target->GetActorLocation() - GetForceOrigin()
+                                 ? Target->GetActorLocation2D() - GetForceOrigin()
                                  : Direction;
   const float DirectionSizeSquared = ForceDirection.SizeSquared();
   if (DirectionSizeSquared <= 0.0001f) {
@@ -176,12 +181,14 @@ void MForceFieldComponent::UpdateDebugSprite() {
   }
 
   DebugSprite->SubmitGraph(ResourceManager::GetInstance().LoadResourceGraph(FPath(ArrowPath)));
-  DebugSprite->SetWorldLocation(GetForceOrigin());
+  DebugSprite->SetWorldLocation2D(GetForceOrigin());
 
   if (ForceType == EForceFieldType::Directional && Direction.SizeSquared() > 0.0001f) {
-    DebugSprite->SetWorldRotation(FRotator(UMath::RadToDeg(std::atan2(Direction.X, -Direction.Y))));
+    DebugSprite->SetWorldRotation2D(
+        FRotator(UMath::RadToDeg(std::atan2(Direction.X, -Direction.Y)))
+    );
   } else {
-    DebugSprite->SetWorldRotation(FRotator(0.0f));
+    DebugSprite->SetWorldRotation2D(FRotator(0.0f));
   }
 }
 #endif

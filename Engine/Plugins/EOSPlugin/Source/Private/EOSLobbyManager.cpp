@@ -519,10 +519,7 @@ void EOSLobbyManager::CreateLobby(
 
   auto* Context = new FCreateLobbyContext{Request, {}, nullptr, {}, std::move(OnComplete)};
   EOS_Lobby_CreateLobby(
-      LobbyHandle,
-      &Options,
-      Context,
-      [](const EOS_Lobby_CreateLobbyCallbackInfo* Data) {
+      LobbyHandle, &Options, Context, [](const EOS_Lobby_CreateLobbyCallbackInfo* Data) {
         auto* Context = static_cast<FCreateLobbyContext*>(Data ? Data->ClientData : nullptr);
         EOSLobbyManager& LobbyManager = EOSLobbyManager::GetInstance();
 
@@ -753,10 +750,7 @@ void EOSLobbyManager::LeaveLobby(std::function<void(bool)> OnComplete) {
   Options.LocalUserId = LocalUserId;
   Options.LobbyId = Context->LobbyId.c_str();
   EOS_Lobby_LeaveLobby(
-      LobbyHandle,
-      &Options,
-      Context,
-      [](const EOS_Lobby_LeaveLobbyCallbackInfo* Data) {
+      LobbyHandle, &Options, Context, [](const EOS_Lobby_LeaveLobbyCallbackInfo* Data) {
         auto* Context = static_cast<FLeaveLobbyContext*>(Data ? Data->ClientData : nullptr);
         EOSLobbyManager& LobbyManager = EOSLobbyManager::GetInstance();
 
@@ -846,10 +840,7 @@ void EOSLobbyManager::SearchLobbies(
 
   auto* Context = new FSearchLobbiesContext{SearchHandle, std::move(OnComplete)};
   EOS_LobbySearch_Find(
-      SearchHandle,
-      &FindOptions,
-      Context,
-      [](const EOS_LobbySearch_FindCallbackInfo* Data) {
+      SearchHandle, &FindOptions, Context, [](const EOS_LobbySearch_FindCallbackInfo* Data) {
         auto* Context = static_cast<FSearchLobbiesContext*>(Data ? Data->ClientData : nullptr);
         EOSLobbyManager& LobbyManager = EOSLobbyManager::GetInstance();
         std::vector<FLobbyInfo> Results;
@@ -962,10 +953,7 @@ void EOSLobbyManager::FetchLobbyInfoById(
 
   auto* Context = new FFetchLobbyInfoContext{SearchHandle, LobbyId, std::move(OnComplete)};
   EOS_LobbySearch_Find(
-      SearchHandle,
-      &FindOptions,
-      Context,
-      [](const EOS_LobbySearch_FindCallbackInfo* Data) {
+      SearchHandle, &FindOptions, Context, [](const EOS_LobbySearch_FindCallbackInfo* Data) {
         auto* Context = static_cast<FFetchLobbyInfoContext*>(Data ? Data->ClientData : nullptr);
         EOSLobbyManager& LobbyManager = EOSLobbyManager::GetInstance();
 
@@ -1059,10 +1047,7 @@ void EOSLobbyManager::JoinLobby(const FLobbyInfo& LobbyInfo, std::function<void(
 
   auto* Context = new FJoinLobbyContext{LobbyInfo.LobbyId, std::move(OnComplete)};
   EOS_Lobby_JoinLobby(
-      LobbyHandle,
-      &Options,
-      Context,
-      [](const EOS_Lobby_JoinLobbyCallbackInfo* Data) {
+      LobbyHandle, &Options, Context, [](const EOS_Lobby_JoinLobbyCallbackInfo* Data) {
         auto* Context = static_cast<FJoinLobbyContext*>(Data ? Data->ClientData : nullptr);
         EOSLobbyManager& LobbyManager = EOSLobbyManager::GetInstance();
 

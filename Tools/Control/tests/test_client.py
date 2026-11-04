@@ -13,6 +13,7 @@ from broccoli_control.errors import (
   EngineTimeout,
   EngineUnavailable,
   InvalidEngineResponse,
+  OperationWaitTimeout,
 )
 
 STATE_DATA = {
@@ -48,6 +49,18 @@ def json_response(Status: int, Body: object) -> httpx.Response:
     json=Body,
     headers={"Content-Type": "application/json; charset=utf-8"},
   )
+
+
+OPERATION_DATA = {
+  "operationId": "17",
+  "kind": "step",
+  "status": "completed",
+  "requestedCount": 3,
+  "completedCount": 3,
+  "startUpdate": 10,
+  "endUpdate": 13,
+  "reason": "",
+}
 
 
 def test_state_response_is_converted_and_unknown_fields_are_ignored() -> None:
@@ -200,6 +213,107 @@ def test_get_actor_uses_actor_id_url() -> None:
     Client.close()
 
   assert Actor.ActorId == 42
+
+
+def test_step_engine_update_executes_registered_system_command() -> None:
+  def handler(Request: httpx.Request) -> httpx.Response:
+    assert Request.method == "POST"
+    assert Request.url == "http://127.0.0.1:39100/api/v1/system/commands/step_engine_update"
+    assert json.loads(Request.content) == {"count": 3}
+    return json_response(
+      200,
+      {
+        "success": True,
+        "data": {
+          "commandName": "step_engine_update",
+          "result": OPERATION_DATA,
+        },
+      },
+    )
+
+  Client = ControlClient(ControlConfig(), Transport=httpx.MockTransport(handler))
+  try:
+    Operation = Client.step_engine_update(3)
+  finally:
+    Client.close()
+
+  assert Operation.OperationId == "17"
+  assert Operation.Status == "completed"
+  assert Operation.CompletedCount == 3
+  assert Operation.IsTerminal
+
+
+def test_get_operation_status_uses_command_and_rejects_mismatched_identity() -> None:
+  def handler(Request: httpx.Request) -> httpx.Response:
+    assert Request.method == "POST"
+    assert Request.url == "http://127.0.0.1:39100/api/v1/system/commands/operation_status"
+    assert json.loads(Request.content) == {"operationId": "17"}
+    return json_response(
+      200,
+      {
+        "success": True,
+        "data": {
+          "commandName": "operation_status",
+          "result": {**OPERATION_DATA, "operationId": "wrong"},
+        },
+      },
+    )
+
+  Client = ControlClient(ControlConfig(), Transport=httpx.MockTransport(handler))
+  try:
+    with pytest.raises(InvalidEngineResponse, match="does not match"):
+      Client.get_operation_status("17")
+  finally:
+    Client.close()
+
+
+def test_wait_timeout_keeps_operation_id_and_never_resends_step() -> None:
+  Requests: list[str] = []
+  PendingStep = {
+    "operationId": "26",
+    "kind": "step",
+    "status": "pending",
+    "requestedCount": 3,
+    "completedCount": 0,
+    "startUpdate": 10,
+    "endUpdate": None,
+    "reason": "",
+  }
+
+  def handler(Request: httpx.Request) -> httpx.Response:
+    Requests.append(Request.url.path)
+    if Request.url.path.endswith("/step_engine_update"):
+      return json_response(
+        200,
+        {
+          "success": True,
+          "data": {"commandName": "step_engine_update", "result": PendingStep},
+        },
+      )
+    if Request.url.path.endswith("/operation_status"):
+      RunningStep = {**PendingStep, "status": "running"}
+      return json_response(
+        200,
+        {
+          "success": True,
+          "data": {"commandName": "operation_status", "result": RunningStep},
+        },
+      )
+    raise AssertionError(f"Unexpected request path: {Request.url.path}")
+
+  Client = ControlClient(ControlConfig(), Transport=httpx.MockTransport(handler))
+  try:
+    Operation = Client.step_engine_update(3)
+    with pytest.raises(OperationWaitTimeout, match="operationId=26") as ErrorInfo:
+      Client.wait_for_operation(
+        Operation.OperationId, TimeoutSeconds=0.02, PollIntervalSeconds=0.001
+      )
+  finally:
+    Client.close()
+
+  assert ErrorInfo.value.OperationId == "26"
+  assert Requests.count("/api/v1/system/commands/step_engine_update") == 1
+  assert Requests.count("/api/v1/system/commands/operation_status") >= 1
 
 
 def test_get_actor_preserves_not_found_error() -> None:

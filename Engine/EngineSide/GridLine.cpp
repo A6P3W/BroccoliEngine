@@ -32,7 +32,7 @@ void AGridLine::Draw2DGrid() {
   float CellSize = CollisionCellSize;
   FColor Color{255, 255, 255};
 
-  FVector2D CamPos = Cam->GetWorldLocation();
+  FVector2D CamPos = Cam->GetWorldLocation2D();
   float Fov = Cam->GetFOV();
 
   float MinScreenSpacing = 50.0f;

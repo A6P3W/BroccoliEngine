@@ -97,8 +97,6 @@ struct FAutomationSubsystem::FImpl {
     ComponentMethodRegistry = std::make_unique<FAutomationComponentMethodRegistry>();
     try {
       FAutomationRegistrationStore::Get().RegisterAll(*MethodRegistry, *ComponentMethodRegistry);
-      MethodRegistry->Freeze();
-      ComponentMethodRegistry->Freeze();
     } catch (const std::exception& Exception) {
       M_LOG(Log, "Automation method registration failed: {}", Exception.what());
       return false;
@@ -154,6 +152,7 @@ struct FAutomationSubsystem::FImpl {
     HttpRequestExecutor.reset();
     WorldAdapter.reset();
     SystemCommandRegistry.reset();
+    FAutomationRegistrationStore::Get().Detach();
     ComponentMethodRegistry.reset();
     MethodRegistry.reset();
     CommandQueue.reset();

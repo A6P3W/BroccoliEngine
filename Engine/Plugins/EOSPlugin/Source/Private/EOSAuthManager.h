@@ -1,23 +1,16 @@
 #pragma once
-#include "BroccoliEngineAPI.h"
-
-#include "EOSTypes.h"
+#include <eos_common.h>
+#include <eos_connect_types.h>
 
 #include <functional>
 #include <string>
 
-#include <eos_common.h>
-#include <eos_connect_types.h>
+#include "BroccoliEngineAPI.h"
+#include "EOSTypes.h"
 
-enum class EEOSAuthState {
-  NotLoggedIn,
-  CreatingDeviceId,
-  LoggingIn,
-  LoggedIn,
-  Failed
-};
+enum class EEOSAuthState { NotLoggedIn, CreatingDeviceId, LoggingIn, LoggedIn, Failed };
 
-class BROCCOLI_ENGINE_API EOSAuthManager {
+class EOSAuthManager {
  public:
   static EOSAuthManager& GetInstance();
 

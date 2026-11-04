@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "AutomationAnnotations.h"
 #include "WidgetBase.h"
 
 class MUIButtonComponent;
@@ -14,6 +15,10 @@ class ALevelStarterWidget : public AWidgetBase {
 
   ALevelStarterWidget();
 
+  CONTROL_METHOD(
+          .Name = "get_status",
+          .Description = "Return the LevelStarter widget status for automation verification."
+  )
   nlohmann::json GetAutomationStatus() const;
 
  protected:

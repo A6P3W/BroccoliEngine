@@ -11,21 +11,51 @@ FAutomationRegistrationStore& FAutomationRegistrationStore::Get() {
 }
 
 void FAutomationRegistrationStore::AddCallback(
-    BroccoliAutomationDetail::FAutomationRegistrationCallback Callback
+    BroccoliAutomationDetail::FAutomationRegistrationCallback Callback, std::string ModuleOwner
 ) {
-  if (Callback && std::find(Callbacks.begin(), Callbacks.end(), Callback) == Callbacks.end()) {
-    Callbacks.push_back(Callback);
+  if (!Callback || ModuleOwner.empty()) return;
+  const bool Exists =
+      std::any_of(Callbacks.begin(), Callbacks.end(), [Callback](const FEntry& Entry) {
+        return Entry.Callback == Callback;
+      });
+  if (Exists) return;
+  if (ActorRegistry && ComponentRegistry) {
+    BroccoliAutomationDetail::FAutomationRegistrationContext Context(
+        ActorRegistry, ComponentRegistry, ModuleOwner
+    );
+    try {
+      Callback(Context);
+    } catch (...) {
+      UnregisterModule(ModuleOwner);
+      throw;
+    }
   }
+  Callbacks.push_back({Callback, std::move(ModuleOwner)});
 }
 
 void FAutomationRegistrationStore::RegisterAll(
     FAutomationActorMethodRegistry& MethodRegistry,
-    FAutomationComponentMethodRegistry& ComponentMethodRegistry
-) const {
-  BroccoliAutomationDetail::FAutomationRegistrationContext Context(
-      &MethodRegistry, &ComponentMethodRegistry
-  );
-  for (const BroccoliAutomationDetail::FAutomationRegistrationCallback Callback : Callbacks) {
-    Callback(Context);
+    FAutomationComponentMethodRegistry& InComponentMethodRegistry
+) {
+  ActorRegistry = &MethodRegistry;
+  ComponentRegistry = &InComponentMethodRegistry;
+  for (const FEntry& Entry : Callbacks) {
+    BroccoliAutomationDetail::FAutomationRegistrationContext Context(
+        ActorRegistry, ComponentRegistry, Entry.ModuleOwner
+    );
+    Entry.Callback(Context);
   }
+}
+
+void FAutomationRegistrationStore::Detach() {
+  ActorRegistry = nullptr;
+  ComponentRegistry = nullptr;
+}
+
+void FAutomationRegistrationStore::UnregisterModule(std::string_view ModuleOwner) {
+  if (ActorRegistry) ActorRegistry->UnregisterModule(ModuleOwner);
+  if (ComponentRegistry) ComponentRegistry->UnregisterModule(ModuleOwner);
+  std::erase_if(Callbacks, [ModuleOwner](const FEntry& Entry) {
+    return Entry.ModuleOwner == ModuleOwner;
+  });
 }

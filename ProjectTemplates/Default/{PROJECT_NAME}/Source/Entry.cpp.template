@@ -2,14 +2,12 @@
 #include <imgui.h>
 
 #include "Application.h"
-#include "EOSCoreManager.h"
 #include "PathResolver.h"
 #include "SceneManager.h"
 
 namespace {
 void SetupGame() {
   ImGui::SetCurrentContext(static_cast<ImGuiContext*>(Application::GetImGuiContext()));
-  EOSCoreManager::GetInstance().InitializeOnlineServices();
   SceneManager::GetInstance().SetStartupLevelPath("/Game/BasicGameplay.BLevel");
 }
 }  // namespace

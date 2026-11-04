@@ -16,7 +16,7 @@ void MMovementComponent::AddLocalForce(const FVector2D& Force) {
     AddWorldForce(Force);
     return;
   }
-  AddWorldForce(Force.RotateVector(GetOwner()->GetActorRotation()));
+  AddWorldForce(Force.RotateVector(GetOwner()->GetActorRotation2D()));
 }
 
 void MMovementComponent::SetWorldForce(const FVector2D& Force) { PendingForce = Force; }
@@ -26,19 +26,17 @@ void MMovementComponent::SetLocalForce(const FVector2D& Force) {
     SetWorldForce(Force);
     return;
   }
-  SetWorldForce(Force.RotateVector(GetOwner()->GetActorRotation()));
+  SetWorldForce(Force.RotateVector(GetOwner()->GetActorRotation2D()));
 }
 
-void MMovementComponent::SetWorldVelocity(const FVector2D& NewVelocity) {
-  Velocity = NewVelocity;
-}
+void MMovementComponent::SetWorldVelocity(const FVector2D& NewVelocity) { Velocity = NewVelocity; }
 
 void MMovementComponent::SetLocalVelocity(const FVector2D& NewVelocity) {
   if (!GetOwner()) {
     SetWorldVelocity(NewVelocity);
     return;
   }
-  SetWorldVelocity(NewVelocity.RotateVector(GetOwner()->GetActorRotation()));
+  SetWorldVelocity(NewVelocity.RotateVector(GetOwner()->GetActorRotation2D()));
 }
 
 void MMovementComponent::AddWorldImpulse(const FVector2D& Impulse) {
@@ -50,7 +48,7 @@ void MMovementComponent::AddLocalImpulse(const FVector2D& Impulse) {
     AddWorldImpulse(Impulse);
     return;
   }
-  AddWorldImpulse(Impulse.RotateVector(GetOwner()->GetActorRotation()));
+  AddWorldImpulse(Impulse.RotateVector(GetOwner()->GetActorRotation2D()));
 }
 
 void MMovementComponent::AddVelocityRotation(const FRotator& Rotation) {
@@ -59,7 +57,7 @@ void MMovementComponent::AddVelocityRotation(const FRotator& Rotation) {
 
 void MMovementComponent::SetVelocityRotation(const FRotator& Rotation) {
   if (!GetOwner()) return;
-  PendingVelocityRotation = Rotation - GetOwner()->GetActorRotation();
+  PendingVelocityRotation = Rotation - GetOwner()->GetActorRotation2D();
 }
 
 void MMovementComponent::OnUpdate(float DeltaTime) {
@@ -73,7 +71,7 @@ void MMovementComponent::OnUpdate(float DeltaTime) {
   Step.DeltaTime = DeltaTime;
   Step.Force = PendingForce;
   Step.StartVelocity = Velocity;
-  Step.StartRotation = OwnerActor->GetActorRotation();
+  Step.StartRotation = OwnerActor->GetActorRotation2D();
   Step.VelocityRotation = PendingVelocityRotation;
   SimulateMovementStep(Step);
   ClearPendingMovement();
@@ -83,7 +81,7 @@ void MMovementComponent::SimulateMovementStep(const FMovementStepData& Step) {
   if (Step.DeltaTime <= 0.0f) return;
 
   if (AActor* OwnerActor = GetOwner()) {
-    OwnerActor->SetActorRotation(Step.StartRotation);
+    OwnerActor->SetActorRotation2D(Step.StartRotation);
   }
 
   const float FrameScale = Step.DeltaTime * ReferenceFrameRate;
@@ -102,7 +100,7 @@ void MMovementComponent::SimulateMovementStep(const FMovementStepData& Step) {
 void MMovementComponent::ApplyMovementOffset(const FVector2D& Offset) {
   AActor* OwnerActor = GetOwner();
   if (!OwnerActor || Offset.SizeSquared() <= 0.0001f) return;
-  OwnerActor->AddActorWorldOffset(Offset);
+  OwnerActor->AddActorWorldOffset2D(Offset);
 }
 
 void MMovementComponent::ClearPendingMovement() {

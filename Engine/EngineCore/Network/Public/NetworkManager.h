@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <string_view>
 
 #include "BroccoliEngineAPI.h"
 #include "NetBuffer.h"
@@ -18,9 +19,8 @@ class BROCCOLI_ENGINE_API NetworkManager {
 
   static NetworkManager& GetInstance();
 
-  bool SetTransportType(ENetworkTransportType Type);
-  ENetworkTransportType GetTransportType() const;
-  void SetPeerAuthorizationCallback(INetworkTransport::PeerAuthorizationCallback Callback);
+  bool SetTransportName(std::string_view Name);
+  const std::string& GetTransportName() const;
   bool StartServer(uint16_t Port, size_t MaxConnections = 32, size_t ChannelCount = 2);
   bool ConnectToServer(const std::string& HostName, uint16_t Port, size_t ChannelCount = 2);
 

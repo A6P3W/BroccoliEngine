@@ -373,14 +373,14 @@ void UIInputTextComponent::AppendCharacter(char character) {
 
 void UIInputTextComponent::UpdateVisuals() {
   if (ImplPtr->BoxSprite != nullptr) {
-    ImplPtr->BoxSprite->SetRelativeLocation(FVector2D::ZeroVector());
+    ImplPtr->BoxSprite->SetRelativeLocation2D(FVector2D::ZeroVector());
     ImplPtr->BoxSprite->SubmitBox(
         ImplPtr->Width, ImplPtr->Height, GetCurrentBackgroundColor(), true
     );
   }
 
   if (ImplPtr->BorderSprite != nullptr) {
-    ImplPtr->BorderSprite->SetRelativeLocation(FVector2D::ZeroVector());
+    ImplPtr->BorderSprite->SetRelativeLocation2D(FVector2D::ZeroVector());
     if (ImplPtr->bIsEditing) {
       ImplPtr->BorderSprite->SubmitBox(ImplPtr->Width, ImplPtr->Height, FColor{0, 255, 0}, false);
     } else if (ImplPtr->CurrentState == EButtonState::Hovered) {
@@ -398,7 +398,7 @@ void UIInputTextComponent::UpdateVisuals() {
     if (ImplPtr->CurrentState == EButtonState::Hovered && !ImplPtr->bIsEditing) {
       const int HintWidth =
           ResourceManager::GetInstance().GetTextWidth(ActionHintText, ImplPtr->HintFontHandle);
-      ImplPtr->ActionHintSprite->SetRelativeLocation(
+      ImplPtr->ActionHintSprite->SetRelativeLocation2D(
           {-HintWidth * 0.5f, ImplPtr->Height * 0.5f + ImplPtr->ActionHintOffsetY}
       );
       ImplPtr->ActionHintSprite->SubmitText(
@@ -424,7 +424,7 @@ void UIInputTextComponent::UpdateVisuals() {
   const float MaxTextWidth = (std::max)(0.0f, ImplPtr->Width - LeftPadding * 2.0f);
   const float TextX = -ImplPtr->Width * 0.5f + LeftPadding;
   const float TextY = -ImplPtr->FontSize * 0.5f + ImplPtr->TextOffsetY;
-  ImplPtr->TextSprite->SetRelativeLocation({TextX, TextY});
+  ImplPtr->TextSprite->SetRelativeLocation2D({TextX, TextY});
   ImplPtr->TextSprite->SubmitText(
       DisplayText,
       (Color.A = static_cast<uint8_t>(TextWidth > MaxTextWidth ? 220 : 255), Color),

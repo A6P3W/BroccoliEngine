@@ -1,4 +1,32 @@
-# Actor Reflection
+# Actor / Component Reflection
+
+Component も `EDITOR_PROPERTY(...)` を使用します。`REGISTER_COMPONENT` は生成 Factory と
+Reflection class を同時に登録し、基底 Component の Reflection class を再帰的に登録します。
+
+```cpp
+class MHealthComponent : public MActorComponent {
+ public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MHealthComponent)
+
+ private:
+  EDITOR_PROPERTY(.Min = 0)
+  int Health = 100;
+};
+
+// MHealthComponent.cpp
+REGISTER_COMPONENT(MHealthComponent)
+```
+
+Inspector は Actor と所有 Component の Property を同じ `FProperty::Get/Set(void*)` で
+描画します。`REGISTER_COMPONENT(MCamera3DComponent, .AllowMultiple = false)` のように
+同一 Actor 内での Editor 追加を制限できます。`EditorAddable = false` は候補一覧から
+除外します。Plugin Component は `PluginContext::RegisterComponent<T>()` で登録します。
+
+Level v4 は `components` 配列に `name`、`class`、`source`、`properties` を保存します。
+`NewObject<T>(this, "Health")` で作った native Component だけが Property override の
+保存対象になります。無名の native Component は生成順に依存するため対象外です。
+Registry から追加した Instance Component は自動名を含めて保存・復元されます。
+`ComponentName` は `FComponentId` と `NetComponentName` から独立しています。
 
 `EDITOR_PROPERTY(...)` を付けた非 static データメンバは、C++ のアクセス修飾子に関係なく Editor と Level 保存へ公開されます。Property 型はメンバの実型から決まります。
 

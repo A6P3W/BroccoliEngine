@@ -20,4 +20,5 @@ class InspectorPanel final : public IEditorPanel {
   FQuaternion LastAppliedRotation = FQuaternion::Identity();
   FRotator3D CachedRotation;
   bool bHasCachedRotation = false;
+  bool bShowInternalComponents = false;
 };

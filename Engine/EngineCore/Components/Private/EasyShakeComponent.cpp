@@ -1,5 +1,7 @@
 #include "EasyShakeComponent.h"
 
+REGISTER_COMPONENT(MEasyShakeComponent)
+
 #include <algorithm>
 #include <cmath>
 #include <random>
@@ -140,7 +142,7 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime) {
   if (!target) return;
 
   if (ImplPtr->LastAppliedLocalOffset.SizeSquared() > 1e-8f) {
-    target->AddLocalOffset(ImplPtr->LastAppliedLocalOffset * -1.0f);
+    target->AddLocalOffset2D(ImplPtr->LastAppliedLocalOffset * -1.0f);
     ImplPtr->LastAppliedLocalOffset = FVector2D::ZeroVector();
   }
 
@@ -163,7 +165,7 @@ void MEasyShakeComponent::OnUpdate(float DeltaTime) {
   }
 
   if (totalOffset.SizeSquared() > 1e-8f) {
-    target->AddLocalOffset(totalOffset);
+    target->AddLocalOffset2D(totalOffset);
     ImplPtr->LastAppliedLocalOffset = totalOffset;
   }
 }

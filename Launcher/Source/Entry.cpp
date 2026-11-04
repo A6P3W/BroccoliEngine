@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "Application.h"
-#include "EOSCoreManager.h"
+#include "BEPlugins.h"
 #include "ExamplePlugin/ExamplePlugin.h"
 #include "LevelStarter/LevelStarterGameMode.h"
 #include "LevelStarter/LevelStarterWidget.h"
@@ -17,12 +17,13 @@ namespace {
 void SetupGame() {
   // エンジンで管理されている ImGui コンテキストを取得し、ゲーム側の ImGui に設定
   ImGui::SetCurrentContext(static_cast<ImGuiContext*>(Application::GetImGuiContext()));
-  // EOSのオンラインサービスを初期化
-  EOSCoreManager::GetInstance().InitializeOnlineServices();
 
-  const int ExamplePluginRandomNumber = ExamplePlugin::GetRandomNumber();
-  M_LOG(Log, "ExamplePlugin random number: {}", ExamplePluginRandomNumber);
-  (void)ExamplePluginRandomNumber;
+#ifdef BROCCOLI_WITH_EXAMPLEPLUGIN
+  if (BEPlugins::IsAvailable("ExamplePlugin")) {
+    const int ExamplePluginRandomNumber = ExamplePlugin::GetRandomNumber();
+    M_LOG(Log, "ExamplePlugin random number: {}", ExamplePluginRandomNumber);
+  }
+#endif
 
   // ゲーム起動時に最初に読み込むレベル（ステージ）ファイルのパスを設定
   SceneManager::GetInstance().SetStartupLevelPath("Game/LevelStarter.BLevel");

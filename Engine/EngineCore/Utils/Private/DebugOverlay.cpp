@@ -1,9 +1,9 @@
 #include "DebugOverlay.h"
 
+#include <imgui.h>
+
 #include <algorithm>
 #include <cstdint>
-
-#include <imgui.h>
 
 #include "Actor.h"
 #include "EngineDefine.h"
@@ -15,15 +15,12 @@ DebugOverlayManager& DebugOverlayManager::GetInstance() {
 }
 
 void DebugOverlayManager::AddLog(
-    const std::string& Key,
-    float DisplayTime,
-    const std::string& FormattedText
+    const std::string& Key, float DisplayTime, const std::string& FormattedText
 ) {
-  const auto EntryIt = std::find_if(
-      Entries.begin(),
-      Entries.end(),
-      [&Key](const DebugOverlayLogEntry& Entry) { return Entry.Key == Key; }
-  );
+  const auto EntryIt =
+      std::find_if(Entries.begin(), Entries.end(), [&Key](const DebugOverlayLogEntry& Entry) {
+        return Entry.Key == Key;
+      });
 
   if (EntryIt != Entries.end()) {
     EntryIt->TimeRemaining = DisplayTime;
@@ -41,11 +38,10 @@ void DebugOverlayManager::AddWorldLog(
     const FVector2D& WorldPosition,
     const std::string& FormattedText
 ) {
-  const auto EntryIt = std::find_if(
-      WorldLogs.begin(),
-      WorldLogs.end(),
-      [&Key](const FWorldLogEntry& Entry) { return Entry.Key == Key; }
-  );
+  const auto EntryIt =
+      std::find_if(WorldLogs.begin(), WorldLogs.end(), [&Key](const FWorldLogEntry& Entry) {
+        return Entry.Key == Key;
+      });
 
   if (EntryIt != WorldLogs.end()) {
     EntryIt->TimeRemaining = DisplayTime;
@@ -59,10 +55,7 @@ void DebugOverlayManager::AddWorldLog(
 }
 
 void DebugOverlayManager::AddWorldLog(
-    const std::string& Key,
-    float DisplayTime,
-    const AActor* Actor,
-    const std::string& FormattedText
+    const std::string& Key, float DisplayTime, const AActor* Actor, const std::string& FormattedText
 ) {
   if (Actor == nullptr) {
     return;
@@ -71,12 +64,9 @@ void DebugOverlayManager::AddWorldLog(
   constexpr float BaseHeightOffset = 10.0f;
   constexpr float LineSpacing = 8.0f;
   const std::size_t ActorLogIndex = ActorWorldLogCounts[Actor]++;
-  const FVector2D WorldPosition = Actor->GetActorLocation() +
-                                  FVector2D(
-                                      0.0f,
-                                      BaseHeightOffset -
-                                          LineSpacing * static_cast<float>(ActorLogIndex)
-                                  );
+  const FVector2D WorldPosition =
+      Actor->GetActorLocation2D() +
+      FVector2D(0.0f, BaseHeightOffset - LineSpacing * static_cast<float>(ActorLogIndex));
   const std::string ActorLogKey =
       std::format("{}:{}", reinterpret_cast<std::uintptr_t>(Actor), Key);
 
@@ -102,9 +92,7 @@ void DebugOverlayManager::UpdateWorldLogs(float DeltaTime) {
     Entry.TimeRemaining -= DeltaTime;
   }
 
-  std::erase_if(WorldLogs, [](const FWorldLogEntry& Entry) {
-    return Entry.TimeRemaining <= 0.0f;
-  });
+  std::erase_if(WorldLogs, [](const FWorldLogEntry& Entry) { return Entry.TimeRemaining <= 0.0f; });
 }
 
 void DebugOverlayManager::Draw() {
@@ -128,8 +116,7 @@ void DebugOverlayManager::DrawWorldLogs() {
   const ImVec2 DisplaySize = ImGui::GetIO().DisplaySize;
   const float Scale = (std::min)(DisplaySize.x / VirtualWidth, DisplaySize.y / VirtualHeight);
   const ImVec2 Offset = {
-      (DisplaySize.x - VirtualWidth * Scale) * 0.5f,
-      (DisplaySize.y - VirtualHeight * Scale) * 0.5f
+      (DisplaySize.x - VirtualWidth * Scale) * 0.5f, (DisplaySize.y - VirtualHeight * Scale) * 0.5f
   };
 
   constexpr float FadeStartTime = 0.5f;

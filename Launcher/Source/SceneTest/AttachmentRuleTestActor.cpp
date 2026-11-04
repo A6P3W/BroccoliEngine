@@ -13,9 +13,9 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
 
   RotatingParent = NewObject<MSceneComponent>(this);
   // 親コンポーネントの初期相対位置を設定
-  RotatingParent->SetRelativeLocation({320.0f, 240.0f});
+  RotatingParent->SetRelativeLocation2D({320.0f, 240.0f});
   // 親コンポーネントのスケールを設定（1.5倍）
-  RotatingParent->SetRelativeScale(FScale(1.5f));
+  RotatingParent->SetRelativeScale2D(FScale(1.5f));
   RotatingParent->AttachToComponent(GetRootComponent());
   RotatingParent->RegisterComponent();
 
@@ -40,7 +40,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
   KeepRelativeSprite->SubmitCircle(12.0f, FColor{80, 170, 255}, true);
 
   // 親からの相対位置を X=100.0f に設定
-  KeepRelativeSprite->SetRelativeLocation({100.0f, 0.0f});
+  KeepRelativeSprite->SetRelativeLocation2D({100.0f, 0.0f});
 
   // KeepRelativeTransform ルールで親コンポーネントにアタッチ
   // （親との相対的なトランスフォームを維持するため、親のスケール1.5倍や回転の影響を受けます）
@@ -68,7 +68,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
 
   KeepWorldStartMarker->SubmitCircle(16.0f, FColor{160, 160, 160}, false);
 
-  KeepWorldStartMarker->SetWorldLocation(KeepWorldStartLocation);
+  KeepWorldStartMarker->SetWorldLocation2D(KeepWorldStartLocation);
 
   KeepWorldStartMarker->RegisterComponent();
 
@@ -77,10 +77,10 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
   KeepWorldSprite->SubmitCircle(12.0f, FColor{80, 255, 140}, true);
 
   // アタッチ前にアクターのワールド座標を設定
-  KeepWorldSprite->SetWorldLocation(KeepWorldStartLocation);
+  KeepWorldSprite->SetWorldLocation2D(KeepWorldStartLocation);
 
   // ワールドスケールを 0.75倍 に設定
-  KeepWorldSprite->SetWorldScale(FScale(0.75f));
+  KeepWorldSprite->SetWorldScale2D(FScale(0.75f));
 
   // KeepWorldTransform ルールで親コンポーネントにアタッチ
   // （ワールド空間でのアタッチ前の絶対座標・スケールを維持したまま親子関係になります）
@@ -104,7 +104,7 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
 
   SnapBeforeMarker->SubmitCircle(14.0f, FColor{160, 160, 160}, false);
 
-  SnapBeforeMarker->SetWorldLocation(SnapBeforeLocation);
+  SnapBeforeMarker->SetWorldLocation2D(SnapBeforeLocation);
 
   SnapBeforeMarker->RegisterComponent();
 
@@ -113,9 +113,9 @@ AAttachmentRuleTestActor::AAttachmentRuleTestActor() {
   SnapSprite->SubmitCircle(10.0f, FColor{255, 80, 110}, true);
 
   // このワールド位置は Snap ルールによりアタッチ時に上書きされ無視されます
-  SnapSprite->SetWorldLocation(SnapBeforeLocation);
+  SnapSprite->SetWorldLocation2D(SnapBeforeLocation);
 
-  SnapSprite->SetWorldScale(FScale(0.5f));
+  SnapSprite->SetWorldScale2D(FScale(0.5f));
 
   // SnapToTargetIncludingScale ルールで親コンポーネントにアタッチ
   // （子コンポーネントの位置・回転・スケールをリセットし、親コンポーネントの位置・回転・スケールに完全吸着させます）
@@ -134,5 +134,5 @@ void AAttachmentRuleTestActor::OnUpdate(float DeltaTime) {
   }
 
   // 親コンポーネントをワールド座標空間において、指定の回転速度で回転させる
-  RotatingParent->AddWorldRotation(FRotator(RotationSpeed * DeltaTime));
+  RotatingParent->AddWorldRotation2D(FRotator(RotationSpeed * DeltaTime));
 }

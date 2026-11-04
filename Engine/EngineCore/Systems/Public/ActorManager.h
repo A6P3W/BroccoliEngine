@@ -41,8 +41,8 @@ class BROCCOLI_ENGINE_API FActorManager {
     }
     T* ptr = obj.get();
     ptr->SetWorld(GetWorld());
-    ptr->SetActorLocation(location);
-    ptr->SetActorRotation(rotation);
+    ptr->SetActorLocation2D(location);
+    ptr->SetActorRotation2D(rotation);
     RegisterActorId(*ptr);
     RegisterInstanceName(*ptr);
 

@@ -12,6 +12,7 @@
 
 #include "Log.h"
 #include "NetPacketType.h"
+#include "NetworkTransportRegistry.h"
 
 namespace {
 const char* GetPacketTypeName(ENetPacketType PacketType) {
@@ -42,49 +43,6 @@ const char* GetPacketTypeName(ENetPacketType PacketType) {
   }
 }
 
-const char* GetTransportTypeName(ENetworkTransportType Type) {
-  return Type == ENetworkTransportType::EOSP2P ? "EOSP2P" : "ENet";
-}
-
-ENetworkTransportType GetConfiguredTransportType() {
-  constexpr ENetworkTransportType DefaultType = ENetworkTransportType::ENet;
-  std::string ConfigString;
-#ifdef _MSC_VER
-  char* ConfigValue = nullptr;
-  size_t ConfigLength = 0;
-  const errno_t ConfigResult = _dupenv_s(&ConfigValue, &ConfigLength, "NetworkTransport");
-  if (ConfigResult == 0 && ConfigValue) {
-    ConfigString = ConfigValue;
-  }
-  std::free(ConfigValue);
-#else
-  if (const char* ConfigValue = std::getenv("NetworkTransport")) {
-    ConfigString = ConfigValue;
-  }
-#endif
-  if (ConfigString.empty()) {
-    M_LOG(
-        Log,
-        "[NetworkManager] NetworkTransport is not set. default={}",
-        GetTransportTypeName(DefaultType)
-    );
-    return DefaultType;
-  }
-  if (std::string_view(ConfigString) == "EOSP2P") {
-    return ENetworkTransportType::EOSP2P;
-  }
-  if (std::string_view(ConfigString) == "ENet") {
-    return ENetworkTransportType::ENet;
-  }
-  M_LOG(
-      Log,
-      "[NetworkManager] Unknown NetworkTransport value: value={} default={}",
-      ConfigString,
-      GetTransportTypeName(DefaultType)
-  );
-  return DefaultType;
-}
-
 double GetMonotonicTimeSeconds() {
   const auto TimeSinceEpoch = std::chrono::steady_clock::now().time_since_epoch();
   return std::chrono::duration<double>(TimeSinceEpoch).count();
@@ -95,14 +53,11 @@ struct NetworkManager::Impl {
   struct FManagedPeer {
     FNetworkPeerId TransportPeerId = 0;
     FNetworkConnectionId ConnectionId = 0;
-    ENetworkTransportType TransportType = ENetworkTransportType::ENet;
-    std::string RemoteProductUserId;
     ETransportConnectionState ConnectionState = ETransportConnectionState::Connected;
   };
 
   std::unique_ptr<INetworkTransport> Transport;
-  ENetworkTransportType TransportType = ENetworkTransportType::ENet;
-  INetworkTransport::PeerAuthorizationCallback PeerAuthorization;
+  std::string TransportName = "ENet";
   std::unordered_map<FNetworkConnectionId, FManagedPeer> PeersByConnectionId;
   std::unordered_map<FNetworkPeerId, FNetworkConnectionId> ConnectionIdsByPeer;
   std::unordered_set<uint8_t> LoggedReceivedPacketTypes;
@@ -119,14 +74,7 @@ NetworkManager& NetworkManager::GetInstance() {
   return Instance;
 }
 
-NetworkManager::NetworkManager() : ImplPtr(new Impl()) {
-  ImplPtr->TransportType = GetConfiguredTransportType();
-  M_LOG(
-      Log,
-      "[NetworkManager] Transport configured: type={}",
-      GetTransportTypeName(ImplPtr->TransportType)
-  );
-}
+NetworkManager::NetworkManager() : ImplPtr(new Impl()) { NetworkTransportRegistry::GetInstance(); }
 
 NetworkManager::~NetworkManager() {
   Stop();
@@ -134,34 +82,16 @@ NetworkManager::~NetworkManager() {
   ImplPtr = nullptr;
 }
 
-bool NetworkManager::SetTransportType(ENetworkTransportType Type) {
-  if (IsRunning()) {
-    M_LOG(Log, "[NetworkManager] Transport change rejected while running.");
+bool NetworkManager::SetTransportName(std::string_view Name) {
+  if (IsRunning() || bIsServicing || Name.empty() ||
+      !NetworkTransportRegistry::GetInstance().IsRegistered(Name))
     return false;
-  }
-  if (Type != ENetworkTransportType::ENet && Type != ENetworkTransportType::EOSP2P) {
-    M_LOG(
-        Log, "[NetworkManager] Transport change rejected: unknown type={}", static_cast<int>(Type)
-    );
-    return false;
-  }
-
   ImplPtr->Transport.reset();
-  ImplPtr->TransportType = Type;
-  M_LOG(Log, "[NetworkManager] Transport selected: type={}", GetTransportTypeName(Type));
+  ImplPtr->TransportName = Name;
   return true;
 }
 
-ENetworkTransportType NetworkManager::GetTransportType() const { return ImplPtr->TransportType; }
-
-void NetworkManager::SetPeerAuthorizationCallback(
-    INetworkTransport::PeerAuthorizationCallback Callback
-) {
-  ImplPtr->PeerAuthorization = std::move(Callback);
-  if (ImplPtr->Transport) {
-    ImplPtr->Transport->SetPeerAuthorizationCallback(ImplPtr->PeerAuthorization);
-  }
-}
+const std::string& NetworkManager::GetTransportName() const { return ImplPtr->TransportName; }
 
 bool NetworkManager::StartServer(uint16_t Port, size_t MaxConnections, size_t ChannelCount) {
   Stop();
@@ -170,7 +100,7 @@ bool NetworkManager::StartServer(uint16_t Port, size_t MaxConnections, size_t Ch
     M_LOG(
         Log,
         "[NetworkManager] Listen server start failed: transport={} port={}",
-        GetTransportTypeName(ImplPtr->TransportType),
+        ImplPtr->TransportName,
         Port
     );
     Stop();
@@ -187,7 +117,7 @@ bool NetworkManager::StartServer(uint16_t Port, size_t MaxConnections, size_t Ch
   M_LOG(
       Log,
       "[NetworkManager] Listen server ready: transport={} port={}",
-      GetTransportTypeName(ImplPtr->TransportType),
+      ImplPtr->TransportName,
       Port
   );
   return true;
@@ -206,7 +136,7 @@ bool NetworkManager::ConnectToServer(
     M_LOG(
         Log,
         "[NetworkManager] Client connection start failed: transport={} target={} port={}",
-        GetTransportTypeName(ImplPtr->TransportType),
+        ImplPtr->TransportName,
         HostName,
         Port
     );
@@ -223,7 +153,7 @@ bool NetworkManager::ConnectToServer(
   M_LOG(
       Log,
       "[NetworkManager] Client connection started: transport={} target={} port={}",
-      GetTransportTypeName(ImplPtr->TransportType),
+      ImplPtr->TransportName,
       HostName,
       Port
   );
@@ -447,23 +377,14 @@ bool NetworkManager::SendToPeer(
 }
 
 bool NetworkManager::CreateSelectedTransport() {
-  ImplPtr->Transport = CreateNetworkTransport(ImplPtr->TransportType);
+  ImplPtr->Transport = NetworkTransportRegistry::GetInstance().Create(ImplPtr->TransportName);
   if (!ImplPtr->Transport) {
-    M_LOG(
-        Log,
-        "[NetworkManager] Transport creation failed: type={}",
-        GetTransportTypeName(ImplPtr->TransportType)
-    );
+    M_LOG(Log, "[NetworkManager] Transport creation failed: type={}", ImplPtr->TransportName);
     return false;
   }
 
   BindTransportCallbacks();
-  ImplPtr->Transport->SetPeerAuthorizationCallback(ImplPtr->PeerAuthorization);
-  M_LOG(
-      Log,
-      "[NetworkManager] Transport created for start: type={}",
-      GetTransportTypeName(ImplPtr->TransportType)
-  );
+  M_LOG(Log, "[NetworkManager] Transport created for start: type={}", ImplPtr->TransportName);
   return true;
 }
 
@@ -502,9 +423,6 @@ FNetworkConnectionId NetworkManager::RegisterPeer(FNetworkPeerId PeerId) {
   Impl::FManagedPeer Peer;
   Peer.TransportPeerId = PeerId;
   Peer.ConnectionId = ConnectionId;
-  Peer.TransportType = ImplPtr->TransportType;
-  Peer.RemoteProductUserId =
-      ImplPtr->Transport ? ImplPtr->Transport->GetRemoteProductUserId(PeerId) : std::string{};
   Peer.ConnectionState = ETransportConnectionState::Connected;
   ImplPtr->PeersByConnectionId[ConnectionId] = std::move(Peer);
   ImplPtr->ConnectionIdsByPeer[PeerId] = ConnectionId;
@@ -544,18 +462,12 @@ void NetworkManager::HandleTransportConnected(FNetworkPeerId PeerId) {
   if (ConnectionId == 0) {
     return;
   }
-  const auto Iterator = ImplPtr->PeersByConnectionId.find(ConnectionId);
   M_LOG(
       Log,
-      "[NetworkTransportTest] Connection verified: peer={} connection={} transport={} "
-      "remoteUser={}",
+      "[NetworkTransportTest] Connection verified: peer={} connection={} transport={}",
       PeerId,
       ConnectionId,
-      GetTransportTypeName(ImplPtr->TransportType),
-      Iterator != ImplPtr->PeersByConnectionId.end() &&
-              !Iterator->second.RemoteProductUserId.empty()
-          ? Iterator->second.RemoteProductUserId
-          : "<none>"
+      ImplPtr->TransportName
   );
   if (bIsClient) {
     FNetBuffer Buffer;

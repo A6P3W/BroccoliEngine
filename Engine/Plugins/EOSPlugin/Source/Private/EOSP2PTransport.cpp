@@ -14,6 +14,7 @@
 
 #include "EOSAuthManager.h"
 #include "EOSCoreManager.h"
+#include "EOSLobbyManager.h"
 #include "Log.h"
 #include "NetworkTransport.h"
 
@@ -78,8 +79,9 @@ class FEOSP2PTransport final : public INetworkTransport {
     return true;
   }
 
-  bool Connect(const FNetworkEndpoint& Endpoint, size_t ChannelCount, FNetworkPeerId& OutPeerId)
-      override {
+  bool Connect(
+      const FNetworkEndpoint& Endpoint, size_t ChannelCount, FNetworkPeerId& OutPeerId
+  ) override {
     Stop();
     OutPeerId = 0;
     if (!Initialize(1, ChannelCount)) {
@@ -87,12 +89,12 @@ class FEOSP2PTransport final : public INetworkTransport {
       return false;
     }
 
-    EOS_ProductUserId RemoteUserId = EOS_ProductUserId_FromString(Endpoint.HostName.c_str());
+    EOS_ProductUserId RemoteUserId = EOS_ProductUserId_FromString(Endpoint.Address.c_str());
     if (!RemoteUserId) {
       M_LOG(
           Log,
           "[EOSP2PTransport] Connect failed: host must be a Product User ID. host={}",
-          Endpoint.HostName
+          Endpoint.Address
       );
       Stop();
       return false;
@@ -120,7 +122,7 @@ class FEOSP2PTransport final : public INetworkTransport {
         Log,
         "[EOSP2PTransportTest] Connection target ready: remoteUser={} peer={} socket={} "
         "portUnused={}",
-        Endpoint.HostName,
+        Endpoint.Address,
         OutPeerId,
         SocketName,
         Endpoint.Port
@@ -361,11 +363,6 @@ class FEOSP2PTransport final : public INetworkTransport {
 
   bool IsRunning() const override { return Running; }
 
-  std::string GetRemoteProductUserId(FNetworkPeerId PeerId) const override {
-    const auto Iterator = PeersById.find(PeerId);
-    return Iterator == PeersById.end() ? std::string{} : ProductUserIdToString(Iterator->second);
-  }
-
   void SetConnectedCallback(ConnectedCallback Callback) override {
     OnConnected = std::move(Callback);
   }
@@ -377,9 +374,6 @@ class FEOSP2PTransport final : public INetworkTransport {
   }
   void SetPacketReceivedCallback(PacketReceivedCallback Callback) override {
     OnPacketReceived = std::move(Callback);
-  }
-  void SetPeerAuthorizationCallback(PeerAuthorizationCallback Callback) override {
-    IsPeerAuthorized = std::move(Callback);
   }
 
  private:
@@ -537,7 +531,8 @@ class FEOSP2PTransport final : public INetworkTransport {
       return;
     }
     const std::string RemoteUserId = ProductUserIdToString(Data->RemoteUserId);
-    if (RemoteUserId.empty() || !IsPeerAuthorized || !IsPeerAuthorized(RemoteUserId)) {
+    if (RemoteUserId.empty() ||
+        !EOSLobbyManager::GetInstance().IsCurrentLobbyMember(RemoteUserId)) {
       M_LOG(
           Log,
           "[EOSP2PTransportTest] Incoming connection rejected: unauthorized remoteUser={}",
@@ -693,8 +688,8 @@ class FEOSP2PTransport final : public INetworkTransport {
     }
   }
 
-  static void EOS_CALL HandleConnectionRequest(const EOS_P2P_OnIncomingConnectionRequestInfo* Data
-  ) {
+  static void EOS_CALL
+  HandleConnectionRequest(const EOS_P2P_OnIncomingConnectionRequestInfo* Data) {
     auto* Transport = static_cast<FEOSP2PTransport*>(Data ? Data->ClientData : nullptr);
     if (Transport) {
       Transport->OnConnectionRequest(Data);
@@ -747,7 +742,6 @@ class FEOSP2PTransport final : public INetworkTransport {
   DisconnectedCallback OnDisconnected;
   PacketReceivedCallback OnPacketReceived;
   ConnectionStateChangedCallback OnConnectionStateChanged;
-  PeerAuthorizationCallback IsPeerAuthorized;
 };
 }  // namespace
 

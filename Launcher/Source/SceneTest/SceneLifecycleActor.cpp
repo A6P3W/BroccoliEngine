@@ -40,7 +40,7 @@ void ASceneLifecycleActor::ToggleSpawnedActor() {
   if (GetWorld()) {
     // テンプレート関数 SpawnActor を用いてワールドに ASceneSpawnedMarkerActor インスタンスを作成
     SpawnedActor = GetWorld()->SpawnActor<ASceneSpawnedMarkerActor>(
-        GetActorLocation() + FVector2D{140.0f, 0.0f}
+        GetActorLocation2D() + FVector2D{140.0f, 0.0f}
     );
     M_LOG(Log, "SceneTest: spawn marker actor.");
   }
@@ -60,6 +60,6 @@ ASceneSpawnedMarkerActor::ASceneSpawnedMarkerActor() {
 void ASceneSpawnedMarkerActor::OnUpdate(float DeltaTime) {
   AActor::OnUpdate(DeltaTime);
   // アクターに毎フレーム回転運動を加える
-  AddActorRotation(FRotator(90.0f * DeltaTime));
+  AddActorRotation2D(FRotator(90.0f * DeltaTime));
   DRAW_WORLD_LOG("SceneSpawnedMarker", 0.1f, this, "Spawned actor");
 }

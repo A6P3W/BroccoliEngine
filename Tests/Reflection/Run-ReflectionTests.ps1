@@ -1,7 +1,30 @@
 $ErrorActionPreference = "Stop"
 
 $RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
-$Compiler = "C:/msys64/mingw64/bin/g++.exe"
+$CMakeCache = Join-Path $RepositoryRoot "build/windows-x64-gcc26/CMakeCache.txt"
+$Compiler = $null
+if (Test-Path -LiteralPath $CMakeCache) {
+  $CompilerEntry = Get-Content -LiteralPath $CMakeCache |
+    Where-Object { $_ -match '^CMAKE_CXX_COMPILER:[^=]+=(.+)$' } |
+    Select-Object -First 1
+  if ($CompilerEntry -match '^CMAKE_CXX_COMPILER:[^=]+=(.+)$') {
+    $Compiler = $Matches[1]
+  }
+}
+if (-not $Compiler) {
+  $CompilerCommand = Get-Command g++ -ErrorAction SilentlyContinue
+  if ($CompilerCommand) {
+    $Compiler = $CompilerCommand.Source
+  }
+}
+if (-not $Compiler) {
+  throw "GCC compiler was not found in CMakeCache.txt or PATH."
+}
+if (-not [System.IO.Path]::IsPathRooted($Compiler)) {
+  $Compiler = (Get-Command $Compiler -ErrorAction Stop).Source
+}
+$Compiler = [System.IO.Path]::GetFullPath($Compiler)
+$CompilerDirectory = Split-Path -Parent $Compiler
 $DebugDirectory = Join-Path $RepositoryRoot "Bin/x64/Debug"
 $TestExecutable = Join-Path $DebugDirectory "ReflectionTests.exe"
 $TestTempDirectory = Join-Path ([System.IO.Path]::GetTempPath()) `
@@ -15,9 +38,9 @@ $IncludeDirectories = @(
   "Engine/EngineCore/Reflection/Public",
   "Engine/EngineCore/Components/Public",
   "Engine/EngineCore/Network/Public",
+  "Engine/EngineCore/Automation/Public",
   "Engine/EngineCore/GameFramework/Public",
   "Engine/EngineCore/Utils/Public",
-  "Engine/EngineCore/Online/Public",
   "Engine/EngineSide",
   "Engine/EngineSide/Default/Public",
   "Engine/Editor/Public",
@@ -35,11 +58,24 @@ if (-not (Test-Path -LiteralPath (Join-Path $DebugDirectory "BroccoliEngine.dll"
   throw "Build Debug first so Bin/x64/Debug/BroccoliEngine.dll exists."
 }
 
-$env:PATH = "C:/msys64/mingw64/bin;$DebugDirectory;$env:PATH"
+$env:PATH = "$CompilerDirectory;$DebugDirectory;$env:PATH"
 New-Item -ItemType Directory -Path $TestTempDirectory | Out-Null
 Push-Location $RepositoryRoot
 try {
+  & $Compiler @CompilerArguments `
+    "-IEngine/EngineCore/Automation/Public" `
+    "Tests/Reflection/FunctionReflectionProbe.cpp" `
+    "-o$(Join-Path $TestTempDirectory 'FunctionReflectionProbe.exe')"
+  if ($LASTEXITCODE -ne 0) {
+    throw "Function reflection probe compilation failed with exit code $LASTEXITCODE."
+  }
+  & (Join-Path $TestTempDirectory "FunctionReflectionProbe.exe")
+  if ($LASTEXITCODE -ne 0) {
+    throw "Function reflection probe failed with exit code $LASTEXITCODE."
+  }
+
   & $Compiler @CompilerArguments "Tests/Reflection/ReflectionTests.cpp" `
+    "Engine/Editor/Private/EditorTransformTool.cpp" `
     "-L$DebugDirectory" "-lBroccoliEngine" "-o$TestExecutable"
   if ($LASTEXITCODE -ne 0) {
     throw "Reflection test compilation failed with exit code $LASTEXITCODE."
@@ -54,6 +90,16 @@ try {
   if ($LASTEXITCODE -ne 0) {
     throw "Plugin live-actor process-exit regression failed with exit code $LASTEXITCODE."
   }
+
+  $RegistrationCompileSource =
+    "Tests/Reflection/CompileSuccess/RegistrationOnlyIncludeComponent.cpp"
+  $RegistrationCompileObject = Join-Path $TestTempDirectory "RegistrationOnlyIncludeComponent.o"
+  $TemporaryFiles.Add($RegistrationCompileObject)
+  & $Compiler @CompilerArguments -c $RegistrationCompileSource "-o$RegistrationCompileObject"
+  if ($LASTEXITCODE -ne 0) {
+    throw "Component registration include-contract compilation failed with exit code $LASTEXITCODE."
+  }
+  Write-Output "Component registration include contract verified."
 
   $CompileFailureCases = @(
     [pscustomobject]@{
@@ -91,6 +137,14 @@ try {
     [pscustomobject]@{
       Source = "PrivateDirectAccess.cpp"
       Expected = "is private within this context"
+    },
+    [pscustomobject]@{
+      Source = "AbstractComponentFactory.cpp"
+      Expected = "!std::is_abstract_v<T>"
+    },
+    [pscustomobject]@{
+      Source = "NonDefaultComponentFactory.cpp"
+      Expected = "std::is_default_constructible_v<T>"
     }
   )
   foreach ($Case in $CompileFailureCases) {
@@ -131,8 +185,10 @@ try {
       "BroccoliReflectionCompileTests-", [System.StringComparison]::Ordinal
     )
   ) {
-    Remove-Item -LiteralPath $CanonicalTempDirectory -Force
+    Remove-Item -LiteralPath $CanonicalTempDirectory -Force -Recurse
   } else {
     throw "Refusing to remove an unexpected reflection compile-test temp directory."
   }
 }
+
+exit 0

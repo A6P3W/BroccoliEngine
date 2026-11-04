@@ -16,19 +16,18 @@ from .package_runtime import PackageRuntime
 from .plugins import (
   GeneratePluginsCmake,
   LoadPluginConfigurations,
-  RemoveDisabledExamplePluginArtifacts,
 )
 from .prepare_output import PrepareOutput
+from .runtime_plugins import GenerateRuntimePlugins
 from .stage_runtime import StageRuntime
 from .verify_runtime import VerifyRuntime
 from .worktree import SetupWorktree
 
 CONFIGURATION_PRESETS = {
-  "debug": ("Debug", "debug-local"),
-  "editor": ("Editor", "editor-local"),
-  "release": ("Release", "release-local"),
+  "debug": "Debug",
+  "editor": "Editor",
+  "release": "Release",
 }
-CONFIGURE_PRESET = "windows-x64-local"
 CMAKE_CACHE_FILE = Path("build") / "windows-x64-gcc26" / "CMakeCache.txt"
 LATEST_BUILD_CONFIGURATION_FILE = Path("Intermediate") / "LastBuildConfiguration.txt"
 
@@ -41,7 +40,15 @@ def ConfigurationArgument(Value: str) -> str:
   Configuration = Value.casefold()
   if Configuration not in CONFIGURATION_PRESETS:
     raise argparse.ArgumentTypeError(f"Unsupported configuration: {Value}")
-  return CONFIGURATION_PRESETS[Configuration][0]
+  return CONFIGURATION_PRESETS[Configuration]
+
+
+def PresetSuffix(ProjectDirectory: Path) -> str:
+  return "local" if (ProjectDirectory / "CMakeUserPresets.json").is_file() else "env"
+
+
+def BuildPreset(ProjectDirectory: Path, Configuration: str) -> str:
+  return f"{Configuration.casefold()}-{PresetSuffix(ProjectDirectory)}"
 
 
 def ResolveConfiguration(Value: str) -> str:
@@ -101,7 +108,11 @@ def ValidateUserPresets(ProjectDirectory: Path) -> None:
 def Regenerate(ProjectDirectory: Path, CmakeCommand: str | None = None) -> None:
   ValidateUserPresets(ProjectDirectory)
   subprocess.run(
-    [CmakeCommand or FindCmakeCommand(), "--preset", CONFIGURE_PRESET],
+    [
+      CmakeCommand or FindCmakeCommand(),
+      "--preset",
+      f"windows-x64-{PresetSuffix(ProjectDirectory)}",
+    ],
     cwd=ProjectDirectory,
     check=True,
   )
@@ -112,22 +123,79 @@ def Build(ProjectDirectory: Path, Configuration: str, Reconfigure: bool) -> None
   if Reconfigure or not (ProjectDirectory / CMAKE_CACHE_FILE).is_file():
     Regenerate(ProjectDirectory, CmakeCommand)
 
-  BuildPreset = CONFIGURATION_PRESETS[Configuration.casefold()][1]
+  SelectedBuildPreset = BuildPreset(ProjectDirectory, Configuration)
   subprocess.run(
     [
       CmakeCommand,
       "--build",
       "--preset",
-      BuildPreset,
+      SelectedBuildPreset,
       "--target",
       f"BroccoliProjectBuild_{Configuration}",
     ],
     cwd=ProjectDirectory,
     check=True,
   )
+  StageBuiltProject(ProjectDirectory, Configuration)
   LatestBuildConfigurationPath = ProjectDirectory / LATEST_BUILD_CONFIGURATION_FILE
   LatestBuildConfigurationPath.parent.mkdir(parents=True, exist_ok=True)
   LatestBuildConfigurationPath.write_text(f"{Configuration}\n", encoding="utf-8", newline="\n")
+
+
+def StageBuiltProject(ProjectDirectory: Path, Configuration: str) -> None:
+  Metadata = json.loads(
+    (ProjectDirectory / "Intermediate" / "Generated" / f"runtime-{Configuration}.json").read_text(
+      encoding="utf-8"
+    )
+  )
+  EngineDirectory = Path(Metadata["engine_dir"])
+  GameDirectory = Path(Metadata["game_dir"])
+  GameName = Metadata["game_name"]
+  OutputDirectory = ProjectDirectory / "Bin" / "x64" / Configuration
+  PublishDirectory = ProjectDirectory / "Publish" / Configuration
+  Runtime = [Path(Value) for Value in Metadata["runtime"] if Value]
+  Dependencies = [Path(Value) for Value in Metadata["plugin_dependencies"] if Value]
+  Names = sorted(
+    Name
+    for Name, Configurations in LoadPluginConfigurations(ProjectDirectory).items()
+    if Configuration in Configurations
+  )
+  GenerateRuntimePlugins(OutputDirectory, Names)
+  PrepareOutput(OutputDirectory)
+  Converter = EngineDirectory.parent / "Tools" / "ConvertLevels.py"
+  EngineBinary = OutputDirectory / "BroccoliEngine.dll"
+  StageRuntime(
+    Configuration,
+    EngineDirectory,
+    GameDirectory,
+    OutputDirectory,
+    EngineBinary,
+    GameName,
+    Converter,
+    Runtime,
+    Dependencies,
+  )
+  VerifyRuntime(
+    OutputDirectory,
+    GameName,
+    PluginDependencies=Dependencies,
+    MingwRuntime=Runtime,
+    Configuration=Configuration,
+  )
+  if Configuration != "Editor":
+    PackageRuntime(
+      Configuration,
+      OutputDirectory,
+      PublishDirectory,
+      OutputDirectory / f"{GameName}-game.exe",
+      EngineBinary,
+      GameName,
+      Converter,
+      OutputDirectory / "BroccoliBootstrap.exe",
+      Dependencies,
+      Runtime,
+    )
+    VerifyRuntime(OutputDirectory, GameName, PublishDirectory, Dependencies, Runtime, Configuration)
 
 
 def LoadLatestBuildConfiguration(ProjectDirectory: Path) -> str:
@@ -161,12 +229,36 @@ def LoadProjectName(ProjectDirectory: Path) -> str:
   return ProjectName
 
 
-def Run(ProjectDirectory: Path, Configuration: str, ApplicationArguments: list[str]) -> None:
+def Run(
+  ProjectDirectory: Path,
+  Configuration: str,
+  ApplicationArguments: list[str],
+  *,
+  JsonOutput: bool = False,
+) -> None:
   ExecutablePath = GetRunExecutable(ProjectDirectory, Configuration)
+  WorkingDirectory = ProjectDirectory
+  if JsonOutput and Configuration != "Editor":
+    # The package launcher exits after spawning Binaries/<game>.exe. Launch the
+    # Engine directly so the returned PID belongs to its control registration.
+    WorkingDirectory = ExecutablePath.parent
+    ExecutablePath = WorkingDirectory / "Binaries" / ExecutablePath.name
   if not ExecutablePath.is_file():
     raise ValueError(f"Executable does not exist: {ExecutablePath}")
-  print(f"[run] {ExecutablePath}")
-  subprocess.Popen([str(ExecutablePath), *ApplicationArguments], cwd=ProjectDirectory)
+  LaunchOptions = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL} if JsonOutput else {}
+  Process = subprocess.Popen(
+    [str(ExecutablePath), *ApplicationArguments],
+    cwd=WorkingDirectory,
+    **LaunchOptions,
+  )
+  if JsonOutput:
+    print(
+      json.dumps(
+        {"pid": Process.pid, "executable": str(ExecutablePath), "configuration": Configuration}
+      )
+    )
+  else:
+    print(f"[run] {ExecutablePath}")
 
 
 def SplitRunApplicationArguments(RawArguments: list[str]) -> tuple[list[str], list[str]]:
@@ -211,9 +303,9 @@ def Clean(ProjectDirectory: Path, Configuration: str | None, CleanAll: bool) -> 
     raise ValueError("Specify a configuration or --all.")
   CachePath = ProjectDirectory / CMAKE_CACHE_FILE
   if CachePath.is_file():
-    BuildPreset = CONFIGURATION_PRESETS[Configuration.casefold()][1]
+    SelectedBuildPreset = BuildPreset(ProjectDirectory, Configuration)
     subprocess.run(
-      [FindCmakeCommand(), "--build", "--preset", BuildPreset, "--target", "clean"],
+      [FindCmakeCommand(), "--build", "--preset", SelectedBuildPreset, "--target", "clean"],
       cwd=ProjectDirectory,
       check=True,
     )
@@ -242,11 +334,43 @@ def CreateParser() -> argparse.ArgumentParser:
   RegenerateParser = Commands.add_parser("regenerate", help="Regenerate the CMake project model")
   RegenerateParser.add_argument("--project-dir", type=PathArgument, default=Path.cwd())
 
-  RunParser = Commands.add_parser("run", help="Run a built project configuration")
-  RunParser.add_argument("configuration", nargs="?", type=ConfigurationArgument)
-  RunParser.add_argument("--control", action="store_true")
-  RunParser.add_argument("--latest", action="store_true")
-  RunParser.add_argument("--project-dir", type=PathArgument, default=Path.cwd())
+  RunParser = Commands.add_parser(
+    "run",
+    help="Run a built project configuration",
+    description=(
+      "Run a built project configuration. Arguments after '--' are passed directly to the Engine."
+    ),
+    epilog=(
+      "Engine arguments (pass after '--'):\n"
+      "  --window-hidden                    Hide the window before initialization (offscreen rendering remains active)\n"
+      "  --engine-update running|stopped    Initial automatic Engine update mode (default: running)\n"
+      "  --step-delta-time <seconds>        Fixed delta time for stepping and first frame after resume (0 < dt <= 0.1, default: 1/60)\n\n"
+      "Example:\n"
+      "  broccoli.bat run Debug --control --json -- --window-hidden --engine-update stopped --step-delta-time 0.016666667"
+    ),
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+  )
+  RunParser.add_argument(
+    "configuration",
+    nargs="?",
+    type=ConfigurationArgument,
+    help="Build configuration to run (Debug, Editor, Release)",
+  )
+  RunParser.add_argument(
+    "--control", action="store_true", help="Launch the Engine with the Automation Control Server enabled"
+  )
+  RunParser.add_argument(
+    "--json",
+    dest="JsonOutput",
+    action="store_true",
+    help="Launch the Engine binary directly and print pid, executable, and configuration as JSON",
+  )
+  RunParser.add_argument(
+    "--latest", action="store_true", help="Run the most recently built configuration"
+  )
+  RunParser.add_argument(
+    "--project-dir", type=PathArgument, default=Path.cwd(), help="Project directory (default: current directory)"
+  )
 
   CleanParser = Commands.add_parser("clean", help="Remove build output for a configuration")
   CleanParser.add_argument("configuration", nargs="?", type=ConfigurationArgument)
@@ -269,10 +393,9 @@ def CreateParser() -> argparse.ArgumentParser:
   StageParser.add_argument("--output-dir", type=PathArgument, required=True)
   StageParser.add_argument("--engine-binary", type=PathArgument, required=True)
   StageParser.add_argument("--game-name", required=True)
-  StageParser.add_argument("--eos-binary", type=PathArgument, required=True)
   StageParser.add_argument("--convert-levels-script", type=PathArgument, required=True)
   StageParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
-  StageParser.add_argument("--required-plugin", action="append", default=[])
+  StageParser.add_argument("--plugin-dependency", action="append", type=PathArgument, default=[])
 
   PackageParser = Commands.add_parser("package-runtime", help="Create a distributable package")
   PackageParser.add_argument("--configuration", required=True)
@@ -281,11 +404,9 @@ def CreateParser() -> argparse.ArgumentParser:
   PackageParser.add_argument("--game-binary", type=PathArgument, required=True)
   PackageParser.add_argument("--engine-binary", type=PathArgument, required=True)
   PackageParser.add_argument("--game-name", required=True)
-  PackageParser.add_argument("--eos-binary", type=PathArgument, required=True)
-  PackageParser.add_argument("--online-resources-dir", type=PathArgument, required=True)
   PackageParser.add_argument("--convert-levels-script", type=PathArgument, required=True)
   PackageParser.add_argument("--bootstrap-binary", type=PathArgument, required=True)
-  PackageParser.add_argument("--required-plugin", action="append", default=[])
+  PackageParser.add_argument("--plugin-dependency", action="append", type=PathArgument, default=[])
   PackageParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
 
   VerifyParser = Commands.add_parser("verify-runtime", help="Verify runtime artifacts")
@@ -293,7 +414,7 @@ def CreateParser() -> argparse.ArgumentParser:
   VerifyParser.add_argument("--game-name", required=True)
   VerifyParser.add_argument("--publish-dir", type=PathArgument)
   VerifyParser.add_argument("--configuration")
-  VerifyParser.add_argument("--required-plugin", action="append", default=[])
+  VerifyParser.add_argument("--plugin-dependency", action="append", type=PathArgument, default=[])
   VerifyParser.add_argument("--mingw-runtime", action="append", type=PathArgument, default=[])
   WorktreeParser = Commands.add_parser("worktree", help="Set up an existing Git worktree")
   WorktreeCommands = WorktreeParser.add_subparsers(dest="worktree_command", required=True)
@@ -334,6 +455,7 @@ def Main() -> int:
         Arguments.project_dir,
         Configuration,
         IncludeControlArgument(ApplicationArguments, Arguments.control),
+        **({"JsonOutput": True} if Arguments.JsonOutput else {}),
       )
     elif Arguments.Command == "clean":
       if Arguments.configuration is not None and Arguments.clean_all:
@@ -342,7 +464,6 @@ def Main() -> int:
     elif Arguments.Command == "generate-plugins":
       PluginConfigurations = LoadPluginConfigurations(Arguments.project_dir)
       Changed = GeneratePluginsCmake(Arguments.project_dir, PluginConfigurations)
-      RemoveDisabledExamplePluginArtifacts(Arguments.project_dir, PluginConfigurations)
       if Changed and Arguments.changed_exit_code:
         return 2
     elif Arguments.Command == "prepare-output":
@@ -355,10 +476,9 @@ def Main() -> int:
         Arguments.output_dir,
         Arguments.engine_binary,
         Arguments.game_name,
-        Arguments.eos_binary,
         Arguments.convert_levels_script,
         Arguments.mingw_runtime,
-        [PluginName for PluginName in Arguments.required_plugin if PluginName],
+        Arguments.plugin_dependency,
       )
     elif Arguments.Command == "package-runtime":
       PackageRuntime(
@@ -368,24 +488,20 @@ def Main() -> int:
         Arguments.game_binary,
         Arguments.engine_binary,
         Arguments.game_name,
-        Arguments.eos_binary,
-        Arguments.online_resources_dir,
         Arguments.convert_levels_script,
         Arguments.bootstrap_binary,
-        [PluginName for PluginName in Arguments.required_plugin if PluginName],
+        Arguments.plugin_dependency,
         Arguments.mingw_runtime,
       )
     elif Arguments.Command == "verify-runtime":
-      if Arguments.configuration is not None and Arguments.configuration.casefold() == "editor":
-        print("Editor configuration: runtime verification skipped.")
-      else:
-        VerifyRuntime(
-          Arguments.output_dir,
-          Arguments.game_name,
-          Arguments.publish_dir,
-          [PluginName for PluginName in Arguments.required_plugin if PluginName],
-          Arguments.mingw_runtime,
-        )
+      VerifyRuntime(
+        Arguments.output_dir,
+        Arguments.game_name,
+        Arguments.publish_dir,
+        Arguments.plugin_dependency,
+        Arguments.mingw_runtime,
+        Arguments.configuration,
+      )
     elif Arguments.Command == "worktree":
       if Arguments.worktree_command == "setup":
         SetupWorktree(Path.cwd().resolve(), Arguments.path)

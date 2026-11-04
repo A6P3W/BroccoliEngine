@@ -11,7 +11,7 @@ REGISTER_ACTOR(AForceFieldActor)
 
 AForceFieldActor::AForceFieldActor() {
   bReplicates = true;
-  ForceFieldComponent = NewObject<MForceFieldComponent>(this);
+  ForceFieldComponent = NewObject<MForceFieldComponent>(this, "ForceField");
   if (!ForceFieldComponent) {
     return;
   }

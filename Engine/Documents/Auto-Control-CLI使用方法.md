@@ -27,7 +27,7 @@ Engine は起動後、実行ファイルと同じディレクトリの `control/
 
 正常終了時には、Engine は自分の登録ファイルを削除する。
 
-`broccoli.bat control` は対象実行ファイルのディレクトリだけを調べる。JSON の形式、PID、実行ファイルパス、ポート番号を検証し、条件を満たす登録だけを接続候補にする。
+`broccoli.bat control` は対象プロジェクトの実行ファイルディレクトリ（Debug / Editor / Release）だけを調べる。JSON の形式、PID、実行ファイルパス、ポート番号を検証し、条件を満たす登録だけを接続候補にする。
 
 ```powershell
 broccoli.bat control state
@@ -43,5 +43,7 @@ broccoli.bat control --pid 12340 state
 詳細は以下を使用。
 
 ```powershell
+broccoli.bat run --help
 broccoli.bat control --help
+broccoli.bat control <command> --help
 ```

@@ -143,8 +143,8 @@ APlayerController* AGameModeBase::SpawnDefaultPlayer(FNetworkConnectionId Connec
   }
   AActor* playerStart = FindPlayerStart(ConnectionId);
   const FVector2D spawnLocation =
-      playerStart ? playerStart->GetActorLocation() : FVector2D::ZeroVector();
-  const FRotator spawnRotation = playerStart ? playerStart->GetActorRotation() : FRotator(0.0f);
+      playerStart ? playerStart->GetActorLocation2D() : FVector2D::ZeroVector();
+  const FRotator spawnRotation = playerStart ? playerStart->GetActorRotation2D() : FRotator(0.0f);
   ActorRegistry& registry = ActorRegistry::GetInstance();
   APlayerController* controller = nullptr;
 

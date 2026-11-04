@@ -4,7 +4,7 @@
 #include "Sprite2DComponent.h"
 EditorSelectPointComponent::EditorSelectPointComponent() {}
 
-void EditorSelectPointComponent::Draw() { SelectPointSprite->SetWorldScale(FScale(1.0f)); }
+void EditorSelectPointComponent::Draw() { SelectPointSprite->SetWorldScale2D(FScale(1.0f)); }
 
 void EditorSelectPointComponent::Selected(bool bSelected) {
   FColor color = bSelected ? FColor{255, 255, 0} : FColor{255, 0, 0};

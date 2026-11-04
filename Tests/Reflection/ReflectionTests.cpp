@@ -11,12 +11,17 @@
 
 #include "Actor.h"
 #include "ActorRegistry.h"
+#include "ComponentRegistry.h"
 #include "DirectionalLightActor.h"
 #include "DirectionalLightComponent.h"
 #include "EditorClipboard.h"
+#include "EditorTransformTool.h"
+#include "ForceFieldComponent.h"
 #include "LevelSerializer.h"
 #include "Log.h"
+#include "NetMovementComponent.h"
 #include "PathResolver.h"
+#include "PluginContext.h"
 #include "PluginHost.h"
 #include "ReflectionGenerator.h"
 #include "ResourceManager.h"
@@ -30,15 +35,15 @@
 #include "nlohmann/json.hpp"
 
 namespace {
-static_assert(std::is_same_v<
-              decltype(&ASprite2DActor::SetImagePath),
-              void (ASprite2DActor::*)(const FPath&)>);
+static_assert(
+    std::is_same_v<decltype(&ASprite2DActor::SetImagePath), void (ASprite2DActor::*)(const FPath&)>
+);
 static_assert(std::is_same_v<
               decltype(&ASprite2DActor::GetImagePath),
               const FPath& (ASprite2DActor::*)() const>);
-static_assert(std::is_same_v<
-              decltype(&ASprite3DActor::SetImagePath),
-              void (ASprite3DActor::*)(const FPath&)>);
+static_assert(
+    std::is_same_v<decltype(&ASprite3DActor::SetImagePath), void (ASprite3DActor::*)(const FPath&)>
+);
 static_assert(std::is_same_v<
               decltype(&ASprite3DActor::GetImagePath),
               const FPath& (ASprite3DActor::*)() const>);
@@ -231,6 +236,45 @@ class AReflectionSerializerTestActor final : public AActor {
 class AReflectionPluginTestActor final : public AActor {
  public:
   DEFINE_ACTOR_CLASS(AReflectionPluginTestActor)
+};
+
+class MReflectionBaseComponent : public MActorComponent {
+ public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MReflectionBaseComponent)
+  int CallbackCount = 0;
+
+ private:
+  void OnHealthChanged(int) { ++CallbackCount; }
+  EDITOR_PROPERTY(.OnEditorChanged = ^^MReflectionBaseComponent::OnHealthChanged)
+  int Health = 10;
+};
+
+class MReflectionDerivedComponent final : public MReflectionBaseComponent {
+ public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MReflectionDerivedComponent)
+  EDITOR_PROPERTY()
+  bool Enabled = false;
+};
+
+class MReflectionInstanceComponent final : public MActorComponent {
+ public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MReflectionInstanceComponent)
+  EDITOR_PROPERTY()
+  float Strength = 1.0F;
+};
+
+class MReflectionSceneComponent final : public MSceneComponent {
+ public:
+  DEFINE_ACTOR_COMPONENT_CLASS(MReflectionSceneComponent)
+};
+
+class AReflectionComponentActor final : public AActor {
+ public:
+  DEFINE_ACTOR_CLASS(AReflectionComponentActor)
+  AReflectionComponentActor() {
+    NativeComponent = NewObject<MReflectionDerivedComponent>(this, "NativeHealth");
+  }
+  MReflectionDerivedComponent* NativeComponent = nullptr;
 };
 
 class AReflectionStaticBase : public AActor {
@@ -532,7 +576,7 @@ void TestLevelSerializerRoundTripAndLegacyVersions() {
   Check(SavedInput.is_open(), "Could not read the saved level file.");
   const json Saved = json::parse(SavedInput);
   SavedInput.close();
-  Check(Saved.at("meta").at("format_version") == 3, "SaveData did not emit format version 3.");
+  Check(Saved.at("meta").at("format_version") == 5, "SaveData did not emit format version 5.");
   const json& SavedProperties = Saved.at("actors").at(0).at("properties");
   Check(
       SavedProperties.at("Enabled").is_boolean() && SavedProperties.at("Enabled") == true,
@@ -564,15 +608,26 @@ void TestLevelSerializerRoundTripAndLegacyVersions() {
   std::vector<FActorSaveData> LoadedActors;
   Check(
       LevelSerializer::LoadData(RoundTripPath.string(), LoadedMeta, LoadedActors),
-      "LoadData failed for a version 3 file."
+      "LoadData failed for a version 5 file."
   );
   Check(
       LoadedMeta.GameModeClassName == Meta.GameModeClassName && LoadedActors.size() == 1,
-      "Version 3 metadata or actor count changed after loading."
+      "Version 5 metadata or actor count changed after loading."
   );
   Check(
       LoadedActors[0].CustomProperties == Actor.CustomProperties,
-      "Version 3 custom property JSON values did not round trip."
+      "Version 5 custom property JSON values did not round trip."
+  );
+
+  const fs::path Version3Path = TempDirectory / "LegacyV3.BLevel.json";
+  json Version3 = Saved;
+  Version3["meta"]["format_version"] = 3;
+  Version3["actors"][0].erase("components");
+  WriteJson(Version3Path, Version3);
+  Check(
+      LevelSerializer::LoadData(Version3Path.string(), LoadedMeta, LoadedActors) &&
+          LoadedActors.size() == 1 && LoadedActors[0].Components.empty(),
+      "Legacy v3 level did not load without components."
   );
 
   const fs::path Version1Path = TempDirectory / "LegacyV1.BLevel.json";
@@ -964,7 +1019,8 @@ void TestSpriteActorImagePathRoundTrip() {
   const fs::path CanonicalTempDirectory = fs::weakly_canonical(TempDirectory);
   Check(
       CanonicalTempDirectory.is_absolute() && CanonicalTempDirectory.parent_path() == TempRoot &&
-          CanonicalTempDirectory.filename().string().starts_with("BroccoliReflectionTests-Sprites-"
+          CanonicalTempDirectory.filename().string().starts_with(
+              "BroccoliReflectionTests-Sprites-"
           ),
       "Refusing to remove a Sprite test directory outside its dedicated temp root."
   );
@@ -1069,15 +1125,20 @@ void TestPluginLoadUnloadAndLiveActorDelay() {
   namespace fs = std::filesystem;
   PluginHost& Host = PluginHost::GetInstance();
   ActorRegistry& Actors = ActorRegistry::GetInstance();
-  const fs::path PluginsDirectory = fs::current_path() / "Bin/x64/Debug/Plugins";
+  const fs::path ConfigPath = fs::current_path() / "Bin/x64/Debug/reflection-plugins.json";
+  std::ofstream(ConfigPath) << R"({"schema_version":1,"required_plugins":["ExamplePlugin"]})";
   Check(
-      fs::exists(PluginsDirectory / "ExamplePlugin/plugin.json"),
-      "Built ExamplePlugin manifest is missing."
+      fs::exists(ConfigPath.parent_path() / "ExamplePlugin.dll"),
+      "Built ExamplePlugin DLL is missing."
   );
-  Check(Host.Initialize(PluginsDirectory), "PluginHost failed to discover ExamplePlugin.");
+  Check(Host.Initialize(ConfigPath), "PluginHost failed to initialize ExamplePlugin.");
   Check(
       Host.GetPluginCount() == 1 && Host.GetActivePluginCount() == 1,
       "ExamplePlugin did not load and activate."
+  );
+  Check(
+      ComponentRegistry::GetInstance().Contains("MExampleAutomationComponent"),
+      "ExamplePlugin did not register its automation component."
   );
   Host.Update(0.016F);
 
@@ -1086,8 +1147,32 @@ void TestPluginLoadUnloadAndLiveActorDelay() {
       Actors.RegisterOwned<AReflectionPluginTestActor>(std::string(ModuleOwner)),
       "Could not register the test actor under ExamplePlugin's module owner."
   );
+  ComponentRegistry& Components = ComponentRegistry::GetInstance();
+  PluginContext Context{std::string(ModuleOwner)};
+  Check(
+      Context.RegisterComponent<MReflectionInstanceComponent>(),
+      "Could not register plugin-owned component and Reflection."
+  );
+  Check(
+      Context.RegisterComponent<MReflectionSceneComponent>(),
+      "Could not register plugin-owned Scene component and Reflection."
+  );
+  const FClass* PluginSceneClass = FReflectionRegistry::GetInstance().FindClass(
+      MReflectionSceneComponent::StaticComponentClassName()
+  );
+  Check(
+      PluginSceneClass && PluginSceneClass->BaseClass &&
+          PluginSceneClass->BaseClass->Name == MSceneComponent::StaticComponentClassName(),
+      "Plugin Scene component lost its Reflection base class."
+  );
   AReflectionPluginTestActor LiveActor;
   Actors.NotifySpawned(&LiveActor, AReflectionPluginTestActor::StaticClassName());
+  MActorComponent* LiveComponent =
+      Components.Create(&LiveActor, MReflectionInstanceComponent::StaticComponentClassName());
+  Check(
+      LiveComponent && Components.HasLiveComponents(ModuleOwner),
+      "Plugin component was not tracked as live."
+  );
   Check(Actors.HasLiveActors(ModuleOwner), "ActorRegistry did not track the live test actor.");
 
   Host.Shutdown();
@@ -1100,6 +1185,17 @@ void TestPluginLoadUnloadAndLiveActorDelay() {
   Actors.NotifyDestroyed(&LiveActor);
   Host.Shutdown();
   Check(
+      Host.GetPluginCount() == 1 && Components.HasLiveComponents(ModuleOwner),
+      "PluginHost unloaded while a plugin component was still alive."
+  );
+  LiveComponent->DestroyComponent();
+  LiveActor.Update(0.0F);
+  Check(
+      !Components.HasLiveComponents(ModuleOwner),
+      "Plugin component was not untracked after destruction."
+  );
+  Host.Shutdown();
+  Check(
       Host.GetPluginCount() == 0 && Host.GetActivePluginCount() == 0,
       "PluginHost did not complete unload after the actor was destroyed."
   );
@@ -1107,14 +1203,27 @@ void TestPluginLoadUnloadAndLiveActorDelay() {
       !Actors.Contains(AReflectionPluginTestActor::StaticClassName()),
       "Plugin unload left the module's actor class registered."
   );
+  Check(
+      !Components.Contains(MReflectionInstanceComponent::StaticComponentClassName()) &&
+          !Components.Contains(MReflectionSceneComponent::StaticComponentClassName()) &&
+          !Components.Contains("MExampleAutomationComponent") &&
+          FReflectionRegistry::GetInstance().FindClass(
+              MReflectionInstanceComponent::StaticComponentClassName()
+          ) == nullptr &&
+          FReflectionRegistry::GetInstance().FindClass(
+              MReflectionSceneComponent::StaticComponentClassName()
+          ) == nullptr,
+      "Plugin unload left component or Reflection registration behind."
+  );
 }
 
 void TestPluginHostExitWithLiveActor() {
   namespace fs = std::filesystem;
   PluginHost& Host = PluginHost::GetInstance();
   ActorRegistry& Actors = ActorRegistry::GetInstance();
-  const fs::path PluginsDirectory = fs::current_path() / "Bin/x64/Debug/Plugins";
-  Check(Host.Initialize(PluginsDirectory), "PluginHost failed to discover ExamplePlugin.");
+  const fs::path ConfigPath = fs::current_path() / "Bin/x64/Debug/reflection-plugins.json";
+  std::ofstream(ConfigPath) << R"({"schema_version":1,"required_plugins":["ExamplePlugin"]})";
+  Check(Host.Initialize(ConfigPath), "PluginHost failed to initialize ExamplePlugin.");
   constexpr std::string_view ModuleOwner = "Plugin:ExamplePlugin";
   Check(
       Actors.RegisterOwned<AReflectionPluginTestActor>(std::string(ModuleOwner)),
@@ -1128,6 +1237,504 @@ void TestPluginHostExitWithLiveActor() {
       "PluginHost did not retain a live-actor plugin at process exit."
   );
 }
+void TestComponentRegistryAndPersistence() {
+  constexpr std::string_view ModuleOwner = "ReflectionComponentTest";
+  ComponentRegistry& Components = ComponentRegistry::GetInstance();
+  FReflectionRegistry& Reflections = FReflectionRegistry::GetInstance();
+  Check(
+      Components.Contains("MForceFieldComponent"),
+      "Static component registration was not available."
+  );
+  const FClass* StaticClass = Reflections.FindClass("MForceFieldComponent");
+  Check(
+      StaticClass && StaticClass->FindProperty("Strength") && StaticClass->BaseClass,
+      "Static component Reflection hierarchy was not available."
+  );
+  Check(
+      Components.RegisterOwned<MReflectionDerivedComponent>(
+          std::string(ModuleOwner), {.AllowMultiple = false}
+      ),
+      "Could not register reflected component factory."
+  );
+  Check(
+      !Components.RegisterOwned<MReflectionDerivedComponent>(std::string(ModuleOwner)),
+      "Duplicate component class was accepted."
+  );
+  Check(
+      Components.RegisterOwned<MReflectionInstanceComponent>(std::string(ModuleOwner)),
+      "Could not register instance component."
+  );
+  Check(
+      Components.RegisterOwned<MReflectionSceneComponent>(std::string(ModuleOwner)),
+      "Could not register Scene component."
+  );
+  Check(
+      ReflectionGenerator::RegisterClass<MReflectionBaseComponent, MActorComponent>(
+          std::string(ModuleOwner), false
+      ) != 0 &&
+          ReflectionGenerator::RegisterClass<MReflectionDerivedComponent, MReflectionBaseComponent>(
+              std::string(ModuleOwner), false
+          ) != 0,
+      "Component reflection hierarchy did not register."
+  );
+  Check(
+      ReflectionGenerator::RegisterClass<MReflectionInstanceComponent, MActorComponent>(
+          std::string(ModuleOwner), false
+      ) != 0,
+      "Instance component reflection did not register."
+  );
+  Check(
+      ReflectionGenerator::RegisterClass<MReflectionSceneComponent, MSceneComponent>(
+          std::string(ModuleOwner), false
+      ) != 0,
+      "Scene component reflection did not register."
+  );
+  const FClass* Class =
+      Reflections.FindClass(MReflectionDerivedComponent::StaticComponentClassName());
+  Check(Class && Class->GetProperties().size() == 2, "Component property inheritance failed.");
+  Check(
+      !Components.Create(nullptr, MReflectionDerivedComponent::StaticComponentClassName()),
+      "Null actor accepted."
+  );
+  {
+    AReflectionComponentActor UnregisteredOwner;
+    Check(
+        !Components.Create(&UnregisteredOwner, "MissingComponent"), "Unknown component accepted."
+    );
+  }
+
+  {
+    World PendingWorld;
+    AReflectionComponentActor PendingActor;
+    MActorComponent* Root = PendingActor.GetRootComponent();
+    Root->DestroyComponent();
+    Check(!Root->IsPendingDestroy(), "Root component was destroyed.");
+    MActorComponent* Pending = Components.Create(
+        &PendingActor, MReflectionInstanceComponent::StaticComponentClassName(), "Pending"
+    );
+    Check(Pending && Pending->GetOwner() == &PendingActor, "Instance owner was not assigned.");
+    Pending->RegisterComponent();
+    Check(Pending->IsRegistrationPending(), "Worldless component was not pending registration.");
+    PendingActor.SetWorld(&PendingWorld);
+    Check(Pending->IsRegistered(), "Pending component did not register after SetWorld.");
+    Pending->DestroyComponent();
+    PendingActor.Update(0.0F);
+    Check(
+        PendingActor.FindComponentByName("Pending") == nullptr,
+        "Destroyed instance component remained in the Actor vector."
+    );
+  }
+
+#if !defined(_RELEASE)
+  {
+    World ForceFieldWorld;
+    AReflectionComponentActor* ForceFieldActor =
+        ForceFieldWorld.SpawnActor<AReflectionComponentActor>({}, FRotator(0.0F), true);
+    Check(ForceFieldActor != nullptr, "Could not spawn ForceField test actor.");
+    Check(
+        ForceFieldActor->GetRootComponent()->GetEditorVisibility() ==
+            EComponentEditorVisibility::Visible,
+        "Default component Editor visibility was not visible."
+    );
+    const size_t InitialComponentCount = ForceFieldActor->GetComponents().size();
+    MForceFieldComponent* ForceField =
+        NewObject<MForceFieldComponent>(ForceFieldActor, "ForceField");
+    Check(ForceField != nullptr, "Could not create ForceField component.");
+    const FProperty* StrengthProperty = StaticClass->FindProperty("Strength");
+    Check(
+        StrengthProperty && StrengthProperty->Set(ForceField, -2.5F) &&
+            ForceField->GetStrength() == -2.5F,
+        "ForceField rejected a negative Strength."
+    );
+    ForceField->AttachToComponent(ForceFieldActor->GetRootComponent());
+    ForceField->RegisterComponent();
+
+    MSprite2DComponent* DebugSprite = nullptr;
+    for (const auto& Component : ForceFieldActor->GetComponents()) {
+      auto* Sprite = dynamic_cast<MSprite2DComponent*>(Component.get());
+      if (Sprite != nullptr && Sprite->GetParentComponent() == ForceField) {
+        DebugSprite = Sprite;
+        break;
+      }
+    }
+    Check(DebugSprite != nullptr, "ForceField DebugSprite was not attached to ForceField.");
+    Check(
+        DebugSprite->GetEditorVisibility() == EComponentEditorVisibility::Hidden,
+        "ForceField DebugSprite was visible in the Editor."
+    );
+
+    ForceField->DestroyComponent();
+    ForceFieldActor->Update(0.0F);
+    Check(
+        ForceFieldActor->GetComponents().size() == InitialComponentCount,
+        "ForceField DebugSprite remained after ForceField destruction."
+    );
+  }
+#endif
+
+  Check(
+      ActorRegistry::GetInstance().RegisterOwned<AReflectionComponentActor>(
+          std::string(ModuleOwner)
+      ),
+      "Could not register component test actor."
+  );
+  const std::filesystem::path Path =
+      std::filesystem::temp_directory_path() / "BroccoliReflectionComponentRoundTrip.BLevel.json";
+  {
+    World SaveWorld;
+    AReflectionComponentActor* Actor =
+        SaveWorld.SpawnActor<AReflectionComponentActor>({}, FRotator(0.0F), true);
+    Check(Actor && Actor->NativeComponent, "Native component was not created.");
+    Check(
+        Actor->NativeComponent->GetCreationSource() == EComponentCreationSource::Native &&
+            Actor->NativeComponent->HasExplicitComponentName(),
+        "Native component name/source was not preserved."
+    );
+    Check(
+        RequireProperty(*Class, "Health").Set(Actor->NativeComponent, 42),
+        "Private native component property Set failed."
+    );
+    Check(Actor->NativeComponent->CallbackCount == 1, "Component callback did not run.");
+    Check(
+        !RequireProperty(*Class, "Health").Set(Actor->NativeComponent, true),
+        "Mismatched component property value was accepted."
+    );
+    Check(
+        !Components.Create(Actor, MReflectionDerivedComponent::StaticComponentClassName()),
+        "AllowMultiple=false accepted a second component."
+    );
+    auto* Instance = dynamic_cast<MReflectionInstanceComponent*>(
+        Components.Create(Actor, MReflectionInstanceComponent::StaticComponentClassName(), "Extra")
+    );
+    Check(
+        Instance && Instance->GetCreationSource() == EComponentCreationSource::Instance &&
+            Instance->GetComponentName() == "Extra" &&
+            Instance->GetComponentId() != InvalidComponentId,
+        "Registry did not create an owned instance component."
+    );
+    Check(
+        !Components.Create(
+            Actor, MReflectionInstanceComponent::StaticComponentClassName(), "Extra"
+        ),
+        "Duplicate explicit component name was accepted."
+    );
+    Instance->RegisterComponent();
+    Check(Instance->IsRegistered(), "Component added to a World did not register.");
+    const FClass* InstanceClass =
+        Reflections.FindClass(MReflectionInstanceComponent::StaticComponentClassName());
+    Check(
+        InstanceClass && RequireProperty(*InstanceClass, "Strength").Set(Instance, 5.5F),
+        "Instance component property Set failed."
+    );
+    auto* ParentScene = dynamic_cast<MReflectionSceneComponent*>(Components.Create(
+        Actor, MReflectionSceneComponent::StaticComponentClassName(), "ParentScene"
+    ));
+    auto* ChildScene = dynamic_cast<MReflectionSceneComponent*>(Components.Create(
+        Actor, MReflectionSceneComponent::StaticComponentClassName(), "ChildScene"
+    ));
+    Check(ParentScene && ChildScene, "Could not create Scene component hierarchy.");
+    ParentScene->RegisterComponent();
+    Check(
+        ChildScene->AttachToComponent(
+            ParentScene, FAttachmentTransformRules::KeepRelativeTransform
+        ) && ChildScene->SetRelativeLocation3D({7.0F, 8.0F, 9.0F}) &&
+            ChildScene->SetRelativeScale3D({2.0F, 3.0F, 4.0F}),
+        "Could not configure Scene component hierarchy."
+    );
+    ChildScene->RegisterComponent();
+    FActorSaveData Captured = LevelSerializer::CaptureActor(Actor);
+    Check(
+        Captured.Components.size() == 4 &&
+            Captured.Components[0].Source == EComponentCreationSource::Native,
+        "Named native component was not captured."
+    );
+    Check(
+        LevelSerializer::SaveData(Path.string(), {}, {Captured}),
+        "Could not save native component data."
+    );
+    EditorClipboard Clipboard;
+    Check(Clipboard.Copy(Actor), "Could not copy component actor.");
+    World PasteWorld;
+    auto* Pasted =
+        dynamic_cast<AReflectionComponentActor*>(Clipboard.Paste(&PasteWorld, FVector3D{1, 2, 3}));
+    auto* PastedInstance =
+        Pasted ? dynamic_cast<MReflectionInstanceComponent*>(Pasted->FindComponentByName("Extra"))
+               : nullptr;
+    auto* PastedParent =
+        Pasted ? dynamic_cast<MSceneComponent*>(Pasted->FindComponentByName("ParentScene"))
+               : nullptr;
+    auto* PastedChild =
+        Pasted ? dynamic_cast<MSceneComponent*>(Pasted->FindComponentByName("ChildScene"))
+               : nullptr;
+    Check(
+        Pasted && ReadProperty<int>(*Class, "Health", Pasted->NativeComponent) == 42 &&
+            PastedInstance &&
+            ReadProperty<float>(*InstanceClass, "Strength", PastedInstance) == 5.5F,
+        "Clipboard did not restore named native component property."
+    );
+    Check(
+        PastedParent && PastedChild && PastedChild->GetParentComponent() == PastedParent &&
+            PastedChild->GetRelativeLocation3D().X == 7.0F &&
+            PastedChild->GetRelativeScale3D().Y == 3.0F,
+        "Clipboard did not restore the Scene component hierarchy."
+    );
+  }
+  {
+    FLevelMetaData Meta;
+    std::vector<FActorSaveData> Actors;
+    Check(
+        LevelSerializer::LoadData(Path.string(), Meta, Actors) && Actors.size() == 1,
+        "Could not load component data."
+    );
+    Check(
+        Actors[0].Components.size() == 4 && Actors[0].Components[0].Name == "NativeHealth",
+        "Native component name did not round trip."
+    );
+    World LoadWorld;
+    auto* Actor = LoadWorld.SpawnActor<AReflectionComponentActor>({}, FRotator(0.0F), true);
+    LevelSerializer::ApplyActor(Actor, Actors[0]);
+    auto* Instance =
+        dynamic_cast<MReflectionInstanceComponent*>(Actor->FindComponentByName("Extra"));
+    auto* ParentScene = dynamic_cast<MSceneComponent*>(Actor->FindComponentByName("ParentScene"));
+    auto* ChildScene = dynamic_cast<MSceneComponent*>(Actor->FindComponentByName("ChildScene"));
+    const FClass* InstanceClass =
+        Reflections.FindClass(MReflectionInstanceComponent::StaticComponentClassName());
+    Check(
+        ReadProperty<int>(*Class, "Health", Actor->NativeComponent) == 42,
+        "Native component property did not restore."
+    );
+    Check(
+        Instance && InstanceClass &&
+            ReadProperty<float>(*InstanceClass, "Strength", Instance) == 5.5F,
+        "Instance component did not restore."
+    );
+    Check(
+        ParentScene && ChildScene && ChildScene->GetParentComponent() == ParentScene &&
+            ChildScene->GetRelativeLocation3D().Z == 9.0F &&
+            ChildScene->GetRelativeScale3D().X == 2.0F,
+        "Level load did not restore the Scene component hierarchy."
+    );
+    FActorSaveData WithUnknown = Actors[0];
+    WithUnknown.Components[1].ClassName = "MissingComponent";
+    World PartialWorld;
+    auto* Partial = PartialWorld.SpawnActor<AReflectionComponentActor>({}, FRotator(0.0F), true);
+    LevelSerializer::ApplyActor(Partial, WithUnknown);
+    Check(
+        ReadProperty<int>(*Class, "Health", Partial->NativeComponent) == 42 &&
+            Partial->FindComponentByName("Extra") == nullptr,
+        "Unknown component class interrupted other component restore."
+    );
+  }
+  std::filesystem::remove(Path);
+  ActorRegistry::GetInstance().UnregisterModule(ModuleOwner);
+  Components.UnregisterModule(ModuleOwner);
+  Check(Reflections.UnregisterModule(ModuleOwner), "Component reflection did not unregister.");
+}
+void TestTransform2DCompatibility() {
+  const auto Near = [](float Actual, float Expected) {
+    return std::abs(Actual - Expected) < 0.001F;
+  };
+  MSceneComponent Parent;
+  MSceneComponent Child;
+  Parent.SetWorldLocation3D({10.0F, 20.0F, 30.0F});
+  Parent.SetWorldScale2D(FScale(2.0F));
+  Child.SetRelativeLocation3D({1.0F, 2.0F, 3.0F});
+  Child.AttachToComponent(&Parent);
+  Check(Child.SetWorldLocation2D({40.0F, 50.0F}), "World XY update failed.");
+  Check(
+      Child.GetWorldLocation2D().Equals({40.0F, 50.0F}) &&
+          Near(Child.GetWorldLocation3D().Z, 36.0F),
+      "World XY update changed Z."
+  );
+  Check(Child.SetRelativeLocation2D({4.0F, 5.0F}), "Relative XY update failed.");
+  Check(
+      Child.GetRelativeLocation2D().Equals({4.0F, 5.0F}) &&
+          Near(Child.GetRelativeLocation3D().Z, 3.0F),
+      "Relative XY update changed Z."
+  );
+  Child.AddWorldOffset2D({2.0F, 3.0F});
+  Check(
+      Child.GetWorldLocation2D().Equals({20.0F, 33.0F}) &&
+          Near(Child.GetWorldLocation3D().Z, 36.0F),
+      "World offset changed Z or applied parent scale twice."
+  );
+
+  MSceneComponent Tilted;
+  Tilted.SetWorldLocation3D({10.0F, 20.0F, 30.0F});
+  Tilted.SetWorldRotation3D(FQuaternion::FromRotator({25.0F, 35.0F, 15.0F}));
+  const auto ExpectedLocalPosition =
+      Tilted.GetWorldLocation3D() + Tilted.GetWorldRotation3D().RotateVector({5.0F, 7.0F, 0.0F});
+  Tilted.AddLocalOffset2D({5.0F, 7.0F});
+  const auto ActualLocalPosition = Tilted.GetWorldLocation3D();
+  Check(
+      Near(ActualLocalPosition.X, ExpectedLocalPosition.X) &&
+          Near(ActualLocalPosition.Y, ExpectedLocalPosition.Y) &&
+          Near(ActualLocalPosition.Z, ExpectedLocalPosition.Z) &&
+          !Near(ActualLocalPosition.Z, 30.0F),
+      "Tilted local offset lost its 3D displacement."
+  );
+  Tilted.SetWorldRotation2D(FRotator(45.0F));
+  Tilted.AddWorldRotation2D(FRotator(5.0F));
+  const auto Euler = Tilted.GetWorldRotation3D().ToRotator();
+  Check(
+      Near(Euler.Pitch, 25.0F) && Near(Euler.Yaw, 35.0F) &&
+          Near(Tilted.GetWorldRotation2D().Rotation, 50.0F) &&
+          Near(Tilted.GetRelativeRotation2D().Rotation, 50.0F),
+      "2D rotation changed Pitch/Yaw or failed to add Roll."
+  );
+  Tilted.SetWorldScale3D({2.0F, 3.0F, 4.0F});
+  Check(Near(Tilted.GetWorldScale2D().Scale, 2.0F), "2D scale did not read X.");
+  Tilted.SetWorldScale2D(FScale(5.0F));
+  const auto Scale = Tilted.GetWorldScale3D();
+  Check(
+      Near(Scale.X, 5.0F) && Near(Scale.Y, 5.0F) && Near(Scale.Z, 5.0F),
+      "2D world scale did not uniformly scale XYZ."
+  );
+  Child.SetRelativeScale2D(FScale(3.0F));
+  Check(
+      Near(Child.GetRelativeScale2D().Scale, 3.0F) && Near(Child.GetRelativeScale3D().Z, 3.0F),
+      "2D relative scale did not uniformly scale XYZ."
+  );
+
+  class ATransformTestActor final : public AActor {
+   public:
+    DEFINE_ACTOR_CLASS(ATransformTestActor)
+  };
+  ATransformTestActor Sender;
+  Sender.SetActorLocation3D({1.0F, 2.0F, 9.0F});
+  Check(
+      Sender.SetActorLocation2D({12.0F, 34.0F}) &&
+          Sender.GetActorLocation2D().Equals({12.0F, 34.0F}) &&
+          Near(Sender.GetActorLocation3D().Z, 9.0F),
+      "Actor XY delegation changed Z."
+  );
+  Sender.AddActorWorldOffset2D({2.0F, 3.0F});
+  Sender.AddActorLocalOffset2D({1.0F, 2.0F});
+  Check(Sender.GetActorLocation2D().Equals({15.0F, 39.0F}), "Actor offset delegation failed.");
+  Sender.SetActorRotation2D(FRotator(20.0F));
+  Sender.AddActorRotation2D(FRotator(10.0F));
+  Sender.SetActorScale2D(FScale(1.5F));
+  Sender.UpdateReplicatedStateCache();
+  Check(!Sender.HasReplicatedStateChanged(), "Replication cache changed without mutation.");
+  Sender.AddActorWorldOffset2D({1.0F, 0.0F});
+  Check(Sender.HasReplicatedStateChanged(), "Replication cache missed XY mutation.");
+  FNetBuffer Buffer;
+  Check(Sender.SerializeNetworkState(Buffer), "Actor network serialization failed.");
+  FNetBuffer Expected;
+  Expected.Write(16.0F);
+  Expected.Write(39.0F);
+  Expected.Write(Sender.GetActorRotation2D().Rotation);
+  Expected.Write(Sender.GetActorScale2D().Scale);
+  Expected.Write(uint32_t{0});
+  Check(Buffer.GetData() == Expected.GetData(), "Actor network byte layout changed.");
+  ATransformTestActor Receiver;
+  Receiver.SetActorLocation3D({0.0F, 0.0F, 99.0F});
+  Check(
+      Receiver.DeserializeNetworkState(Buffer) &&
+          Receiver.GetActorLocation2D().Equals({16.0F, 39.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F) &&
+          Near(Receiver.GetActorRotation2D().Rotation, 30.0F) &&
+          Near(Receiver.GetActorScale2D().Scale, 1.5F),
+      "Actor network transform round trip changed."
+  );
+  class MNetTransformTestComponent final : public MNetMovementComponent {
+   public:
+    using MNetMovementComponent::Client_ReceiveAuthorityCorrection;
+    using MNetMovementComponent::Client_ResolveMove;
+  };
+  auto* Movement = NewObject<MNetTransformTestComponent>(&Receiver);
+  Check(Movement != nullptr, "Could not create network movement test component.");
+  Receiver.bHasAuthority = false;
+  Movement->Client_ResolveMove(1, {50.0F, 60.0F}, FRotator(45.0F), {2.0F, 3.0F});
+  Check(
+      Receiver.GetActorLocation2D().Equals({50.0F, 60.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F) &&
+          Near(Receiver.GetActorRotation2D().Rotation, 45.0F) &&
+          Movement->GetVelocity().Equals({2.0F, 3.0F}),
+      "Network movement acknowledgement changed transform synchronization."
+  );
+  Movement->Client_ReceiveAuthorityCorrection(2, 1, {70.0F, 80.0F}, FRotator(60.0F), {4.0F, 5.0F});
+  Movement->Client_ReceiveAuthorityCorrection(2, 1, {0.0F, 0.0F}, FRotator(0.0F), {0.0F, 0.0F});
+  Check(
+      Receiver.GetActorLocation2D().Equals({70.0F, 80.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F) &&
+          Near(Receiver.GetActorRotation2D().Rotation, 60.0F) &&
+          Movement->GetVelocity().Equals({4.0F, 5.0F}),
+      "Network movement correction or stale-sequence rejection changed."
+  );
+  Receiver.bHasAuthority = true;
+  Movement->SetFriction(1.0F);
+  Movement->SetWorldVelocity({2.0F, 3.0F});
+  Movement->OnUpdate(1.0F / 60.0F);
+  Check(
+      Receiver.GetActorLocation2D().Equals({72.0F, 83.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F),
+      "Network movement simulation changed XY displacement or Z."
+  );
+  EditorTransformTool Tool;
+  Tool.Begin(&Receiver, EActorAction::Move);
+  Tool.Update({}, {100.0F, 200.0F});
+  Tool.Begin(&Receiver, EActorAction::Rotate);
+  Tool.Update({40.0F, 0.0F}, {});
+  Tool.Begin(&Receiver, EActorAction::Scale);
+  Tool.Update({100.0F, 0.0F}, {});
+  Tool.End();
+  Check(
+      Receiver.GetActorLocation2D().Equals({100.0F, 200.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F) &&
+          Near(Receiver.GetActorRotation2D().Rotation, 70.0F) &&
+          Near(Receiver.GetActorScale2D().Scale, 1.65F) && !Tool.IsActive(),
+      "Editor 2D move/rotate/scale operation changed."
+  );
+  const FPhysicsRay3D StartRay{{100.0F, 200.0F, 109.0F}, {0.0F, 0.0F, -1.0F}, 100.0F};
+  Check(
+      Tool.Begin3D(
+          &Receiver,
+          EActorAction::Move,
+          EGizmoHandle3D::XY,
+          StartRay,
+          {0.0F, 0.0F, -1.0F},
+          {},
+          StartRay.Origin
+      ),
+      "Editor 3D move did not begin."
+  );
+  Tool.Update3D({{103.0F, 204.0F, 109.0F}, {0.0F, 0.0F, -1.0F}, 100.0F}, {});
+  Tool.End();
+  Check(
+      Receiver.GetActorLocation2D().Equals({103.0F, 204.0F}) &&
+          Near(Receiver.GetActorLocation3D().Z, 99.0F),
+      "Editor 3D plane move changed."
+  );
+  Check(
+      Tool.Begin3D(
+          &Receiver,
+          EActorAction::Scale,
+          EGizmoHandle3D::Center,
+          StartRay,
+          {0.0F, 0.0F, -1.0F},
+          {},
+          StartRay.Origin
+      ),
+      "Editor 3D scale did not begin."
+  );
+  Tool.Update3D(StartRay, {10.0F, 0.0F});
+  Tool.End();
+  Check(
+      Near(Receiver.GetActorScale3D().X, 1.815F) && Near(Receiver.GetActorScale3D().Y, 1.815F) &&
+          Near(Receiver.GetActorScale3D().Z, 1.815F),
+      "Editor 3D center scale changed."
+  );
+  Parent.SetWorldScale3D(FScale3D(0.0F));
+  Receiver.GetRootComponent()->AttachToComponent(&Parent);
+  Check(
+      !Receiver.GetRootComponent()->SetWorldLocation2D({1.0F, 2.0F}) &&
+          Receiver.SetActorLocation2D({1.0F, 2.0F}) &&
+          !Receiver.GetRootComponent()->SetWorldScale2D(FScale(2.0F)) &&
+          Receiver.SetActorScale2D(FScale(2.0F)),
+      "Actor 2D setter return semantics changed."
+  );
+}
 }  // namespace
 
 int main(int ArgCount, char** Arguments) {
@@ -1136,12 +1743,14 @@ int main(int ArgCount, char** Arguments) {
     if (ArgCount == 2 && std::string_view(Arguments[1]) == "--live-actor-exit") {
       TestPluginHostExitWithLiveActor();
     } else {
+      TestTransform2DCompatibility();
       TestNonPublicProperties();
       TestStaticActorReflectionRegistration();
       TestPathValueAndReflection();
       TestSixPropertyTypesAndMetadata();
       TestTypeMismatchAndCallbackFailure();
       TestInheritanceAndRegistry();
+      TestComponentRegistryAndPersistence();
       TestLevelSerializerRoundTripAndLegacyVersions();
       TestWorldLevelSerializerReflectionRoundTrip();
       TestSpriteActorImagePathRoundTrip();

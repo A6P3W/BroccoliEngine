@@ -1,5 +1,7 @@
 #include "BoxCollision3DComponent.h"
 
+REGISTER_COMPONENT(MBoxCollision3DComponent)
+
 #include <algorithm>
 #include <cmath>
 

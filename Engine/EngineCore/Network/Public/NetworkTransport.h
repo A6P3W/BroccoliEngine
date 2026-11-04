@@ -14,12 +14,10 @@ using FNetworkPeerId = uint64_t;
 
 enum class ENetPacketReliability : uint8_t { Unreliable, Reliable };
 
-enum class ENetworkTransportType : uint8_t { ENet, EOSP2P };
-
 enum class ETransportConnectionState : uint8_t { Connected, Interrupted };
 
 struct BROCCOLI_ENGINE_API FNetworkEndpoint {
-  std::string HostName;
+  std::string Address;
   uint16_t Port = 0;
 };
 
@@ -36,7 +34,6 @@ class BROCCOLI_ENGINE_API INetworkTransport {
   using ConnectionStateChangedCallback =
       std::function<void(FNetworkPeerId, ETransportConnectionState)>;
   using PacketReceivedCallback = std::function<void(FReceivedPacket&&)>;
-  using PeerAuthorizationCallback = std::function<bool(const std::string&)>;
 
   virtual ~INetworkTransport() = default;
 
@@ -62,13 +59,7 @@ class BROCCOLI_ENGINE_API INetworkTransport {
   virtual bool IsRunning() const = 0;
 
   virtual void SetConnectedCallback(ConnectedCallback Callback) = 0;
-  virtual std::string GetRemoteProductUserId(FNetworkPeerId PeerId) const = 0;
   virtual void SetDisconnectedCallback(DisconnectedCallback Callback) = 0;
   virtual void SetPacketReceivedCallback(PacketReceivedCallback Callback) = 0;
-  virtual void SetPeerAuthorizationCallback(PeerAuthorizationCallback Callback) = 0;
   virtual void SetConnectionStateChangedCallback(ConnectionStateChangedCallback Callback) = 0;
 };
-
-BROCCOLI_ENGINE_API std::unique_ptr<INetworkTransport> CreateNetworkTransport(
-    ENetworkTransportType Type
-);

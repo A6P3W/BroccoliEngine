@@ -68,7 +68,7 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
       NewMove.StartVelocity = GetVelocity();
       NewMove.VelocityOverride = ImplPtr->FrameVelocityOverride;
       NewMove.bUseVelocityOverride = ImplPtr->bFrameVelocityOverride;
-      NewMove.StartRotation = OwnerActor->GetActorRotation();
+      NewMove.StartRotation = OwnerActor->GetActorRotation2D();
       NewMove.VelocityRotation = ImplPtr->FrameVelocityRotation;
 
       ImplPtr->InFlightMoves.push_back(NewMove);
@@ -104,7 +104,7 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
     AuthorityMove.StartVelocity = GetVelocity();
     AuthorityMove.VelocityOverride = ImplPtr->FrameVelocityOverride;
     AuthorityMove.bUseVelocityOverride = ImplPtr->bFrameVelocityOverride;
-    AuthorityMove.StartRotation = OwnerActor->GetActorRotation();
+    AuthorityMove.StartRotation = OwnerActor->GetActorRotation2D();
     AuthorityMove.VelocityRotation = ImplPtr->FrameVelocityRotation;
     SimulateMovement(AuthorityMove);
   }
@@ -153,8 +153,8 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
         ENetRPCType::Client,
         ENetPacketReliability::Unreliable,
         ImplPtr->LastConfirmedSequence,
-        OwnerActor->GetActorLocation(),
-        OwnerActor->GetActorRotation(),
+        OwnerActor->GetActorLocation2D(),
+        OwnerActor->GetActorRotation2D(),
         GetVelocity()
     );
   }
@@ -165,8 +165,8 @@ void MNetMovementComponent::OnUpdate(float DeltaTime) {
         ENetPacketReliability::Unreliable,
         ImplPtr->LastConfirmedSequence,
         ++ImplPtr->CurrentCorrectionSequence,
-        OwnerActor->GetActorLocation(),
-        OwnerActor->GetActorRotation(),
+        OwnerActor->GetActorLocation2D(),
+        OwnerActor->GetActorRotation2D(),
         GetVelocity()
     );
   }
@@ -178,14 +178,14 @@ void MNetMovementComponent::AddWorldForce(const FVector2D& Force) {
 
 void MNetMovementComponent::AddLocalForce(const FVector2D& Force) {
   AActor* OwnerActor = GetOwner();
-  AddWorldForce(OwnerActor ? Force.RotateVector(OwnerActor->GetActorRotation()) : Force);
+  AddWorldForce(OwnerActor ? Force.RotateVector(OwnerActor->GetActorRotation2D()) : Force);
 }
 
 void MNetMovementComponent::SetWorldForce(const FVector2D& Force) { ImplPtr->FrameForce = Force; }
 
 void MNetMovementComponent::SetLocalForce(const FVector2D& Force) {
   AActor* OwnerActor = GetOwner();
-  SetWorldForce(OwnerActor ? Force.RotateVector(OwnerActor->GetActorRotation()) : Force);
+  SetWorldForce(OwnerActor ? Force.RotateVector(OwnerActor->GetActorRotation2D()) : Force);
 }
 
 void MNetMovementComponent::SetWorldVelocity(const FVector2D& NewVelocity) {
@@ -197,7 +197,7 @@ void MNetMovementComponent::SetWorldVelocity(const FVector2D& NewVelocity) {
 void MNetMovementComponent::SetLocalVelocity(const FVector2D& NewVelocity) {
   AActor* OwnerActor = GetOwner();
   SetWorldVelocity(
-      OwnerActor ? NewVelocity.RotateVector(OwnerActor->GetActorRotation()) : NewVelocity
+      OwnerActor ? NewVelocity.RotateVector(OwnerActor->GetActorRotation2D()) : NewVelocity
   );
 }
 
@@ -207,7 +207,7 @@ void MNetMovementComponent::AddWorldImpulse(const FVector2D& Impulse) {
 
 void MNetMovementComponent::AddLocalImpulse(const FVector2D& Impulse) {
   AActor* OwnerActor = GetOwner();
-  AddWorldImpulse(OwnerActor ? Impulse.RotateVector(OwnerActor->GetActorRotation()) : Impulse);
+  AddWorldImpulse(OwnerActor ? Impulse.RotateVector(OwnerActor->GetActorRotation2D()) : Impulse);
 }
 
 void MNetMovementComponent::AddVelocityRotation(const FRotator& Rotation) {
@@ -217,7 +217,7 @@ void MNetMovementComponent::AddVelocityRotation(const FRotator& Rotation) {
 void MNetMovementComponent::SetVelocityRotation(const FRotator& Rotation) {
   AActor* OwnerActor = GetOwner();
   if (!OwnerActor) return;
-  ImplPtr->FrameVelocityRotation = Rotation - OwnerActor->GetActorRotation();
+  ImplPtr->FrameVelocityRotation = Rotation - OwnerActor->GetActorRotation2D();
 }
 
 void MNetMovementComponent::SimulateMovement(const FMovePredictionData& Move) {
@@ -248,8 +248,8 @@ void MNetMovementComponent::Client_ResolveMove(
   }
 
   ImplPtr->LastConfirmedSequence = AckedSequence;
-  OwnerActor->SetActorLocation(ServerLocation);
-  OwnerActor->SetActorRotation(ServerRotation);
+  OwnerActor->SetActorLocation2D(ServerLocation);
+  OwnerActor->SetActorRotation2D(ServerRotation);
   MMovementComponent::SetWorldVelocity(ServerVelocity);
 
   std::erase_if(ImplPtr->InFlightMoves, [AckedSequence](const FMovePredictionData& Move) {
@@ -282,8 +282,8 @@ void MNetMovementComponent::Client_ReceiveAuthorityCorrection(
     ImplPtr->LastConfirmedSequence = ConfirmedSequence;
   }
 
-  OwnerActor->SetActorLocation(ServerLocation);
-  OwnerActor->SetActorRotation(ServerRotation);
+  OwnerActor->SetActorLocation2D(ServerLocation);
+  OwnerActor->SetActorRotation2D(ServerRotation);
   MMovementComponent::SetWorldVelocity(ServerVelocity);
 
   std::erase_if(ImplPtr->InFlightMoves, [ConfirmedSequence](const FMovePredictionData& Move) {

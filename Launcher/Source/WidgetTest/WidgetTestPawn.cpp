@@ -39,7 +39,7 @@ void AWidgetTestPawn::OnPossessedBy(APlayerController* NewController) {
 }
 void AWidgetTestPawn::OnUpdate(float DeltaTime) {
   // アクターの現在のワールド座標（2次元ベクトル）を取得
-  const FVector2D PawnPosition = GetActorLocation();
+  const FVector2D PawnPosition = GetActorLocation2D();
   // 画面の固定位置に、デバッグ用の座標情報テキストを一定時間（0.1秒）表示するマクロ
   DRAW_SCREEN_LOG(
       "WidgetTestPawnPosition",

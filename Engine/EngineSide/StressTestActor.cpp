@@ -26,8 +26,8 @@ AStressTestActor::AStressTestActor() {
       auto* Sprite = NewObject<MSprite2DComponent>(this);
       if (Sprite) {
         Sprite->SubmitGraph(texHandle);
-        Sprite->SetRelativeLocation({posX, posY});
-        Sprite->SetWorldScale(FScale(0.9f));
+        Sprite->SetRelativeLocation2D({posX, posY});
+        Sprite->SetWorldScale2D(FScale(0.9f));
         Sprite->RegisterComponent();
       }
 
@@ -35,7 +35,7 @@ AStressTestActor::AStressTestActor() {
       if (Collision) {
         Collision->SetSize(size, size);
         Collision->SetStatic(true);
-        Collision->SetRelativeLocation({posX, posY});
+        Collision->SetRelativeLocation2D({posX, posY});
         Collision->RegisterComponent();
       }
     }

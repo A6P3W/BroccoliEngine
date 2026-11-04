@@ -565,6 +565,12 @@ struct FAutomationHttpServer::Impl {
     Server.Options(SystemCommandRoute, MethodNotAllowedHandler);
 
     Server.set_error_handler([](const httplib::Request&, httplib::Response& Response) {
+      // cpp-httplib invokes this for controller errors too. Preserve their JSON
+      // and HTTP status (including CONFLICT), rather than replacing them with 404.
+      if (!Response.body.empty() &&
+          Response.get_header_value("Content-Type").starts_with(JsonContentType)) {
+        return;
+      }
       if (Response.status == 413) {
         SetJsonResponse(
             Response,

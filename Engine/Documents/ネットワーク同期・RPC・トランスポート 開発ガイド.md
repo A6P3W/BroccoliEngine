@@ -255,53 +255,62 @@ Componentを同期する条件：
 
 ## 9. ENet / EOS P2P トランスポート
 
-### 9.1 トランスポート種別
+### 9.1 名前付き Registry と既定 ENet
+
+`NetworkTransportRegistry` は Transport 名・Factory・ModuleOwner を管理します。
+Engine 組み込みの `ENet` は `Engine:Network` 所有で登録され、既定 Transport は常に `ENet` です。
+環境変数による暗黙の選択はありません。名前は大文字小文字を区別し、空名・空所有者・無効 Factory・重複登録を拒否します。
+未知名の生成は nullptr を返し、別の Transport へ fallback しません。
 
 ```cpp
-enum class ENetworkTransportType : uint8_t {
-  ENet,
-  EOSP2P
-};
+auto& Network = NetworkManager::GetInstance();
+bool Configured = Network.SetTransportName("ENet");
 ```
 
-上位層は共通NetworkManager/OnlinePlayManagerインターフェースを使用し、配送実装を切り替えます。
+接続開始前のみ変更できます。通信中の変更は失敗します。
+`FNetworkEndpoint::Address` は ENet では hostname / IPv4、`Port` は接続ポートです。
+Replication / RPC / NetMovement / Server Travel の packet format は従来どおりです。
 
-### 9.2 ENet
+### 9.2 Optional EOSPlugin
 
-主に直接接続、LAN、IP/Portベースの開発テストに適します。
+EOS Auth / Lobby / Online Play / Title Storage / P2P は `Engine/Plugins/EOSPlugin` が所有します。
+Core は EOS SDK を include・link しません。SDK は Plugin の `ThirdParty/EOS/SDK` に配置します。
+Launcher は統合試験用に Debug / Editor で明示有効化しています。Release と Default Project は EOS がなくても動作します。
 
-特徴：
+```json
+{"name": "EOSPlugin", "configurations": ["Debug", "Editor"]}
+```
 
-- 接続先アドレスとポートを直接指定
-- ローカル環境で検証しやすい
-- EOSログインやLobbyを必要としない構成に適する
-
-### 9.3 EOS P2P
-
-Epic Online ServicesのP2P機能を利用します。
-
-特徴：
-
-- EOSユーザー識別子を利用
-- Lobby検索・参加フローと統合可能
-- NAT越えを含むインターネット接続向け
-- EOS初期化、ログイン、Lobby状態の管理が必要
-
-### 9.4 切り替え
+`.broccoli-project.json` で有効化した構成だけ Game が DLL へ直接リンクします。
+登録済み Plugin の実体 Public ヘッダーは全構成で include できますが、無効構成の API 呼び出しは Game 側で除外します。
 
 ```cpp
-OnlinePlayManager& Online = OnlinePlayManager::GetInstance();
-
-bool bConfigured = Online.ConfigureTransport(
-    ENetworkTransportType::EOSP2P
-);
-
-if (!bConfigured) {
-  // 現在のセッション状態、初期化状態、設定値を確認
+#include <BEPlugins.h>
+#include <EOSPlugin/EOSPlugin.h>
+#ifdef BROCCOLI_WITH_EOSPLUGIN
+if (BEPlugins::IsAvailable("EOSPlugin")) {
+  bool Configured = BEPlugins::EOS::ConfigureTransport("EOSP2P");
 }
+#endif
 ```
 
-接続開始前に選択します。接続中の変更は、セッション終了、Transport停止、状態ロールバックを伴う可能性があります。
+API は `BEPlugins::EOS` の関数・値型で公開され、Private Manager / SDK handle は公開しません。
+EOSPlugin は OnLoad で `EOSP2P` Factory を登録します。ロードしても既定 ENet は変更しません。
+認証情報がなくても Plugin は Active になり、Online 操作は初期化不足を返します。
+EOS P2P の Address は Lobby owner の ProductUserId 文字列、Port は 0 です。
+Incoming request は Plugin 内の Lobby member 判定で拒否・許可します。
+ENet + EOS Lobby では Lobby の Host IP / Port を使う既存経路を維持します。
+
+### 9.3 起動・終了順序
+
+Build CLI は構成別 `plugins.json` を実行ファイル直下に生成します。
+Application は Game Setup より前に必須 Plugin の DLL・名前・API version・OnLoad を検証します。
+設定欠落や初期化失敗はゲーム起動を失敗させます。Core-only は正しい空配列が必要です。
+実行時の Plugin 探索・追加・切替は行いません。
+
+Update は PluginHost → NetworkManager の順です。終了時は NetworkManager::Stop で Transport を破棄してから PluginHost::Shutdown を呼びます。
+PluginHost は OnUnload 後、DLL 解放前に所有 Factory を登録解除します。
+OnUpdate 例外は Failed 状態にして更新を止め、DLL の解放は Shutdown まで延期します。
 
 ## 10. 実装例
 

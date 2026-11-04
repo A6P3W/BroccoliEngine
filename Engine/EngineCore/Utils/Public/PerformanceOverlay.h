@@ -8,7 +8,7 @@
 struct FUpdatePerformanceStats {
   double SceneMs = 0.0;
   double AutomationMs = 0.0;
-  double EOSMs = 0.0;
+  double PluginsMs = 0.0;
   double NetworkMs = 0.0;
   double InputMs = 0.0;
   double HttpMs = 0.0;
@@ -39,7 +39,7 @@ struct FPerformanceStats {
 enum class EPerformanceSection {
   Scene,
   Automation,
-  EOS,
+  Plugins,
   Network,
   Input,
   Http,

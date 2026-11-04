@@ -8,7 +8,7 @@
 #include "BroccoliEngineAPI.h"
 #include "EOSTypes.h"
 
-class BROCCOLI_ENGINE_API EOSLobbyManager {
+class EOSLobbyManager {
  public:
   static EOSLobbyManager& GetInstance();
 

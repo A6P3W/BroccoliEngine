@@ -129,9 +129,9 @@ void MCanvasComponent::DrawBox(
 FVector2D MCanvasComponent::WorldToCanvasLocal(const FVector2D& WorldPosition) const {
   if (Width <= 0 || Height <= 0) return FVector2D::ZeroVector();
 
-  const FVector2D CanvasWorldPosition = GetWorldLocation();
-  const FRotator CanvasWorldRotation = GetWorldRotation();
-  const FScale CanvasWorldScale = GetWorldScale();
+  const FVector2D CanvasWorldPosition = GetWorldLocation2D();
+  const FRotator CanvasWorldRotation = GetWorldRotation2D();
+  const FScale CanvasWorldScale = GetWorldScale2D();
   if (std::abs(CanvasWorldScale.Scale) < 1e-6f) return FVector2D::ZeroVector();
 
   const float Radians = UMath::DegToRad(CanvasWorldRotation.Rotation);

@@ -1,129 +1,58 @@
-## 生成済みゲームプロジェクトをクローンした後のセットアップ
+# ゲームプロジェクト セットアップ手順
 
-`SetupProject.py --in-place` などで生成済みのゲームプロジェクトを別環境へクローンした場合は、以下の手順で開発環境をセットアップします。
+生成済みのゲームプロジェクトをクローンした後の開発環境セットアップ手順です。
 
-### 1. リポジトリとsubmoduleの取得
+---
+
+## 1. リポジトリと submodule の取得
 
 ```cmd
 git clone --recurse-submodules <Repository URL>
 cd <ProjectName>
 ```
 
-すでに通常の `git clone` を実行済みの場合は、submoduleを初期化します。
+すでに通常の `git clone` を実行済みの場合は、submodule を初期化します：
 
 ```cmd
 git submodule update --init --recursive
 ```
 
-### 2. vcpkg のセットアップ
+---
 
-vcpkg が未導入の場合は、任意の場所へクローンしてセットアップします。
+## 2. 開発ツールのインストール（未導入の場合）
 
-```cmd
-git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
-cd C:\vcpkg
-.\bootstrap-vcpkg.bat
-```
+MinGW-w64 GCC、CMake、vcpkg、Python、uv などのツールのインストールがまだお済みでない場合は、以下のドキュメントを参照して導入してください。
 
-### 3. uv のインストール
+* **[開発ツールセットアップ手順 (ToolSetup)](BroccoliEngine/Engine/Documents/ToolSetup.md)**
 
-`uv` が未導入の場合は、wingetからインストールできます。
+---
 
-```cmd
-winget install astral-sh.uv
-```
+## 3. ビルド環境の準備（初期セットアップ）
 
-### 4. BroccoliEngine のPythonツール環境を同期
+ツールの導入完了後、Python ツール環境の同期および `CMakeUserPresets.json` の設定が必要です。詳細な手順は以下のドキュメントを参照してください。
 
-ゲームプロジェクトのルートから実行します。
+* **[ビルド環境セットアップ手順 (BuildSetup)](BroccoliEngine/Engine/Documents/BuildSetup.md)**
 
-```cmd
-cd BroccoliEngine\Tools\Build
-uv sync
-cd ..\..\..
-```
+---
 
-### 5. CMake User Preset の設定
+## 4. ビルドと実行
 
-ローカル環境固有のvcpkgとMinGW-w64 GCCのパスは`CMakeUserPresets.json` に設定します。
-
-プロジェクトルートへ `CMakeUserPresets.json` を作成します。
-
-```json
-{
-  "version": 6,
-  "configurePresets": [
-    {
-      "name": "windows-x64-local",
-      "inherits": "windows-x64",
-      "environment": {
-        "VCPKG_ROOT": "C:/vcpkg",
-        "PATH": "C:/msys64/mingw64/bin;$penv{PATH}"
-      },
-      "cacheVariables": {
-        "CMAKE_C_COMPILER": "C:/msys64/mingw64/bin/gcc.exe",
-        "CMAKE_CXX_COMPILER": "C:/msys64/mingw64/bin/g++.exe"
-      }
-    }
-  ],
-  "buildPresets": [
-    {
-      "name": "debug-local",
-      "inherits": "debug",
-      "configurePreset": "windows-x64-local"
-    },
-    {
-      "name": "editor-local",
-      "inherits": "editor",
-      "configurePreset": "windows-x64-local"
-    },
-    {
-      "name": "release-local",
-      "inherits": "release",
-      "configurePreset": "windows-x64-local"
-    }
-  ]
-}
-
-```
-
-`C:\vcpkg` または `C:\msys64\mingw64\bin` 以外へ配置している場合は、自分の環境に合わせて変更してください。GCC 14 以上が必要です。
-
-`CMakeUserPresets.json` は開発環境固有の設定なので、Git管理対象には含まれません。
-
-### 6. CMake configure
-
-CMakeを直接使用する場合は、設定したpresetでconfigureします。
+### 統合 CLI を使用する場合
 
 ```cmd
-cmake --preset windows-x64-local
-```
-
-### 7. ビルド
-
-CMakeから直接ビルドする場合:
-
-```cmd
-cmake --build --preset debug-local
-```
-
-または、プロジェクトルートの統合CLIを使用します。
-
-```cmd
+# Debug ビルドと起動
 broccoli.bat build Debug
-```
-
-Editorビルドの場合:
-
-```cmd
-broccoli.bat build Editor
-```
-
-ビルド後は次のコマンドで起動できます。
-
-```cmd
 broccoli.bat run Debug
+
+# Editor ビルドと起動
+broccoli.bat build Editor
 broccoli.bat run Editor
 ```
 
-broccoli.bat --helpで詳細を確認してください。
+詳細は `broccoli.bat --help` を参照してください。
+
+---
+
+## 5. VS Code でのデバッグ (F5)
+
+VS Code と GDB を使用したソースレベルデバッグの手順については、[.vscode/DEBUG.md](.vscode/DEBUG.md) を参照してください。

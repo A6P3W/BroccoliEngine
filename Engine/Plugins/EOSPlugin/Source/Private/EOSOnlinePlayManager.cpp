@@ -1,4 +1,4 @@
-#include "OnlinePlayManager.h"
+#include "EOSOnlinePlayManager.h"
 
 #include <algorithm>
 #include <utility>
@@ -12,21 +12,12 @@
 #include "SceneManager.h"
 #include "World.h"
 
-namespace {
-const char* GetTransportTypeName(ENetworkTransportType Type) {
-  return Type == ENetworkTransportType::EOSP2P ? "EOSP2P" : "ENet";
-}
-}  // namespace
-
-OnlinePlayManager& OnlinePlayManager::GetInstance() {
-  static OnlinePlayManager Instance;
+EOSOnlinePlayManager& EOSOnlinePlayManager::GetInstance() {
+  static EOSOnlinePlayManager Instance;
   return Instance;
 }
 
-OnlinePlayManager::OnlinePlayManager() {
-  NetworkManager::GetInstance().SetPeerAuthorizationCallback([](const std::string& ProductUserId) {
-    return EOSLobbyManager::GetInstance().IsCurrentLobbyMember(ProductUserId);
-  });
+EOSOnlinePlayManager::EOSOnlinePlayManager() {
   EOSLobbyManager::GetInstance().SetOnLobbyDisconnected([this](ELobbyDisconnectReason Reason) {
     HandleLobbyDisconnected(Reason);
   });
@@ -41,35 +32,33 @@ OnlinePlayManager::OnlinePlayManager() {
   M_LOG(Log, "[OnlinePlay] Manager initialized.");
 }
 
-OnlinePlayManager::~OnlinePlayManager() = default;
+EOSOnlinePlayManager::~EOSOnlinePlayManager() = default;
 
-bool OnlinePlayManager::ConfigureTransport(ENetworkTransportType Type) {
+bool EOSOnlinePlayManager::ConfigureTransport(std::string_view Name) {
+  if (Name != "ENet" && Name != "EOSP2P") return false;
   if (OperationPending || IsInLobby() || NetworkManager::GetInstance().IsRunning()) {
     M_LOG(
         Log,
         "[OnlinePlay] ConfigureTransport rejected: requested={} state={} inLobby={} running={}",
-        GetTransportTypeName(Type),
+        Name,
         static_cast<int>(State),
         IsInLobby(),
         NetworkManager::GetInstance().IsRunning()
     );
     return false;
   }
-  const bool Configured = NetworkManager::GetInstance().SetTransportType(Type);
+  const bool Configured = NetworkManager::GetInstance().SetTransportName(Name);
   M_LOG(
-      Log,
-      "[OnlinePlay] ConfigureTransport completed: transport={} success={}",
-      GetTransportTypeName(Type),
-      Configured
+      Log, "[OnlinePlay] ConfigureTransport completed: transport={} success={}", Name, Configured
   );
   return Configured;
 }
 
-ENetworkTransportType OnlinePlayManager::GetTransportType() const {
-  return NetworkManager::GetInstance().GetTransportType();
+const std::string& EOSOnlinePlayManager::GetTransportName() const {
+  return NetworkManager::GetInstance().GetTransportName();
 }
 
-void OnlinePlayManager::Shutdown() {
+void EOSOnlinePlayManager::Shutdown() {
   M_LOG(Log, "[OnlinePlay] Shutdown requested.");
   BeginSessionEnd(ESessionDisconnectReason::LocalLeave, false, false);
   if (NetworkDisconnectedCallbackHandle != 0) {
@@ -80,7 +69,7 @@ void OnlinePlayManager::Shutdown() {
   EOSAuthManager::GetInstance().SetOnAuthLost(nullptr);
 }
 
-bool OnlinePlayManager::Login(const char* DisplayName, ResultCallback OnComplete) {
+bool EOSOnlinePlayManager::Login(const char* DisplayName, ResultCallback OnComplete) {
   EOnlinePlayError Error = EOnlinePlayError::None;
   std::string Message;
   if (!IsEOSInitialized()) {
@@ -103,8 +92,7 @@ bool OnlinePlayManager::Login(const char* DisplayName, ResultCallback OnComplete
   }
   M_LOG(Log, "[OnlinePlay] Login requested: displayName={}", DisplayName);
   EOSAuthManager::GetInstance().LoginWithDeviceId(
-      DisplayName,
-      [this, OnComplete = std::move(OnComplete)](bool Success) mutable {
+      DisplayName, [this, OnComplete = std::move(OnComplete)](bool Success) mutable {
         EndOperation();
         auto Result = MakeResult(
             Success,
@@ -118,7 +106,7 @@ bool OnlinePlayManager::Login(const char* DisplayName, ResultCallback OnComplete
   return true;
 }
 
-bool OnlinePlayManager::HostLobby(const FHostLobbyRequest& Request, ResultCallback OnComplete) {
+bool EOSOnlinePlayManager::HostLobby(const FHostLobbyRequest& Request, ResultCallback OnComplete) {
   EOnlinePlayError Error = EOnlinePlayError::None;
   std::string Message;
   if (!IsLoggedIn()) {
@@ -140,14 +128,14 @@ bool OnlinePlayManager::HostLobby(const FHostLobbyRequest& Request, ResultCallba
     return false;
   }
 
-  const ENetworkTransportType TransportType = GetTransportType();
+  const std::string TransportName = GetTransportName();
   FCreateLobbyRequest RoutingRequest;
   RoutingRequest.MaxMembers = Request.MaxMembers;
   RoutingRequest.bPublicAdvertised = Request.PublicAdvertised;
   RoutingRequest.BucketId = Request.BucketId;
   RoutingRequest.Port = Request.Port;
   RoutingRequest.Attributes = Request.Attributes;
-  if (TransportType == ENetworkTransportType::ENet) {
+  if (TransportName == "ENet") {
     RoutingRequest.HostIPAddress = NetworkUtils::GetLocalIPAddress();
     if (RoutingRequest.HostIPAddress.empty()) {
       M_LOG(Log, "[OnlinePlay] HostLobby failed: local ENet address was not found.");
@@ -163,27 +151,27 @@ bool OnlinePlayManager::HostLobby(const FHostLobbyRequest& Request, ResultCallba
   M_LOG(
       Log,
       "[OnlinePlay] HostLobby requested: transport={} port={} maxMembers={} hostIP={}",
-      GetTransportTypeName(TransportType),
+      TransportName,
       RoutingRequest.Port,
       RoutingRequest.MaxMembers,
       RoutingRequest.HostIPAddress.empty() ? "<unused>" : RoutingRequest.HostIPAddress
   );
   EOSLobbyManager::GetInstance().CreateLobby(
       RoutingRequest,
-      [this, RoutingRequest, TransportType, OnComplete = std::move(OnComplete)](
+      [this, RoutingRequest, TransportName, OnComplete = std::move(OnComplete)](
           bool Success, const FLobbyInfo& LobbyInfo
       ) mutable {
         HandleHostLobbyCreated(
-            RoutingRequest, TransportType, std::move(OnComplete), Success, LobbyInfo
+            RoutingRequest, TransportName, std::move(OnComplete), Success, LobbyInfo
         );
       }
   );
   return true;
 }
 
-void OnlinePlayManager::HandleHostLobbyCreated(
+void EOSOnlinePlayManager::HandleHostLobbyCreated(
     const FCreateLobbyRequest& RoutingRequest,
-    ENetworkTransportType TransportType,
+    std::string TransportName,
     ResultCallback OnComplete,
     bool Success,
     const FLobbyInfo& LobbyInfo
@@ -202,7 +190,7 @@ void OnlinePlayManager::HandleHostLobbyCreated(
     M_LOG(
         Log,
         "[OnlinePlay] HostLobby failed: transport start failed. transport={} lobby={} port={}",
-        GetTransportTypeName(TransportType),
+        TransportName,
         LobbyInfo.LobbyId,
         RoutingRequest.Port
     );
@@ -229,14 +217,14 @@ void OnlinePlayManager::HandleHostLobbyCreated(
       Log,
       "[OnlinePlay] HostLobby completed: lobby={} transport={} hostIP={} port={}",
       LobbyInfo.LobbyId,
-      GetTransportTypeName(TransportType),
+      TransportName,
       LobbyInfo.HostIPAddress.empty() ? "<unused>" : LobbyInfo.HostIPAddress,
       RoutingRequest.Port
   );
   CompleteResult(OnComplete, Result);
 }
 
-bool OnlinePlayManager::SearchLobbies(
+bool EOSOnlinePlayManager::SearchLobbies(
     const FLobbySearchRequest& Request, SearchCallback OnComplete
 ) {
   EOnlinePlayError Error = EOnlinePlayError::None;
@@ -289,7 +277,7 @@ bool OnlinePlayManager::SearchLobbies(
   return true;
 }
 
-bool OnlinePlayManager::JoinLobby(
+bool EOSOnlinePlayManager::JoinLobby(
     const FLobbyInfo& LobbyInfo, uint16_t Port, ResultCallback OnComplete
 ) {
   EOnlinePlayError Error = EOnlinePlayError::None;
@@ -313,10 +301,9 @@ bool OnlinePlayManager::JoinLobby(
     return false;
   }
 
-  const ENetworkTransportType TransportType = GetTransportType();
-  const std::string ConnectionTarget = TransportType == ENetworkTransportType::EOSP2P
-                                           ? LobbyInfo.OwnerProductUserId
-                                           : LobbyInfo.HostIPAddress;
+  const std::string TransportName = GetTransportName();
+  const std::string ConnectionTarget =
+      TransportName == "EOSP2P" ? LobbyInfo.OwnerProductUserId : LobbyInfo.HostIPAddress;
   if (ConnectionTarget.empty()) {
     EndOperation();
     auto Result =
@@ -324,13 +311,13 @@ bool OnlinePlayManager::JoinLobby(
     CompleteResult(OnComplete, Result);
     return false;
   }
-  const uint16_t ConnectionPort = TransportType == ENetworkTransportType::EOSP2P ? 0 : Port;
+  const uint16_t ConnectionPort = TransportName == "EOSP2P" ? 0 : Port;
   const std::string LocalAddress = NetworkUtils::GetLocalIPAddress();
   M_LOG(
       Log,
       "[OnlinePlay] JoinLobby requested: lobby={} transport={} localIP={} target={} port={}",
       LobbyInfo.LobbyId,
-      GetTransportTypeName(TransportType),
+      TransportName,
       LocalAddress.empty() ? "<unknown>" : LocalAddress,
       ConnectionTarget,
       ConnectionPort
@@ -340,7 +327,7 @@ bool OnlinePlayManager::JoinLobby(
       [this,
        LobbyInfo,
        ConnectionPort,
-       TransportType,
+       TransportName,
        ConnectionTarget,
        OnComplete = std::move(OnComplete)](bool Success) mutable {
         if (!Success) {
@@ -381,7 +368,7 @@ bool OnlinePlayManager::JoinLobby(
             "[OnlinePlay] JoinLobby transport requested: lobby={} transport={} target={} port={} "
             "awaitingConnectionEvent=true",
             LobbyInfo.LobbyId,
-            GetTransportTypeName(TransportType),
+            TransportName,
             ConnectionTarget,
             ConnectionPort
         );
@@ -391,7 +378,7 @@ bool OnlinePlayManager::JoinLobby(
   return true;
 }
 
-bool OnlinePlayManager::LeaveLobby(ResultCallback OnComplete) {
+bool EOSOnlinePlayManager::LeaveLobby(ResultCallback OnComplete) {
   if (!CanLeaveLobby()) {
     auto Result = MakeResult(
         false,
@@ -405,7 +392,7 @@ bool OnlinePlayManager::LeaveLobby(ResultCallback OnComplete) {
   return true;
 }
 
-void OnlinePlayManager::RollbackLobby(
+void EOSOnlinePlayManager::RollbackLobby(
     ResultCallback OnComplete, EOnlinePlayError Error, std::string Message
 ) {
   NetworkManager::GetInstance().Disconnect();
@@ -437,33 +424,33 @@ void OnlinePlayManager::RollbackLobby(
   }
 }
 
-bool OnlinePlayManager::IsEOSInitialized() const {
+bool EOSOnlinePlayManager::IsEOSInitialized() const {
   return EOSCoreManager::GetInstance().IsInitialized();
 }
-bool OnlinePlayManager::IsLoggedIn() const { return EOSAuthManager::GetInstance().IsLoggedIn(); }
-bool OnlinePlayManager::IsInLobby() const { return EOSLobbyManager::GetInstance().IsInLobby(); }
-bool OnlinePlayManager::IsOperationPending() const { return OperationPending; }
-EOnlinePlayState OnlinePlayManager::GetState() const { return State; }
-bool OnlinePlayManager::CanLogin() const {
+bool EOSOnlinePlayManager::IsLoggedIn() const { return EOSAuthManager::GetInstance().IsLoggedIn(); }
+bool EOSOnlinePlayManager::IsInLobby() const { return EOSLobbyManager::GetInstance().IsInLobby(); }
+bool EOSOnlinePlayManager::IsOperationPending() const { return OperationPending; }
+EOnlinePlayState EOSOnlinePlayManager::GetState() const { return State; }
+bool EOSOnlinePlayManager::CanLogin() const {
   return IsEOSInitialized() && !IsLoggedIn() && !OperationPending;
 }
-bool OnlinePlayManager::CanHostLobby() const {
+bool EOSOnlinePlayManager::CanHostLobby() const {
   return IsEOSInitialized() && IsLoggedIn() && !IsInLobby() && !OperationPending;
 }
-bool OnlinePlayManager::CanSearchLobbies() const { return CanHostLobby(); }
-bool OnlinePlayManager::CanJoinLobby() const { return CanHostLobby(); }
-bool OnlinePlayManager::CanLeaveLobby() const {
+bool EOSOnlinePlayManager::CanSearchLobbies() const { return CanHostLobby(); }
+bool EOSOnlinePlayManager::CanJoinLobby() const { return CanHostLobby(); }
+bool EOSOnlinePlayManager::CanLeaveLobby() const {
   return IsEOSInitialized() && IsLoggedIn() && IsInLobby() && !OperationPending &&
          !IsLeavingSession;
 }
-std::string OnlinePlayManager::GetLocalUserIdString() const {
+std::string EOSOnlinePlayManager::GetLocalUserIdString() const {
   return EOSAuthManager::GetInstance().GetLocalUserIdString();
 }
-std::string OnlinePlayManager::GetCurrentLobbyId() const {
+std::string EOSOnlinePlayManager::GetCurrentLobbyId() const {
   return EOSLobbyManager::GetInstance().GetCurrentLobbyId();
 }
 
-bool OnlinePlayManager::BeginOperation(EOnlinePlayState NewState) {
+bool EOSOnlinePlayManager::BeginOperation(EOnlinePlayState NewState) {
   if (OperationPending) return false;
   OperationPending = true;
   State = NewState;
@@ -471,13 +458,13 @@ bool OnlinePlayManager::BeginOperation(EOnlinePlayState NewState) {
   return true;
 }
 
-void OnlinePlayManager::EndOperation(EOnlinePlayState NewState) {
+void EOSOnlinePlayManager::EndOperation(EOnlinePlayState NewState) {
   OperationPending = false;
   State = NewState;
   M_LOG(Log, "[OnlinePlay] State changed: state={}", static_cast<int>(State));
 }
 
-FOnlinePlayResult OnlinePlayManager::MakeResult(
+FOnlinePlayResult EOSOnlinePlayManager::MakeResult(
     bool Success,
     EOnlinePlayError Error,
     std::string Message,
@@ -489,25 +476,26 @@ FOnlinePlayResult OnlinePlayManager::MakeResult(
   Result.Error = Error;
   Result.Message = std::move(Message);
   Result.LobbyInfo = LobbyInfo;
-  Result.TransportType = GetTransportType();
+  Result.TransportName = GetTransportName();
   Result.RollbackSucceeded = RollbackSucceeded;
   return Result;
 }
 
-void OnlinePlayManager::CompleteResult(ResultCallback& OnComplete, const FOnlinePlayResult& Result)
-    const {
+void EOSOnlinePlayManager::CompleteResult(
+    ResultCallback& OnComplete, const FOnlinePlayResult& Result
+) const {
   M_LOG(
       Log,
       "[OnlinePlay] Operation result: success={} error={} transport={} rollback={}",
       Result.Success,
       static_cast<int>(Result.Error),
-      GetTransportTypeName(Result.TransportType),
+      Result.TransportName,
       Result.RollbackSucceeded
   );
   if (OnComplete) OnComplete(Result);
 }
 
-bool OnlinePlayManager::ApplyNetMode(ENetMode NetMode) {
+bool EOSOnlinePlayManager::ApplyNetMode(ENetMode NetMode) {
   World* CurrentWorld = SceneManager::GetInstance().GetCurrentScene();
   if (!CurrentWorld) {
     M_LOG(Log, "[OnlinePlay] ApplyNetMode failed: current World is null.");
@@ -518,7 +506,7 @@ bool OnlinePlayManager::ApplyNetMode(ENetMode NetMode) {
   return true;
 }
 
-void OnlinePlayManager::BeginSessionEnd(
+void EOSOnlinePlayManager::BeginSessionEnd(
     ESessionDisconnectReason Reason, bool LeaveEOSLobby, bool Notify, ResultCallback OnComplete
 ) {
   if (IsEndingSession) {
@@ -554,7 +542,7 @@ void OnlinePlayManager::BeginSessionEnd(
   }
 }
 
-void OnlinePlayManager::FinalizeSessionEnd(
+void EOSOnlinePlayManager::FinalizeSessionEnd(
     ESessionDisconnectReason Reason, bool Success, bool Notify, ResultCallback OnComplete
 ) {
   NetworkManager::GetInstance().Stop();
@@ -581,7 +569,7 @@ void OnlinePlayManager::FinalizeSessionEnd(
   CompleteResult(OnComplete, Result);
 }
 
-void OnlinePlayManager::NotifySessionDisconnected(ELobbyDisconnectReason Reason) {
+void EOSOnlinePlayManager::NotifySessionDisconnected(ELobbyDisconnectReason Reason) {
   GameInstance* CurrentGameInstance = SceneManager::GetInstance().GetGameInstance();
   if (!CurrentGameInstance) {
     M_LOG(Log, "[OnlinePlay] Disconnect notification skipped: GameInstance is null.");
@@ -590,7 +578,7 @@ void OnlinePlayManager::NotifySessionDisconnected(ELobbyDisconnectReason Reason)
   CurrentGameInstance->OnSessionDisconnected(Reason);
 }
 
-void OnlinePlayManager::HandleLobbyDisconnected(ELobbyDisconnectReason Reason) {
+void EOSOnlinePlayManager::HandleLobbyDisconnected(ELobbyDisconnectReason Reason) {
   if (IsEndingSession) {
     M_LOG(
         Log,
@@ -602,7 +590,7 @@ void OnlinePlayManager::HandleLobbyDisconnected(ELobbyDisconnectReason Reason) {
   BeginSessionEnd(Reason, false, true);
 }
 
-void OnlinePlayManager::HandleNetworkDisconnected(
+void EOSOnlinePlayManager::HandleNetworkDisconnected(
     FNetworkConnectionId ConnectionId, ESessionDisconnectReason Reason
 ) {
   NetworkManager& Network = NetworkManager::GetInstance();
@@ -619,7 +607,7 @@ void OnlinePlayManager::HandleNetworkDisconnected(
   BeginSessionEnd(SessionReason, true, true);
 }
 
-void OnlinePlayManager::HandleAuthLost(EAuthLossReason Reason) {
+void EOSOnlinePlayManager::HandleAuthLost(EAuthLossReason Reason) {
   M_LOG(Log, "[OnlinePlay] Auth lost: reason={}", static_cast<int>(Reason));
   BeginSessionEnd(ESessionDisconnectReason::AuthLost, false, true);
 }

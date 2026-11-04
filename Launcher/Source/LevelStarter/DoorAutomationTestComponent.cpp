@@ -1,20 +1,14 @@
 #include "DoorAutomationTestComponent.h"
 
+#include "ComponentRegistration.h"
 #include "ControlMacros.h"
 
-CONTROL_METHOD(
-    "set_active",
-    "Sets the DoorActor automation test component active state.",
-    &MDoorAutomationTestComponent::SetActive,
-    CONTROL_PARAMETERS(CONTROL_PARAMETER("active", "New active state."))
-)
-CONTROL_METHOD(
-    "is_active",
-    "Returns the DoorActor automation test component active state.",
-    &MDoorAutomationTestComponent::IsActive,
-    CONTROL_PARAMETERS(),
-    ([](const bool Active) { return nlohmann::json{{"active", Active}}; })
-)
+REGISTER_COMPONENT(MDoorAutomationTestComponent, .EditorAddable = false)
+REGISTER_CONTROL_CLASS(MDoorAutomationTestComponent)
+
+nlohmann::json MDoorAutomationTestComponent::ActiveToJson(bool Active) {
+  return {{"active", Active}};
+}
 
 void MDoorAutomationTestComponent::SetActive(bool bInActive) { bActive = bInActive; }
 

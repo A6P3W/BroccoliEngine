@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
+
+from .runtime_plugins import ValidatePluginNames
 
 PROJECT_SETTINGS_FILE_NAME = ".broccoli-project.json"
 GENERATED_PLUGINS_FILE = Path("Intermediate") / "Generated" / "Plugins.cmake"
@@ -37,6 +38,7 @@ def LoadPluginConfigurations(ProjectDirectory: Path) -> dict[str, set[str]]:
     Name = Plugin.get("name")
     if not isinstance(Name, str) or not Name.strip():
       raise ValueError(f"Plugin setting 'name' must be a non-empty string: {SettingsPath}")
+    ValidatePluginNames([Name])
     if Name in PluginConfigurations:
       raise ValueError(f"Plugin '{Name}' is defined more than once: {SettingsPath}")
     if "enabled" in Plugin:
@@ -76,7 +78,9 @@ def CreatePluginsCmake(PluginConfigurations: dict[str, set[str]]) -> str:
   ]
   for Configuration in CONFIGURATIONS:
     EnabledPlugins = sorted(
-      Name for Name, Configurations in PluginConfigurations.items() if Configuration in Configurations
+      Name
+      for Name, Configurations in PluginConfigurations.items()
+      if Configuration in Configurations
     )
     Sections.append(FormatCmakeList(f"BROCCOLI_PLUGINS_{Configuration.upper()}", EnabledPlugins))
   return "\n\n".join(Sections) + "\n"
@@ -96,20 +100,3 @@ def GeneratePluginsCmake(
   GeneratedFile.parent.mkdir(parents=True, exist_ok=True)
   GeneratedFile.write_text(Content, encoding="utf-8", newline="\n")
   return True
-
-
-def RemoveDisabledExamplePluginArtifacts(
-  ProjectDirectory: Path, PluginConfigurations: dict[str, set[str]] | None = None
-) -> None:
-  if PluginConfigurations is None:
-    PluginConfigurations = LoadPluginConfigurations(ProjectDirectory)
-  EnabledConfigurations = PluginConfigurations.get(EXAMPLE_PLUGIN_NAME, set())
-
-  for Configuration in CONFIGURATIONS:
-    if Configuration in EnabledConfigurations:
-      continue
-    ArtifactDirectory = (
-      ProjectDirectory / "Bin" / "x64" / Configuration / "Plugins" / EXAMPLE_PLUGIN_NAME
-    )
-    if ArtifactDirectory.is_dir():
-      shutil.rmtree(ArtifactDirectory)

@@ -1,17 +1,19 @@
 #include "RectangleCollision2DComponent.h"
 
+REGISTER_COMPONENT(MRectangleCollision2DComponent)
+
 #include <RenderSystem.h>
 
 #include "EngineDefine.h"
 
 void MRectangleCollision2DComponent::Draw() {
   if (!IsDebug) return;
-  FVector2D center = GetWorldLocation();
-  float halfWidth = (Width * GetWorldScale().Scale) * 0.5f;
-  float halfHeight = (Height * GetWorldScale().Scale) * 0.5f;
+  FVector2D center = GetWorldLocation2D();
+  float halfWidth = (Width * GetWorldScale2D().Scale) * 0.5f;
+  float halfHeight = (Height * GetWorldScale2D().Scale) * 0.5f;
 
   // 回転時のピボット(左上)を計算するために、中心から左上へのベクトルを回転させます
-  float rad = UMath::DegToRad(GetWorldRotation().Rotation);
+  float rad = UMath::DegToRad(GetWorldRotation2D().Rotation);
   float cosA = std::cos(rad);
   float sinA = std::sin(rad);
 
@@ -23,7 +25,7 @@ void MRectangleCollision2DComponent::Draw() {
       {center.X + rotatedTopLeftOffset.X,
        center.Y + rotatedTopLeftOffset.Y},  // 回転を考慮した左上座標
       {halfWidth * 2.0f, halfHeight * 2.0f},
-      GetWorldRotation(),
+      GetWorldRotation2D(),
       FColor{0, 255, 0},
       0,
       RenderSpace::World,
@@ -33,7 +35,7 @@ void MRectangleCollision2DComponent::Draw() {
       {center.X + rotatedTopLeftOffset.X,
        center.Y + rotatedTopLeftOffset.Y},  // 回転を考慮した左上座標
       {halfWidth * 2.0f, halfHeight * 2.0f},
-      GetWorldRotation(),
+      GetWorldRotation2D(),
       FColor{169, 138, 199, 50},
       1,
       RenderSpace::World,
@@ -42,11 +44,11 @@ void MRectangleCollision2DComponent::Draw() {
 }
 
 FAABB MRectangleCollision2DComponent::GetAABB() const {
-  FVector2D center = GetWorldLocation();
-  float halfWidth = (Width * GetWorldScale().Scale) * 0.5f;
-  float halfHeight = (Height * GetWorldScale().Scale) * 0.5f;
+  FVector2D center = GetWorldLocation2D();
+  float halfWidth = (Width * GetWorldScale2D().Scale) * 0.5f;
+  float halfHeight = (Height * GetWorldScale2D().Scale) * 0.5f;
 
-  float rad = UMath::DegToRad(GetWorldRotation().Rotation);
+  float rad = UMath::DegToRad(GetWorldRotation2D().Rotation);
   float cosA = std::cos(rad);
   float sinA = std::sin(rad);
 

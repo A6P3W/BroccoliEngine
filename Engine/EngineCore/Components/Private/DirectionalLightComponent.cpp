@@ -2,6 +2,8 @@
 
 #include "RenderSystem.h"
 
+REGISTER_COMPONENT(MDirectionalLightComponent)
+
 FVector3D MDirectionalLightComponent::GetDirection() const {
   return GetWorldRotation3D().RotateVector({0.0f, 0.0f, 1.0f}).Normalize();
 }
