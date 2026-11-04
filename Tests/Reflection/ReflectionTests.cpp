@@ -30,15 +30,15 @@
 #include "nlohmann/json.hpp"
 
 namespace {
-static_assert(
-    std::is_same_v<decltype(&ASprite2DActor::SetImagePath), void (ASprite2DActor::*)(const FPath&)>
-);
+static_assert(std::is_same_v<
+              decltype(&ASprite2DActor::SetImagePath),
+              void (ASprite2DActor::*)(const FPath&)>);
 static_assert(std::is_same_v<
               decltype(&ASprite2DActor::GetImagePath),
               const FPath& (ASprite2DActor::*)() const>);
-static_assert(
-    std::is_same_v<decltype(&ASprite3DActor::SetImagePath), void (ASprite3DActor::*)(const FPath&)>
-);
+static_assert(std::is_same_v<
+              decltype(&ASprite3DActor::SetImagePath),
+              void (ASprite3DActor::*)(const FPath&)>);
 static_assert(std::is_same_v<
               decltype(&ASprite3DActor::GetImagePath),
               const FPath& (ASprite3DActor::*)() const>);
@@ -964,8 +964,7 @@ void TestSpriteActorImagePathRoundTrip() {
   const fs::path CanonicalTempDirectory = fs::weakly_canonical(TempDirectory);
   Check(
       CanonicalTempDirectory.is_absolute() && CanonicalTempDirectory.parent_path() == TempRoot &&
-          CanonicalTempDirectory.filename().string().starts_with(
-              "BroccoliReflectionTests-Sprites-"
+          CanonicalTempDirectory.filename().string().starts_with("BroccoliReflectionTests-Sprites-"
           ),
       "Refusing to remove a Sprite test directory outside its dedicated temp root."
   );
@@ -983,13 +982,6 @@ void TestMaterialAndLightRoundTrip() {
       RequireProperty(*MeshClass, "ShadingModel").EditorMetadata.EnumOptions.size() == 2,
       "Shading model options are missing."
   );
-  Check(
-      RequireProperty(*MeshClass, "BaseColor").Type == EPropertyType::Color &&
-          RequireProperty(*MeshClass, "BaseColorTexturePath").EditorMetadata.PathFilter ==
-              EPathFilter::Image,
-      "Material editor metadata is incorrect."
-  );
-
   const fs::path TempDirectory =
       fs::temp_directory_path() /
       ("BroccoliReflectionTests-Material-" +
@@ -1002,14 +994,32 @@ void TestMaterialAndLightRoundTrip() {
     auto* Light = SaveWorld.SpawnActor<ADirectionalLightActor>({}, FRotator(0.0F), true);
     Check(Mesh != nullptr && Light != nullptr, "Could not spawn material test actors.");
     SaveWorld.GetActorManager()->FlushPendingActors();
+    auto& Resources = ResourceManager::GetInstance();
+    auto* LitMesh = SaveWorld.SpawnActor<AStaticMeshActor>({}, FRotator(0.0F), true);
+    Check(LitMesh != nullptr, "Could not spawn Lit mesh.");
+    Check(
+        RequireProperty(*MeshClass, "ShadingModel").Set(LitMesh, 0) &&
+            RequireProperty(*MeshClass, "ShadingModel").Set(LitMesh, 1),
+        "Could not switch back to Lit."
+    );
+    auto* LitComponent = dynamic_cast<MStaticMeshComponent*>(LitMesh->GetRootComponent());
+    Check(
+        LitComponent != nullptr &&
+            LitComponent->GetMaterial() == Resources.GetDefaultLitMaterial3D(),
+        "Switching back to Lit did not update the runtime material."
+    );
+    SaveWorld.GetActorManager()->FlushPendingActors();
+    Check(
+        Resources.CreateMaterial3D({EShadingModel3D::Lit}) == Resources.GetDefaultLitMaterial3D() &&
+            Resources.CreateMaterial3D({EShadingModel3D::Unlit}) ==
+                Resources.GetDefaultUnlitMaterial3D(),
+        "Materials must reuse the default handles."
+    );
     Check(RequireProperty(*MeshClass, "ShadingModel").Set(Mesh, 0), "Could not set Unlit.");
     Check(
-        RequireProperty(*MeshClass, "BaseColor").Set(Mesh, FColor{25, 50, 75, 255}),
-        "Could not set base color."
-    );
-    Check(
         RequireProperty(*LightClass, "Intensity").Set(Light, 2.5f) &&
-            RequireProperty(*LightClass, "Enabled").Set(Light, false),
+            RequireProperty(*LightClass, "Enabled").Set(Light, false) &&
+            RequireProperty(*LightClass, "Color").Set(Light, FColor{25, 50, 75, 255}),
         "Could not set directional light."
     );
     auto* MeshComponent = dynamic_cast<MStaticMeshComponent*>(Mesh->GetRootComponent());
@@ -1017,8 +1027,7 @@ void TestMaterialAndLightRoundTrip() {
     const FMaterial3DDesc* Material =
         ResourceManager::GetInstance().GetMaterial3D(MeshComponent->GetMaterial());
     Check(
-        Material != nullptr && Material->ShadingModel == EShadingModel3D::Unlit &&
-            Material->BaseColor == FColor{25, 50, 75, 255},
+        Material != nullptr && Material->ShadingModel == EShadingModel3D::Unlit,
         "Reflected values did not rebuild the runtime material."
     );
     Check(LevelSerializer::Save(&SaveWorld, LevelPath.string(), ""), "Could not save level.");
@@ -1027,6 +1036,7 @@ void TestMaterialAndLightRoundTrip() {
     World LoadWorld;
     Check(LevelSerializer::Load(&LoadWorld, LevelPath.string(), false), "Could not load level.");
     bool MeshRestored = false;
+    bool LitMeshRestored = false;
     bool LightRestored = false;
     for (const auto& Actor : LoadWorld.GetActorManager()->GetAllActors()) {
       if (auto* Mesh = dynamic_cast<AStaticMeshActor*>(Actor.get())) {
@@ -1034,15 +1044,17 @@ void TestMaterialAndLightRoundTrip() {
         const FMaterial3DDesc* Material = ResourceManager::GetInstance().GetMaterial3D(
             Component != nullptr ? Component->GetMaterial() : 0
         );
-        MeshRestored = Material != nullptr && Material->ShadingModel == EShadingModel3D::Unlit &&
-                       Material->BaseColor == FColor{25, 50, 75, 255};
+        MeshRestored |= Material != nullptr && Material->ShadingModel == EShadingModel3D::Unlit;
+        LitMeshRestored |= Material != nullptr && Material->ShadingModel == EShadingModel3D::Lit;
       } else if (auto* Light = dynamic_cast<ADirectionalLightActor*>(Actor.get())) {
         auto* Component = dynamic_cast<MDirectionalLightComponent*>(Light->GetRootComponent());
-        LightRestored =
-            Component != nullptr && Component->GetIntensity() == 2.5f && !Component->IsEnabled();
+        LightRestored = Component != nullptr && Component->GetIntensity() == 2.5f &&
+                        !Component->IsEnabled() && Component->GetColor() == FColor{25, 50, 75, 255};
       }
     }
-    Check(MeshRestored && LightRestored, "Material or light did not round trip.");
+    Check(
+        MeshRestored && LitMeshRestored && LightRestored, "Material or light did not round trip."
+    );
   }
   const fs::path Canonical = fs::weakly_canonical(TempDirectory);
   Check(

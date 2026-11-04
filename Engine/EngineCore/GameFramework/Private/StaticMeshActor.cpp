@@ -45,23 +45,10 @@ void AStaticMeshActor::RebuildMaterial() {
   auto& Resources = ResourceManager::GetInstance();
   FMaterial3DDesc Descriptor;
   Descriptor.ShadingModel = ShadingModel == 0 ? EShadingModel3D::Unlit : EShadingModel3D::Lit;
-  Descriptor.BaseColor = BaseColor;
-  if (!BaseColorTexturePath.Empty())
-    Descriptor.BaseColorTextureHandle = Resources.LoadResourceGraph(BaseColorTexturePath);
   StaticMeshComponent->SetMaterial(Resources.CreateMaterial3D(Descriptor));
 }
 
-void AStaticMeshActor::OnMaterialChanged(int OldValue) {
-  (void)OldValue;
-  RebuildMaterial();
-}
-
-void AStaticMeshActor::OnBaseColorChanged(FColor OldValue) {
-  (void)OldValue;
-  RebuildMaterial();
-}
-
-void AStaticMeshActor::OnTexturePathChanged(FPath OldValue) {
+void AStaticMeshActor::OnShadingModelChanged(int OldValue) {
   (void)OldValue;
   RebuildMaterial();
 }

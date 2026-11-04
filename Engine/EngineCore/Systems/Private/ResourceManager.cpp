@@ -148,8 +148,8 @@ class FRaylibResourceStore {
         FModelResource{
             ModelData,
             {},
-            {{Bounds.min.x, Bounds.min.y, Bounds.min.z},
-             {Bounds.max.x, Bounds.max.y, Bounds.max.z}},
+            {{Bounds.min.x, Bounds.min.y, Bounds.min.z}, {Bounds.max.x, Bounds.max.y, Bounds.max.z}
+            },
             Path,
         }
     );
@@ -163,13 +163,6 @@ class FRaylibResourceStore {
   }
 
   int CreateMaterial(const FMaterial3DDesc& Desc) {
-    for (const auto& [Handle, Existing] : Materials) {
-      if (Existing.ShadingModel == Desc.ShadingModel && Existing.BaseColor.R == Desc.BaseColor.R &&
-          Existing.BaseColor.G == Desc.BaseColor.G && Existing.BaseColor.B == Desc.BaseColor.B &&
-          Existing.BaseColor.A == Desc.BaseColor.A &&
-          Existing.BaseColorTextureHandle == Desc.BaseColorTextureHandle)
-        return Handle;
-    }
     const int Handle = NextHandle++;
     Materials.emplace(Handle, Desc);
     return Handle;
@@ -498,9 +491,8 @@ bool ResourceManager::GetModelBounds(int Handle, FBox3D& OutBounds) const {
 }
 
 int ResourceManager::CreateMaterial3D(const FMaterial3DDesc& Desc) {
-  if (Desc.ShadingModel != EShadingModel3D::Lit && Desc.ShadingModel != EShadingModel3D::Unlit)
-    return GetDefaultLitMaterial3D();
-  return GetResourceStore().CreateMaterial(Desc);
+  return Desc.ShadingModel == EShadingModel3D::Unlit ? GetDefaultUnlitMaterial3D()
+                                                     : GetDefaultLitMaterial3D();
 }
 
 const FMaterial3DDesc* ResourceManager::GetMaterial3D(int Handle) const {

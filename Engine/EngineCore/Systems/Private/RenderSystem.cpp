@@ -1,10 +1,10 @@
 #include "RenderSystem.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <optional>
 #include <type_traits>
+#include <vector>
 
 #include "BroccoliRaylib.h"
 #include "Camera2DComponent.h"
@@ -96,24 +96,14 @@ void DrawStaticMeshCommand(
 
   auto& Resources = ResourceManager::GetInstance();
   const FMaterial3DDesc* Descriptor = Resources.GetMaterial3D(Data.MaterialHandle);
-  if (Descriptor == nullptr)
-    Descriptor = Resources.GetMaterial3D(Resources.GetDefaultLitMaterial3D());
+  const bool IsLit = Descriptor == nullptr || Descriptor->ShadingModel == EShadingModel3D::Lit;
+  const Shader* MaterialShader = GetRaylibMaterialShader(IsLit);
   Model DrawModelData = *ModelData;
-  std::vector<Material> Materials;
-  if (ModelData->materials != nullptr && ModelData->materialCount > 0)
+  // Reuse scratch storage across draws; material maps remain owned by the model.
+  static thread_local std::vector<Material> Materials;
+  if (MaterialShader != nullptr && ModelData->materials != nullptr &&
+      ModelData->materialCount > 0) {
     Materials.assign(ModelData->materials, ModelData->materials + ModelData->materialCount);
-  // raylib allocates 12 entries for each material, including its reserved map slot.
-  constexpr std::size_t MaterialMapCount = 12;
-  std::vector<std::array<MaterialMap, MaterialMapCount>> MaterialMaps(Materials.size());
-  for (std::size_t Index = 0; Index < Materials.size(); ++Index) {
-    if (Materials[Index].maps == nullptr) continue;
-    std::copy_n(Materials[Index].maps, MaterialMapCount, MaterialMaps[Index].begin());
-    Materials[Index].maps = MaterialMaps[Index].data();
-  }
-  const Shader* MaterialShader = GetRaylibMaterialShader(
-      Descriptor != nullptr && Descriptor->ShadingModel == EShadingModel3D::Lit
-  );
-  if (MaterialShader != nullptr && Descriptor != nullptr && !Materials.empty()) {
     const float ViewPosition[3] = {CameraPosition.X, CameraPosition.Y, CameraPosition.Z};
     const FVector3D Direction = Light ? Light->Direction : FVector3D{0.0f, -1.0f, 0.0f};
     const float LightDirection[3] = {Direction.X, Direction.Y, Direction.Z};
@@ -125,7 +115,7 @@ void DrawStaticMeshCommand(
     const float Intensity = Light ? Light->Intensity : 0.0f;
     const float Ambient = 0.2f;
     const int HasLight = Light.has_value() ? 1 : 0;
-    const int ShadingModel = Descriptor->ShadingModel == EShadingModel3D::Unlit ? 0 : 1;
+    const int ShadingModel = IsLit ? 1 : 0;
     SetShaderValue(
         *MaterialShader,
         GetShaderLocation(*MaterialShader, "viewPos"),
@@ -169,29 +159,7 @@ void DrawStaticMeshCommand(
         SHADER_UNIFORM_INT
     );
     for (Material& Entry : Materials) {
-      if (Entry.maps == nullptr) continue;
       Entry.shader = *MaterialShader;
-      const Color ImportedColor = Entry.maps[MATERIAL_MAP_DIFFUSE].color;
-      Entry.maps[MATERIAL_MAP_DIFFUSE].color = {
-          static_cast<unsigned char>(
-              static_cast<int>(ImportedColor.r) * Descriptor->BaseColor.R * Data.Tint.R /
-              (255 * 255)
-          ),
-          static_cast<unsigned char>(
-              static_cast<int>(ImportedColor.g) * Descriptor->BaseColor.G * Data.Tint.G /
-              (255 * 255)
-          ),
-          static_cast<unsigned char>(
-              static_cast<int>(ImportedColor.b) * Descriptor->BaseColor.B * Data.Tint.B /
-              (255 * 255)
-          ),
-          static_cast<unsigned char>(
-              static_cast<int>(ImportedColor.a) * Descriptor->BaseColor.A * Data.Tint.A /
-              (255 * 255)
-          )
-      };
-      if (const Texture2D* Texture = GetRaylibTexture(Descriptor->BaseColorTextureHandle))
-        Entry.maps[MATERIAL_MAP_DIFFUSE].texture = *Texture;
     }
     DrawModelData.materials = Materials.data();
   }
@@ -200,12 +168,7 @@ void DrawStaticMeshCommand(
   DrawTransform.Rotation = (Data.Transform.Rotation * ImportTransform->Rotation).Normalize();
   rlPushMatrix();
   ApplyRaylibTransform(DrawTransform);
-  DrawModel(
-      DrawModelData,
-      {0.0f, 0.0f, 0.0f},
-      1.0f,
-      MaterialShader != nullptr && !Materials.empty() ? WHITE : ToRaylibColor(Data.Tint)
-  );
+  DrawModel(DrawModelData, {0.0f, 0.0f, 0.0f}, 1.0f, ToRaylibColor(Data.Tint));
   rlPopMatrix();
 }
 
@@ -404,8 +367,10 @@ bool LineIntersects(const FVector2D& Start, const FVector2D& End, const FScreenB
 }
 
 FScreenRenderArea BuildScreenRenderArea(const FVector2D& RenderTargetSize) {
-  const float Scale = (std::min)(RenderTargetSize.X / static_cast<float>(VirtualWidth),
-                                 RenderTargetSize.Y / static_cast<float>(VirtualHeight));
+  const float Scale = (std::min)(
+      RenderTargetSize.X / static_cast<float>(VirtualWidth),
+      RenderTargetSize.Y / static_cast<float>(VirtualHeight)
+  );
   const FVector2D Size = {
       static_cast<float>(VirtualWidth) * Scale, static_cast<float>(VirtualHeight) * Scale
   };
@@ -910,9 +875,8 @@ FRenderContext RenderSystem::BuildRenderContext() const {
   };
 }
 
-bool RenderSystem::IsCommandVisible(
-    const RenderCommand& Command, const FRenderContext& Context
-) const {
+bool RenderSystem::IsCommandVisible(const RenderCommand& Command, const FRenderContext& Context)
+    const {
   return std::visit(FVisibilityVisitor{Command.common, Context}, Command.data);
 }
 
