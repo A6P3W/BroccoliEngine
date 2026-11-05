@@ -100,7 +100,7 @@ void DrawStaticMeshCommand(
   const Shader* MaterialShader = GetRaylibMaterialShader(IsLit);
   Model DrawModelData = *ModelData;
   // Reuse scratch storage across draws; material maps remain owned by the model.
-  static thread_local std::vector<Material> Materials;
+  static std::vector<Material> Materials;
   if (MaterialShader != nullptr && ModelData->materials != nullptr &&
       ModelData->materialCount > 0) {
     Materials.assign(ModelData->materials, ModelData->materials + ModelData->materialCount);
