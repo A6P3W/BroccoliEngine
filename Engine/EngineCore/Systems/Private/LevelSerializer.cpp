@@ -115,9 +115,16 @@ bool JsonToValue(const json& JsonValue, EPropertyType Type, FPropertyValue& Valu
             !JsonValue.contains("g") || !JsonValue.contains("b") || !JsonValue.contains("a"))
           return false;
         for (const char* Channel : {"r", "g", "b", "a"}) {
-          if (!JsonValue[Channel].is_number_integer()) return false;
-          const int Number = JsonValue[Channel].get<int>();
-          if (Number < 0 || Number > 255) return false;
+          const auto& ChannelValue = JsonValue[Channel];
+          if (ChannelValue.is_number_unsigned()) {
+            const uint64_t Number = ChannelValue.get<uint64_t>();
+            if (Number > 255) return false;
+          } else if (ChannelValue.is_number_integer()) {
+            const int64_t Number = ChannelValue.get<int64_t>();
+            if (Number < 0 || Number > 255) return false;
+          } else {
+            return false;
+          }
         }
         Value = FColor{
             JsonValue["r"].get<uint8_t>(),
