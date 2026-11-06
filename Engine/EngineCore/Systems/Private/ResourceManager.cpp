@@ -326,10 +326,8 @@ class FRaylibResourceStore {
   }
 
   void ReleaseAll() {
-    if (LitShaderReady) UnloadShader(LitShader);
-    if (UnlitShaderReady) UnloadShader(UnlitShader);
-    LitShaderReady = false;
-    UnlitShaderReady = false;
+    if (MaterialShaderReady) UnloadShader(MaterialShader);
+    MaterialShaderReady = false;
     ShaderAttempted = false;
     Materials.clear();
     for (auto& [Handle, Resource] : Fonts) {
@@ -355,18 +353,15 @@ class FRaylibResourceStore {
     ModelPathMap.clear();
   }
 
-  const Shader* GetMaterialShader(bool Lit) {
+  const Shader* GetMaterialShader(bool /*Lit*/) {
     if (!ShaderAttempted) {
       ShaderAttempted = true;
-      LitShader = LoadShaderFromMemory(MaterialVertexShader, MaterialFragmentShader);
-      UnlitShader = LoadShaderFromMemory(MaterialVertexShader, MaterialFragmentShader);
-      LitShaderReady = IsShaderValid(LitShader) && LitShader.id != rlGetShaderIdDefault();
-      UnlitShaderReady = IsShaderValid(UnlitShader) && UnlitShader.id != rlGetShaderIdDefault();
-      if (!LitShaderReady || !UnlitShaderReady)
-        M_LOG(Warning, "3D material shader failed to compile.");
+      MaterialShader = LoadShaderFromMemory(MaterialVertexShader, MaterialFragmentShader);
+      MaterialShaderReady =
+          IsShaderValid(MaterialShader) && MaterialShader.id != rlGetShaderIdDefault();
+      if (!MaterialShaderReady) M_LOG(Warning, "3D material shader failed to compile.");
     }
-    return Lit ? (LitShaderReady ? &LitShader : nullptr)
-               : (UnlitShaderReady ? &UnlitShader : nullptr);
+    return MaterialShaderReady ? &MaterialShader : nullptr;
   }
 
  private:
@@ -424,11 +419,9 @@ class FRaylibResourceStore {
   std::unordered_map<int, FModelResource> Models;
   std::unordered_map<std::string, int> ModelPathMap;
   std::unordered_map<int, FMaterial3DDesc> Materials;
-  Shader LitShader{};
-  Shader UnlitShader{};
+  Shader MaterialShader{};
   bool ShaderAttempted = false;
-  bool LitShaderReady = false;
-  bool UnlitShaderReady = false;
+  bool MaterialShaderReady = false;
 };
 
 FRaylibResourceStore& GetResourceStore() {
