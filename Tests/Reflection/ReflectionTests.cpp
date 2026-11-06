@@ -12,6 +12,8 @@
 #include "Actor.h"
 #include "ActorRegistry.h"
 #include "ComponentRegistry.h"
+#include "DirectionalLightActor.h"
+#include "DirectionalLightComponent.h"
 #include "EditorClipboard.h"
 #include "EditorTransformTool.h"
 #include "ForceFieldComponent.h"
@@ -22,11 +24,13 @@
 #include "PluginContext.h"
 #include "PluginHost.h"
 #include "ReflectionGenerator.h"
+#include "ResourceManager.h"
 #include "Sprite2DActor.h"
 #include "Sprite2DComponent.h"
 #include "Sprite3DActor.h"
 #include "Sprite3DComponent.h"
 #include "StaticMeshActor.h"
+#include "StaticMeshComponent.h"
 #include "World.h"
 #include "nlohmann/json.hpp"
 
@@ -1023,6 +1027,100 @@ void TestSpriteActorImagePathRoundTrip() {
   fs::remove_all(CanonicalTempDirectory);
 }
 
+void TestMaterialAndLightRoundTrip() {
+  namespace fs = std::filesystem;
+  const FClass* MeshClass =
+      FReflectionRegistry::GetInstance().FindClass(AStaticMeshActor::StaticClassName());
+  const FClass* LightClass =
+      FReflectionRegistry::GetInstance().FindClass(ADirectionalLightActor::StaticClassName());
+  Check(MeshClass != nullptr && LightClass != nullptr, "3D actor Reflection is missing.");
+  Check(
+      RequireProperty(*MeshClass, "ShadingModel").EditorMetadata.EnumOptions.size() == 2,
+      "Shading model options are missing."
+  );
+  const fs::path TempDirectory =
+      fs::temp_directory_path() /
+      ("BroccoliReflectionTests-Material-" +
+       std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  fs::create_directories(TempDirectory);
+  const fs::path LevelPath = TempDirectory / "Material.BLevel.json";
+  {
+    World SaveWorld;
+    auto* Mesh = SaveWorld.SpawnActor<AStaticMeshActor>({}, FRotator(0.0F), true);
+    auto* Light = SaveWorld.SpawnActor<ADirectionalLightActor>({}, FRotator(0.0F), true);
+    Check(Mesh != nullptr && Light != nullptr, "Could not spawn material test actors.");
+    SaveWorld.GetActorManager()->FlushPendingActors();
+    auto& Resources = ResourceManager::GetInstance();
+    auto* LitMesh = SaveWorld.SpawnActor<AStaticMeshActor>({}, FRotator(0.0F), true);
+    Check(LitMesh != nullptr, "Could not spawn Lit mesh.");
+    Check(
+        RequireProperty(*MeshClass, "ShadingModel").Set(LitMesh, 0) &&
+            RequireProperty(*MeshClass, "ShadingModel").Set(LitMesh, 1),
+        "Could not switch back to Lit."
+    );
+    auto* LitComponent = dynamic_cast<MStaticMeshComponent*>(LitMesh->GetRootComponent());
+    Check(
+        LitComponent != nullptr &&
+            LitComponent->GetMaterial() == Resources.GetDefaultLitMaterial3D(),
+        "Switching back to Lit did not update the runtime material."
+    );
+    SaveWorld.GetActorManager()->FlushPendingActors();
+    Check(
+        Resources.CreateMaterial3D({EShadingModel3D::Lit}) == Resources.GetDefaultLitMaterial3D() &&
+            Resources.CreateMaterial3D({EShadingModel3D::Unlit}) ==
+                Resources.GetDefaultUnlitMaterial3D(),
+        "Materials must reuse the default handles."
+    );
+    Check(RequireProperty(*MeshClass, "ShadingModel").Set(Mesh, 0), "Could not set Unlit.");
+    Check(
+        RequireProperty(*LightClass, "Intensity").Set(Light, 2.5f) &&
+            RequireProperty(*LightClass, "Enabled").Set(Light, false) &&
+            RequireProperty(*LightClass, "Color").Set(Light, FColor{25, 50, 75, 255}),
+        "Could not set directional light."
+    );
+    auto* MeshComponent = dynamic_cast<MStaticMeshComponent*>(Mesh->GetRootComponent());
+    Check(MeshComponent != nullptr, "StaticMeshActor has the wrong root component.");
+    const FMaterial3DDesc* Material =
+        ResourceManager::GetInstance().GetMaterial3D(MeshComponent->GetMaterial());
+    Check(
+        Material != nullptr && Material->ShadingModel == EShadingModel3D::Unlit,
+        "Reflected values did not rebuild the runtime material."
+    );
+    Check(LevelSerializer::Save(&SaveWorld, LevelPath.string(), ""), "Could not save level.");
+  }
+  {
+    World LoadWorld;
+    Check(LevelSerializer::Load(&LoadWorld, LevelPath.string(), false), "Could not load level.");
+    bool MeshRestored = false;
+    bool LitMeshRestored = false;
+    bool LightRestored = false;
+    for (const auto& Actor : LoadWorld.GetActorManager()->GetAllActors()) {
+      if (auto* Mesh = dynamic_cast<AStaticMeshActor*>(Actor.get())) {
+        auto* Component = dynamic_cast<MStaticMeshComponent*>(Mesh->GetRootComponent());
+        const FMaterial3DDesc* Material = ResourceManager::GetInstance().GetMaterial3D(
+            Component != nullptr ? Component->GetMaterial() : 0
+        );
+        MeshRestored |= Material != nullptr && Material->ShadingModel == EShadingModel3D::Unlit;
+        LitMeshRestored |= Material != nullptr && Material->ShadingModel == EShadingModel3D::Lit;
+      } else if (auto* Light = dynamic_cast<ADirectionalLightActor*>(Actor.get())) {
+        auto* Component = dynamic_cast<MDirectionalLightComponent*>(Light->GetRootComponent());
+        LightRestored = Component != nullptr && Component->GetIntensity() == 2.5f &&
+                        !Component->IsEnabled() && Component->GetColor() == FColor{25, 50, 75, 255};
+      }
+    }
+    Check(
+        MeshRestored && LitMeshRestored && LightRestored, "Material or light did not round trip."
+    );
+  }
+  const fs::path Canonical = fs::weakly_canonical(TempDirectory);
+  Check(
+      Canonical.parent_path() == fs::weakly_canonical(fs::temp_directory_path()) &&
+          Canonical.filename().string().starts_with("BroccoliReflectionTests-Material-"),
+      "Refusing to remove a directory outside the material test root."
+  );
+  fs::remove_all(Canonical);
+}
+
 void TestPluginLoadUnloadAndLiveActorDelay() {
   namespace fs = std::filesystem;
   PluginHost& Host = PluginHost::GetInstance();
@@ -1656,6 +1754,7 @@ int main(int ArgCount, char** Arguments) {
       TestLevelSerializerRoundTripAndLegacyVersions();
       TestWorldLevelSerializerReflectionRoundTrip();
       TestSpriteActorImagePathRoundTrip();
+      TestMaterialAndLightRoundTrip();
       TestPluginLoadUnloadAndLiveActorDelay();
     }
   } catch (const std::exception& Error) {

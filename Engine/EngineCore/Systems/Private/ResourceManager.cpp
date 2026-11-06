@@ -76,6 +76,61 @@ struct FModelResource {
   std::string Path;
 };
 
+constexpr const char* MaterialVertexShader = R"glsl(#version 330
+in vec3 vertexPosition;
+in vec2 vertexTexCoord;
+in vec3 vertexNormal;
+in vec4 vertexColor;
+uniform mat4 mvp;
+uniform mat4 matModel;
+out vec2 fragTexCoord;
+out vec3 fragNormal;
+out vec3 fragPosition;
+out vec4 fragColor;
+void main() {
+  vec4 world = matModel * vec4(vertexPosition, 1.0);
+  fragPosition = world.xyz;
+  // ワールド空間の法線
+  fragNormal = normalize(transpose(inverse(mat3(matModel))) * vertexNormal);
+  fragTexCoord = vertexTexCoord;
+  fragColor = vertexColor;
+  gl_Position = mvp * vec4(vertexPosition, 1.0);
+})glsl";
+
+constexpr const char* MaterialFragmentShader = R"glsl(#version 330
+// Textureのuv座標
+in vec2 fragTexCoord;
+in vec3 fragNormal;
+in vec3 fragPosition;
+in vec4 fragColor;
+uniform sampler2D texture0;
+// マテリアル基本色
+uniform vec4 colDiffuse;
+uniform vec3 viewPos;
+uniform vec3 lightDirection;
+uniform vec3 lightColor;
+uniform float lightIntensity;
+uniform float ambientStrength;
+uniform int hasLight;
+uniform int shadingModel;
+out vec4 finalColor;
+void main() {
+  // BaseColor
+  vec4 base = texture(texture0, fragTexCoord) * colDiffuse * fragColor;
+  if (shadingModel == 0) { finalColor = base; return; }
+  vec3 normal = normalize(fragNormal);
+  // ランバート拡散反射
+  float diffuse = hasLight != 0 ? max(dot(normal, -normalize(lightDirection)), 0.0) : 0.0;
+  // Blinn-Phong 鏡面反射
+  vec3 viewDirection = normalize(viewPos - fragPosition);
+  vec3 halfway = normalize(viewDirection - normalize(lightDirection));
+  float specular = (hasLight != 0 && diffuse > 0.0) ? pow(max(dot(normal, halfway), 0.0), 32.0) * 0.1 : 0.0;
+
+  // ライティング合成
+  vec3 lighting = vec3(ambientStrength) + lightColor * lightIntensity * (diffuse + specular);
+  finalColor = vec4(base.rgb * lighting, base.a);
+})glsl";
+
 class FRaylibResourceStore {
  public:
   int LoadModelResource(const std::string& Path) {
@@ -113,6 +168,17 @@ class FRaylibResourceStore {
   const FModelResource* FindModel(int Handle) const {
     const auto It = Models.find(Handle);
     return It == Models.end() ? nullptr : &It->second;
+  }
+
+  int CreateMaterial(const FMaterial3DDesc& Desc) {
+    const int Handle = NextHandle++;
+    Materials.emplace(Handle, Desc);
+    return Handle;
+  }
+
+  const FMaterial3DDesc* FindMaterial(int Handle) const {
+    const auto It = Materials.find(Handle);
+    return It == Materials.end() ? nullptr : &It->second;
   }
 
   int LoadTextureResource(const std::string& Path) {
@@ -260,6 +326,10 @@ class FRaylibResourceStore {
   }
 
   void ReleaseAll() {
+    if (MaterialShaderReady) UnloadShader(MaterialShader);
+    MaterialShaderReady = false;
+    ShaderAttempted = false;
+    Materials.clear();
     for (auto& [Handle, Resource] : Fonts) {
       if (Resource.OwnsFont) UnloadFont(Resource.FontData);
     }
@@ -281,6 +351,17 @@ class FRaylibResourceStore {
     }
     Models.clear();
     ModelPathMap.clear();
+  }
+
+  const Shader* GetMaterialShader(bool /*Lit*/) {
+    if (!ShaderAttempted) {
+      ShaderAttempted = true;
+      MaterialShader = LoadShaderFromMemory(MaterialVertexShader, MaterialFragmentShader);
+      MaterialShaderReady =
+          IsShaderValid(MaterialShader) && MaterialShader.id != rlGetShaderIdDefault();
+      if (!MaterialShaderReady) M_LOG(Warning, "3D material shader failed to compile.");
+    }
+    return MaterialShaderReady ? &MaterialShader : nullptr;
   }
 
  private:
@@ -337,6 +418,10 @@ class FRaylibResourceStore {
   std::unordered_map<std::string, int> FontKeyMap;
   std::unordered_map<int, FModelResource> Models;
   std::unordered_map<std::string, int> ModelPathMap;
+  std::unordered_map<int, FMaterial3DDesc> Materials;
+  Shader MaterialShader{};
+  bool ShaderAttempted = false;
+  bool MaterialShaderReady = false;
 };
 
 FRaylibResourceStore& GetResourceStore() {
@@ -347,9 +432,15 @@ FRaylibResourceStore& GetResourceStore() {
 
 struct ResourceManager::Impl {
   int DefaultGraph = InvalidResourceHandle;
+  int DefaultLitMaterial = InvalidResourceHandle;
+  int DefaultUnlitMaterial = InvalidResourceHandle;
 };
 
 ResourceManager::ResourceManager() : ImplPtr(new Impl()) {
+  ImplPtr->DefaultLitMaterial = GetResourceStore().CreateMaterial({});
+  FMaterial3DDesc Unlit;
+  Unlit.ShadingModel = EShadingModel3D::Unlit;
+  ImplPtr->DefaultUnlitMaterial = GetResourceStore().CreateMaterial(Unlit);
   static constexpr std::array<const char*, 1> DefaultTextureCandidates = {
       "Engine/texture_Checker_64px.png",
   };
@@ -400,6 +491,19 @@ bool ResourceManager::GetModelBounds(int Handle, FBox3D& OutBounds) const {
   return true;
 }
 
+int ResourceManager::CreateMaterial3D(const FMaterial3DDesc& Desc) {
+  return Desc.ShadingModel == EShadingModel3D::Unlit ? GetDefaultUnlitMaterial3D()
+                                                     : GetDefaultLitMaterial3D();
+}
+
+const FMaterial3DDesc* ResourceManager::GetMaterial3D(int Handle) const {
+  return GetResourceStore().FindMaterial(Handle);
+}
+
+int ResourceManager::GetDefaultLitMaterial3D() const { return ImplPtr->DefaultLitMaterial; }
+
+int ResourceManager::GetDefaultUnlitMaterial3D() const { return ImplPtr->DefaultUnlitMaterial; }
+
 int ResourceManager::NormalizeFontWeight(int Weight) {
   if (Weight >= MinFontWeight && Weight <= MaxFontWeight && Weight % FontWeightStep == 0) {
     return Weight;
@@ -426,6 +530,8 @@ void ResourceManager::ReleaseResourceGraph() { ReleaseAllResources(); }
 void ResourceManager::ReleaseAllResources() {
   GetResourceStore().ReleaseAll();
   ImplPtr->DefaultGraph = InvalidResourceHandle;
+  ImplPtr->DefaultLitMaterial = InvalidResourceHandle;
+  ImplPtr->DefaultUnlitMaterial = InvalidResourceHandle;
 }
 
 const Texture2D* GetRaylibTexture(int Handle) {
@@ -462,6 +568,10 @@ const Model* GetRaylibModel(int Handle) {
 const FTransform3D* GetRaylibModelImportTransform(int Handle) {
   const FModelResource* Resource = GetResourceStore().FindModel(Handle);
   return Resource == nullptr ? nullptr : &Resource->ImportTransform;
+}
+
+const Shader* GetRaylibMaterialShader(bool Lit) {
+  return GetResourceStore().GetMaterialShader(Lit);
 }
 
 const Font* GetRaylibFont(int Handle, const std::string& Text) {

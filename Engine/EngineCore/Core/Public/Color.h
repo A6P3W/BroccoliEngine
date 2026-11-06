@@ -13,6 +13,7 @@ struct BROCCOLI_ENGINE_API FColor {
   constexpr FColor() = default;
   constexpr FColor(uint8_t InR, uint8_t InG, uint8_t InB, uint8_t InA = 255)
       : R(InR), G(InG), B(InB), A(InA) {}
+  constexpr bool operator==(const FColor&) const = default;
 
   constexpr int ToRGB() const {
     return (static_cast<int>(R) << 16) | (static_cast<int>(G) << 8) | static_cast<int>(B);

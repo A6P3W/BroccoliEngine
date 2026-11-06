@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <type_traits>
+#include <vector>
 
 #include "BroccoliRaylib.h"
 #include "Camera2DComponent.h"
@@ -10,6 +12,7 @@
 #include "EngineDefine.h"
 #include "Log.h"
 #include "RaylibResourceBridge.h"
+#include "ResourceManager.h"
 
 namespace {
 constexpr float DefaultStrokeThickness = 1.0f;
@@ -82,16 +85,90 @@ void DrawLine3DCommand(const Line3DRenderData& Data) {
   );
 }
 
-void DrawStaticMeshCommand(const StaticMeshRenderData& Data) {
+void DrawStaticMeshCommand(
+    const StaticMeshRenderData& Data,
+    const FVector3D& CameraPosition,
+    const std::optional<FDirectionalLightRenderData>& Light
+) {
   const Model* ModelData = GetRaylibModel(Data.ModelHandle);
   const FTransform3D* ImportTransform = GetRaylibModelImportTransform(Data.ModelHandle);
   if (ModelData == nullptr || ImportTransform == nullptr) return;
+
+  auto& Resources = ResourceManager::GetInstance();
+  const FMaterial3DDesc* Descriptor = Resources.GetMaterial3D(Data.MaterialHandle);
+  const bool IsLit = Descriptor == nullptr || Descriptor->ShadingModel == EShadingModel3D::Lit;
+  const Shader* MaterialShader = GetRaylibMaterialShader(IsLit);
+  Model DrawModelData = *ModelData;
+  // Reuse scratch storage across draws; material maps remain owned by the model.
+  static std::vector<Material> Materials;
+  if (MaterialShader != nullptr && ModelData->materials != nullptr &&
+      ModelData->materialCount > 0) {
+    Materials.assign(ModelData->materials, ModelData->materials + ModelData->materialCount);
+    const float ViewPosition[3] = {CameraPosition.X, CameraPosition.Y, CameraPosition.Z};
+    const FVector3D Direction = Light ? Light->Direction : FVector3D{0.0f, -1.0f, 0.0f};
+    const float LightDirection[3] = {Direction.X, Direction.Y, Direction.Z};
+    const float LightColor[3] = {
+        Light ? Light->Color.R / 255.0f : 1.0f,
+        Light ? Light->Color.G / 255.0f : 1.0f,
+        Light ? Light->Color.B / 255.0f : 1.0f
+    };
+    const float Intensity = Light ? Light->Intensity : 0.0f;
+    const float Ambient = 0.2f;
+    const int HasLight = Light.has_value() ? 1 : 0;
+    const int ShadingModel = IsLit ? 1 : 0;
+    SetShaderValue(
+        *MaterialShader,
+        GetShaderLocation(*MaterialShader, "viewPos"),
+        ViewPosition,
+        SHADER_UNIFORM_VEC3
+    );
+    SetShaderValue(
+        *MaterialShader,
+        GetShaderLocation(*MaterialShader, "lightDirection"),
+        LightDirection,
+        SHADER_UNIFORM_VEC3
+    );
+    SetShaderValue(
+        *MaterialShader,
+        GetShaderLocation(*MaterialShader, "lightColor"),
+        LightColor,
+        SHADER_UNIFORM_VEC3
+    );
+    SetShaderValue(
+        *MaterialShader,
+        GetShaderLocation(*MaterialShader, "lightIntensity"),
+        &Intensity,
+        SHADER_UNIFORM_FLOAT
+    );
+    SetShaderValue(
+        *MaterialShader,
+        GetShaderLocation(*MaterialShader, "ambientStrength"),
+        &Ambient,
+        SHADER_UNIFORM_FLOAT
+    );
+    SetShaderValue(
+        *MaterialShader,
+        GetShaderLocation(*MaterialShader, "hasLight"),
+        &HasLight,
+        SHADER_UNIFORM_INT
+    );
+    SetShaderValue(
+        *MaterialShader,
+        GetShaderLocation(*MaterialShader, "shadingModel"),
+        &ShadingModel,
+        SHADER_UNIFORM_INT
+    );
+    for (Material& Entry : Materials) {
+      Entry.shader = *MaterialShader;
+    }
+    DrawModelData.materials = Materials.data();
+  }
 
   FTransform3D DrawTransform = Data.Transform;
   DrawTransform.Rotation = (Data.Transform.Rotation * ImportTransform->Rotation).Normalize();
   rlPushMatrix();
   ApplyRaylibTransform(DrawTransform);
-  DrawModel(*ModelData, {0.0f, 0.0f, 0.0f}, 1.0f, ToRaylibColor(Data.Tint));
+  DrawModel(DrawModelData, {0.0f, 0.0f, 0.0f}, 1.0f, ToRaylibColor(Data.Tint));
   rlPopMatrix();
 }
 
@@ -226,9 +303,13 @@ void DrawSprite3DCommand(
   rlEnableBackfaceCulling();
 }
 
-void DrawRenderCommand3D(const RenderCommand3D& Command) {
+void DrawRenderCommand3D(
+    const RenderCommand3D& Command,
+    const FVector3D& CameraPosition,
+    const std::optional<FDirectionalLightRenderData>& Light
+) {
   std::visit(
-      [](const auto& Data) {
+      [&](const auto& Data) {
         using T = std::decay_t<decltype(Data)>;
         if constexpr (std::is_same_v<T, CubeRenderData>) {
           DrawCubeCommand(Data);
@@ -237,7 +318,7 @@ void DrawRenderCommand3D(const RenderCommand3D& Command) {
         } else if constexpr (std::is_same_v<T, Line3DRenderData>) {
           DrawLine3DCommand(Data);
         } else if constexpr (std::is_same_v<T, StaticMeshRenderData>) {
-          DrawStaticMeshCommand(Data);
+          DrawStaticMeshCommand(Data, CameraPosition, Light);
         } else if constexpr (std::is_same_v<T, GridRenderData>) {
           DrawGridCommand(Data);
         }
@@ -548,6 +629,7 @@ class RenderSystemImpl {
  public:
   std::vector<RenderCommand> CommandBuffer;
   std::vector<RenderCommand3D> CommandBuffer3D;
+  std::optional<FDirectionalLightRenderData> DirectionalLight;
   MCamera2DComponent* MainCamera = nullptr;
   MCamera3DComponent* MainCamera3D = nullptr;
   FVector2D RenderTargetSize = {
@@ -666,11 +748,15 @@ void RenderSystem::SubmitLine3D(
 }
 
 void RenderSystem::SubmitStaticMesh(
-    const FTransform3D& Transform, int ModelHandle, const FColor& Tint
+    const FTransform3D& Transform, int ModelHandle, const FColor& Tint, int MaterialHandle
 ) {
   Impl->CommandBuffer3D.push_back(
-      {ERenderLayer3D::World, StaticMeshRenderData{Transform, ModelHandle, Tint}}
+      {ERenderLayer3D::World, StaticMeshRenderData{Transform, ModelHandle, Tint, MaterialHandle}}
   );
+}
+
+void RenderSystem::SubmitDirectionalLight(const FDirectionalLightRenderData& Light) {
+  if (!Impl->DirectionalLight) Impl->DirectionalLight = Light;
 }
 
 void RenderSystem::SubmitSprite3D(
@@ -968,6 +1054,7 @@ void RenderSystem::Draw() {
   UpdateDrawStatistics();
 
   if (Impl->CommandBuffer.empty() && Impl->CommandBuffer3D.empty()) {
+    Impl->DirectionalLight.reset();
     return;
   }
 
@@ -991,7 +1078,7 @@ void RenderSystem::Draw() {
       if (const auto* Sprite = std::get_if<Sprite3DRenderData>(&Command.Data)) {
         Sprites.push_back(Sprite);
       } else {
-        DrawRenderCommand3D(Command);
+        DrawRenderCommand3D(Command, Position, Impl->DirectionalLight);
       }
     }
     std::stable_sort(Sprites.begin(), Sprites.end(), [&](const auto* A, const auto* B) {
@@ -1010,7 +1097,8 @@ void RenderSystem::Draw() {
     if (HasOverlay) {
       rlDisableDepthTest();
       for (const RenderCommand3D& Command : Impl->CommandBuffer3D) {
-        if (Command.Layer == ERenderLayer3D::Overlay) DrawRenderCommand3D(Command);
+        if (Command.Layer == ERenderLayer3D::Overlay)
+          DrawRenderCommand3D(Command, Position, Impl->DirectionalLight);
       }
       rlDrawRenderBatchActive();
       rlEnableDepthTest();
@@ -1018,6 +1106,7 @@ void RenderSystem::Draw() {
     EndMode3D();
   }
   Impl->CommandBuffer3D.clear();
+  Impl->DirectionalLight.reset();
 
   if (Impl->CommandBuffer.empty()) return;
 

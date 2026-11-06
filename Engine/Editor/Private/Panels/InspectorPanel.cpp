@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <exception>
@@ -59,6 +60,23 @@ void DrawReflectedProperty(void* Object, const FProperty& Property) {
     }
     case EPropertyType::Int: {
       int Edited = std::get<int>(Value);
+      if (!Property.EditorMetadata.EnumOptions.empty()) {
+        const auto& Options = Property.EditorMetadata.EnumOptions;
+        const char* Preview = Edited >= 0 && static_cast<std::size_t>(Edited) < Options.size()
+                                  ? Options[Edited].c_str()
+                                  : "Invalid";
+        if (ImGui::BeginCombo(Label, Preview)) {
+          for (std::size_t Index = 0; Index < Options.size(); ++Index) {
+            if (ImGui::Selectable(Options[Index].c_str(), Edited == static_cast<int>(Index))) {
+              Edited = static_cast<int>(Index);
+              Changed = true;
+            }
+          }
+          ImGui::EndCombo();
+        }
+        if (Changed) Value = Edited;
+        break;
+      }
       const int Min = Property.EditorMetadata.IntSliderMin.value_or(
           Property.EditorMetadata.IntMin.value_or(std::numeric_limits<int>::min())
       );
@@ -166,6 +184,21 @@ void DrawReflectedProperty(void* Object, const FProperty& Property) {
       float Edited[3] = {Current.X, Current.Y, Current.Z};
       Changed = ImGui::DragFloat3(Label, Edited, 0.1f);
       if (Changed) Value = FVector3D{Edited[0], Edited[1], Edited[2]};
+      break;
+    }
+    case EPropertyType::Color: {
+      const FColor Current = std::get<FColor>(Value);
+      float Edited[4] = {
+          Current.R / 255.0f, Current.G / 255.0f, Current.B / 255.0f, Current.A / 255.0f
+      };
+      Changed = ImGui::ColorEdit4(Label, Edited);
+      if (Changed)
+        Value = FColor{
+            static_cast<uint8_t>(std::clamp(std::lround(Edited[0] * 255.0f), 0L, 255L)),
+            static_cast<uint8_t>(std::clamp(std::lround(Edited[1] * 255.0f), 0L, 255L)),
+            static_cast<uint8_t>(std::clamp(std::lround(Edited[2] * 255.0f), 0L, 255L)),
+            static_cast<uint8_t>(std::clamp(std::lround(Edited[3] * 255.0f), 0L, 255L))
+        };
       break;
     }
   }

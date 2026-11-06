@@ -6,5 +6,7 @@ REGISTER_COMPONENT(MStaticMeshComponent)
 
 void MStaticMeshComponent::Draw() {
   if (!IsVisible() || ModelHandle == 0) return;
-  RenderSystem::GetInstance().SubmitStaticMesh(GetWorldTransform3D(), ModelHandle, Tint);
+  RenderSystem::GetInstance().SubmitStaticMesh(
+      GetWorldTransform3D(), ModelHandle, Tint, MaterialHandle
+  );
 }
