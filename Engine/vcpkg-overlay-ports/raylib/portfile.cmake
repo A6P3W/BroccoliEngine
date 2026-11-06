@@ -77,6 +77,8 @@ vcpkg_cmake_configure(
         -DBUILD_EXAMPLES=OFF
         -DCMAKE_POLICY_DEFAULT_CMP0072=NEW # Prefer GLVND
         -DCUSTOMIZE_BUILD=ON
+        # Skeletal models use the raylib GPU skinning shader.
+        -DSUPPORT_GPU_SKINNING=ON
         # Use raylib EndDrawing() for frame pacing and event polling.
         -DSUPPORT_CUSTOM_FRAME_CONTROL=OFF
         -DSUPPORT_BUSY_WAIT_LOOP=OFF

@@ -73,7 +73,10 @@ void FActorManager::Update(float DeltaTime) {
   for (auto& object : ImplPtr->Actors) {
     if (object && !object->IsPendingDestroy()) {
       if (ImplPtr->World->IsSimulating() || object->IsEditorActor() || object->CanUpdateAnytime()) {
-        object->Update(DeltaTime);
+        if (ImplPtr->World->IsSimulating() && !object->HasBegunPlay()) {
+          object->Spawned();
+        }
+        if (!object->IsPendingDestroy()) object->Update(DeltaTime);
       }
     }
   }
