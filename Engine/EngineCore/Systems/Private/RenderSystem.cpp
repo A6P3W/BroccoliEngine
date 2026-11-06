@@ -1054,6 +1054,7 @@ void RenderSystem::Draw() {
   UpdateDrawStatistics();
 
   if (Impl->CommandBuffer.empty() && Impl->CommandBuffer3D.empty()) {
+    Impl->DirectionalLight.reset();
     return;
   }
 

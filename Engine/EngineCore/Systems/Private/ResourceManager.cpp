@@ -124,7 +124,7 @@ void main() {
   // Blinn-Phong 鏡面反射
   vec3 viewDirection = normalize(viewPos - fragPosition);
   vec3 halfway = normalize(viewDirection - normalize(lightDirection));
-  float specular = hasLight != 0 ? pow(max(dot(normal, halfway), 0.0), 32.0) * 0.1 : 0.0;
+  float specular = (hasLight != 0 && diffuse > 0.0) ? pow(max(dot(normal, halfway), 0.0), 32.0) * 0.1 : 0.0;
 
   // ライティング合成
   vec3 lighting = vec3(ambientStrength) + lightColor * lightIntensity * (diffuse + specular);
