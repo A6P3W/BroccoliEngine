@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <exception>
@@ -193,10 +194,10 @@ void DrawReflectedProperty(void* Object, const FProperty& Property) {
       Changed = ImGui::ColorEdit4(Label, Edited);
       if (Changed)
         Value = FColor{
-            static_cast<uint8_t>(Edited[0] * 255.0f),
-            static_cast<uint8_t>(Edited[1] * 255.0f),
-            static_cast<uint8_t>(Edited[2] * 255.0f),
-            static_cast<uint8_t>(Edited[3] * 255.0f)
+            static_cast<uint8_t>(std::clamp(std::lround(Edited[0] * 255.0f), 0L, 255L)),
+            static_cast<uint8_t>(std::clamp(std::lround(Edited[1] * 255.0f), 0L, 255L)),
+            static_cast<uint8_t>(std::clamp(std::lround(Edited[2] * 255.0f), 0L, 255L)),
+            static_cast<uint8_t>(std::clamp(std::lround(Edited[3] * 255.0f), 0L, 255L))
         };
       break;
     }
