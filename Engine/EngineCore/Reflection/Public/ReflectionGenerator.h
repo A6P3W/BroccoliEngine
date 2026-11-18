@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "ActorComponent.h"
+#include "FPath.h"
 #include "ReflectionAnnotations.h"
 #include "Log.h"
 #include "Reflection.h"

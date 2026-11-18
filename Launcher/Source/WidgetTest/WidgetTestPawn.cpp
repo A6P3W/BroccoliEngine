@@ -5,6 +5,7 @@
 #include <MovementComponent.h>
 
 #include "Camera2DComponent.h"
+#include "DebugOverlay.h"
 #include "InputManager.h"
 #include "InputMapper.h"
 #include "Log.h"

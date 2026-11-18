@@ -1,5 +1,6 @@
 #include "SceneLifecycleActor.h"
 
+#include "DebugOverlay.h"
 #include "Log.h"
 #include "Sprite2DComponent.h"
 #include "TimerManager.h"

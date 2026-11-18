@@ -24,7 +24,6 @@
 #include <system_error>
 #include <vector>
 
-#include "BroccoliRaylib.h"
 #include "FileUtils.h"
 #include "Log.h"
 #include "PathResolver.h"
@@ -206,7 +205,7 @@ std::string ShowFileDialog(
     }
 
     if (SUCCEEDED(Result)) {
-      Result = Dialog->Show(reinterpret_cast<HWND>(GetWindowHandle()));
+      Result = Dialog->Show(GetActiveWindow());
     }
     if (SUCCEEDED(Result)) {
       ComPtr<IShellItem> SelectedItem;
@@ -273,7 +272,7 @@ std::string FileDialog::SelectFolder() {
     }
 
     if (SUCCEEDED(Result)) {
-      Result = Dialog->Show(reinterpret_cast<HWND>(GetWindowHandle()));
+      Result = Dialog->Show(GetActiveWindow());
     }
     if (SUCCEEDED(Result)) {
       ComPtr<IShellItem> SelectedItem;

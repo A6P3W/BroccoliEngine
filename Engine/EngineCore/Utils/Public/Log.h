@@ -73,5 +73,3 @@ class BROCCOLI_ENGINE_API MLog {
 };
 
 #define M_LOG(Level, Format, ...) MLog::Log(ELogLevel::Level, __FUNCTION__, Format, ##__VA_ARGS__)
-
-#include "DebugOverlay.h"

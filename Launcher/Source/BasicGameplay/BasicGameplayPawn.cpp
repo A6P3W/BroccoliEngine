@@ -1,6 +1,7 @@
 #include "BasicGameplayPawn.h"
 
 #include "CircleCollision2DComponent.h"
+#include "DebugOverlay.h"
 #include "EnhancedInputComponent.h"
 #include "Log.h"
 #include "MovementComponent.h"

@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <system_error>
 
+#include "DebugOverlay.h"
 #include "Log.h"
 
 #if __has_include(<EOS_ProductCredentials.h>)

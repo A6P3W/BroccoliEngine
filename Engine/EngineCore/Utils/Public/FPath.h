@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
+#include <string_view>
 
 #include "BroccoliEngineAPI.h"
 
@@ -17,3 +19,6 @@ class BROCCOLI_ENGINE_API FPath {
  private:
   std::string Value;
 };
+
+// Returns true when Value is valid UTF-8 with at most MaxLength Unicode scalar values.
+BROCCOLI_ENGINE_API bool IsValidUnicodeScalarString(std::string_view Value, std::size_t MaxLength);

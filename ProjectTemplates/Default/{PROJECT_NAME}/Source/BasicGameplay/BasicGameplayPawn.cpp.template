@@ -1,3 +1,4 @@
+#include "DebugOverlay.h"
 #include "BasicGameplayPawn.h"
 
 #include "CircleCollision2DComponent.h"
