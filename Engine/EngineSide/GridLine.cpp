@@ -5,12 +5,19 @@
 #include <format>
 #include <string>
 
+#include "ActorRegistry.h"
 #include "Camera2DComponent.h"
 #include "CollisionSystem.h"
 #include "EngineDefine.h"
 #include "RenderSystem.h"
 #include "ResourceManager.h"
 #include "UMath.h"
+namespace {
+// Spawned by class name from the engine core; kept out of the placeable class list.
+const bool GridLineRegistered =
+    ActorRegistry::GetInstance().RegisterOwned<AGridLine>("Static", false, false);
+}  // namespace
+
 AGridLine::AGridLine() { bEditorActor = true; }
 
 void AGridLine::BeginPlay() {

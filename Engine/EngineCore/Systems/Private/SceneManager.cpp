@@ -86,11 +86,11 @@ SceneManager& SceneManager::GetInstance() {
 
 #include "Actor.h"
 #include "ActorManager.h"
+#include "ActorRegistry.h"
 #include "Camera2DComponent.h"
 #include "CollisionSystem.h"
 #include "EngineDefine.h"
 #include "GameModeBase.h"
-#include "GridLine.h"
 #include "LevelSerializer.h"
 #include "RenderSystem.h"
 #include "ReplicationSystem.h"
@@ -247,7 +247,8 @@ SceneManager::FSceneChangeResult SceneManager::ProcessSceneChanges() {
     ImplPtr->CurrentLevelPath = NewLevelPath;
 
     if (ImplPtr->CurrentScene && (IsDebug || IsEditor)) {
-      ImplPtr->CurrentScene->SpawnActor<AGridLine>();
+      ActorRegistry::GetInstance().Spawn(ImplPtr->CurrentScene.get(), "AGridLine");
+      ImplPtr->CurrentScene->GetActorManager()->FlushPendingActors();
     }
 
     if (ImplPtr->CurrentScene && ImplPtr->CurrentScene->IsServer()) {

@@ -17,7 +17,6 @@
 
 #ifdef _EDITOR
 
-#include "EditorSelectPointComponent.h"
 #endif
 #include "HttpManager.h"
 #include "Log.h"
@@ -101,18 +100,21 @@ void AActor::Spawned() {
   }
 }
 
+namespace {
+AActor::FWorldAssignedCallback WorldAssignedCallback = nullptr;
+}  // namespace
+
 void AActor::SetWorld(World* world) {
   if (ImplPtr->OwnerWorld == world) return;
   ImplPtr->OwnerWorld = world;
   if (world != nullptr) ActorRegistry::GetInstance().NotifySpawned(this, GetActorClassName());
 
   CompletePendingComponentRegistrations();
-#ifdef _EDITOR
-  auto* SelectPoint = NewObject<EditorSelectPointComponent>(this);
-  if (SelectPoint) {
-    SelectPoint->RegisterComponent();
-  }
-#endif
+  if (WorldAssignedCallback != nullptr) WorldAssignedCallback(this);
+}
+
+void AActor::SetWorldAssignedCallback(FWorldAssignedCallback Callback) {
+  WorldAssignedCallback = Callback;
 }
 
 void AActor::OnUpdate(float DeltaTime) {}

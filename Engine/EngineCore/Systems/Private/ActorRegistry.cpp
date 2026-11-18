@@ -20,7 +20,7 @@ ActorRegistry& ActorRegistry::GetInstance() {
 }
 
 bool ActorRegistry::RegisterFactory(
-    std::string ClassName, FactoryFn Factory, std::string ModuleOwner, bool IsGameMode
+    std::string ClassName, FactoryFn Factory, std::string ModuleOwner, bool IsGameMode, bool Listed
 ) {
   if (ImplPtr->Factories.contains(ClassName)) {
     M_LOG(Error, "Actor class '{}' is already registered.", ClassName);
@@ -28,6 +28,7 @@ bool ActorRegistry::RegisterFactory(
   }
   ImplPtr->Owners.emplace(ClassName, std::move(ModuleOwner));
   ImplPtr->Factories.emplace(ClassName, std::move(Factory));
+  if (!Listed) return true;
   std::vector<std::string>& Names = IsGameMode ? ImplPtr->GameModeClassNames : ImplPtr->ClassNames;
   if (std::find(Names.begin(), Names.end(), ClassName) == Names.end()) {
     Names.push_back(std::move(ClassName));

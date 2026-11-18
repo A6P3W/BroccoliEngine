@@ -1,6 +1,6 @@
 #include "EngineUpdateControl.h"
 
-#include "AutomationTypes.h"
+#include "AutomationError.h"
 
 namespace {
 nlohmann::json Conflict(const std::string& Message) {

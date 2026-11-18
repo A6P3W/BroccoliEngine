@@ -73,6 +73,10 @@ class EditorMode : public AGameModeBase {
     ViewportState.RenderTexture = RenderTexture;
     ViewportState.RenderTargetSize = {static_cast<float>(Width), static_cast<float>(Height)};
   }
+  FVector2D GetRequestedViewportSize() const override { return ViewportState.RequestedRenderSize; }
+  void OnViewportRenderTextureChanged(void* RenderTexture, int Width, int Height) override {
+    SetViewportRenderTexture(RenderTexture, Width, Height);
+  }
   bool IsViewportInputAvailable() const;
   bool TryGetViewportRenderTargetMousePosition(
       FVector2D& OutPosition, bool RequireInside = true

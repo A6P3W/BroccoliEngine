@@ -9,6 +9,7 @@
 #include "Actor.h"
 #include "Collision3DComponent.h"
 #include "Jolt/JoltPhysicsBackend.h"
+#include "Jolt/JoltRuntime.h"
 #include "RigidBody3DComponent.h"
 
 namespace {
@@ -120,6 +121,10 @@ void FPhysicsSystem3D::SetFixedTimeStep(float NewFixedTimeStep) {
     ImplPtr->FixedTimeStep = NewFixedTimeStep;
   }
 }
+
+bool FPhysicsSystem3D::InitializeRuntime() { return FJoltRuntime::Initialize(); }
+
+void FPhysicsSystem3D::ShutdownRuntime() { FJoltRuntime::Shutdown(); }
 
 bool FPhysicsSystem3D::IsInitialized() const {
   return ImplPtr != nullptr && ImplPtr->Backend != nullptr && ImplPtr->Backend->IsInitialized();

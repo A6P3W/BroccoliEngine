@@ -37,6 +37,11 @@ class BROCCOLI_ENGINE_API AGameModeBase : public AActor {
   void BeginTravelWait();
   void OnClientTravelReady(FNetworkConnectionId ConnectionId);
 
+  // Offscreen viewport hooks. A game mode that renders into a viewport (e.g. the editor)
+  // overrides these; the default requests no resize and ignores the render texture.
+  virtual FVector2D GetRequestedViewportSize() const { return FVector2D::ZeroVector(); }
+  virtual void OnViewportRenderTextureChanged(void* RenderTexture, int Width, int Height) {}
+
   AActor* FindPlayerStart(FNetworkConnectionId ConnectionId);
   APlayerController* SpawnDefaultPlayer(FNetworkConnectionId ConnectionId);
 
