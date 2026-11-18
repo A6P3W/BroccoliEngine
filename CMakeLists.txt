@@ -21,7 +21,11 @@ add_subdirectory(Launcher)
 
 include(CTest)
 if(BUILD_TESTING)
-  add_executable(BroccoliReflectionTests Tests/Reflection/ReflectionTests.cpp)
+  add_executable(BroccoliReflectionTests
+    Tests/Reflection/ReflectionTests.cpp
+    Engine/Editor/Private/EditorClipboard.cpp
+    Engine/Editor/Private/EditorTransformTool.cpp)
+  target_include_directories(BroccoliReflectionTests PRIVATE Engine/Editor/Public)
   target_link_libraries(BroccoliReflectionTests PRIVATE BroccoliEngine)
   target_compile_features(BroccoliReflectionTests PRIVATE cxx_std_26)
   target_compile_options(BroccoliReflectionTests PRIVATE -freflection)

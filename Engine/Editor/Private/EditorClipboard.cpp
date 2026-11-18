@@ -11,7 +11,7 @@ bool EditorClipboard::Copy(AActor* Actor) {
     return false;
   }
 
-  ClipboardData = LevelSerializer::CaptureActor(Actor);
+  ClipboardData = LevelSaveDataSerializer::CaptureActor(Actor);
 
   bHasClipboard = true;
   M_LOG(
@@ -48,7 +48,7 @@ AActor* EditorClipboard::Paste(World* WorldPtr, const FVector3D& PasteLocation) 
 
   FActorSaveData Data = ClipboardData;
   Data.Transform.Location = PasteLocation;
-  LevelSerializer::ApplyActor(NewActor, Data);
+  LevelSaveDataSerializer::ApplyActor(NewActor, Data);
 
   M_LOG(
       Log,
