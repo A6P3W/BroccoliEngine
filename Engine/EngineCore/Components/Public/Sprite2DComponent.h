@@ -1,6 +1,6 @@
 #pragma once
 #include "BroccoliEngineAPI.h"
-#include "RenderSystem.h"
+#include "RenderTypes.h"
 #include "SceneComponent.h"
 
 class SpriteRenderState;

@@ -6,7 +6,6 @@
 
 #include "ActorId.h"
 #include "BroccoliEngineAPI.h"
-#include "Log.h"
 #include "UMath.h"
 class AActor;
 class World;

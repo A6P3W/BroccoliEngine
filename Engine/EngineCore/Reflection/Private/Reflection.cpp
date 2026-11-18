@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 
+#include "ActorRegistry.h"
 #include "Log.h"
 
 std::vector<const FProperty*> FClass::GetProperties() const {
@@ -164,4 +165,8 @@ bool IsValidUnicodeScalarString(std::string_view Value, std::size_t MaxLength) {
     Index += Length;
   }
   return true;
+}
+
+bool IsRegisteredActorClass(std::string_view ClassName) {
+  return ActorRegistry::GetInstance().Contains(std::string(ClassName));
 }

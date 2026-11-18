@@ -1,11 +1,9 @@
 #pragma once
-#include "BroccoliEngineAPI.h"
-#include <InputMapper.h>
-
-#include <memory>
-
 #include "Actor.h"
-#include "Pawn.h"
+#include "BroccoliEngineAPI.h"
+
+class InputMapper;
+class APawn;
 
 enum class EInputMode { GameOnly, UIOnly, GameAndUI };
 class MEnhancedInputComponent;

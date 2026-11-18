@@ -4,13 +4,13 @@
 
 #include "ActorManager.h"
 #include "BroccoliEngineAPI.h"
-#include "CollisionSystem.h"
-#include "Log.h"
 #include "NetMode.h"
 #include "NetworkTypes.h"
-#include "SoundManager.h"
-#include "TimerManager.h"
 #include "UMath.h"
+
+class FCollisionSystem;
+class FSoundManager;
+class FTimerManager;
 
 class AActor;
 class AGameModeBase;

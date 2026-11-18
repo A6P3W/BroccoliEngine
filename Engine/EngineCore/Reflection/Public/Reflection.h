@@ -68,3 +68,4 @@ class BROCCOLI_ENGINE_API FReflectionRegistry {
 };
 
 BROCCOLI_ENGINE_API bool IsValidUnicodeScalarString(std::string_view Value, std::size_t MaxLength);
+BROCCOLI_ENGINE_API bool IsRegisteredActorClass(std::string_view ClassName);
