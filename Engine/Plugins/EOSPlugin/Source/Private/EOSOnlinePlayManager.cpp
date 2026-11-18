@@ -6,6 +6,7 @@
 #include "EOSAuthManager.h"
 #include "EOSCoreManager.h"
 #include "EOSLobbyManager.h"
+#include "GameInstance.h"
 #include "Log.h"
 #include "NetworkManager.h"
 #include "NetworkUtils.h"

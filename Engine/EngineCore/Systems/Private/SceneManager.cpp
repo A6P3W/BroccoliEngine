@@ -6,6 +6,8 @@
 #include <system_error>
 
 #include "FileUtils.h"
+#include "GameInstance.h"
+#include "Log.h"
 #include "PathResolver.h"
 
 namespace {

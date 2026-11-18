@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "Actor.h"
+#include "CollisionSystem.h"
 #include "PhysicsSystem3D.h"
 namespace {
 std::atomic<FActorId> NextActorId = 1;

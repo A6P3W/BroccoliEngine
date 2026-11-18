@@ -4,6 +4,7 @@
 
 #include "BoxCollision3DComponent.h"
 #include "CircleCollision2DComponent.h"
+#include "CollisionSystem.h"
 #include "ControlMacros.h"
 #include "PhysicsSystem3D.h"
 #include "RigidBody3DComponent.h"

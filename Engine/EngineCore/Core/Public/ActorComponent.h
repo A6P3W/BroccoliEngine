@@ -13,6 +13,7 @@
 #include "BroccoliEngineAPI.h"
 #include "ComponentId.h"
 #include "NetBuffer.h"
+#include "NetworkTransport.h"
 #include "NetworkTypes.h"
 #include "ReplicatedProperty.h"
 
