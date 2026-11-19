@@ -3,7 +3,6 @@
 #include <string>
 
 #include "BroccoliEngineAPI.h"
-#include "Color.h"
 #include "FPath.h"
 #include "Material3D.h"
 #include "UMath.h"
@@ -35,21 +34,9 @@ class BROCCOLI_ENGINE_API ResourceManager {
   int GetFont(int Size, int Weight = DefaultFontWeight);
   int GetTextWidth(const std::string& Text, int FontHandle);
   int GetFontPixelSize(int FontHandle) const;
-  // Offscreen canvas (render texture) drawing. All drawing happens between
-  // BeginCanvasDraw and EndCanvasDraw.
+  // Offscreen canvas render texture lifetime. Drawing into it is done by FCanvasRenderer.
   int CreateCanvasTexture(int Width, int Height);
   void ReleaseCanvasTexture(int Handle);
-  bool BeginCanvasDraw(int Handle);
-  void EndCanvasDraw();
-  void ClearCanvas(const FColor& Color);
-  void DrawCanvasPixel(const FVector2D& Position, const FColor& Color);
-  void DrawCanvasLine(
-      const FVector2D& Start, const FVector2D& End, const FColor& Color, int Thickness
-  );
-  void DrawCanvasCircle(const FVector2D& Center, float Radius, const FColor& Color, bool Fill);
-  void DrawCanvasBox(
-      const FVector2D& TopLeft, const FVector2D& Size, const FColor& Color, bool Fill
-  );
   void ReleaseResourceGraph();
   void ReleaseAllResources();
 

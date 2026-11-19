@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "CanvasRenderer.h"
 #include "ResourceManager.h"
 
 MCanvasComponent::MCanvasComponent() { SetRenderSettings(0, RenderSpace::World); }
@@ -39,45 +40,45 @@ void MCanvasComponent::ReleaseCanvas() {
 
 bool MCanvasComponent::BeginDrawing() {
   if (CanvasHandle == 0 || Drawing) return false;
-  Drawing = ResourceManager::GetInstance().BeginCanvasDraw(CanvasHandle);
+  Drawing = FCanvasRenderer::BeginDraw(CanvasHandle);
   return Drawing;
 }
 
 void MCanvasComponent::EndDrawing() {
   if (!Drawing) return;
-  ResourceManager::GetInstance().EndCanvasDraw();
+  FCanvasRenderer::EndDraw();
   Drawing = false;
 }
 
 void MCanvasComponent::Clear(const FColor& ColorValue) {
   if (!Drawing) return;
-  ResourceManager::GetInstance().ClearCanvas(ColorValue);
+  FCanvasRenderer::Clear(ColorValue);
 }
 
 void MCanvasComponent::DrawPixel(const FVector2D& LocalPosition, const FColor& ColorValue) {
   if (!Drawing) return;
-  ResourceManager::GetInstance().DrawCanvasPixel(LocalPosition, ColorValue);
+  FCanvasRenderer::DrawPixel(LocalPosition, ColorValue);
 }
 
 void MCanvasComponent::DrawLine(
     const FVector2D& LocalStart, const FVector2D& LocalEnd, const FColor& ColorValue, int Thickness
 ) {
   if (!Drawing) return;
-  ResourceManager::GetInstance().DrawCanvasLine(LocalStart, LocalEnd, ColorValue, Thickness);
+  FCanvasRenderer::DrawLine(LocalStart, LocalEnd, ColorValue, Thickness);
 }
 
 void MCanvasComponent::DrawCircle(
     const FVector2D& LocalCenter, float Radius, const FColor& ColorValue, bool Fill
 ) {
   if (!Drawing) return;
-  ResourceManager::GetInstance().DrawCanvasCircle(LocalCenter, Radius, ColorValue, Fill);
+  FCanvasRenderer::DrawCircle(LocalCenter, Radius, ColorValue, Fill);
 }
 
 void MCanvasComponent::DrawBox(
     const FVector2D& LocalTopLeft, const FVector2D& Size, const FColor& ColorValue, bool Fill
 ) {
   if (!Drawing) return;
-  ResourceManager::GetInstance().DrawCanvasBox(LocalTopLeft, Size, ColorValue, Fill);
+  FCanvasRenderer::DrawBox(LocalTopLeft, Size, ColorValue, Fill);
 }
 
 FVector2D MCanvasComponent::WorldToCanvasLocal(const FVector2D& WorldPosition) const {
