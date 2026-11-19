@@ -35,8 +35,8 @@ struct FActorSaveData {
 
 class AActor;
 
-// Low-level level data API. Kept apart from LevelSerializer.h so that nlohmann/json is only
-// pulled in by code that actually handles save data.
+/// @brief 低レベルなレベルデータAPI。実際にセーブデータを扱うコードだけが nlohmann/json を
+/// インクルードするようにするため、LevelSerializer.h とは切り離している。
 class BROCCOLI_ENGINE_API LevelSaveDataSerializer {
  public:
   static FActorSaveData CaptureActor(AActor* Actor);

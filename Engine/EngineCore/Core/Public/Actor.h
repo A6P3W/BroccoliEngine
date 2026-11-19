@@ -225,8 +225,7 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   World* GetWorld();
   void SetWorld(World* world);
 
-  // Called after an actor is assigned to a world. Used by higher layers (e.g. the editor)
-  // to attach extra components without the core depending on them.
+  /// @brief アクターのSetWorldが実行された後に呼ばれる
   using FWorldAssignedCallback = void (*)(AActor*);
   static void SetWorldAssignedCallback(FWorldAssignedCallback Callback);
   bool HasBegunPlay() const;

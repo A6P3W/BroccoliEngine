@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 #include <string_view>
 
+/// @brief Automationエラーコードの列挙型
 enum class EAutomationErrorCode : uint8_t {
   None = 0,
   InvalidRequest,

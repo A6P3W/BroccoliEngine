@@ -4,8 +4,8 @@
 #include "Color.h"
 #include "UMath.h"
 
-// 2D drawing into an offscreen canvas texture created by ResourceManager::CreateCanvasTexture.
-// All draw calls must be made between BeginDraw and EndDraw.
+/// @brief ResourceManager::CreateCanvasTexture で作成したオフスクリーンキャンバステクスチャへの2D描画。
+/// @brief すべての描画呼び出しは BeginDraw と EndDraw の間で行う必要がある。
 class BROCCOLI_ENGINE_API FCanvasRenderer {
  public:
   static bool BeginDraw(int CanvasHandle);
