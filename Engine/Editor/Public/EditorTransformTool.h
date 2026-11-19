@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-#include "BroccoliEngineAPI.h"
 #include "PhysicsQuery3D.h"
 #include "UMath.h"
 
@@ -21,7 +20,7 @@ enum class EGizmoHandle3D : uint8_t {
   Center,
 };
 
-class BROCCOLI_ENGINE_API EditorTransformTool {
+class EditorTransformTool {
  public:
   void Begin(AActor* Actor, EActorAction Action);
   void Update(const FVector2D& Delta, const FVector2D& MouseWorldPosition);

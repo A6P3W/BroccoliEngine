@@ -31,6 +31,7 @@ try {
   & $Compiler @CompilerArguments `
     "Tests/EngineUpdateControl/EngineUpdateControlTests.cpp" `
     "Engine/EngineCore/Core/Private/EngineUpdateControl.cpp" `
+    "Engine/EngineCore/Core/Private/AutomationError.cpp" `
     "Engine/EngineCore/Automation/Private/Runtime/Types.cpp" `
     "-o$TestExecutable"
   if ($LASTEXITCODE -ne 0) {

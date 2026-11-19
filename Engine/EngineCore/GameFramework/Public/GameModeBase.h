@@ -2,13 +2,10 @@
 #include <string>
 
 #include "Actor.h"
-#include "ActorManager.h"
 #include "BroccoliEngineAPI.h"
-#include "CollisionSystem.h"
 #include "Log.h"
 #include "NetworkTypes.h"
 #include "PlayerController.h"
-#include "TimerManager.h"
 #include "UMath.h"
 #include "World.h"
 
@@ -39,6 +36,11 @@ class BROCCOLI_ENGINE_API AGameModeBase : public AActor {
   virtual void OnClientDisconnected(FNetworkConnectionId ConnectionId);
   void BeginTravelWait();
   void OnClientTravelReady(FNetworkConnectionId ConnectionId);
+
+  // Offscreen viewport hooks. A game mode that renders into a viewport (e.g. the editor)
+  // overrides these; the default requests no resize and ignores the render texture.
+  virtual FVector2D GetRequestedViewportSize() const { return FVector2D::ZeroVector(); }
+  virtual void OnViewportRenderTextureChanged(void* RenderTexture, int Width, int Height) {}
 
   AActor* FindPlayerStart(FNetworkConnectionId ConnectionId);
   APlayerController* SpawnDefaultPlayer(FNetworkConnectionId ConnectionId);

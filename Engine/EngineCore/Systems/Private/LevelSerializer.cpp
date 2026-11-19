@@ -12,10 +12,11 @@
 #include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "ComponentRegistry.h"
-#include "EditorSelectPointComponent.h"
 #include "GameModeBase.h"
+#include "LevelSaveData.h"
 #include "Log.h"
 #include "Reflection.h"
+#include "SceneComponent.h"
 #include "SimpleCrypto.h"
 #include "World.h"
 #include "nlohmann/json.hpp"
@@ -141,7 +142,7 @@ bool JsonToValue(const json& JsonValue, EPropertyType Type, FPropertyValue& Valu
 }
 }  // namespace
 
-FActorSaveData LevelSerializer::CaptureActor(AActor* Actor) {
+FActorSaveData LevelSaveDataSerializer::CaptureActor(AActor* Actor) {
   FActorSaveData Data;
   if (Actor == nullptr) return Data;
   Data.ClassName = Actor->GetActorClassName();
@@ -174,7 +175,7 @@ FActorSaveData LevelSerializer::CaptureActor(AActor* Actor) {
   return Data;
 }
 
-void LevelSerializer::ApplyActor(AActor* Actor, const FActorSaveData& Data) {
+void LevelSaveDataSerializer::ApplyActor(AActor* Actor, const FActorSaveData& Data) {
   if (Actor == nullptr) return;
   Actor->SetActorLocation3D(Data.Transform.Location);
   Actor->SetActorRotation3D(Data.Transform.Rotation);
@@ -269,11 +270,11 @@ bool LevelSerializer::Save(
     if (std::find(gameModeClassNames.begin(), gameModeClassNames.end(), name) !=
         gameModeClassNames.end())
       continue;
-    actors.push_back(CaptureActor(actor));
+    actors.push_back(LevelSaveDataSerializer::CaptureActor(actor));
   }
   FLevelMetaData meta;
   meta.GameModeClassName = gameModeClassName;
-  return SaveData(filePath, meta, actors);
+  return LevelSaveDataSerializer::SaveData(filePath, meta, actors);
 }
 
 bool LevelSerializer::Load(World* world, const std::string& filePath) {
@@ -288,7 +289,7 @@ bool LevelSerializer::Load(
   }
   FLevelMetaData meta;
   std::vector<FActorSaveData> actors;
-  if (!LoadData(filePath, meta, actors)) return false;
+  if (!LevelSaveDataSerializer::LoadData(filePath, meta, actors)) return false;
   if (outMeta) {
     *outMeta = meta;
   }
@@ -327,7 +328,7 @@ bool LevelSerializer::Load(
       world->GetActorManager()->AssignInstanceName(*actor, data.InstanceName);
     }
 
-    ApplyActor(actor, data);
+    LevelSaveDataSerializer::ApplyActor(actor, data);
     spawnedActors.push_back(actor);
   }
   world->GetActorManager()->FlushPendingActors();
@@ -340,7 +341,7 @@ bool LevelSerializer::Load(
   return true;
 }
 
-bool LevelSerializer::SaveData(
+bool LevelSaveDataSerializer::SaveData(
     const std::string& filePath,
     const FLevelMetaData& meta,
     const std::vector<FActorSaveData>& actors
@@ -424,14 +425,14 @@ bool LevelSerializer::SaveData(
   return ofs.good();
 }
 
-bool LevelSerializer::LoadData(
+bool LevelSaveDataSerializer::LoadData(
     const std::string& filePath, std::vector<FActorSaveData>& outActors
 ) {
   FLevelMetaData meta;
   return LoadData(filePath, meta, outActors);
 }
 
-bool LevelSerializer::LoadData(
+bool LevelSaveDataSerializer::LoadData(
     const std::string& filePath, FLevelMetaData& outMeta, std::vector<FActorSaveData>& outActors
 ) {
   outMeta = FLevelMetaData{};

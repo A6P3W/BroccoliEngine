@@ -56,6 +56,9 @@ class BROCCOLI_ENGINE_API FPhysicsSystem3D {
       const FVector3D& Center, float Radius, const FPhysicsQueryFilter3D& Filter
   ) const;
 
+  static bool InitializeRuntime();
+  static void ShutdownRuntime();
+
   bool IsInitialized() const;
   uint32_t GetBodyCount() const;
   float GetFixedTimeStep() const;

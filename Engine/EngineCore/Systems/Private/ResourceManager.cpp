@@ -606,3 +606,9 @@ bool BeginRaylibRenderTexture(int Handle) {
 }
 
 void EndRaylibRenderTexture() { EndTextureMode(); }
+
+int ResourceManager::CreateCanvasTexture(int Width, int Height) {
+  return CreateRaylibRenderTexture(Width, Height);
+}
+
+void ResourceManager::ReleaseCanvasTexture(int Handle) { ReleaseRaylibTexture(Handle); }

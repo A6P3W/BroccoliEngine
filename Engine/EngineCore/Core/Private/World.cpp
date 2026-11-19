@@ -2,9 +2,9 @@
 
 #include "ActorManager.h"
 #include "ActorRegistry.h"
-#include "Camera2DComponent.h"
 #include "CollisionSystem.h"
 #include "DebugOverlay.h"
+#include "GameModeBase.h"
 #include "Pawn.h"
 #include "PerformanceOverlay.h"
 #include "PhysicsSystem3D.h"

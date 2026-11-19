@@ -20,6 +20,7 @@
 #include "Log.h"
 #include "PathResolver.h"
 #include "Reflection.h"
+#include "SceneComponent.h"
 #include "UMath.h"
 
 namespace {

@@ -1,45 +1,13 @@
 #pragma once
 #include <string>
-#include <unordered_map>
-#include <vector>
 
-#include "ActorComponent.h"
 #include "BroccoliEngineAPI.h"
-#include "UMath.h"
-#include "nlohmann/json.hpp"
 
-struct FLevelMetaData {
-  std::string GameModeClassName;
-};
-
-struct FComponentSaveData {
-  std::string Name;
-  std::string ClassName;
-  std::string ParentName;
-  FTransform3D RelativeTransform;
-  bool HasSceneAttachmentData = false;
-  EComponentCreationSource Source = EComponentCreationSource::Native;
-  std::unordered_map<std::string, nlohmann::json> CustomProperties;
-};
-
-// 1アクタ分のデータ
-struct FActorSaveData {
-  std::string ClassName;
-  std::string InstanceName;
-  FTransform3D Transform;
-
-  // アクタ固有のプロパティ保存用
-  std::unordered_map<std::string, nlohmann::json> CustomProperties;
-  std::vector<FComponentSaveData> Components;
-};
-
+struct FLevelMetaData;
 class World;
-class AActor;
 
 class BROCCOLI_ENGINE_API LevelSerializer {
  public:
-  static FActorSaveData CaptureActor(AActor* Actor);
-  static void ApplyActor(AActor* Actor, const FActorSaveData& Data);
   // 現在ActorManagerにいるActorRegistryに登録されている全アクタを保存
   static bool Save(World* world, const std::string& filePath, const std::string& gameModeClassName);
 
@@ -50,16 +18,5 @@ class BROCCOLI_ENGINE_API LevelSerializer {
       const std::string& filePath,
       bool bLoadGameMode,
       FLevelMetaData* outMeta = nullptr
-  );
-
-  // 低レベルAPI（EditorModeから直接データを渡す場合）
-  static bool SaveData(
-      const std::string& filePath,
-      const FLevelMetaData& meta,
-      const std::vector<FActorSaveData>& actors
-  );
-  static bool LoadData(const std::string& filePath, std::vector<FActorSaveData>& outActors);
-  static bool LoadData(
-      const std::string& filePath, FLevelMetaData& outMeta, std::vector<FActorSaveData>& outActors
   );
 };

@@ -7,11 +7,11 @@
 #include <vector>
 
 #include "BroccoliEngineAPI.h"
-#include "GameInstance.h"
-#include "GameModeBase.h"
 #include "NetMode.h"
 #include "NetworkTypes.h"
 #include "World.h"
+
+class GameInstance;
 class BROCCOLI_ENGINE_API SceneManager {
  public:
   struct FRegisteredLevelSnapshot {

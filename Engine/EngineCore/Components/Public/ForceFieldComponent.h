@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "BroccoliEngineAPI.h"
-#include "ReflectionGenerator.h"
+#include "ReflectionAnnotations.h"
 #include "SceneComponent.h"
 #include "UMath.h"
 

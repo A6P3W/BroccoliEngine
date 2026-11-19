@@ -9,18 +9,8 @@
 #include "BroccoliEngineAPI.h"
 #include "Color.h"
 #include "Geometry2D.h"
-#include "SpriteBillboardMode.h"
+#include "RenderTypes.h"
 #include "UMath.h"
-
-enum class RenderType { Graph, Box, Text, Line, RectGraph, Circle };
-enum class RenderSpace { World, Screen };
-enum class ERenderLayer3D : uint8_t { World, Overlay };
-
-struct FScreenRenderArea {
-  FVector2D Position = FVector2D::ZeroVector();
-  FVector2D Size = FVector2D::ZeroVector();
-  float Scale = 1.0f;
-};
 
 struct GraphData {
   FVector2D Location;
@@ -96,7 +86,6 @@ struct Sprite3DRenderData {
   FColor Tint = FColor::White;
   ESpriteBillboardMode BillboardMode = ESpriteBillboardMode::None;
 };
-enum class EGridPlane { XZ, XY, YZ };
 
 struct GridRenderData {
   int Slices = 20;

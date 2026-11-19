@@ -1,7 +1,9 @@
 #include "SceneLifecycleActor.h"
 
+#include "DebugOverlay.h"
 #include "Log.h"
 #include "Sprite2DComponent.h"
+#include "TimerManager.h"
 #include "World.h"
 
 // 各アクタークラスを ActorRegistry に一般アクターとして自動登録するマクロ

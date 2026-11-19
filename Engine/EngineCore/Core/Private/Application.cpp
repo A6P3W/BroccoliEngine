@@ -1,5 +1,7 @@
 #include "Application.h"
 
+#include "GameModeBase.h"
+
 #define WIN32_LEAN_AND_MEAN
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -32,7 +34,9 @@
 #include "AutomationSubsystem.h"
 #include "BroccoliRaylib.h"
 #include "DebugOverlay.h"
+#ifdef _EDITOR
 #include "EditorMode.h"
+#endif
 #include "EngineDefine.h"
 #include "GamePadDevice.h"
 #include "HttpManager.h"
@@ -43,12 +47,12 @@
 #include "NetworkManager.h"
 #include "PathResolver.h"
 #include "PerformanceOverlay.h"
+#include "PhysicsSystem3D.h"
 #include "PluginHost.h"
 #include "RenderSystem.h"
 #include "ResourceManager.h"
 #include "SceneManager.h"
 #include "SoundManager.h"
-#include "Systems/Private/Jolt/JoltRuntime.h"
 #include "TimerManager.h"
 #include "World.h"
 #include "rlImGui/rlImGui.h"
@@ -351,17 +355,17 @@ bool Application::Run() {
   }
 
   ResourceManager::GetInstance();
-  if (!FJoltRuntime::Initialize()) {
+  if (!FPhysicsSystem3D::InitializeRuntime()) {
     M_LOG(Error, "Jolt runtime initialization failed.");
     Shutdown();
     return false;
   }
-  if (IsEditor) {
-    SceneManager::GetInstance().OpenGameMode<EditorMode>();
-  } else {
-    if (GameSetupCallback != nullptr) GameSetupCallback();
-    SceneManager::GetInstance().OpenStartupLevel();
-  }
+#ifdef _EDITOR
+  SceneManager::GetInstance().OpenGameMode<EditorMode>();
+#else
+  if (GameSetupCallback != nullptr) GameSetupCallback();
+  SceneManager::GetInstance().OpenStartupLevel();
+#endif
 
   auto& Input = InputManager::GetInstance();
   Input.AddDevice(std::make_unique<KeyboardDevice>());
@@ -395,7 +399,7 @@ bool Application::Run() {
     AutomationSubsystem.reset();
   }
   SceneManager::GetInstance().Shutdown();
-  FJoltRuntime::Shutdown();
+  FPhysicsSystem3D::ShutdownRuntime();
   Shutdown();
   return true;
 }
@@ -410,8 +414,8 @@ bool Application::ProcessSceneChanges() {
   const auto Result = Manager.ProcessSceneChanges();
   World* CurrentScene = SceneManager::GetInstance().GetCurrentScene();
   if (CurrentScene != nullptr) {
-    if (auto* CurrentEditorMode = dynamic_cast<EditorMode*>(CurrentScene->GetGameMode())) {
-      const FVector2D RequestedSize = CurrentEditorMode->GetViewportState().RequestedRenderSize;
+    if (AGameModeBase* CurrentGameMode = CurrentScene->GetGameMode()) {
+      const FVector2D RequestedSize = CurrentGameMode->GetRequestedViewportSize();
       if (RequestedSize.X > 0.0f && RequestedSize.Y > 0.0f) {
         constexpr int ResizeQuantum = 4;
         const int RequestedWidth =
@@ -433,7 +437,7 @@ bool Application::ProcessSceneChanges() {
       }
 
       const RenderTexture2D* Buffer = AsRenderTexture(OffscreenBuffer);
-      CurrentEditorMode->SetViewportRenderTexture(
+      CurrentGameMode->OnViewportRenderTextureChanged(
           OffscreenBuffer, Buffer->texture.width, Buffer->texture.height
       );
     }

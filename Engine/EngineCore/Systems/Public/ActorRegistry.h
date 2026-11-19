@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "ActorManager.h"
 #include "BroccoliEngineAPI.h"
 #include "UMath.h"
 #include "World.h"
@@ -23,14 +22,15 @@ class BROCCOLI_ENGINE_API ActorRegistry {
   }
 
   template <class T>
-  bool RegisterOwned(std::string ModuleOwner, bool IsGameMode = false) {
+  bool RegisterOwned(std::string ModuleOwner, bool IsGameMode = false, bool Listed = true) {
     return RegisterFactory(
         T::StaticClassName(),
         [](World* WorldPtr, const FVector2D& Location, FRotator Rotation) -> AActor* {
           return WorldPtr->SpawnActor<T>(Location, Rotation, true);
         },
         std::move(ModuleOwner),
-        IsGameMode
+        IsGameMode,
+        Listed
     );
   }
 
@@ -54,7 +54,11 @@ class BROCCOLI_ENGINE_API ActorRegistry {
   ActorRegistry();
   ~ActorRegistry();
   bool RegisterFactory(
-      std::string ClassName, FactoryFn Factory, std::string ModuleOwner, bool IsGameMode
+      std::string ClassName,
+      FactoryFn Factory,
+      std::string ModuleOwner,
+      bool IsGameMode,
+      bool Listed
   );
   struct Impl;
   Impl* ImplPtr = nullptr;

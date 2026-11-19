@@ -4,6 +4,7 @@
 #include <cmath>
 #include <filesystem>
 
+#include "Actor.h"
 #include "ActorManager.h"
 #include "ActorRegistry.h"
 #include "PhysicsSystem3D.h"

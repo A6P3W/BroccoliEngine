@@ -1,8 +1,8 @@
 #include "DefaultLineCollisionActor.h"
 
-#include <LineCollision2DComponent.h>
-
 #include <memory>
+
+#include "LineCollision2DComponent.h"
 
 REGISTER_ACTOR(ADefaultLineCollisionActor);
 ADefaultLineCollisionActor::ADefaultLineCollisionActor() {

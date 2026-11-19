@@ -2,6 +2,7 @@
 
 #include "CircleCollision2DComponent.h"
 #include "Collision2DComponent.h"
+#include "DebugOverlay.h"
 #include "LineCollision2DComponent.h"
 #include "Log.h"
 #include "RectangleCollision2DComponent.h"

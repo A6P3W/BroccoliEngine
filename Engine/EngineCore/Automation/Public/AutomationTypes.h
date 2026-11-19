@@ -6,25 +6,7 @@
 #include <string>
 #include <string_view>
 
-enum class EAutomationErrorCode : uint8_t {
-  None = 0,
-  InvalidRequest,
-  InvalidJson,
-  InvalidArgument,
-  RequestTooLarge,
-  WorldNotAvailable,
-  RequestTimeout,
-  EngineShuttingDown,
-  InternalError,
-  ActorNotFound,
-  ClassNotRegistered,
-  ActorPendingDestroy,
-  ComponentNotFound,
-  ComponentPendingDestroy,
-  Conflict,
-  MethodNotRegistered,
-  CommandNotRegistered
-};
+#include "AutomationError.h"
 
 struct FAutomationConfig {
   bool Enabled = false;
@@ -35,9 +17,5 @@ struct FAutomationConfig {
 };
 
 nlohmann::json MakeAutomationSuccess(nlohmann::json Data = nlohmann::json::object());
-
-nlohmann::json MakeAutomationError(EAutomationErrorCode ErrorCode, std::string_view Message);
-
-std::string_view ToAutomationErrorCodeString(EAutomationErrorCode ErrorCode);
 
 bool IsValidAutomationOperationName(std::string_view Name);

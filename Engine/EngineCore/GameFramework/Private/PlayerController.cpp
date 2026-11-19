@@ -9,6 +9,8 @@
 #include <MouseDevice.h>
 #include <UIManager.h>
 
+#include "Pawn.h"
+
 REGISTER_ACTOR(APlayerController)
 
 struct APlayerController::Impl {

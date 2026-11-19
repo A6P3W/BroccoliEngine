@@ -24,6 +24,11 @@ file(GLOB_RECURSE BROCCOLI_ENGINE_FILES
   "${CMAKE_CURRENT_SOURCE_DIR}/EngineSide/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/EngineSide/*.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/EngineSide/*.hpp"
+)
+
+# Editor sources are compiled only for the Editor configuration.
+file(GLOB_RECURSE BROCCOLI_EDITOR_FILES
+  CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/Editor/*.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/Editor/*.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/Editor/*.h"
@@ -41,6 +46,7 @@ list(APPEND BROCCOLI_ENGINE_FILES
 
 add_library(BroccoliEngine SHARED ${BROCCOLI_ENGINE_FILES})
 add_library(Broccoli::Engine ALIAS BroccoliEngine)
+target_sources(BroccoliEngine PRIVATE $<$<CONFIG:Editor>:${BROCCOLI_EDITOR_FILES}>)
 
 target_compile_features(BroccoliEngine PUBLIC cxx_std_26)
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/BroccoliReflection.cmake")
@@ -72,7 +78,7 @@ target_include_directories(BroccoliEngine
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Utils/Public>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineSide>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EngineSide/Default/Public>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Editor/Public>
+    $<$<CONFIG:Editor>:$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Editor/Public>>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/EngineCore/Automation/Private
@@ -170,4 +176,5 @@ endif()
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES
   ${BROCCOLI_ENGINE_FILES}
+  ${BROCCOLI_EDITOR_FILES}
 )

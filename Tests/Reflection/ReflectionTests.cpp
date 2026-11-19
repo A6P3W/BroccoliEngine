@@ -17,6 +17,7 @@
 #include "EditorClipboard.h"
 #include "EditorTransformTool.h"
 #include "ForceFieldComponent.h"
+#include "LevelSaveData.h"
 #include "LevelSerializer.h"
 #include "Log.h"
 #include "NetMovementComponent.h"
@@ -568,8 +569,8 @@ void TestLevelSerializerRoundTripAndLegacyVersions() {
   };
   const FLevelMetaData Meta{"ReflectionGameMode"};
   Check(
-      LevelSerializer::SaveData(RoundTripPath.string(), Meta, {Actor}),
-      "LevelSerializer::SaveData failed."
+      LevelSaveDataSerializer::SaveData(RoundTripPath.string(), Meta, {Actor}),
+      "LevelSaveDataSerializer::SaveData failed."
   );
 
   std::ifstream SavedInput(RoundTripPath, std::ios::binary);
@@ -607,7 +608,7 @@ void TestLevelSerializerRoundTripAndLegacyVersions() {
   FLevelMetaData LoadedMeta;
   std::vector<FActorSaveData> LoadedActors;
   Check(
-      LevelSerializer::LoadData(RoundTripPath.string(), LoadedMeta, LoadedActors),
+      LevelSaveDataSerializer::LoadData(RoundTripPath.string(), LoadedMeta, LoadedActors),
       "LoadData failed for a version 5 file."
   );
   Check(
@@ -625,7 +626,7 @@ void TestLevelSerializerRoundTripAndLegacyVersions() {
   Version3["actors"][0].erase("components");
   WriteJson(Version3Path, Version3);
   Check(
-      LevelSerializer::LoadData(Version3Path.string(), LoadedMeta, LoadedActors) &&
+      LevelSaveDataSerializer::LoadData(Version3Path.string(), LoadedMeta, LoadedActors) &&
           LoadedActors.size() == 1 && LoadedActors[0].Components.empty(),
       "Legacy v3 level did not load without components."
   );
@@ -646,7 +647,7 @@ void TestLevelSerializerRoundTripAndLegacyVersions() {
       }
   );
   Check(
-      LevelSerializer::LoadData(Version1Path.string(), LoadedMeta, LoadedActors),
+      LevelSaveDataSerializer::LoadData(Version1Path.string(), LoadedMeta, LoadedActors),
       "LoadData failed for a version 1 file."
   );
   Check(
@@ -682,7 +683,7 @@ void TestLevelSerializerRoundTripAndLegacyVersions() {
       }
   );
   Check(
-      LevelSerializer::LoadData(Version2Path.string(), LoadedMeta, LoadedActors),
+      LevelSaveDataSerializer::LoadData(Version2Path.string(), LoadedMeta, LoadedActors),
       "LoadData failed for a version 2 file."
   );
   Check(
@@ -1442,14 +1443,14 @@ void TestComponentRegistryAndPersistence() {
         "Could not configure Scene component hierarchy."
     );
     ChildScene->RegisterComponent();
-    FActorSaveData Captured = LevelSerializer::CaptureActor(Actor);
+    FActorSaveData Captured = LevelSaveDataSerializer::CaptureActor(Actor);
     Check(
         Captured.Components.size() == 4 &&
             Captured.Components[0].Source == EComponentCreationSource::Native,
         "Named native component was not captured."
     );
     Check(
-        LevelSerializer::SaveData(Path.string(), {}, {Captured}),
+        LevelSaveDataSerializer::SaveData(Path.string(), {}, {Captured}),
         "Could not save native component data."
     );
     EditorClipboard Clipboard;
@@ -1483,7 +1484,7 @@ void TestComponentRegistryAndPersistence() {
     FLevelMetaData Meta;
     std::vector<FActorSaveData> Actors;
     Check(
-        LevelSerializer::LoadData(Path.string(), Meta, Actors) && Actors.size() == 1,
+        LevelSaveDataSerializer::LoadData(Path.string(), Meta, Actors) && Actors.size() == 1,
         "Could not load component data."
     );
     Check(
@@ -1492,7 +1493,7 @@ void TestComponentRegistryAndPersistence() {
     );
     World LoadWorld;
     auto* Actor = LoadWorld.SpawnActor<AReflectionComponentActor>({}, FRotator(0.0F), true);
-    LevelSerializer::ApplyActor(Actor, Actors[0]);
+    LevelSaveDataSerializer::ApplyActor(Actor, Actors[0]);
     auto* Instance =
         dynamic_cast<MReflectionInstanceComponent*>(Actor->FindComponentByName("Extra"));
     auto* ParentScene = dynamic_cast<MSceneComponent*>(Actor->FindComponentByName("ParentScene"));
@@ -1518,7 +1519,7 @@ void TestComponentRegistryAndPersistence() {
     WithUnknown.Components[1].ClassName = "MissingComponent";
     World PartialWorld;
     auto* Partial = PartialWorld.SpawnActor<AReflectionComponentActor>({}, FRotator(0.0F), true);
-    LevelSerializer::ApplyActor(Partial, WithUnknown);
+    LevelSaveDataSerializer::ApplyActor(Partial, WithUnknown);
     Check(
         ReadProperty<int>(*Class, "Health", Partial->NativeComponent) == 42 &&
             Partial->FindComponentByName("Extra") == nullptr,

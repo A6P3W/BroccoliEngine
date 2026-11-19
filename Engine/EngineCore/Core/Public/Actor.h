@@ -12,29 +12,14 @@
 
 #include "ActorComponent.h"
 #include "ActorId.h"
-#include "ActorRegistry.h"
 #include "BaseObject.h"
 #include "BroccoliEngineAPI.h"
 #include "ComponentId.h"
 #include "NetBuffer.h"
-#include "NetworkManager.h"
+#include "NetworkTransport.h"
 #include "NetworkTypes.h"
-#include "ReflectionGenerator.h"
 #include "ReplicatedProperty.h"
-#include "SceneComponent.h"
 #include "UMath.h"
-
-template <class T>
-struct TActorAutoRegister {
-  TActorAutoRegister(bool IsGameMode = false) {
-    if (!ActorRegistry::GetInstance().RegisterOwned<T>("Static", IsGameMode)) return;
-    if (!ReflectionGenerator::RegisterStaticClass<T>()) {
-      ActorRegistry::GetInstance().UnregisterClass(T::StaticClassName());
-    }
-  }
-};
-
-#define REGISTER_ACTOR(ClassName) static TActorAutoRegister<ClassName> AutoRegister_##ClassName;
 
 #define DEFINE_ACTOR_CLASS(ClassName)                         \
  public:                                                      \
@@ -239,6 +224,10 @@ class BROCCOLI_ENGINE_API AActor : public MBaseObject
   }
   World* GetWorld();
   void SetWorld(World* world);
+
+  /// @brief アクターのSetWorldが実行された後に呼ばれる
+  using FWorldAssignedCallback = void (*)(AActor*);
+  static void SetWorldAssignedCallback(FWorldAssignedCallback Callback);
   bool HasBegunPlay() const;
 
   bool IsEditorActor() const { return bEditorActor; }
@@ -353,3 +342,5 @@ template <class T>
 T* NewObject(AActor* Owner, std::string_view Name) {
   return NewObjectWithParams<T>(Owner, FComponentCreateParams{.Name = std::string(Name)});
 }
+
+#include "ActorRegistration.h"

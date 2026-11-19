@@ -1,8 +1,8 @@
 #include "DefaultCircleCollisionActor.h"
 
-#include <CircleCollision2DComponent.h>
-
 #include <memory>
+
+#include "CircleCollision2DComponent.h"
 
 REGISTER_ACTOR(ADefaultCircleCollisionActor);
 ADefaultCircleCollisionActor::ADefaultCircleCollisionActor() {

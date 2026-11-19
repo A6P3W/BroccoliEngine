@@ -34,6 +34,9 @@ class BROCCOLI_ENGINE_API ResourceManager {
   int GetFont(int Size, int Weight = DefaultFontWeight);
   int GetTextWidth(const std::string& Text, int FontHandle);
   int GetFontPixelSize(int FontHandle) const;
+  // Offscreen canvas render texture lifetime. Drawing into it is done by FCanvasRenderer.
+  int CreateCanvasTexture(int Width, int Height);
+  void ReleaseCanvasTexture(int Handle);
   void ReleaseResourceGraph();
   void ReleaseAllResources();
 

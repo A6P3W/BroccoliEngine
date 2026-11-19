@@ -1,8 +1,8 @@
 #include "DefaultRectangleCollisionActor.h"
 
-#include <RectangleCollision2DComponent.h>
-
 #include <memory>
+
+#include "RectangleCollision2DComponent.h"
 
 REGISTER_ACTOR(ADefaultRectangleCollisionActor);
 ADefaultRectangleCollisionActor::ADefaultRectangleCollisionActor() {

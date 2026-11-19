@@ -6,6 +6,8 @@
 #include <system_error>
 
 #include "FileUtils.h"
+#include "GameInstance.h"
+#include "Log.h"
 #include "PathResolver.h"
 
 namespace {
@@ -84,11 +86,11 @@ SceneManager& SceneManager::GetInstance() {
 
 #include "Actor.h"
 #include "ActorManager.h"
+#include "ActorRegistry.h"
 #include "Camera2DComponent.h"
 #include "CollisionSystem.h"
 #include "EngineDefine.h"
 #include "GameModeBase.h"
-#include "GridLine.h"
 #include "LevelSerializer.h"
 #include "RenderSystem.h"
 #include "ReplicationSystem.h"
@@ -245,7 +247,11 @@ SceneManager::FSceneChangeResult SceneManager::ProcessSceneChanges() {
     ImplPtr->CurrentLevelPath = NewLevelPath;
 
     if (ImplPtr->CurrentScene && (IsDebug || IsEditor)) {
-      ImplPtr->CurrentScene->SpawnActor<AGridLine>();
+      // ActorRegistry spawns with deferred BeginPlay, so start the actor explicitly.
+      if (AActor* GridLine =
+              ActorRegistry::GetInstance().Spawn(ImplPtr->CurrentScene.get(), "AGridLine")) {
+        GridLine->Spawned();
+      }
     }
 
     if (ImplPtr->CurrentScene && ImplPtr->CurrentScene->IsServer()) {

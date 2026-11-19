@@ -2,6 +2,18 @@
 
 #include "Actor.h"
 #include "Sprite2DComponent.h"
+#ifdef _EDITOR
+namespace {
+void AttachSelectPoint(AActor* Actor) {
+  auto* SelectPoint = NewObject<EditorSelectPointComponent>(Actor);
+  if (SelectPoint) SelectPoint->RegisterComponent();
+}
+
+const bool SelectPointCallbackRegistered =
+    (AActor::SetWorldAssignedCallback(&AttachSelectPoint), true);
+}  // namespace
+#endif
+
 EditorSelectPointComponent::EditorSelectPointComponent() {}
 
 void EditorSelectPointComponent::Draw() { SelectPointSprite->SetWorldScale2D(FScale(1.0f)); }
