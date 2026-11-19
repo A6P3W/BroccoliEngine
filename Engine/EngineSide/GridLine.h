@@ -11,5 +11,5 @@ class AGridLine : public AActor {
   void Draw3DGrid();
 
  private:
-  float CollisionCellSize;
+  float CollisionCellSize = 1.0f;
 };

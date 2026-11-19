@@ -247,8 +247,11 @@ SceneManager::FSceneChangeResult SceneManager::ProcessSceneChanges() {
     ImplPtr->CurrentLevelPath = NewLevelPath;
 
     if (ImplPtr->CurrentScene && (IsDebug || IsEditor)) {
-      ActorRegistry::GetInstance().Spawn(ImplPtr->CurrentScene.get(), "AGridLine");
-      ImplPtr->CurrentScene->GetActorManager()->FlushPendingActors();
+      // ActorRegistry spawns with deferred BeginPlay, so start the actor explicitly.
+      if (AActor* GridLine =
+              ActorRegistry::GetInstance().Spawn(ImplPtr->CurrentScene.get(), "AGridLine")) {
+        GridLine->Spawned();
+      }
     }
 
     if (ImplPtr->CurrentScene && ImplPtr->CurrentScene->IsServer()) {
